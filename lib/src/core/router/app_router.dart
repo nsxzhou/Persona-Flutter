@@ -20,23 +20,38 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: AppRoute.projects.path,
-            builder: (context, state) => const ProjectsPage(),
+            pageBuilder: (context, state) => NoTransitionPage<void>(
+              key: state.pageKey,
+              child: const ProjectsPage(),
+            ),
           ),
           GoRoute(
             path: AppRoute.styleLab.path,
-            builder: (context, state) => const StyleLabPage(),
+            pageBuilder: (context, state) => NoTransitionPage<void>(
+              key: state.pageKey,
+              child: const StyleLabPage(),
+            ),
           ),
           GoRoute(
             path: AppRoute.plotLab.path,
-            builder: (context, state) => const PlotLabPage(),
+            pageBuilder: (context, state) => NoTransitionPage<void>(
+              key: state.pageKey,
+              child: const PlotLabPage(),
+            ),
           ),
           GoRoute(
             path: AppRoute.workflowRuns.path,
-            builder: (context, state) => const WorkflowRunsPage(),
+            pageBuilder: (context, state) => NoTransitionPage<void>(
+              key: state.pageKey,
+              child: const WorkflowRunsPage(),
+            ),
           ),
           GoRoute(
             path: AppRoute.settings.path,
-            builder: (context, state) => const SettingsPage(),
+            pageBuilder: (context, state) => NoTransitionPage<void>(
+              key: state.pageKey,
+              child: const SettingsPage(),
+            ),
           ),
         ],
       ),
