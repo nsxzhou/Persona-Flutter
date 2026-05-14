@@ -6,46 +6,41 @@
 
 ## Overview
 
-<!--
-Document your project's logging conventions here.
+No logging package has been introduced in the scaffold. Prefer structured, explicit logging only when a feature needs diagnosability for long-running local tasks or provider calls.
 
-Questions to answer:
-- What logging library do you use?
-- What are the log levels and when to use each?
-- What should be logged?
-- What should NOT be logged (PII, secrets)?
--->
-
-(To be filled by the team)
+Until a logging library is selected, avoid ad-hoc `print`/`debugPrint` in committed code.
 
 ---
 
 ## Log Levels
 
-<!-- When to use each level: debug, info, warn, error -->
+When logging is introduced:
 
-(To be filled by the team)
+* `debug`: local development details that are not needed by users.
+* `info`: lifecycle events for user-visible long-running tasks.
+* `warning`: recoverable failures, retries, or degraded local state.
+* `error`: failed operations requiring user-visible feedback or repair.
 
 ---
 
 ## Structured Logging
 
-<!-- Log format, required fields -->
-
-(To be filled by the team)
+Task logs should include task id, task kind, stage, and timestamp. Avoid free-form logs that cannot be tied back to a persisted task record.
 
 ---
 
 ## What to Log
 
-<!-- Important events to log -->
+Log long-running workflow lifecycle events when implemented:
 
-(To be filled by the team)
+* task queued,
+* task started,
+* stage changed,
+* task paused/resumed,
+* task failed/succeeded.
 
 ---
 
 ## What NOT to Log
 
-<!-- Sensitive data, PII, secrets -->
-
-(To be filled by the team)
+Never log API keys, full provider credentials, manuscript content, imported source text, or prompt payloads by default.

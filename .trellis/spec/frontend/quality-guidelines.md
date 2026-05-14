@@ -6,46 +6,46 @@
 
 ## Overview
 
-<!--
-Document your project's quality standards here.
-
-Questions to answer:
-- What patterns are forbidden?
-- What linting rules do you enforce?
-- What are your testing requirements?
-- What code review standards apply?
--->
-
-(To be filled by the team)
+Flutter UI quality is enforced with `flutter_lints`, generated-code freshness, analyzer checks, and focused widget tests.
 
 ---
 
 ## Forbidden Patterns
 
-<!-- Patterns that should never be used and why -->
-
-(To be filled by the team)
+* Do not leave default Flutter counter scaffold code in product UI.
+* Do not edit generated `*.g.dart` / `*.freezed.dart` files manually.
+* Do not let widgets import Drift table records directly.
+* Do not add routes without updating route metadata and shell navigation consistently.
 
 ---
 
 ## Required Patterns
 
-<!-- Patterns that must always be used -->
-
-(To be filled by the team)
+* Wrap the app in `ProviderScope`.
+* Use `MaterialApp.router` with `go_router`.
+* Use `ConsumerWidget` when reading providers in widgets.
+* Handle loading/error/data branches for async providers.
 
 ---
 
 ## Testing Requirements
 
-<!-- What level of testing is expected -->
+Run before commit:
 
-(To be filled by the team)
+```bash
+dart run build_runner build
+dart format lib test .trellis/spec
+flutter analyze
+flutter test
+```
+
+Add widget tests for navigation, shell behavior, and user-visible feature state.
 
 ---
 
 ## Code Review Checklist
 
-<!-- What reviewers should check -->
-
-(To be filled by the team)
+* Does the route appear in `AppRoute`, `app_router.dart`, and shell navigation if it is a top-level route?
+* Does provider-based UI handle errors?
+* Are generated files committed and current?
+* Is feature code placed under the correct `features/<feature>/` layer?

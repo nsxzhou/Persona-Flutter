@@ -6,49 +6,53 @@
 
 ## Overview
 
-<!--
-Document your project's backend directory structure here.
+Persona Flutter does not have a separate HTTP backend. "Backend" code means the in-process Dart application/data layer that owns local persistence, repositories, long-running tasks, and service orchestration.
 
-Questions to answer:
-- How are modules/packages organized?
-- Where does business logic live?
-- Where are API endpoints defined?
-- How are utilities and helpers organized?
--->
-
-(To be filled by the team)
+Backend-like infrastructure belongs under `lib/src/core/` when it is shared by multiple features. Feature-specific backend logic belongs under `lib/src/features/<feature>/application/` and `lib/src/features/<feature>/data/`.
 
 ---
 
 ## Directory Layout
 
-```
-<!-- Replace with your actual structure -->
-src/
-├── ...
-└── ...
+```text
+lib/src/
+├── core/
+│   ├── database/        # AppDatabase, Drift table definitions, DB providers
+│   └── tasks/
+│       ├── domain/      # Shared task entities/value objects
+│       ├── application/ # Shared task repository contracts/providers
+│       └── data/        # Drift repository implementations
+└── features/<feature>/
+    ├── domain/          # Feature entities and repository contracts
+    ├── application/     # Use cases, app services, generated providers
+    └── data/            # Drift DAOs, DTOs, mappers, repository implementations
 ```
 
 ---
 
 ## Module Organization
 
-<!-- How should new features/modules be organized? -->
+Keep application services independent of Flutter widgets. Presentation code calls Riverpod providers or use-case services; it must not reach directly into Drift tables.
 
-(To be filled by the team)
+Shared task primitives live in `lib/src/core/tasks/`, as shown by:
+
+* `lib/src/core/tasks/domain/workflow_task.dart`
+* `lib/src/core/tasks/application/workflow_task_repository.dart`
+* `lib/src/core/tasks/data/drift_workflow_task_repository.dart`
 
 ---
 
 ## Naming Conventions
 
-<!-- File and folder naming rules -->
-
-(To be filled by the team)
+* Files and directories use lower snake case.
+* Repository contracts end with `Repository`.
+* Drift-backed repository implementations are prefixed with `Drift`, for example `DriftWorkflowTaskRepository`.
+* Drift tables use descriptive plural record names, for example `WorkflowTaskRecords`.
 
 ---
 
 ## Examples
 
-<!-- Link to well-organized modules as examples -->
-
-(To be filled by the team)
+* `lib/src/core/database/app_database.dart`
+* `lib/src/core/tasks/application/workflow_task_providers.dart`
+* `lib/src/core/tasks/data/drift_workflow_task_repository.dart`

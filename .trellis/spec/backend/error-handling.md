@@ -6,46 +6,34 @@
 
 ## Overview
 
-<!--
-Document your project's error handling conventions here.
+The current scaffold has no custom error hierarchy yet. Errors from async repositories and providers are surfaced through Riverpod `AsyncValue` and rendered in presentation widgets.
 
-Questions to answer:
-- What error types do you define?
-- How are errors propagated?
-- How are errors logged?
-- How are errors returned to clients?
--->
-
-(To be filled by the team)
+Example: `lib/src/features/workflow_runs/presentation/workflow_runs_page.dart` handles `tasks.when(error: ...)`.
 
 ---
 
 ## Error Types
 
-<!-- Custom error classes/types -->
-
-(To be filled by the team)
+No project-specific error classes exist yet. When domain errors are introduced, define them in the owning feature's `domain/` layer or in `core/` if they are cross-cutting.
 
 ---
 
 ## Error Handling Patterns
 
-<!-- Try-catch patterns, error propagation -->
+Repository methods should expose typed results through `Future<T>` or `Stream<T>`. Let provider boundaries surface asynchronous failures unless the service can add domain-specific recovery or context.
 
-(To be filled by the team)
+Presentation widgets must handle loading, data, and error states for async providers.
 
 ---
 
 ## API Error Responses
 
-<!-- Standard error response format -->
-
-(To be filled by the team)
+Not applicable: there is no HTTP API in the Flutter rewrite baseline.
 
 ---
 
 ## Common Mistakes
 
-<!-- Error handling mistakes your team has made -->
-
-(To be filled by the team)
+* Do not swallow repository exceptions silently.
+* Do not render async provider data without an error branch.
+* Do not introduce HTTP-style error response DTOs unless a real API boundary is added.

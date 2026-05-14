@@ -6,46 +6,41 @@
 
 ## Overview
 
-<!--
-Document your project's hook conventions here.
-
-Questions to answer:
-- What custom hooks do you have?
-- How do you handle data fetching?
-- What are the naming conventions?
-- How do you share stateful logic?
--->
-
-(To be filled by the team)
+This Flutter project does not use React hooks. The equivalent shared stateful logic is expressed with Riverpod providers, preferably generated via `riverpod_generator`.
 
 ---
 
 ## Custom Hook Patterns
 
-<!-- How to create and structure custom hooks -->
+Create providers in `application/` for feature-specific logic and in `core/<area>/application/` for shared logic.
 
-(To be filled by the team)
+Example:
+
+* `lib/src/core/tasks/application/workflow_task_providers.dart`
 
 ---
 
 ## Data Fetching
 
-<!-- How data fetching is handled (React Query, SWR, etc.) -->
+Use repository contracts plus Riverpod providers. For persisted local streams, expose a `StreamProvider` generated from an `@riverpod` stream function.
 
-(To be filled by the team)
+Example: `recentWorkflowTasks` watches `WorkflowTaskRepository.watchRecentTasks()`.
 
 ---
 
 ## Naming Conventions
 
-<!-- Hook naming rules (use*, etc.) -->
+Provider functions use descriptive noun phrases:
 
-(To be filled by the team)
+* `appDatabase`
+* `workflowTaskRepository`
+* `recentWorkflowTasks`
+
+The generated provider identifiers append `Provider`.
 
 ---
 
 ## Common Mistakes
 
-<!-- Hook-related mistakes your team has made -->
-
-(To be filled by the team)
+* Do not create providers in presentation files unless they are strictly private UI state.
+* Do not forget to run `dart run build_runner build` after adding or renaming `@riverpod` functions.
