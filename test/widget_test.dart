@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:persona_flutter/src/app/persona_app.dart';
 import 'package:persona_flutter/src/core/router/app_route.dart';
 import 'package:persona_flutter/src/core/ui/app_shell.dart';
@@ -22,23 +23,15 @@ void main() {
   testWidgets('keeps sidebar width stable when workflow runs is selected', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      _ShellTestHost(
-        location: AppRoute.projects.path,
-        child: const Text('Projects body'),
-      ),
-    );
-    await tester.pump();
+    final router = _buildShellTestRouter();
+
+    await tester.pumpWidget(_ShellTestApp(router: router));
+    await tester.pumpAndSettle();
 
     final initialWidth = tester.getSize(find.byType(NavigationRail)).width;
 
-    await tester.pumpWidget(
-      _ShellTestHost(
-        location: AppRoute.workflowRuns.path,
-        child: const Text('Workflow Runs body'),
-      ),
-    );
-    await tester.pump();
+    await tester.tap(find.text('Workflow Runs').first);
+    await tester.pumpAndSettle();
 
     expect(tester.getSize(find.byType(NavigationRail)).width, initialWidth);
   });
@@ -68,16 +61,41 @@ void main() {
   });
 }
 
-class _ShellTestHost extends StatelessWidget {
-  const _ShellTestHost({required this.location, required this.child});
+GoRouter _buildShellTestRouter() {
+  Widget branchBody(String label) {
+    return Center(child: Text('$label body'));
+  }
 
-  final String location;
-  final Widget child;
+  return GoRouter(
+    initialLocation: AppRoute.projects.path,
+    routes: [
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return AppShell(navigationShell: navigationShell);
+        },
+        branches: [
+          for (final route in AppRoute.values)
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: route.path,
+                  builder: (context, state) => branchBody(route.label),
+                ),
+              ],
+            ),
+        ],
+      ),
+    ],
+  );
+}
+
+class _ShellTestApp extends StatelessWidget {
+  const _ShellTestApp({required this.router});
+
+  final GoRouter router;
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: AppShell(location: location, child: child),
-    );
+    return MaterialApp.router(routerConfig: router);
   }
 }

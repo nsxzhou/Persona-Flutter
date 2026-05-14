@@ -19,6 +19,14 @@ Use Riverpod for app state, dependency wiring, and async data subscriptions. Pre
 
 ---
 
+## Routing State
+
+Use `StatefulShellRoute.indexedStack` for persistent top-level shell navigation such as `NavigationRail` destinations. The shell should consume `StatefulNavigationShell.currentIndex` for the selected destination and call `StatefulNavigationShell.goBranch(...)` for branch changes.
+
+Do not model top-level shell tabs as a plain `ShellRoute` plus independent page transitions. That can keep outgoing and incoming branch pages painted together during route changes on desktop.
+
+---
+
 ## When to Use Global State
 
 Use a provider when state:

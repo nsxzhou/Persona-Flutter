@@ -13,45 +13,50 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: AppRoute.projects.path,
     routes: [
-      ShellRoute(
-        builder: (context, state, child) {
-          return AppShell(location: state.uri.path, child: child);
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return AppShell(navigationShell: navigationShell);
         },
-        routes: [
-          GoRoute(
-            path: AppRoute.projects.path,
-            pageBuilder: (context, state) => NoTransitionPage<void>(
-              key: state.pageKey,
-              child: const ProjectsPage(),
-            ),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoute.projects.path,
+                builder: (context, state) => const ProjectsPage(),
+              ),
+            ],
           ),
-          GoRoute(
-            path: AppRoute.styleLab.path,
-            pageBuilder: (context, state) => NoTransitionPage<void>(
-              key: state.pageKey,
-              child: const StyleLabPage(),
-            ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoute.styleLab.path,
+                builder: (context, state) => const StyleLabPage(),
+              ),
+            ],
           ),
-          GoRoute(
-            path: AppRoute.plotLab.path,
-            pageBuilder: (context, state) => NoTransitionPage<void>(
-              key: state.pageKey,
-              child: const PlotLabPage(),
-            ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoute.plotLab.path,
+                builder: (context, state) => const PlotLabPage(),
+              ),
+            ],
           ),
-          GoRoute(
-            path: AppRoute.workflowRuns.path,
-            pageBuilder: (context, state) => NoTransitionPage<void>(
-              key: state.pageKey,
-              child: const WorkflowRunsPage(),
-            ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoute.workflowRuns.path,
+                builder: (context, state) => const WorkflowRunsPage(),
+              ),
+            ],
           ),
-          GoRoute(
-            path: AppRoute.settings.path,
-            pageBuilder: (context, state) => NoTransitionPage<void>(
-              key: state.pageKey,
-              child: const SettingsPage(),
-            ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoute.settings.path,
+                builder: (context, state) => const SettingsPage(),
+              ),
+            ],
           ),
         ],
       ),

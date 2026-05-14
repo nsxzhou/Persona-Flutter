@@ -1,19 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../router/app_route.dart';
-
 const _navigationRailWidth = 144.0;
 
 class AppShell extends StatelessWidget {
-  const AppShell({required this.location, required this.child, super.key});
+  const AppShell({required this.navigationShell, super.key});
 
-  final String location;
-  final Widget child;
+  final StatefulNavigationShell navigationShell;
 
   @override
   Widget build(BuildContext context) {
-    final selectedIndex = _selectedIndexFor(location);
+    final selectedIndex = navigationShell.currentIndex;
 
     return Scaffold(
       body: SafeArea(
@@ -53,22 +50,18 @@ class AppShell extends StatelessWidget {
                   ),
                 ],
                 onDestinationSelected: (index) {
-                  context.go(AppRoute.values[index].path);
+                  navigationShell.goBranch(
+                    index,
+                    initialLocation: index == selectedIndex,
+                  );
                 },
               ),
             ),
             const VerticalDivider(width: 1),
-            Expanded(child: child),
+            Expanded(child: navigationShell),
           ],
         ),
       ),
     );
-  }
-
-  int _selectedIndexFor(String location) {
-    final index = AppRoute.values.indexWhere(
-      (route) => location.startsWith(route.path),
-    );
-    return index < 0 ? 0 : index;
   }
 }
