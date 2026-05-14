@@ -74,3 +74,37 @@ Filled backend/frontend Trellis development guidelines with real Flutter, Drift,
 ### Next Steps
 
 - None - task complete
+
+
+## Session 3: Fix sidebar navigation ghosting
+
+**Date**: 2026-05-14
+**Task**: Fix sidebar navigation ghosting
+**Branch**: `main`
+
+### Summary
+
+Fixed desktop sidebar switching ghosting by stabilizing NavigationRail width, removing duplicate shell transitions, then refactoring top-level navigation to StatefulShellRoute.indexedStack per Flutter/go_router guidance. Added widget regression coverage and recorded routing convention in frontend spec.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e6b8164` | (see git log) |
+| `bec9bc7` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
