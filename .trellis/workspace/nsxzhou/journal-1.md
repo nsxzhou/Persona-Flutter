@@ -41,3 +41,36 @@ Initialized Git and Trellis baseline, scaffolded the Flutter desktop architectur
 ### Next Steps
 
 - None - task complete
+
+
+## Session 2: Complete bootstrap guidelines
+
+**Date**: 2026-05-14
+**Task**: Complete bootstrap guidelines
+**Branch**: `main`
+
+### Summary
+
+Filled backend/frontend Trellis development guidelines with real Flutter, Drift, Riverpod, generated-code, and quality conventions; completed and archived bootstrap task.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `90056f9` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
