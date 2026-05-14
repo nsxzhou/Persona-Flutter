@@ -1,0 +1,58 @@
+# macOS / local system files
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Local AI/tool caches
+.ace-tool/
+
+# Old reference project and imported local samples
+Persona_副本/
+
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+tmp/
+temp/
+.cache/
+
+# Dart / Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+coverage/
+
+# Flutter platform generated local state
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+macos/Flutter/GeneratedPluginRegistrant.swift
+
+# IDE / editor local state
+.idea/
+.vscode/
+*.iml
+
+# Dependencies and generated caches
+node_modules/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local databases and storage artifacts
+*.db
+*.sqlite
+*.sqlite3
+storage/
+backups/
