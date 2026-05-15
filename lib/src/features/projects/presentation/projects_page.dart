@@ -8,20 +8,19 @@ class ProjectsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PersonaPage(
-      eyebrow: 'Workspace',
-      title: 'Projects',
-      description:
-          'Your local writing desk for long-form projects, blueprints, chapter work, and future Zen Editor sessions.',
+      eyebrow: '工作区',
+      title: '项目',
+      description: '用于长篇项目、蓝图、章节工作和后续 Zen Editor 写作会话的本地写作工作台。',
       actions: [
         FilledButton.icon(
           onPressed: null,
           icon: Icon(Icons.add),
-          label: Text('New project'),
+          label: Text('新建项目'),
         ),
         OutlinedButton.icon(
           onPressed: null,
           icon: Icon(Icons.upload_file_outlined),
-          label: Text('Import'),
+          label: Text('导入'),
         ),
       ],
       children: const [
@@ -42,25 +41,25 @@ class _WorkspaceSummary extends StatelessWidget {
       children: [
         Expanded(
           child: PersonaMetric(
-            label: 'Active project',
+            label: '当前项目',
             value: '0',
-            detail: 'Create or import a project to begin.',
+            detail: '新建或导入项目后开始写作。',
           ),
         ),
         SizedBox(width: 14),
         Expanded(
           child: PersonaMetric(
-            label: 'Draft queue',
-            value: 'Ready',
-            detail: 'Chapter workbench and Zen Editor entry points.',
+            label: '草稿队列',
+            value: '就绪',
+            detail: '章节工作台和 Zen Editor 入口。',
           ),
         ),
         SizedBox(width: 14),
         Expanded(
           child: PersonaMetric(
-            label: 'Local state',
-            value: 'Offline',
-            detail: 'SQLite-backed workspace, no account required.',
+            label: '本地状态',
+            value: '离线',
+            detail: 'SQLite 本地工作区，无需账号。',
           ),
         ),
       ],
@@ -82,9 +81,8 @@ class _ProjectsLayout extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: const [
               PersonaSectionHeader(
-                title: 'Recent projects',
-                description:
-                    'A focused launch point for project workbench and chapter navigation.',
+                title: '最近项目',
+                description: '进入项目工作台和章节导航的集中入口。',
               ),
               SizedBox(height: 18),
               _EmptyProjectsState(),
@@ -96,21 +94,21 @@ class _ProjectsLayout extends StatelessWidget {
           children: const [
             PersonaActionTile(
               icon: Icons.note_add_outlined,
-              title: 'Start from a blank novel',
-              description: 'Create a local project shell and chapter tree.',
+              title: '从空白长篇开始',
+              description: '创建本地项目外壳和章节树。',
               accent: true,
             ),
             SizedBox(height: 12),
             PersonaActionTile(
               icon: Icons.description_outlined,
-              title: 'Import manuscript',
-              description: 'Bring in TXT material for future analysis.',
+              title: '导入手稿',
+              description: '导入 TXT 素材，供后续分析使用。',
             ),
             SizedBox(height: 12),
             PersonaActionTile(
               icon: Icons.view_timeline_outlined,
-              title: 'Open workbench',
-              description: 'Review blueprint, characters, outline, and drafts.',
+              title: '打开工作台',
+              description: '查看蓝图、角色、总纲和草稿。',
             ),
           ],
         );
@@ -162,10 +160,10 @@ class _EmptyProjectsState extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('No project opened yet', style: textTheme.titleLarge),
+                  Text('尚未打开项目', style: textTheme.titleLarge),
                   const SizedBox(height: 6),
                   Text(
-                    'The project list will surface recent novels, chapter status, and Zen Editor entry points when project storage is implemented.',
+                    '项目存储实现后，这里会显示最近长篇、章节状态和 Zen Editor 入口。',
                     style: textTheme.bodyMedium,
                   ),
                 ],

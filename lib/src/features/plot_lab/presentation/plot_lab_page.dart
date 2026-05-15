@@ -8,15 +8,14 @@ class PlotLabPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PersonaPage(
-      eyebrow: 'Story mapping',
-      title: 'Plot Lab',
-      description:
-          'Extract story skeletons, shape reusable plot profiles, and prepare a Story Engine for project planning.',
+      eyebrow: '故事映射',
+      title: '剧情实验室',
+      description: '提取故事骨架，整理可复用的剧情档案，并为项目规划准备 Story Engine。',
       actions: [
         FilledButton.icon(
           onPressed: null,
           icon: Icon(Icons.account_tree_outlined),
-          label: Text('Generate skeleton'),
+          label: Text('生成骨架'),
         ),
       ],
       children: const [_PlotMapPreview()],
@@ -34,34 +33,33 @@ class _PlotMapPreview extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: const [
           PersonaSectionHeader(
-            title: 'Story engine pipeline',
-            description:
-                'A structured path from sample text to reusable plot profile.',
+            title: 'Story Engine 流程',
+            description: '从样本文本到可复用剧情档案的结构化路径。',
           ),
           SizedBox(height: 18),
           Row(
             children: [
               Expanded(
                 child: PersonaMetric(
-                  label: 'Input',
+                  label: '输入',
                   value: 'TXT',
-                  detail: 'Sample manuscript or outline source.',
+                  detail: '样本手稿或大纲来源。',
                 ),
               ),
               SizedBox(width: 12),
               Expanded(
                 child: PersonaMetric(
-                  label: 'Extraction',
-                  value: 'Skeleton',
-                  detail: 'Acts, turns, scenes, stakes, and reveals.',
+                  label: '提取',
+                  value: '骨架',
+                  detail: '分幕、转折、场景、风险和揭示。',
                 ),
               ),
               SizedBox(width: 12),
               Expanded(
                 child: PersonaMetric(
-                  label: 'Output',
-                  value: 'Profile',
-                  detail: 'Reusable plot guidance for project workbench.',
+                  label: '输出',
+                  value: '档案',
+                  detail: '供项目工作台复用的剧情指导。',
                 ),
               ),
             ],

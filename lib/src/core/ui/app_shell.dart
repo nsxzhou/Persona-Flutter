@@ -105,7 +105,7 @@ class _PersonaSidebar extends StatelessWidget {
               _SidebarContextCard(isExpanded: isExpanded),
               const SizedBox(height: 12),
               IconButton(
-                tooltip: isExpanded ? 'Collapse sidebar' : 'Expand sidebar',
+                tooltip: isExpanded ? '折叠侧栏' : '展开侧栏',
                 onPressed: onToggle,
                 icon: Icon(
                   isExpanded
@@ -150,7 +150,7 @@ class _SidebarBrand extends StatelessWidget {
               children: [
                 Text('Persona', style: textTheme.titleMedium),
                 Text(
-                  'Local writing OS',
+                  '本地写作系统',
                   style: textTheme.bodyMedium?.copyWith(fontSize: 12),
                 ),
               ],
@@ -262,11 +262,11 @@ class _SidebarContextCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Workspace', style: textTheme.labelMedium),
+            Text('工作区', style: textTheme.labelMedium),
             const SizedBox(height: 8),
-            Text('Local-first', style: textTheme.titleMedium),
+            Text('本地优先', style: textTheme.titleMedium),
             const SizedBox(height: 2),
-            Text('BYOK providers pending', style: textTheme.bodyMedium),
+            Text('待配置 BYOK Provider', style: textTheme.bodyMedium),
           ],
         ),
       ),

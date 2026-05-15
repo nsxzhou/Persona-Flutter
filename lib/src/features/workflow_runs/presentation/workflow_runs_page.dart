@@ -14,10 +14,9 @@ class WorkflowRunsPage extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return PersonaPage(
-      eyebrow: 'Operations console',
-      title: 'Workflow Runs',
-      description:
-          'Inspect persisted task state for long-running local AI workflows, including queue state, failures, and recoverable runs.',
+      eyebrow: '运维控制台',
+      title: '工作流任务',
+      description: '查看本地长任务的持久化状态，包括队列、失败原因和可恢复任务。',
       children: [
         tasks.when(
           data: (items) {
@@ -34,25 +33,25 @@ class WorkflowRunsPage extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: PersonaMetric(
-                        label: 'Recent runs',
+                        label: '最近任务',
                         value: '${items.length}',
-                        detail: 'Persisted local workflow tasks.',
+                        detail: '已持久化的本地工作流任务。',
                       ),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: PersonaMetric(
-                        label: 'Running',
+                        label: '运行中',
                         value: '$running',
-                        detail: 'Tasks currently marked active.',
+                        detail: '当前标记为活跃的任务。',
                       ),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: PersonaMetric(
-                        label: 'Needs review',
+                        label: '待检查',
                         value: '$failed',
-                        detail: 'Failed tasks with diagnostic detail.',
+                        detail: '包含诊断信息的失败任务。',
                       ),
                     ),
                   ],
@@ -67,7 +66,7 @@ class WorkflowRunsPage extends ConsumerWidget {
           },
           error: (error, stackTrace) => PersonaPanel(
             child: Text(
-              'Unable to load workflow runs: $error',
+              '无法加载工作流任务：$error',
               style: TextStyle(color: colorScheme.error),
             ),
           ),
@@ -91,9 +90,7 @@ class _EmptyWorkflowRuns extends StatelessWidget {
             color: Theme.of(context).colorScheme.primary,
           ),
           const SizedBox(width: 12),
-          const Expanded(
-            child: Text('No local workflow runs have been created yet.'),
-          ),
+          const Expanded(child: Text('尚未创建本地工作流任务。')),
         ],
       ),
     );
@@ -114,9 +111,8 @@ class _WorkflowRunTable extends StatelessWidget {
           const Padding(
             padding: EdgeInsets.all(18),
             child: PersonaSectionHeader(
-              title: 'Recent workflow activity',
-              description:
-                  'Dense task state for analysis, import, and generation jobs.',
+              title: '最近工作流活动',
+              description: '用于分析、导入和生成任务的紧凑状态视图。',
             ),
           ),
           const Divider(height: 1),

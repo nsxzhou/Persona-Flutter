@@ -8,15 +8,14 @@ class StyleLabPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PersonaPage(
-      eyebrow: 'Creative canvas',
-      title: 'Style Lab',
-      description:
-          'Analyze sample prose, distill voice profiles, and prepare reusable style direction for long-form drafting.',
+      eyebrow: '创作画布',
+      title: '风格实验室',
+      description: '分析样本文本，提炼 Voice Profile，并为长篇写作准备可复用的风格方向。',
       actions: [
         FilledButton.icon(
           onPressed: null,
           icon: Icon(Icons.upload_file_outlined),
-          label: Text('Import sample'),
+          label: Text('导入样本'),
         ),
       ],
       children: const [
@@ -38,8 +37,8 @@ class _StylePipeline extends StatelessWidget {
         Expanded(
           child: PersonaActionTile(
             icon: Icons.text_snippet_outlined,
-            title: 'Sample intake',
-            description: 'Collect TXT excerpts and source context.',
+            title: '样本导入',
+            description: '收集 TXT 片段和来源上下文。',
             accent: true,
           ),
         ),
@@ -47,16 +46,16 @@ class _StylePipeline extends StatelessWidget {
         Expanded(
           child: PersonaActionTile(
             icon: Icons.graphic_eq_outlined,
-            title: 'Voice analysis',
-            description: 'Extract rhythm, diction, pacing, and texture.',
+            title: '声音分析',
+            description: '提取节奏、措辞、叙述速度和文本质感。',
           ),
         ),
         SizedBox(width: 12),
         Expanded(
           child: PersonaActionTile(
             icon: Icons.style_outlined,
-            title: 'Style profile',
-            description: 'Save reusable guidance for project drafting.',
+            title: '风格档案',
+            description: '保存可复用于项目写作的风格指导。',
           ),
         ),
       ],
@@ -74,19 +73,18 @@ class _StyleProfilesPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: const [
           PersonaSectionHeader(
-            title: 'Voice profiles',
-            description:
-                'Profiles will appear here after analysis tasks persist their results.',
+            title: 'Voice Profile',
+            description: '分析任务持久化结果后，风格档案会显示在这里。',
           ),
           SizedBox(height: 16),
           Wrap(
             spacing: 10,
             runSpacing: 10,
             children: [
-              PersonaStatusPill(label: 'Diction', icon: Icons.short_text),
-              PersonaStatusPill(label: 'Pacing', icon: Icons.speed),
-              PersonaStatusPill(label: 'Scene texture', icon: Icons.blur_on),
-              PersonaStatusPill(label: 'Narrative distance', icon: Icons.tune),
+              PersonaStatusPill(label: '措辞', icon: Icons.short_text),
+              PersonaStatusPill(label: '节奏', icon: Icons.speed),
+              PersonaStatusPill(label: '场景质感', icon: Icons.blur_on),
+              PersonaStatusPill(label: '叙述距离', icon: Icons.tune),
             ],
           ),
         ],

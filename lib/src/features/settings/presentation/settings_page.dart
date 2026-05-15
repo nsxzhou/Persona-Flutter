@@ -8,10 +8,9 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PersonaPage(
-      eyebrow: 'Local control',
-      title: 'Settings',
-      description:
-          'Configure OpenAI-compatible providers, local data boundaries, import/export, and backup behavior.',
+      eyebrow: '本地控制',
+      title: '设置',
+      description: '配置 OpenAI-compatible Provider、本地数据边界、导入导出和备份行为。',
       children: const [_SettingsGrid()],
     );
   }
@@ -36,24 +35,24 @@ class _SettingsGrid extends StatelessWidget {
           children: const [
             PersonaActionTile(
               icon: Icons.key_outlined,
-              title: 'Provider settings',
-              description: 'Base URL, API key, default model, and test calls.',
+              title: 'Provider 设置',
+              description: 'Base URL、API Key、默认模型和连通性测试。',
               accent: true,
             ),
             PersonaActionTile(
               icon: Icons.storage_outlined,
-              title: 'Local data',
-              description: 'SQLite workspace boundaries and reset controls.',
+              title: '本地数据',
+              description: 'SQLite 工作区边界和重置控制。',
             ),
             PersonaActionTile(
               icon: Icons.import_export,
-              title: 'Import / export',
-              description: 'Move manuscripts, profiles, and project files.',
+              title: '导入 / 导出',
+              description: '迁移手稿、档案和项目文件。',
             ),
             PersonaActionTile(
               icon: Icons.settings_backup_restore,
-              title: 'Backup / restore',
-              description: 'Portable local workspace snapshots.',
+              title: '备份 / 恢复',
+              description: '可移植的本地工作区快照。',
             ),
           ],
         );

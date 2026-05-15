@@ -13,12 +13,12 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: PersonaApp()));
     await tester.pumpAndSettle();
 
-    expect(find.text('Projects'), findsWidgets);
-    expect(find.text('Style Lab'), findsWidgets);
-    expect(find.text('Plot Lab'), findsWidgets);
-    expect(find.text('Workflow Runs'), findsWidgets);
-    expect(find.text('Settings'), findsWidgets);
-    expect(find.text('Local writing OS'), findsOneWidget);
+    expect(find.text('项目'), findsWidgets);
+    expect(find.text('风格实验室'), findsWidgets);
+    expect(find.text('剧情实验室'), findsWidgets);
+    expect(find.text('工作流任务'), findsWidgets);
+    expect(find.text('设置'), findsWidgets);
+    expect(find.text('本地写作系统'), findsOneWidget);
   });
 
   testWidgets('keeps sidebar width stable when workflow runs is selected', (
@@ -32,7 +32,7 @@ void main() {
     final sidebar = find.byKey(const ValueKey('app-sidebar'));
     final initialWidth = tester.getSize(sidebar).width;
 
-    await tester.tap(find.text('Workflow Runs').first);
+    await tester.tap(find.text('工作流任务').first);
     await tester.pumpAndSettle();
 
     expect(tester.getSize(sidebar).width, initialWidth);
@@ -44,15 +44,13 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: PersonaApp()));
     await tester.pumpAndSettle();
 
-    const projectsDescription =
-        'Your local writing desk for long-form projects, blueprints, chapter work, and future Zen Editor sessions.';
-    const styleLabDescription =
-        'Analyze sample prose, distill voice profiles, and prepare reusable style direction for long-form drafting.';
+    const projectsDescription = '用于长篇项目、蓝图、章节工作和后续 Zen Editor 写作会话的本地写作工作台。';
+    const styleLabDescription = '分析样本文本，提炼 Voice Profile，并为长篇写作准备可复用的风格方向。';
 
     expect(find.text(projectsDescription), findsOneWidget);
     expect(find.text(styleLabDescription), findsNothing);
 
-    await tester.tap(find.text('Style Lab').first);
+    await tester.tap(find.text('风格实验室').first);
     await tester.pump();
 
     expect(find.text(projectsDescription), findsNothing);
