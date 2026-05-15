@@ -175,3 +175,37 @@ Refactored the Flutter frontend into a structured creative command center, local
 ### Next Steps
 
 - None - task complete
+
+
+## Session 6: Fix sidebar animation and alignment
+
+**Date**: 2026-05-15
+**Task**: Fix sidebar animation and alignment
+**Branch**: `main`
+
+### Summary
+
+Fixed expandable sidebar flicker, aligned collapsed rail icons, added regression coverage, and recorded the Trellis task.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c85f7a7` | (see git log) |
+| `08c81d2` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
