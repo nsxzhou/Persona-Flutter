@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../router/app_route.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_mode_provider.dart';
+import 'animated_theme_toggler.dart';
 import 'glass_container.dart';
 import 'page_transitions.dart';
 
@@ -83,9 +84,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                   ),
                 ),
                 Expanded(
-                  child: FadeSlideTransition(
-                    child: widget.navigationShell,
-                  ),
+                  child: FadeSlideTransition(child: widget.navigationShell),
                 ),
               ],
             ),
@@ -155,18 +154,11 @@ class _PersonaSidebar extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      IconButton(
-                        tooltip: themeMode == ThemeMode.dark
-                            ? '切换亮色模式'
-                            : '切换暗色模式',
+                      AnimatedThemeToggler(
+                        themeMode: themeMode,
                         onPressed: onThemeToggle,
-                        icon: Icon(
-                          themeMode == ThemeMode.dark
-                              ? Icons.light_mode_outlined
-                              : Icons.dark_mode_outlined,
-                          size: 20,
-                        ),
                       ),
+                      const SizedBox(width: 8),
                       IconButton(
                         tooltip: isExpanded ? '折叠侧栏' : '展开侧栏',
                         onPressed: onToggle,
@@ -182,18 +174,11 @@ class _PersonaSidebar extends StatelessWidget {
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      IconButton(
-                        tooltip: themeMode == ThemeMode.dark
-                            ? '切换亮色模式'
-                            : '切换暗色模式',
+                      AnimatedThemeToggler(
+                        themeMode: themeMode,
                         onPressed: onThemeToggle,
-                        icon: Icon(
-                          themeMode == ThemeMode.dark
-                              ? Icons.light_mode_outlined
-                              : Icons.dark_mode_outlined,
-                          size: 20,
-                        ),
                       ),
+                      const SizedBox(height: 8),
                       IconButton(
                         tooltip: isExpanded ? '折叠侧栏' : '展开侧栏',
                         onPressed: onToggle,

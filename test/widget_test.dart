@@ -44,9 +44,7 @@ void main() {
     final router = _buildShellTestRouter();
 
     await tester.pumpWidget(
-      ProviderScope(
-        child: _ShellTestApp(router: router),
-      ),
+      ProviderScope(child: _ShellTestApp(router: router)),
     );
     await tester.pumpAndSettle();
 
@@ -63,11 +61,25 @@ void main() {
       find.byIcon(Icons.keyboard_double_arrow_right),
     );
 
-    expect(
-      (logoCenter.dx - selectedDestinationCenter.dx).abs(),
-      lessThan(0.1),
-    );
+    expect((logoCenter.dx - selectedDestinationCenter.dx).abs(), lessThan(0.1));
     expect((logoCenter.dx - toggleCenter.dx).abs(), lessThan(0.1));
+  });
+
+  testWidgets('toggles app theme mode from the sidebar control', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const ProviderScope(child: PersonaApp()));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.dark_mode_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.wb_sunny_outlined), findsNothing);
+    expect(find.byTooltip('切换亮色模式'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('切换亮色模式'));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.wb_sunny_outlined), findsOneWidget);
+    expect(find.byTooltip('切换暗色模式'), findsOneWidget);
   });
 
   testWidgets('does not keep outgoing route page content during navigation', (
