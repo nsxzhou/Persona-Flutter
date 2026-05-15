@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/router/app_router.dart';
 import '../core/theme/app_theme.dart';
+import '../core/theme/theme_mode_provider.dart';
 
 class PersonaApp extends ConsumerWidget {
   const PersonaApp({super.key});
@@ -16,6 +17,7 @@ class PersonaApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: buildPersonaTheme(Brightness.light),
       darkTheme: buildPersonaTheme(Brightness.dark),
+      themeMode: ref.watch(themeModeProvider),
       routerConfig: router,
     );
   }

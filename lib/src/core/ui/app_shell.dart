@@ -1,10 +1,12 @@
 import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../router/app_route.dart';
 import '../theme/app_theme.dart';
+import '../theme/theme_mode_provider.dart';
 import 'glass_container.dart';
 import 'page_transitions.dart';
 
@@ -12,21 +14,22 @@ const _collapsedSidebarWidth = 76.0;
 const _expandedSidebarWidth = 238.0;
 const _sidebarHorizontalPadding = 24.0;
 
-class AppShell extends StatefulWidget {
+class AppShell extends ConsumerStatefulWidget {
   const AppShell({required this.navigationShell, super.key});
 
   final StatefulNavigationShell navigationShell;
 
   @override
-  State<AppShell> createState() => _AppShellState();
+  ConsumerState<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends ConsumerState<AppShell> {
   bool _isExpanded = true;
 
   @override
   Widget build(BuildContext context) {
     final selectedIndex = widget.navigationShell.currentIndex;
+    final themeMode = ref.watch(themeModeProvider);
 
     return TweenAnimationBuilder<double>(
       tween: Tween<double>(end: _isExpanded ? 1 : 0),
@@ -49,8 +52,12 @@ class _AppShellState extends State<AppShell> {
                     sidebarProgress: sidebarProgress,
                     isExpanded: _isExpanded,
                     selectedIndex: selectedIndex,
+                    themeMode: themeMode,
                     onToggle: () {
                       setState(() => _isExpanded = !_isExpanded);
+                    },
+                    onThemeToggle: () {
+                      ref.read(themeModeProvider.notifier).toggle();
                     },
                     onDestinationSelected: (index) {
                       widget.navigationShell.goBranch(
@@ -98,14 +105,18 @@ class _PersonaSidebar extends StatelessWidget {
     required this.sidebarProgress,
     required this.isExpanded,
     required this.selectedIndex,
+    required this.themeMode,
     required this.onToggle,
+    required this.onThemeToggle,
     required this.onDestinationSelected,
   });
 
   final double sidebarProgress;
   final bool isExpanded;
   final int selectedIndex;
+  final ThemeMode themeMode;
   final VoidCallback onToggle;
+  final VoidCallback onThemeToggle;
   final ValueChanged<int> onDestinationSelected;
 
   @override
@@ -144,14 +155,31 @@ class _PersonaSidebar extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                IconButton(
-                  tooltip: isExpanded ? '折叠侧栏' : '展开侧栏',
-                  onPressed: onToggle,
-                  icon: Icon(
-                    isExpanded
-                        ? Icons.keyboard_double_arrow_left
-                        : Icons.keyboard_double_arrow_right,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      tooltip: themeMode == ThemeMode.dark
+                          ? '切换亮色模式'
+                          : '切换暗色模式',
+                      onPressed: onThemeToggle,
+                      icon: Icon(
+                        themeMode == ThemeMode.dark
+                            ? Icons.light_mode_outlined
+                            : Icons.dark_mode_outlined,
+                        size: 20,
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: isExpanded ? '折叠侧栏' : '展开侧栏',
+                      onPressed: onToggle,
+                      icon: Icon(
+                        isExpanded
+                            ? Icons.keyboard_double_arrow_left
+                            : Icons.keyboard_double_arrow_right,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
