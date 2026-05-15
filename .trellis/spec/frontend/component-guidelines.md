@@ -36,13 +36,22 @@ Use `const` constructors wherever possible.
 
 Use Material 3 theme values from `Theme.of(context)` instead of hard-coded one-off styling. Shared theme setup lives in `lib/src/core/theme/app_theme.dart`.
 
+Shared route-level page composition should use `PersonaPage` and the small shared primitives in `lib/src/core/ui/persona_page.dart` when a feature needs the standard Persona desktop surface:
+
+* `PersonaPage` — route header, max-width content column, scroll behavior.
+* `PersonaPanel` — crisp bordered surface for one work area.
+* `PersonaSectionHeader` — local section title and explanatory text.
+* `PersonaMetric`, `PersonaActionTile`, and `PersonaStatusPill` — compact dashboard/workflow affordances.
+
+Feature pages may compose these shared primitives, but feature-specific business meaning and data binding must remain in `features/<feature>/presentation/`.
+
 ---
 
 ## Accessibility
 
 Prefer standard Material widgets (`NavigationRail`, `ListTile`, `Chip`, `Card`) because they carry baseline accessibility semantics.
 
-Keep navigation labels visible for desktop-first usability unless a design explicitly changes this.
+Keep navigation labels visible in expanded desktop navigation. If the shell supports a collapsed mode, icon-only destinations must provide tooltips.
 
 ---
 
@@ -51,3 +60,4 @@ Keep navigation labels visible for desktop-first usability unless a design expli
 * Do not put data access directly in widgets.
 * Do not create feature-specific UI in `core/ui/`.
 * Do not use large anonymous widget trees when a named widget improves readability.
+* Do not copy the `PersonaPage` header/panel layout into individual feature pages; extend the shared primitives instead.

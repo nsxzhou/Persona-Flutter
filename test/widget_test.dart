@@ -18,6 +18,7 @@ void main() {
     expect(find.text('Plot Lab'), findsWidgets);
     expect(find.text('Workflow Runs'), findsWidgets);
     expect(find.text('Settings'), findsWidgets);
+    expect(find.text('Local writing OS'), findsOneWidget);
   });
 
   testWidgets('keeps sidebar width stable when workflow runs is selected', (
@@ -28,12 +29,13 @@ void main() {
     await tester.pumpWidget(_ShellTestApp(router: router));
     await tester.pumpAndSettle();
 
-    final initialWidth = tester.getSize(find.byType(NavigationRail)).width;
+    final sidebar = find.byKey(const ValueKey('app-sidebar'));
+    final initialWidth = tester.getSize(sidebar).width;
 
     await tester.tap(find.text('Workflow Runs').first);
     await tester.pumpAndSettle();
 
-    expect(tester.getSize(find.byType(NavigationRail)).width, initialWidth);
+    expect(tester.getSize(sidebar).width, initialWidth);
   });
 
   testWidgets('does not keep outgoing route page content during navigation', (
@@ -43,9 +45,9 @@ void main() {
     await tester.pumpAndSettle();
 
     const projectsDescription =
-        'Local writing projects, blueprints, chapters, and later Zen Editor entry points.';
+        'Your local writing desk for long-form projects, blueprints, chapter work, and future Zen Editor sessions.';
     const styleLabDescription =
-        'TXT sample ingestion, style analysis jobs, voice profiles, and reusable style profiles.';
+        'Analyze sample prose, distill voice profiles, and prepare reusable style direction for long-form drafting.';
 
     expect(find.text(projectsDescription), findsOneWidget);
     expect(find.text(styleLabDescription), findsNothing);
