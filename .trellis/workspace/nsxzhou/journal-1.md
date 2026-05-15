@@ -108,3 +108,36 @@ Fixed desktop sidebar switching ghosting by stabilizing NavigationRail width, re
 ### Next Steps
 
 - None - task complete
+
+
+## Session 4: Define frontend visual design style
+
+**Date**: 2026-05-15
+**Task**: Define frontend visual design style
+**Branch**: `main`
+
+### Summary
+
+Defined and recorded Persona Flutter visual design guidelines covering writing desk model, light-first white/graphite/cobalt palette, typography, component shape, navigation, density, and motion; archived the design task.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `95b8dde` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
