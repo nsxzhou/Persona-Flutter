@@ -209,3 +209,37 @@ Fixed expandable sidebar flicker, aligned collapsed rail icons, added regression
 ### Next Steps
 
 - None - task complete
+
+
+## Session 7: Provider configuration slice
+
+**Date**: 2026-05-15
+**Task**: Provider configuration slice
+**Branch**: `main`
+
+### Summary
+
+Built the Settings Provider configuration slice with SQLite-backed API keys, real OpenAI-compatible /models connectivity tests, macOS outbound network entitlement, focused tests, and updated Trellis specs for provider storage and sandbox networking.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6ed24b0` | (see git log) |
+| `7db3b4f` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
