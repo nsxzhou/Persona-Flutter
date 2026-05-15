@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+import 'hoverable_widget.dart';
+import 'staggered_list.dart';
+
 class PersonaPage extends StatelessWidget {
   const PersonaPage({
     required this.eyebrow,
@@ -68,7 +72,7 @@ class PersonaPage extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 28),
-                ...children,
+                StaggeredList(children: children),
               ],
             ),
           ),
@@ -83,23 +87,25 @@ class PersonaPanel extends StatelessWidget {
     required this.child,
     this.padding = const EdgeInsets.all(20),
     this.backgroundColor,
+    this.hoverable = false,
     super.key,
   });
 
   final Widget child;
   final EdgeInsetsGeometry padding;
   final Color? backgroundColor;
+  final bool hoverable;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Material(
+    Widget panel = Material(
       color: Colors.transparent,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: backgroundColor ?? colorScheme.surface,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(kPanelRadius),
           border: Border.all(color: colorScheme.outlineVariant),
           boxShadow: [
             BoxShadow(
@@ -111,6 +117,28 @@ class PersonaPanel extends StatelessWidget {
         ),
         child: Padding(padding: padding, child: child),
       ),
+    );
+
+    if (!hoverable) return panel;
+
+    return HoverableWidget(
+      builder: (context, isHovered, child) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(kPanelRadius),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isHovered ? 0.08 : 0.035),
+                offset: Offset(0, isHovered ? 14 : 10),
+                blurRadius: isHovered ? 32 : 24,
+              ),
+            ],
+          ),
+          child: panel,
+        );
+      },
     );
   }
 }
@@ -175,6 +203,7 @@ class PersonaMetric extends StatelessWidget {
 
     return PersonaPanel(
       padding: const EdgeInsets.all(16),
+      hoverable: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -213,55 +242,77 @@ class PersonaActionTile extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(6),
-        onTap: () {},
-        child: PersonaPanel(
-          padding: const EdgeInsets.all(16),
-          backgroundColor: accent
-              ? colorScheme.primary.withValues(alpha: 0.08)
-              : null,
-          child: Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: accent
-                      ? colorScheme.primary
-                      : colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  icon,
-                  color: accent
-                      ? colorScheme.onPrimary
-                      : colorScheme.onSurfaceVariant,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: textTheme.titleMedium),
-                    const SizedBox(height: 3),
-                    Text(description, style: textTheme.bodyMedium),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.arrow_forward,
-                color: colorScheme.onSurfaceVariant,
-                size: 18,
+    return HoverableWidget(
+      builder: (context, isHovered, _) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(kPanelRadius),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isHovered ? 0.08 : 0.035),
+                offset: Offset(0, isHovered ? 14 : 10),
+                blurRadius: isHovered ? 32 : 24,
               ),
             ],
           ),
-        ),
-      ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(kPanelRadius),
+              onTap: () {},
+              hoverColor: colorScheme.primary.withValues(alpha: 0.04),
+              child: PersonaPanel(
+                padding: const EdgeInsets.all(16),
+                backgroundColor: accent
+                    ? colorScheme.primary.withValues(alpha: isHovered ? 0.12 : 0.08)
+                    : (isHovered
+                        ? colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.5)
+                        : null),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: accent
+                            ? colorScheme.primary
+                            : colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(kButtonRadius),
+                      ),
+                      child: Icon(
+                        icon,
+                        color: accent
+                            ? colorScheme.onPrimary
+                            : colorScheme.onSurfaceVariant,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(title, style: textTheme.titleMedium),
+                          const SizedBox(height: 3),
+                          Text(description, style: textTheme.bodyMedium),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.arrow_forward,
+                      color: colorScheme.onSurfaceVariant,
+                      size: 18,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

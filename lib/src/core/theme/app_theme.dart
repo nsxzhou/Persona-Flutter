@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+const kPanelRadius = 12.0;
+const kButtonRadius = 10.0;
+const kInputRadius = 10.0;
 
 ThemeData buildPersonaTheme(Brightness brightness) {
   final isDark = brightness == Brightness.dark;
@@ -32,7 +37,9 @@ ThemeData buildPersonaTheme(Brightness brightness) {
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         minimumSize: const Size(0, 40),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(kButtonRadius),
+        ),
         textStyle: const TextStyle(fontWeight: FontWeight.w700),
       ),
     ),
@@ -40,7 +47,9 @@ ThemeData buildPersonaTheme(Brightness brightness) {
       style: OutlinedButton.styleFrom(
         minimumSize: const Size(0, 40),
         side: BorderSide(color: borderColor),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(kButtonRadius),
+        ),
         textStyle: const TextStyle(fontWeight: FontWeight.w700),
       ),
     ),
@@ -48,7 +57,9 @@ ThemeData buildPersonaTheme(Brightness brightness) {
       backgroundColor: scheme.surfaceContainerHighest,
       selectedColor: scheme.primary.withValues(alpha: 0.12),
       side: BorderSide(color: borderColor),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(kButtonRadius),
+      ),
       labelStyle: TextStyle(color: mutedTextColor, fontWeight: FontWeight.w600),
     ),
     navigationRailTheme: NavigationRailThemeData(
@@ -63,12 +74,14 @@ ThemeData buildPersonaTheme(Brightness brightness) {
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: const BorderRadius.all(Radius.circular(6)),
+        borderRadius: const BorderRadius.all(Radius.circular(kPanelRadius)),
         side: BorderSide(color: borderColor),
       ),
     ),
     listTileTheme: ListTileThemeData(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(kPanelRadius),
+      ),
       titleTextStyle: TextStyle(
         color: textColor,
         fontSize: 14,
@@ -76,11 +89,45 @@ ThemeData buildPersonaTheme(Brightness brightness) {
       ),
       subtitleTextStyle: TextStyle(color: mutedTextColor, fontSize: 12),
     ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: isDark
+          ? const Color(0xFF1A1D25)
+          : const Color(0xFFF0F2F7),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(kInputRadius),
+        borderSide: BorderSide(color: borderColor),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(kInputRadius),
+        borderSide: BorderSide(color: borderColor),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(kInputRadius),
+        borderSide: BorderSide(color: scheme.primary, width: 1.5),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      labelStyle: TextStyle(color: mutedTextColor, fontSize: 13),
+      hintStyle: TextStyle(
+        color: mutedTextColor.withValues(alpha: 0.6),
+        fontSize: 13,
+      ),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: isDark
+          ? const Color(0xFF1A1D25).withValues(alpha: 0.92)
+          : Colors.white.withValues(alpha: 0.92),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(kPanelRadius),
+        side: BorderSide(color: borderColor),
+      ),
+    ),
   );
 }
 
 TextTheme _buildTextTheme(Color textColor, Color mutedTextColor) {
-  const fontFamily = 'Avenir Next';
+  final fontFamily = GoogleFonts.inter().fontFamily;
 
   return TextTheme(
     headlineLarge: TextStyle(

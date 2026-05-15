@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/tasks/application/workflow_task_providers.dart';
 import '../../../core/tasks/domain/workflow_task.dart';
 import '../../../core/ui/persona_page.dart';
+import '../../../core/ui/skeleton_loader.dart';
 
 class WorkflowRunsPage extends ConsumerWidget {
   const WorkflowRunsPage({super.key});
@@ -70,7 +71,7 @@ class WorkflowRunsPage extends ConsumerWidget {
               style: TextStyle(color: colorScheme.error),
             ),
           ),
-          loading: () => const PersonaPanel(child: LinearProgressIndicator()),
+          loading: () => const _SkeletonLoading(),
         ),
       ],
     );
@@ -123,57 +124,164 @@ class _WorkflowRunTable extends StatelessWidget {
   }
 }
 
-class _WorkflowRunRow extends StatelessWidget {
+class _SkeletonLoading extends StatelessWidget {
+  const _SkeletonLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: PersonaPanel(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    SkeletonBox(width: 80, height: 10),
+                    SizedBox(height: 14),
+                    SkeletonBox(width: 40, height: 28),
+                    SizedBox(height: 6),
+                    SkeletonBox(width: 160, height: 12),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: PersonaPanel(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    SkeletonBox(width: 80, height: 10),
+                    SizedBox(height: 14),
+                    SkeletonBox(width: 40, height: 28),
+                    SizedBox(height: 6),
+                    SkeletonBox(width: 160, height: 12),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: PersonaPanel(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    SkeletonBox(width: 80, height: 10),
+                    SizedBox(height: 14),
+                    SkeletonBox(width: 40, height: 28),
+                    SizedBox(height: 6),
+                    SkeletonBox(width: 160, height: 12),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        PersonaPanel(
+          child: Column(
+            children: List.generate(
+              3,
+              (_) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Row(
+                  children: [
+                    const SkeletonBox(width: 126, height: 28),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          SkeletonBox(width: 180, height: 14),
+                          SizedBox(height: 4),
+                          SkeletonBox(width: 120, height: 12),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _WorkflowRunRow extends StatefulWidget {
   const _WorkflowRunRow({required this.item});
 
   final WorkflowTask item;
 
   @override
+  State<_WorkflowRunRow> createState() => _WorkflowRunRowState();
+}
+
+class _WorkflowRunRowState extends State<_WorkflowRunRow> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
-    final statusColor = _statusColor(colorScheme, item.status);
+    final statusColor = _statusColor(colorScheme, widget.item.status);
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: colorScheme.outlineVariant)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 126,
-              child: PersonaStatusPill(
-                label: item.status.name,
-                icon: _statusIcon(item.status),
-                color: statusColor,
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOutCubic,
+        decoration: BoxDecoration(
+          color: _isHovered
+              ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)
+              : Colors.transparent,
+          border:
+              Border(bottom: BorderSide(color: colorScheme.outlineVariant)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 126,
+                child: PersonaStatusPill(
+                  label: widget.item.status.name,
+                  icon: _statusIcon(widget.item.status),
+                  color: statusColor,
+                ),
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(item.title, style: textTheme.titleMedium),
-                  const SizedBox(height: 3),
-                  Text(
-                    item.stage == null
-                        ? item.kind
-                        : '${item.kind} - ${item.stage}',
-                    style: textTheme.bodyMedium,
-                  ),
-                ],
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(widget.item.title, style: textTheme.titleMedium),
+                    const SizedBox(height: 3),
+                    Text(
+                      widget.item.stage == null
+                          ? widget.item.kind
+                          : '${widget.item.kind} - ${widget.item.stage}',
+                      style: textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 16),
-            Text(
-              _formatRunTime(item.updatedAt),
-              style: textTheme.labelMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
+              const SizedBox(width: 16),
+              Text(
+                _formatRunTime(widget.item.updatedAt),
+                style: textTheme.labelMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

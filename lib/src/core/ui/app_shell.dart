@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../router/app_route.dart';
+import '../theme/app_theme.dart';
+import 'glass_container.dart';
+import 'page_transitions.dart';
 
 const _collapsedSidebarWidth = 76.0;
 const _expandedSidebarWidth = 238.0;
@@ -57,8 +60,30 @@ class _AppShellState extends State<AppShell> {
                     },
                   ),
                 ),
-                const VerticalDivider(width: 1),
-                Expanded(child: widget.navigationShell),
+                Container(
+                  width: 1,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Theme.of(context)
+                            .colorScheme
+                            .outlineVariant
+                            .withValues(alpha: 0.3),
+                        Theme.of(context)
+                            .colorScheme
+                            .outlineVariant
+                            .withValues(alpha: 0.08),
+                      ],
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: FadeSlideTransition(
+                    child: widget.navigationShell,
+                  ),
+                ),
               ],
             ),
           ),
@@ -85,48 +110,51 @@ class _PersonaSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    return GlassContainer(
+      borderRadius: 0,
+      blurSigma: 20,
+      border: Border.all(color: Colors.transparent),
+      child: Material(
+        color: Colors.transparent,
+        clipBehavior: Clip.hardEdge,
+        child: SafeArea(
+          right: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 16, 12, 14),
+            child: Column(
+              children: [
+                _SidebarBrand(sidebarProgress: sidebarProgress),
+                const SizedBox(height: 20),
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: _navigationItems.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 6),
+                    itemBuilder: (context, index) {
+                      final item = _navigationItems[index];
 
-    return Material(
-      color: colorScheme.surface,
-      clipBehavior: Clip.hardEdge,
-      child: SafeArea(
-        right: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 16, 12, 14),
-          child: Column(
-            children: [
-              _SidebarBrand(sidebarProgress: sidebarProgress),
-              const SizedBox(height: 20),
-              Expanded(
-                child: ListView.separated(
-                  itemCount: _navigationItems.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(height: 6),
-                  itemBuilder: (context, index) {
-                    final item = _navigationItems[index];
-
-                    return _SidebarDestination(
-                      item: item,
-                      sidebarProgress: sidebarProgress,
-                      isExpanded: isExpanded,
-                      isSelected: selectedIndex == index,
-                      onTap: () => onDestinationSelected(index),
-                    );
-                  },
+                      return _SidebarDestination(
+                        item: item,
+                        sidebarProgress: sidebarProgress,
+                        isExpanded: isExpanded,
+                        isSelected: selectedIndex == index,
+                        onTap: () => onDestinationSelected(index),
+                      );
+                    },
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              IconButton(
-                tooltip: isExpanded ? '折叠侧栏' : '展开侧栏',
-                onPressed: onToggle,
-                icon: Icon(
-                  isExpanded
-                      ? Icons.keyboard_double_arrow_left
-                      : Icons.keyboard_double_arrow_right,
+                const SizedBox(height: 12),
+                IconButton(
+                  tooltip: isExpanded ? '折叠侧栏' : '展开侧栏',
+                  onPressed: onToggle,
+                  icon: Icon(
+                    isExpanded
+                        ? Icons.keyboard_double_arrow_left
+                        : Icons.keyboard_double_arrow_right,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -217,7 +245,7 @@ class _SidebarDestination extends StatelessWidget {
     const expandedContentWidth =
         _expandedSidebarWidth - _sidebarHorizontalPadding - 24;
     final destination = InkWell(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(kPanelRadius),
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
@@ -230,7 +258,7 @@ class _SidebarDestination extends StatelessWidget {
           color: isSelected
               ? colorScheme.primary.withValues(alpha: 0.1)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(kPanelRadius),
           border: Border.all(
             color: isSelected ? colorScheme.primary : Colors.transparent,
           ),
@@ -320,7 +348,7 @@ class _SidebarLogo extends StatelessWidget {
       height: 40,
       decoration: BoxDecoration(
         color: colorScheme.primary,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(kPanelRadius),
       ),
       child: Icon(Icons.auto_stories, color: colorScheme.onPrimary),
     );

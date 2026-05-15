@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/persona_page.dart';
 
 class ProjectsPage extends StatelessWidget {
@@ -143,7 +144,7 @@ class _EmptyProjectsState extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(kPanelRadius),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Padding(

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/glass_container.dart';
 import '../../../core/ui/persona_page.dart';
+import '../../../core/ui/skeleton_loader.dart';
 import '../application/provider_config_providers.dart';
 import '../domain/provider_config.dart';
 
@@ -32,7 +35,7 @@ class SettingsPage extends ConsumerWidget {
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ),
-          loading: () => const PersonaPanel(child: LinearProgressIndicator()),
+          loading: () => _buildSkeletonLoading(),
         ),
         const SizedBox(height: 18),
         const _PendingActionsPanel(),
@@ -82,7 +85,7 @@ class _EmptyProviderState extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(kPanelRadius),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Padding(
@@ -149,7 +152,7 @@ class _ProviderCard extends ConsumerWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.28),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(kPanelRadius),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Padding(
@@ -331,7 +334,7 @@ class _ProviderMetaCell extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(kPanelRadius),
         border: Border.all(
           color: colorScheme.outlineVariant.withValues(alpha: 0.72),
         ),
@@ -380,7 +383,7 @@ class _ProviderTestMessage extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(kPanelRadius),
         border: Border.all(color: color.withValues(alpha: 0.18)),
       ),
       child: Padding(
@@ -499,7 +502,7 @@ class _PendingItem extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(kPanelRadius),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Padding(
@@ -579,65 +582,80 @@ class _ProviderDialogState extends ConsumerState<_ProviderDialog> {
       }
     });
 
-    return AlertDialog(
-      title: Text(widget.provider == null ? '新增 Provider' : '编辑 Provider'),
-      content: SizedBox(
-        width: 520,
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: '名称'),
-                validator: _requiredValidator,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _baseUrlController,
-                decoration: const InputDecoration(
-                  labelText: 'Base URL',
-                  hintText: 'https://api.openai.com/v1',
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          widget.provider == null ? '新增 Provider' : '编辑 Provider',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const SizedBox(height: 20),
+        SizedBox(
+          width: 520,
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(labelText: '名称'),
+                  validator: _requiredValidator,
                 ),
-                keyboardType: TextInputType.url,
-                validator: _urlValidator,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _apiKeyController,
-                decoration: const InputDecoration(labelText: 'API Key'),
-                obscureText: true,
-                validator: _requiredValidator,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _modelController,
-                decoration: const InputDecoration(
-                  labelText: '默认模型',
-                  hintText: 'gpt-4.1-mini',
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _baseUrlController,
+                  decoration: const InputDecoration(
+                    labelText: 'Base URL',
+                    hintText: 'https://api.openai.com/v1',
+                  ),
+                  keyboardType: TextInputType.url,
+                  validator: _urlValidator,
                 ),
-                validator: _requiredValidator,
-              ),
-              const SizedBox(height: 12),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('启用 Provider'),
-                value: _isEnabled,
-                onChanged: (value) => setState(() => _isEnabled = value),
-              ),
-            ],
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _apiKeyController,
+                  decoration: const InputDecoration(labelText: 'API Key'),
+                  obscureText: true,
+                  validator: _requiredValidator,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _modelController,
+                  decoration: const InputDecoration(
+                    labelText: '默认模型',
+                    hintText: 'gpt-4.1-mini',
+                  ),
+                  validator: _requiredValidator,
+                ),
+                const SizedBox(height: 12),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('启用 Provider'),
+                  value: _isEnabled,
+                  onChanged: (value) => setState(() => _isEnabled = value),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: state.isLoading ? null : () => Navigator.of(context).pop(),
-          child: const Text('取消'),
-        ),
-        FilledButton(
-          onPressed: state.isLoading ? null : _save,
-          child: Text(state.isLoading ? '保存中' : '保存'),
+        const SizedBox(height: 20),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton(
+              onPressed: state.isLoading
+                  ? null
+                  : () => Navigator.of(context).pop(),
+              child: const Text('取消'),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              onPressed: state.isLoading ? null : _save,
+              child: Text(state.isLoading ? '保存中' : '保存'),
+            ),
+          ],
         ),
       ],
     );
@@ -668,7 +686,7 @@ class _ProviderDialogState extends ConsumerState<_ProviderDialog> {
 }
 
 void _showProviderDialog(BuildContext context, {ProviderConfig? provider}) {
-  showDialog<void>(
+  showGlassDialog<void>(
     context: context,
     builder: (context) => _ProviderDialog(provider: provider),
   );
@@ -679,19 +697,29 @@ Future<void> _confirmDelete(
   WidgetRef ref,
   ProviderConfig provider,
 ) async {
-  final confirmed = await showDialog<bool>(
+  final confirmed = await showGlassDialog<bool>(
     context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('删除 Provider'),
-      content: Text('确定删除「${provider.name}」吗？API Key 会从 SQLite 中删除。'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('取消'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(true),
-          child: const Text('删除'),
+    builder: (context) => Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('删除 Provider', style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 12),
+        Text('确定删除「${provider.name}」吗？API Key 会从 SQLite 中删除。'),
+        const SizedBox(height: 20),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('取消'),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('删除'),
+            ),
+          ],
         ),
       ],
     ),
@@ -747,6 +775,72 @@ IconData _statusIcon(ProviderTestStatus status) {
     ProviderTestStatus.succeeded => Icons.check_circle_outline,
     ProviderTestStatus.failed => Icons.error_outline,
   };
+}
+
+Widget _buildSkeletonLoading() {
+  return Column(
+    children: [
+      PersonaPanel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: const [
+                Expanded(child: SkeletonBox(width: 120, height: 16)),
+                SizedBox(width: 16),
+                SkeletonBox(width: 80, height: 24),
+              ],
+            ),
+            const SizedBox(height: 18),
+            ...List.generate(
+              2,
+              (_) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(kPanelRadius),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        const SkeletonBox(width: 42, height: 42),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              SkeletonBox(width: 140, height: 14),
+                              SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: SkeletonBox(width: 100, height: 36),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: SkeletonBox(width: 100, height: 36),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: SkeletonBox(width: 100, height: 36),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
 }
 
 Color _statusColor(ColorScheme colorScheme, ProviderTestStatus status) {
