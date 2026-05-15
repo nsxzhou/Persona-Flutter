@@ -94,20 +94,23 @@ class PersonaPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: backgroundColor ?? colorScheme.surface,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: colorScheme.outlineVariant),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.035),
-            offset: const Offset(0, 10),
-            blurRadius: 24,
-          ),
-        ],
+    return Material(
+      color: Colors.transparent,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: backgroundColor ?? colorScheme.surface,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: colorScheme.outlineVariant),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.035),
+              offset: const Offset(0, 10),
+              blurRadius: 24,
+            ),
+          ],
+        ),
+        child: Padding(padding: padding, child: child),
       ),
-      child: Padding(padding: padding, child: child),
     );
   }
 }
@@ -210,50 +213,53 @@ class PersonaActionTile extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(6),
-      onTap: () {},
-      child: PersonaPanel(
-        padding: const EdgeInsets.all(16),
-        backgroundColor: accent
-            ? colorScheme.primary.withValues(alpha: 0.08)
-            : null,
-        child: Row(
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: accent
-                    ? colorScheme.primary
-                    : colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(6),
+        onTap: () {},
+        child: PersonaPanel(
+          padding: const EdgeInsets.all(16),
+          backgroundColor: accent
+              ? colorScheme.primary.withValues(alpha: 0.08)
+              : null,
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: accent
+                      ? colorScheme.primary
+                      : colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  icon,
+                  color: accent
+                      ? colorScheme.onPrimary
+                      : colorScheme.onSurfaceVariant,
+                  size: 20,
+                ),
               ),
-              child: Icon(
-                icon,
-                color: accent
-                    ? colorScheme.onPrimary
-                    : colorScheme.onSurfaceVariant,
-                size: 20,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: textTheme.titleMedium),
+                    const SizedBox(height: 3),
+                    Text(description, style: textTheme.bodyMedium),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: textTheme.titleMedium),
-                  const SizedBox(height: 3),
-                  Text(description, style: textTheme.bodyMedium),
-                ],
+              Icon(
+                Icons.arrow_forward,
+                color: colorScheme.onSurfaceVariant,
+                size: 18,
               ),
-            ),
-            Icon(
-              Icons.arrow_forward,
-              color: colorScheme.onSurfaceVariant,
-              size: 18,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

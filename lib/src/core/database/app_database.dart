@@ -21,12 +21,41 @@ class WorkflowTaskRecords extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [WorkflowTaskRecords])
+class ProviderConfigRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get baseUrl => text()();
+  TextColumn get apiKey => text()();
+  TextColumn get defaultModel => text()();
+  BoolColumn get isEnabled => boolean().withDefault(const Constant(true))();
+  TextColumn get testStatus => text()();
+  DateTimeColumn get lastTestedAt => dateTime().nullable()();
+  TextColumn get lastTestMessage => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+@DriftDatabase(tables: [WorkflowTaskRecords, ProviderConfigRecords])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration {
+    return MigrationStrategy(
+      onCreate: (migrator) => migrator.createAll(),
+      onUpgrade: (migrator, from, to) async {
+        if (from < 2) {
+          await migrator.createTable(providerConfigRecords);
+        }
+      },
+    );
+  }
 }
 
 LazyDatabase _openConnection() {

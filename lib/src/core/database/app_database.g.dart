@@ -515,16 +515,697 @@ class WorkflowTaskRecordsCompanion extends UpdateCompanion<WorkflowTaskRecord> {
   }
 }
 
+class $ProviderConfigRecordsTable extends ProviderConfigRecords
+    with TableInfo<$ProviderConfigRecordsTable, ProviderConfigRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ProviderConfigRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _baseUrlMeta = const VerificationMeta(
+    'baseUrl',
+  );
+  @override
+  late final GeneratedColumn<String> baseUrl = GeneratedColumn<String>(
+    'base_url',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _apiKeyMeta = const VerificationMeta('apiKey');
+  @override
+  late final GeneratedColumn<String> apiKey = GeneratedColumn<String>(
+    'api_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _defaultModelMeta = const VerificationMeta(
+    'defaultModel',
+  );
+  @override
+  late final GeneratedColumn<String> defaultModel = GeneratedColumn<String>(
+    'default_model',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isEnabledMeta = const VerificationMeta(
+    'isEnabled',
+  );
+  @override
+  late final GeneratedColumn<bool> isEnabled = GeneratedColumn<bool>(
+    'is_enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_enabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _testStatusMeta = const VerificationMeta(
+    'testStatus',
+  );
+  @override
+  late final GeneratedColumn<String> testStatus = GeneratedColumn<String>(
+    'test_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lastTestedAtMeta = const VerificationMeta(
+    'lastTestedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastTestedAt = GeneratedColumn<DateTime>(
+    'last_tested_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastTestMessageMeta = const VerificationMeta(
+    'lastTestMessage',
+  );
+  @override
+  late final GeneratedColumn<String> lastTestMessage = GeneratedColumn<String>(
+    'last_test_message',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    baseUrl,
+    apiKey,
+    defaultModel,
+    isEnabled,
+    testStatus,
+    lastTestedAt,
+    lastTestMessage,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'provider_config_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ProviderConfigRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('base_url')) {
+      context.handle(
+        _baseUrlMeta,
+        baseUrl.isAcceptableOrUnknown(data['base_url']!, _baseUrlMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_baseUrlMeta);
+    }
+    if (data.containsKey('api_key')) {
+      context.handle(
+        _apiKeyMeta,
+        apiKey.isAcceptableOrUnknown(data['api_key']!, _apiKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_apiKeyMeta);
+    }
+    if (data.containsKey('default_model')) {
+      context.handle(
+        _defaultModelMeta,
+        defaultModel.isAcceptableOrUnknown(
+          data['default_model']!,
+          _defaultModelMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_defaultModelMeta);
+    }
+    if (data.containsKey('is_enabled')) {
+      context.handle(
+        _isEnabledMeta,
+        isEnabled.isAcceptableOrUnknown(data['is_enabled']!, _isEnabledMeta),
+      );
+    }
+    if (data.containsKey('test_status')) {
+      context.handle(
+        _testStatusMeta,
+        testStatus.isAcceptableOrUnknown(data['test_status']!, _testStatusMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_testStatusMeta);
+    }
+    if (data.containsKey('last_tested_at')) {
+      context.handle(
+        _lastTestedAtMeta,
+        lastTestedAt.isAcceptableOrUnknown(
+          data['last_tested_at']!,
+          _lastTestedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_test_message')) {
+      context.handle(
+        _lastTestMessageMeta,
+        lastTestMessage.isAcceptableOrUnknown(
+          data['last_test_message']!,
+          _lastTestMessageMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ProviderConfigRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ProviderConfigRecord(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      baseUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}base_url'],
+      )!,
+      apiKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}api_key'],
+      )!,
+      defaultModel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}default_model'],
+      )!,
+      isEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_enabled'],
+      )!,
+      testStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}test_status'],
+      )!,
+      lastTestedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_tested_at'],
+      ),
+      lastTestMessage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_test_message'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ProviderConfigRecordsTable createAlias(String alias) {
+    return $ProviderConfigRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class ProviderConfigRecord extends DataClass
+    implements Insertable<ProviderConfigRecord> {
+  final String id;
+  final String name;
+  final String baseUrl;
+  final String apiKey;
+  final String defaultModel;
+  final bool isEnabled;
+  final String testStatus;
+  final DateTime? lastTestedAt;
+  final String? lastTestMessage;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const ProviderConfigRecord({
+    required this.id,
+    required this.name,
+    required this.baseUrl,
+    required this.apiKey,
+    required this.defaultModel,
+    required this.isEnabled,
+    required this.testStatus,
+    this.lastTestedAt,
+    this.lastTestMessage,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['base_url'] = Variable<String>(baseUrl);
+    map['api_key'] = Variable<String>(apiKey);
+    map['default_model'] = Variable<String>(defaultModel);
+    map['is_enabled'] = Variable<bool>(isEnabled);
+    map['test_status'] = Variable<String>(testStatus);
+    if (!nullToAbsent || lastTestedAt != null) {
+      map['last_tested_at'] = Variable<DateTime>(lastTestedAt);
+    }
+    if (!nullToAbsent || lastTestMessage != null) {
+      map['last_test_message'] = Variable<String>(lastTestMessage);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  ProviderConfigRecordsCompanion toCompanion(bool nullToAbsent) {
+    return ProviderConfigRecordsCompanion(
+      id: Value(id),
+      name: Value(name),
+      baseUrl: Value(baseUrl),
+      apiKey: Value(apiKey),
+      defaultModel: Value(defaultModel),
+      isEnabled: Value(isEnabled),
+      testStatus: Value(testStatus),
+      lastTestedAt: lastTestedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastTestedAt),
+      lastTestMessage: lastTestMessage == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastTestMessage),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory ProviderConfigRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ProviderConfigRecord(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      baseUrl: serializer.fromJson<String>(json['baseUrl']),
+      apiKey: serializer.fromJson<String>(json['apiKey']),
+      defaultModel: serializer.fromJson<String>(json['defaultModel']),
+      isEnabled: serializer.fromJson<bool>(json['isEnabled']),
+      testStatus: serializer.fromJson<String>(json['testStatus']),
+      lastTestedAt: serializer.fromJson<DateTime?>(json['lastTestedAt']),
+      lastTestMessage: serializer.fromJson<String?>(json['lastTestMessage']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'baseUrl': serializer.toJson<String>(baseUrl),
+      'apiKey': serializer.toJson<String>(apiKey),
+      'defaultModel': serializer.toJson<String>(defaultModel),
+      'isEnabled': serializer.toJson<bool>(isEnabled),
+      'testStatus': serializer.toJson<String>(testStatus),
+      'lastTestedAt': serializer.toJson<DateTime?>(lastTestedAt),
+      'lastTestMessage': serializer.toJson<String?>(lastTestMessage),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  ProviderConfigRecord copyWith({
+    String? id,
+    String? name,
+    String? baseUrl,
+    String? apiKey,
+    String? defaultModel,
+    bool? isEnabled,
+    String? testStatus,
+    Value<DateTime?> lastTestedAt = const Value.absent(),
+    Value<String?> lastTestMessage = const Value.absent(),
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => ProviderConfigRecord(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    baseUrl: baseUrl ?? this.baseUrl,
+    apiKey: apiKey ?? this.apiKey,
+    defaultModel: defaultModel ?? this.defaultModel,
+    isEnabled: isEnabled ?? this.isEnabled,
+    testStatus: testStatus ?? this.testStatus,
+    lastTestedAt: lastTestedAt.present ? lastTestedAt.value : this.lastTestedAt,
+    lastTestMessage: lastTestMessage.present
+        ? lastTestMessage.value
+        : this.lastTestMessage,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  ProviderConfigRecord copyWithCompanion(ProviderConfigRecordsCompanion data) {
+    return ProviderConfigRecord(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      baseUrl: data.baseUrl.present ? data.baseUrl.value : this.baseUrl,
+      apiKey: data.apiKey.present ? data.apiKey.value : this.apiKey,
+      defaultModel: data.defaultModel.present
+          ? data.defaultModel.value
+          : this.defaultModel,
+      isEnabled: data.isEnabled.present ? data.isEnabled.value : this.isEnabled,
+      testStatus: data.testStatus.present
+          ? data.testStatus.value
+          : this.testStatus,
+      lastTestedAt: data.lastTestedAt.present
+          ? data.lastTestedAt.value
+          : this.lastTestedAt,
+      lastTestMessage: data.lastTestMessage.present
+          ? data.lastTestMessage.value
+          : this.lastTestMessage,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProviderConfigRecord(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('baseUrl: $baseUrl, ')
+          ..write('apiKey: $apiKey, ')
+          ..write('defaultModel: $defaultModel, ')
+          ..write('isEnabled: $isEnabled, ')
+          ..write('testStatus: $testStatus, ')
+          ..write('lastTestedAt: $lastTestedAt, ')
+          ..write('lastTestMessage: $lastTestMessage, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    name,
+    baseUrl,
+    apiKey,
+    defaultModel,
+    isEnabled,
+    testStatus,
+    lastTestedAt,
+    lastTestMessage,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ProviderConfigRecord &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.baseUrl == this.baseUrl &&
+          other.apiKey == this.apiKey &&
+          other.defaultModel == this.defaultModel &&
+          other.isEnabled == this.isEnabled &&
+          other.testStatus == this.testStatus &&
+          other.lastTestedAt == this.lastTestedAt &&
+          other.lastTestMessage == this.lastTestMessage &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class ProviderConfigRecordsCompanion
+    extends UpdateCompanion<ProviderConfigRecord> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String> baseUrl;
+  final Value<String> apiKey;
+  final Value<String> defaultModel;
+  final Value<bool> isEnabled;
+  final Value<String> testStatus;
+  final Value<DateTime?> lastTestedAt;
+  final Value<String?> lastTestMessage;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const ProviderConfigRecordsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.baseUrl = const Value.absent(),
+    this.apiKey = const Value.absent(),
+    this.defaultModel = const Value.absent(),
+    this.isEnabled = const Value.absent(),
+    this.testStatus = const Value.absent(),
+    this.lastTestedAt = const Value.absent(),
+    this.lastTestMessage = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ProviderConfigRecordsCompanion.insert({
+    required String id,
+    required String name,
+    required String baseUrl,
+    required String apiKey,
+    required String defaultModel,
+    this.isEnabled = const Value.absent(),
+    required String testStatus,
+    this.lastTestedAt = const Value.absent(),
+    this.lastTestMessage = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name),
+       baseUrl = Value(baseUrl),
+       apiKey = Value(apiKey),
+       defaultModel = Value(defaultModel),
+       testStatus = Value(testStatus),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<ProviderConfigRecord> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? baseUrl,
+    Expression<String>? apiKey,
+    Expression<String>? defaultModel,
+    Expression<bool>? isEnabled,
+    Expression<String>? testStatus,
+    Expression<DateTime>? lastTestedAt,
+    Expression<String>? lastTestMessage,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (baseUrl != null) 'base_url': baseUrl,
+      if (apiKey != null) 'api_key': apiKey,
+      if (defaultModel != null) 'default_model': defaultModel,
+      if (isEnabled != null) 'is_enabled': isEnabled,
+      if (testStatus != null) 'test_status': testStatus,
+      if (lastTestedAt != null) 'last_tested_at': lastTestedAt,
+      if (lastTestMessage != null) 'last_test_message': lastTestMessage,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ProviderConfigRecordsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String>? baseUrl,
+    Value<String>? apiKey,
+    Value<String>? defaultModel,
+    Value<bool>? isEnabled,
+    Value<String>? testStatus,
+    Value<DateTime?>? lastTestedAt,
+    Value<String?>? lastTestMessage,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return ProviderConfigRecordsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      baseUrl: baseUrl ?? this.baseUrl,
+      apiKey: apiKey ?? this.apiKey,
+      defaultModel: defaultModel ?? this.defaultModel,
+      isEnabled: isEnabled ?? this.isEnabled,
+      testStatus: testStatus ?? this.testStatus,
+      lastTestedAt: lastTestedAt ?? this.lastTestedAt,
+      lastTestMessage: lastTestMessage ?? this.lastTestMessage,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (baseUrl.present) {
+      map['base_url'] = Variable<String>(baseUrl.value);
+    }
+    if (apiKey.present) {
+      map['api_key'] = Variable<String>(apiKey.value);
+    }
+    if (defaultModel.present) {
+      map['default_model'] = Variable<String>(defaultModel.value);
+    }
+    if (isEnabled.present) {
+      map['is_enabled'] = Variable<bool>(isEnabled.value);
+    }
+    if (testStatus.present) {
+      map['test_status'] = Variable<String>(testStatus.value);
+    }
+    if (lastTestedAt.present) {
+      map['last_tested_at'] = Variable<DateTime>(lastTestedAt.value);
+    }
+    if (lastTestMessage.present) {
+      map['last_test_message'] = Variable<String>(lastTestMessage.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProviderConfigRecordsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('baseUrl: $baseUrl, ')
+          ..write('apiKey: $apiKey, ')
+          ..write('defaultModel: $defaultModel, ')
+          ..write('isEnabled: $isEnabled, ')
+          ..write('testStatus: $testStatus, ')
+          ..write('lastTestedAt: $lastTestedAt, ')
+          ..write('lastTestMessage: $lastTestMessage, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $WorkflowTaskRecordsTable workflowTaskRecords =
       $WorkflowTaskRecordsTable(this);
+  late final $ProviderConfigRecordsTable providerConfigRecords =
+      $ProviderConfigRecordsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [workflowTaskRecords];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+    workflowTaskRecords,
+    providerConfigRecords,
+  ];
 }
 
 typedef $$WorkflowTaskRecordsTableCreateCompanionBuilder =
@@ -802,10 +1483,353 @@ typedef $$WorkflowTaskRecordsTableProcessedTableManager =
       WorkflowTaskRecord,
       PrefetchHooks Function()
     >;
+typedef $$ProviderConfigRecordsTableCreateCompanionBuilder =
+    ProviderConfigRecordsCompanion Function({
+      required String id,
+      required String name,
+      required String baseUrl,
+      required String apiKey,
+      required String defaultModel,
+      Value<bool> isEnabled,
+      required String testStatus,
+      Value<DateTime?> lastTestedAt,
+      Value<String?> lastTestMessage,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$ProviderConfigRecordsTableUpdateCompanionBuilder =
+    ProviderConfigRecordsCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<String> baseUrl,
+      Value<String> apiKey,
+      Value<String> defaultModel,
+      Value<bool> isEnabled,
+      Value<String> testStatus,
+      Value<DateTime?> lastTestedAt,
+      Value<String?> lastTestMessage,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$ProviderConfigRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $ProviderConfigRecordsTable> {
+  $$ProviderConfigRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get baseUrl => $composableBuilder(
+    column: $table.baseUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get apiKey => $composableBuilder(
+    column: $table.apiKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get defaultModel => $composableBuilder(
+    column: $table.defaultModel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isEnabled => $composableBuilder(
+    column: $table.isEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get testStatus => $composableBuilder(
+    column: $table.testStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastTestedAt => $composableBuilder(
+    column: $table.lastTestedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastTestMessage => $composableBuilder(
+    column: $table.lastTestMessage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ProviderConfigRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ProviderConfigRecordsTable> {
+  $$ProviderConfigRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get baseUrl => $composableBuilder(
+    column: $table.baseUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get apiKey => $composableBuilder(
+    column: $table.apiKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get defaultModel => $composableBuilder(
+    column: $table.defaultModel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isEnabled => $composableBuilder(
+    column: $table.isEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get testStatus => $composableBuilder(
+    column: $table.testStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastTestedAt => $composableBuilder(
+    column: $table.lastTestedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastTestMessage => $composableBuilder(
+    column: $table.lastTestMessage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ProviderConfigRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ProviderConfigRecordsTable> {
+  $$ProviderConfigRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get baseUrl =>
+      $composableBuilder(column: $table.baseUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get apiKey =>
+      $composableBuilder(column: $table.apiKey, builder: (column) => column);
+
+  GeneratedColumn<String> get defaultModel => $composableBuilder(
+    column: $table.defaultModel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isEnabled =>
+      $composableBuilder(column: $table.isEnabled, builder: (column) => column);
+
+  GeneratedColumn<String> get testStatus => $composableBuilder(
+    column: $table.testStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lastTestedAt => $composableBuilder(
+    column: $table.lastTestedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lastTestMessage => $composableBuilder(
+    column: $table.lastTestMessage,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$ProviderConfigRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ProviderConfigRecordsTable,
+          ProviderConfigRecord,
+          $$ProviderConfigRecordsTableFilterComposer,
+          $$ProviderConfigRecordsTableOrderingComposer,
+          $$ProviderConfigRecordsTableAnnotationComposer,
+          $$ProviderConfigRecordsTableCreateCompanionBuilder,
+          $$ProviderConfigRecordsTableUpdateCompanionBuilder,
+          (
+            ProviderConfigRecord,
+            BaseReferences<
+              _$AppDatabase,
+              $ProviderConfigRecordsTable,
+              ProviderConfigRecord
+            >,
+          ),
+          ProviderConfigRecord,
+          PrefetchHooks Function()
+        > {
+  $$ProviderConfigRecordsTableTableManager(
+    _$AppDatabase db,
+    $ProviderConfigRecordsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ProviderConfigRecordsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$ProviderConfigRecordsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$ProviderConfigRecordsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> baseUrl = const Value.absent(),
+                Value<String> apiKey = const Value.absent(),
+                Value<String> defaultModel = const Value.absent(),
+                Value<bool> isEnabled = const Value.absent(),
+                Value<String> testStatus = const Value.absent(),
+                Value<DateTime?> lastTestedAt = const Value.absent(),
+                Value<String?> lastTestMessage = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ProviderConfigRecordsCompanion(
+                id: id,
+                name: name,
+                baseUrl: baseUrl,
+                apiKey: apiKey,
+                defaultModel: defaultModel,
+                isEnabled: isEnabled,
+                testStatus: testStatus,
+                lastTestedAt: lastTestedAt,
+                lastTestMessage: lastTestMessage,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                required String baseUrl,
+                required String apiKey,
+                required String defaultModel,
+                Value<bool> isEnabled = const Value.absent(),
+                required String testStatus,
+                Value<DateTime?> lastTestedAt = const Value.absent(),
+                Value<String?> lastTestMessage = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => ProviderConfigRecordsCompanion.insert(
+                id: id,
+                name: name,
+                baseUrl: baseUrl,
+                apiKey: apiKey,
+                defaultModel: defaultModel,
+                isEnabled: isEnabled,
+                testStatus: testStatus,
+                lastTestedAt: lastTestedAt,
+                lastTestMessage: lastTestMessage,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ProviderConfigRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ProviderConfigRecordsTable,
+      ProviderConfigRecord,
+      $$ProviderConfigRecordsTableFilterComposer,
+      $$ProviderConfigRecordsTableOrderingComposer,
+      $$ProviderConfigRecordsTableAnnotationComposer,
+      $$ProviderConfigRecordsTableCreateCompanionBuilder,
+      $$ProviderConfigRecordsTableUpdateCompanionBuilder,
+      (
+        ProviderConfigRecord,
+        BaseReferences<
+          _$AppDatabase,
+          $ProviderConfigRecordsTable,
+          ProviderConfigRecord
+        >,
+      ),
+      ProviderConfigRecord,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
   $$WorkflowTaskRecordsTableTableManager get workflowTaskRecords =>
       $$WorkflowTaskRecordsTableTableManager(_db, _db.workflowTaskRecords);
+  $$ProviderConfigRecordsTableTableManager get providerConfigRecords =>
+      $$ProviderConfigRecordsTableTableManager(_db, _db.providerConfigRecords);
 }
