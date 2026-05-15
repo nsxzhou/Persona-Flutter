@@ -44,3 +44,27 @@ Log long-running workflow lifecycle events when implemented:
 ## What NOT to Log
 
 Never log API keys, full provider credentials, manuscript content, imported source text, or prompt payloads by default.
+
+---
+
+## Scenario: Provider connectivity and credential handling
+
+### 1. Scope / Trigger
+- Trigger: The Provider settings slice persists API Keys in SQLite and performs real network connectivity tests.
+- This increases the risk of leaking secrets through logs or diagnostics.
+
+### 2. Validation & Error Matrix
+- Test failure -> surface sanitized error text only.
+- Unexpected exception -> truncate or sanitize the message before showing it to users.
+- API Key present -> never emit it in logs, even in debug builds.
+
+### 3. Good/Base/Bad Cases
+- Good: log the Provider id, test status, and timestamp only.
+- Base: log a short sanitized error reason when a probe fails.
+- Bad: print the request headers, model list payload, or API Key value.
+
+### 4. Wrong vs Correct
+#### Wrong
+`debugPrint('Provider test failed: $apiKey')`
+#### Correct
+Log only the Provider id and a sanitized failure reason, never the secret itself.

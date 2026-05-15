@@ -61,3 +61,32 @@ Keep navigation labels visible in expanded desktop navigation. If the shell supp
 * Do not create feature-specific UI in `core/ui/`.
 * Do not use large anonymous widget trees when a named widget improves readability.
 * Do not copy the `PersonaPage` header/panel layout into individual feature pages; extend the shared primitives instead.
+
+---
+
+## Scenario: Settings Provider management surface
+
+### 1. Scope / Trigger
+- Trigger: The Settings page now renders a Provider list, create/edit dialog, delete action, and connectivity test actions.
+- This is a feature-specific presentation surface that binds to Riverpod providers and must stay out of `core/ui/`.
+
+### 2. Contracts
+- Use `ConsumerWidget` or `ConsumerStatefulWidget` when reading provider state or dispatching commands.
+- Keep masking logic local to presentation so API Keys are never shown in full after save.
+- Surface async data with loading/error/data branches.
+
+### 3. Validation & Error Matrix
+- Empty form fields -> block submission in the dialog.
+- Invalid URL -> block submission before save.
+- Test failure -> show a sanitized snackbar or inline message.
+
+### 4. Good/Base/Bad Cases
+- Good: the list shows provider state, masked API Key, and test result.
+- Base: provider dialog edits a single Provider record.
+- Bad: widgets talk directly to Drift rows or print secret values.
+
+### 5. Wrong vs Correct
+#### Wrong
+Hard-code Provider cards in `core/ui/` or bypass the repository layer from the widget.
+#### Correct
+Keep Provider management widgets in `features/settings/presentation/` and bind them through Riverpod providers.
