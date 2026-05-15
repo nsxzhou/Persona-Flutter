@@ -124,6 +124,20 @@ The current fixed-width labeled `NavigationRail` is not the final visual target.
 
 ---
 
+## Settings Console Pattern
+
+Use a control-console treatment for Settings and other local-operations surfaces when the page needs to communicate readiness, risk, and next actions.
+
+Rules:
+
+* The page header should summarize system readiness before showing detailed settings rows.
+* The primary page action may stay in the header, while per-item operational actions should live on the item card itself.
+* Long-lived, local-first concerns such as provider readiness, key storage, and data boundaries should be grouped into compact summary cells or status surfaces.
+* If a capability is not implemented yet, render it as a status-type control with an explicit readiness label such as "规划中", "只读信息", or "待接入".
+* Do not style not-yet-functional entries like completed navigation targets. Reduce arrow, button, and link affordance when the item is informational or roadmap-only.
+
+---
+
 ## Spacing And Density
 
 Use slightly spacious density for the main interface and denser layouts for task-specific sub-pages.
@@ -171,6 +185,7 @@ Do not introduce:
 * Blue-dominant backgrounds.
 * Generic Material 3 surfaces without product-specific typography, spacing, and palette treatment.
 * Marketing-page hero layouts for the app shell.
+* Settings entries that look clickable even when they are only readiness indicators.
 
 ---
 
