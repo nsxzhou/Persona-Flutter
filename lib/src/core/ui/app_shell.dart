@@ -30,6 +30,8 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget build(BuildContext context) {
     final selectedIndex = widget.navigationShell.currentIndex;
     final themeMode = ref.watch(themeModeProvider);
+    final colorScheme = Theme.of(context).colorScheme;
+    final scaffoldBackgroundColor = Theme.of(context).scaffoldBackgroundColor;
 
     return TweenAnimationBuilder<double>(
       tween: Tween<double>(end: _isExpanded ? 1 : 0),
@@ -38,7 +40,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       builder: (context, sidebarProgress, child) {
         return Scaffold(
           body: ColoredBox(
-            color: Theme.of(context).scaffoldBackgroundColor,
+            color: scaffoldBackgroundColor,
             child: Row(
               children: [
                 SizedBox(
@@ -74,14 +76,8 @@ class _AppShellState extends ConsumerState<AppShell> {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Theme.of(context)
-                            .colorScheme
-                            .outlineVariant
-                            .withValues(alpha: 0.3),
-                        Theme.of(context)
-                            .colorScheme
-                            .outlineVariant
-                            .withValues(alpha: 0.08),
+                        colorScheme.outlineVariant.withValues(alpha: 0.3),
+                        colorScheme.outlineVariant.withValues(alpha: 0.08),
                       ],
                     ),
                   ),
@@ -155,32 +151,60 @@ class _PersonaSidebar extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      tooltip: themeMode == ThemeMode.dark
-                          ? '切换亮色模式'
-                          : '切换暗色模式',
-                      onPressed: onThemeToggle,
-                      icon: Icon(
-                        themeMode == ThemeMode.dark
-                            ? Icons.light_mode_outlined
-                            : Icons.dark_mode_outlined,
-                        size: 20,
+                if (isExpanded)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        tooltip: themeMode == ThemeMode.dark
+                            ? '切换亮色模式'
+                            : '切换暗色模式',
+                        onPressed: onThemeToggle,
+                        icon: Icon(
+                          themeMode == ThemeMode.dark
+                              ? Icons.light_mode_outlined
+                              : Icons.dark_mode_outlined,
+                          size: 20,
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      tooltip: isExpanded ? '折叠侧栏' : '展开侧栏',
-                      onPressed: onToggle,
-                      icon: Icon(
-                        isExpanded
-                            ? Icons.keyboard_double_arrow_left
-                            : Icons.keyboard_double_arrow_right,
+                      IconButton(
+                        tooltip: isExpanded ? '折叠侧栏' : '展开侧栏',
+                        onPressed: onToggle,
+                        icon: Icon(
+                          isExpanded
+                              ? Icons.keyboard_double_arrow_left
+                              : Icons.keyboard_double_arrow_right,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  )
+                else
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: themeMode == ThemeMode.dark
+                            ? '切换亮色模式'
+                            : '切换暗色模式',
+                        onPressed: onThemeToggle,
+                        icon: Icon(
+                          themeMode == ThemeMode.dark
+                              ? Icons.light_mode_outlined
+                              : Icons.dark_mode_outlined,
+                          size: 20,
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: isExpanded ? '折叠侧栏' : '展开侧栏',
+                        onPressed: onToggle,
+                        icon: Icon(
+                          isExpanded
+                              ? Icons.keyboard_double_arrow_left
+                              : Icons.keyboard_double_arrow_right,
+                        ),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),

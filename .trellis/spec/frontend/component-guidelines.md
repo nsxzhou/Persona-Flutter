@@ -19,7 +19,7 @@ Keep one primary widget per file. Private helper widgets can live below the main
 Examples:
 
 * `lib/src/core/ui/app_shell.dart`
-* `lib/src/core/ui/feature_placeholder_page.dart`
+* `lib/src/core/ui/persona_page.dart`
 * `lib/src/features/workflow_runs/presentation/workflow_runs_page.dart`
 
 ---
@@ -41,7 +41,11 @@ Shared route-level page composition should use `PersonaPage` and the small share
 * `PersonaPage` — route header, max-width content column, scroll behavior.
 * `PersonaPanel` — crisp bordered surface for one work area.
 * `PersonaSectionHeader` — local section title and explanatory text.
-* `PersonaMetric`, `PersonaActionTile`, and `PersonaStatusPill` — compact dashboard/workflow affordances.
+* `PersonaMetric`, `PersonaActionTile`, `PersonaStatusPill`, and `PersonaEmptyStateCard` — compact dashboard/workflow affordances.
+
+When the same empty state, skeleton block, metric strip, or action block appears in 2 or more pages, extract a shared primitive or a private helper instead of copying the widget tree again.
+
+Keep shell-level controls responsive. If a sidebar, toolbar, or action row can collapse, it must still fit the narrow state without horizontal overflow; stack controls vertically when the width budget is tight.
 
 Feature pages may compose these shared primitives, but feature-specific business meaning and data binding must remain in `features/<feature>/presentation/`.
 
@@ -61,6 +65,7 @@ Keep navigation labels visible in expanded desktop navigation. If the shell supp
 * Do not create feature-specific UI in `core/ui/`.
 * Do not use large anonymous widget trees when a named widget improves readability.
 * Do not copy the `PersonaPage` header/panel layout into individual feature pages; extend the shared primitives instead.
+* Do not keep dead placeholder pages or placeholder route scaffolding after a real screen exists.
 
 ---
 

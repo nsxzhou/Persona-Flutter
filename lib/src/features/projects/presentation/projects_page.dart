@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/persona_page.dart';
 
 class ProjectsPage extends StatelessWidget {
@@ -138,41 +137,10 @@ class _EmptyProjectsState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(kPanelRadius),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(22),
-        child: Row(
-          children: [
-            Icon(
-              Icons.library_books_outlined,
-              color: colorScheme.primary,
-              size: 36,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('尚未打开项目', style: textTheme.titleLarge),
-                  const SizedBox(height: 6),
-                  Text(
-                    '项目存储实现后，这里会显示最近长篇、章节状态和 Zen Editor 入口。',
-                    style: textTheme.bodyMedium,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+    return PersonaEmptyStateCard(
+      icon: Icons.library_books_outlined,
+      title: '尚未打开项目',
+      description: '项目存储实现后，这里会显示最近长篇、章节状态和 Zen Editor 入口。',
     );
   }
 }

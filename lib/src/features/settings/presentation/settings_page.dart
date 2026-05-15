@@ -79,42 +79,14 @@ class _EmptyProviderState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(kPanelRadius),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(22),
-        child: Row(
-          children: [
-            Icon(Icons.key_outlined, color: colorScheme.primary, size: 36),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('尚未配置 Provider', style: textTheme.titleLarge),
-                  const SizedBox(height: 6),
-                  Text(
-                    '添加 Base URL、API Key 和默认模型后，可以运行真实连接测试。',
-                    style: textTheme.bodyMedium,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 16),
-            OutlinedButton.icon(
-              onPressed: () => _showProviderDialog(context),
-              icon: const Icon(Icons.add),
-              label: const Text('新增 Provider'),
-            ),
-          ],
-        ),
+    return PersonaEmptyStateCard(
+      icon: Icons.key_outlined,
+      title: '尚未配置 Provider',
+      description: '添加 Base URL、API Key 和默认模型后，可以运行真实连接测试。',
+      action: OutlinedButton.icon(
+        onPressed: () => _showProviderDialog(context),
+        icon: const Icon(Icons.add),
+        label: const Text('新增 Provider'),
       ),
     );
   }
@@ -780,67 +752,73 @@ IconData _statusIcon(ProviderTestStatus status) {
 Widget _buildSkeletonLoading() {
   return Column(
     children: [
-      PersonaPanel(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      const PersonaPanel(child: _ProviderListSkeleton()),
+    ],
+  );
+}
+
+class _ProviderListSkeleton extends StatelessWidget {
+  const _ProviderListSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: const [
+            Expanded(child: SkeletonBox(width: 120, height: 16)),
+            SizedBox(width: 16),
+            SkeletonBox(width: 80, height: 24),
+          ],
+        ),
+        const SizedBox(height: 18),
+        const _ProviderCardSkeleton(),
+        const SizedBox(height: 12),
+        const _ProviderCardSkeleton(),
+      ],
+    );
+  }
+}
+
+class _ProviderCardSkeleton extends StatelessWidget {
+  const _ProviderCardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(kPanelRadius),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
           children: [
-            Row(
-              children: const [
-                Expanded(child: SkeletonBox(width: 120, height: 16)),
-                SizedBox(width: 16),
-                SkeletonBox(width: 80, height: 24),
-              ],
-            ),
-            const SizedBox(height: 18),
-            ...List.generate(
-              2,
-              (_) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(kPanelRadius),
+            const SkeletonBox(width: 42, height: 42),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  SkeletonBox(width: 140, height: 14),
+                  SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(child: SkeletonBox(width: 100, height: 36)),
+                      SizedBox(width: 8),
+                      Expanded(child: SkeletonBox(width: 100, height: 36)),
+                      SizedBox(width: 8),
+                      Expanded(child: SkeletonBox(width: 100, height: 36)),
+                    ],
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        const SkeletonBox(width: 42, height: 42),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              SkeletonBox(width: 140, height: 14),
-                              SizedBox(height: 10),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: SkeletonBox(width: 100, height: 36),
-                                  ),
-                                  SizedBox(width: 8),
-                                  Expanded(
-                                    child: SkeletonBox(width: 100, height: 36),
-                                  ),
-                                  SizedBox(width: 8),
-                                  Expanded(
-                                    child: SkeletonBox(width: 100, height: 36),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                ],
               ),
             ),
           ],
         ),
       ),
-    ],
-  );
+    );
+  }
 }
 
 Color _statusColor(ColorScheme colorScheme, ProviderTestStatus status) {

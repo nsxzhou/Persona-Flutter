@@ -25,6 +25,8 @@ Use `StatefulShellRoute.indexedStack` for persistent top-level shell navigation 
 
 Do not model top-level shell tabs as a plain `ShellRoute` plus independent page transitions. That can keep outgoing and incoming branch pages painted together during route changes on desktop.
 
+Shell widgets that read Riverpod providers must be wrapped in `ProviderScope` in tests and demos. If a shell owns app-level state like theme mode, route changes, or top-level selection, its tests should construct the same provider boundary that production uses.
+
 ---
 
 ## When to Use Global State

@@ -16,6 +16,7 @@ Flutter UI quality is enforced with `flutter_lints`, generated-code freshness, a
 * Do not edit generated `*.g.dart` / `*.freezed.dart` files manually.
 * Do not let widgets import Drift table records directly.
 * Do not add routes without updating route metadata and shell navigation consistently.
+* Do not keep unused route metadata fields, dead placeholder widgets, or placeholder-only files once the real screen exists.
 
 ---
 
@@ -25,6 +26,7 @@ Flutter UI quality is enforced with `flutter_lints`, generated-code freshness, a
 * Use `MaterialApp.router` with `go_router`.
 * Use `ConsumerWidget` when reading providers in widgets.
 * Handle loading/error/data branches for async providers.
+* Add or update widget tests when changing shell navigation, responsive layout behavior, or empty/loading/error states that users can see.
 
 ---
 
@@ -49,3 +51,4 @@ Add widget tests for navigation, shell behavior, and user-visible feature state.
 * Does provider-based UI handle errors?
 * Are generated files committed and current?
 * Is feature code placed under the correct `features/<feature>/` layer?
+* Have redundant helper layers, placeholder files, and duplicate state fragments been removed or justified?

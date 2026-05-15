@@ -317,6 +317,58 @@ class PersonaActionTile extends StatelessWidget {
   }
 }
 
+class PersonaEmptyStateCard extends StatelessWidget {
+  const PersonaEmptyStateCard({
+    required this.icon,
+    required this.title,
+    required this.description,
+    this.action,
+    super.key,
+  });
+
+  final IconData icon;
+  final String title;
+  final String description;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(kPanelRadius),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(22),
+        child: Row(
+          children: [
+            Icon(icon, color: colorScheme.primary, size: 36),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: textTheme.titleLarge),
+                  const SizedBox(height: 6),
+                  Text(description, style: textTheme.bodyMedium),
+                ],
+              ),
+            ),
+            if (action != null) ...[
+              const SizedBox(width: 16),
+              action!,
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class PersonaStatusPill extends StatelessWidget {
   const PersonaStatusPill({
     required this.label,

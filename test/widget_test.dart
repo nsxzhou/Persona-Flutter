@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:persona_flutter/src/app/persona_app.dart';
 import 'package:persona_flutter/src/core/router/app_route.dart';
+import 'package:persona_flutter/src/core/theme/app_theme.dart';
 import 'package:persona_flutter/src/core/ui/app_shell.dart';
 
 void main() {
@@ -42,7 +43,11 @@ void main() {
   ) async {
     final router = _buildShellTestRouter();
 
-    await tester.pumpWidget(_ShellTestApp(router: router));
+    await tester.pumpWidget(
+      ProviderScope(
+        child: _ShellTestApp(router: router),
+      ),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip('折叠侧栏'));
@@ -51,14 +56,17 @@ void main() {
     final logoCenter = tester.getCenter(
       find.byKey(const ValueKey('sidebar-brand-logo')).first,
     );
-    final selectedFolderCenter = tester.getCenter(
+    final selectedDestinationCenter = tester.getCenter(
       find.byIcon(Icons.folder).first,
     );
     final toggleCenter = tester.getCenter(
       find.byIcon(Icons.keyboard_double_arrow_right),
     );
 
-    expect((logoCenter.dx - selectedFolderCenter.dx).abs(), lessThan(0.1));
+    expect(
+      (logoCenter.dx - selectedDestinationCenter.dx).abs(),
+      lessThan(0.1),
+    );
     expect((logoCenter.dx - toggleCenter.dx).abs(), lessThan(0.1));
   });
 
@@ -120,6 +128,12 @@ class _ShellTestApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(routerConfig: router);
+    return ProviderScope(
+      child: MaterialApp.router(
+        routerConfig: router,
+        theme: buildPersonaTheme(Brightness.light),
+        darkTheme: buildPersonaTheme(Brightness.dark),
+      ),
+    );
   }
 }

@@ -83,17 +83,10 @@ class _EmptyWorkflowRuns extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PersonaPanel(
-      child: Row(
-        children: [
-          Icon(
-            Icons.check_circle_outline,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          const SizedBox(width: 12),
-          const Expanded(child: Text('尚未创建本地工作流任务。')),
-        ],
-      ),
+    return PersonaEmptyStateCard(
+      icon: Icons.check_circle_outline,
+      title: '尚未创建本地工作流任务。',
+      description: '这里会显示最近的本地长任务、失败原因和可恢复任务。',
     );
   }
 }
