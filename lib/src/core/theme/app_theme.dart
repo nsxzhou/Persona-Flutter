@@ -91,9 +91,7 @@ ThemeData buildPersonaTheme(Brightness brightness) {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: isDark
-          ? const Color(0xFF1A1D25)
-          : const Color(0xFFF0F2F7),
+      fillColor: isDark ? const Color(0xFF1A1D25) : const Color(0xFFF0F2F7),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(kInputRadius),
         borderSide: BorderSide(color: borderColor),
@@ -125,6 +123,9 @@ ThemeData buildPersonaTheme(Brightness brightness) {
     ),
   );
 }
+
+final ThemeData personaLightTheme = buildPersonaTheme(Brightness.light);
+final ThemeData personaDarkTheme = buildPersonaTheme(Brightness.dark);
 
 TextTheme _buildTextTheme(Color textColor, Color mutedTextColor) {
   final fontFamily = GoogleFonts.inter().fontFamily;

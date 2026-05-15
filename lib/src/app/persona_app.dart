@@ -15,9 +15,11 @@ class PersonaApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'Persona',
       debugShowCheckedModeBanner: false,
-      theme: buildPersonaTheme(Brightness.light),
-      darkTheme: buildPersonaTheme(Brightness.dark),
+      theme: personaLightTheme,
+      darkTheme: personaDarkTheme,
       themeMode: ref.watch(themeModeProvider),
+      themeAnimationDuration: const Duration(milliseconds: 160),
+      themeAnimationCurve: Curves.easeOutCubic,
       routerConfig: router,
     );
   }
