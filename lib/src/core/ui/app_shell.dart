@@ -1,3 +1,5 @@
+import 'dart:ui' show lerpDouble;
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -5,6 +7,7 @@ import '../router/app_route.dart';
 
 const _collapsedSidebarWidth = 76.0;
 const _expandedSidebarWidth = 238.0;
+const _sidebarHorizontalPadding = 24.0;
 
 class AppShell extends StatefulWidget {
   const AppShell({required this.navigationShell, super.key});
@@ -22,49 +25,59 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     final selectedIndex = widget.navigationShell.currentIndex;
 
-    return Scaffold(
-      body: ColoredBox(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        child: Row(
-          children: [
-            AnimatedContainer(
-              key: const ValueKey('app-sidebar'),
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOutCubic,
-              width: _isExpanded
-                  ? _expandedSidebarWidth
-                  : _collapsedSidebarWidth,
-              child: _PersonaSidebar(
-                isExpanded: _isExpanded,
-                selectedIndex: selectedIndex,
-                onToggle: () {
-                  setState(() => _isExpanded = !_isExpanded);
-                },
-                onDestinationSelected: (index) {
-                  widget.navigationShell.goBranch(
-                    index,
-                    initialLocation: index == selectedIndex,
-                  );
-                },
-              ),
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(end: _isExpanded ? 1 : 0),
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
+      builder: (context, sidebarProgress, child) {
+        return Scaffold(
+          body: ColoredBox(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            child: Row(
+              children: [
+                SizedBox(
+                  key: const ValueKey('app-sidebar'),
+                  width: lerpDouble(
+                    _collapsedSidebarWidth,
+                    _expandedSidebarWidth,
+                    sidebarProgress,
+                  )!,
+                  child: _PersonaSidebar(
+                    sidebarProgress: sidebarProgress,
+                    isExpanded: _isExpanded,
+                    selectedIndex: selectedIndex,
+                    onToggle: () {
+                      setState(() => _isExpanded = !_isExpanded);
+                    },
+                    onDestinationSelected: (index) {
+                      widget.navigationShell.goBranch(
+                        index,
+                        initialLocation: index == selectedIndex,
+                      );
+                    },
+                  ),
+                ),
+                const VerticalDivider(width: 1),
+                Expanded(child: widget.navigationShell),
+              ],
             ),
-            const VerticalDivider(width: 1),
-            Expanded(child: widget.navigationShell),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
 
 class _PersonaSidebar extends StatelessWidget {
   const _PersonaSidebar({
+    required this.sidebarProgress,
     required this.isExpanded,
     required this.selectedIndex,
     required this.onToggle,
     required this.onDestinationSelected,
   });
 
+  final double sidebarProgress;
   final bool isExpanded;
   final int selectedIndex;
   final VoidCallback onToggle;
@@ -76,13 +89,14 @@ class _PersonaSidebar extends StatelessWidget {
 
     return Material(
       color: colorScheme.surface,
+      clipBehavior: Clip.hardEdge,
       child: SafeArea(
         right: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 16, 12, 14),
           child: Column(
             children: [
-              _SidebarBrand(isExpanded: isExpanded),
+              _SidebarBrand(sidebarProgress: sidebarProgress),
               const SizedBox(height: 20),
               Expanded(
                 child: ListView.separated(
@@ -94,6 +108,7 @@ class _PersonaSidebar extends StatelessWidget {
 
                     return _SidebarDestination(
                       item: item,
+                      sidebarProgress: sidebarProgress,
                       isExpanded: isExpanded,
                       isSelected: selectedIndex == index,
                       onTap: () => onDestinationSelected(index),
@@ -102,7 +117,7 @@ class _PersonaSidebar extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              _SidebarContextCard(isExpanded: isExpanded),
+              _SidebarContextCard(sidebarProgress: sidebarProgress),
               const SizedBox(height: 12),
               IconButton(
                 tooltip: isExpanded ? '折叠侧栏' : '展开侧栏',
@@ -122,42 +137,61 @@ class _PersonaSidebar extends StatelessWidget {
 }
 
 class _SidebarBrand extends StatelessWidget {
-  const _SidebarBrand({required this.isExpanded});
+  const _SidebarBrand({required this.sidebarProgress});
 
-  final bool isExpanded;
+  final double sidebarProgress;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final labelOpacity = _expandedContentProgress(sidebarProgress);
+    const expandedContentWidth =
+        _expandedSidebarWidth - _sidebarHorizontalPadding;
 
-    return Row(
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: colorScheme.primary,
-            borderRadius: BorderRadius.circular(6),
+    return SizedBox(
+      height: 44,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Opacity(
+            opacity: 1 - labelOpacity,
+            child: const Center(
+              child: _SidebarLogo(key: ValueKey('sidebar-brand-logo')),
+            ),
           ),
-          child: Icon(Icons.auto_stories, color: colorScheme.onPrimary),
-        ),
-        if (isExpanded) ...[
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Persona', style: textTheme.titleMedium),
-                Text(
-                  '本地写作系统',
-                  style: textTheme.bodyMedium?.copyWith(fontSize: 12),
+          ClipRect(
+            child: SizedBox(
+              width: expandedContentWidth * labelOpacity,
+              child: OverflowBox(
+                alignment: Alignment.centerLeft,
+                minWidth: expandedContentWidth,
+                maxWidth: expandedContentWidth,
+                child: Opacity(
+                  opacity: labelOpacity,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const _SidebarLogo(),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Persona', style: textTheme.titleMedium),
+                          Text(
+                            '本地写作系统',
+                            style: textTheme.bodyMedium?.copyWith(fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ],
+              ),
             ),
           ),
         ],
-      ],
+      ),
     );
   }
 }
@@ -165,12 +199,14 @@ class _SidebarBrand extends StatelessWidget {
 class _SidebarDestination extends StatelessWidget {
   const _SidebarDestination({
     required this.item,
+    required this.sidebarProgress,
     required this.isExpanded,
     required this.isSelected,
     required this.onTap,
   });
 
   final _NavigationItem item;
+  final double sidebarProgress;
   final bool isExpanded;
   final bool isSelected;
   final VoidCallback onTap;
@@ -179,97 +215,187 @@ class _SidebarDestination extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-
-    return Tooltip(
-      message: isExpanded ? '' : item.route.label,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          curve: Curves.easeOutCubic,
-          padding: EdgeInsets.symmetric(
-            horizontal: isExpanded ? 12 : 0,
-            vertical: 10,
+    final labelOpacity = _expandedContentProgress(sidebarProgress);
+    const expandedContentWidth =
+        _expandedSidebarWidth - _sidebarHorizontalPadding - 24;
+    final destination = InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.symmetric(
+          horizontal: isExpanded ? 12 : 0,
+          vertical: 10,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? colorScheme.primary.withValues(alpha: 0.1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? colorScheme.primary : Colors.transparent,
           ),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? colorScheme.primary.withValues(alpha: 0.1)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isSelected ? colorScheme.primary : Colors.transparent,
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: isExpanded
-                ? MainAxisAlignment.start
-                : MainAxisAlignment.center,
+        ),
+        child: SizedBox(
+          height: 22,
+          child: Stack(
+            fit: StackFit.expand,
             children: [
-              Icon(
-                isSelected ? item.selectedIcon : item.icon,
-                color: isSelected
-                    ? colorScheme.primary
-                    : colorScheme.onSurfaceVariant,
-                size: 22,
+              Opacity(
+                opacity: 1 - labelOpacity,
+                child: Center(
+                  child: Icon(
+                    isSelected ? item.selectedIcon : item.icon,
+                    color: isSelected
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant,
+                    size: 22,
+                  ),
+                ),
               ),
-              if (isExpanded) ...[
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    item.route.label,
-                    style: textTheme.labelLarge?.copyWith(
-                      color: isSelected
-                          ? colorScheme.primary
-                          : colorScheme.onSurface,
+              ClipRect(
+                child: SizedBox(
+                  width: expandedContentWidth * labelOpacity,
+                  child: OverflowBox(
+                    alignment: Alignment.centerLeft,
+                    minWidth: expandedContentWidth,
+                    maxWidth: expandedContentWidth,
+                    child: Opacity(
+                      opacity: labelOpacity,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isSelected ? item.selectedIcon : item.icon,
+                            color: isSelected
+                                ? colorScheme.primary
+                                : colorScheme.onSurfaceVariant,
+                            size: 22,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            item.route.label,
+                            style: textTheme.labelLarge?.copyWith(
+                              color: isSelected
+                                  ? colorScheme.primary
+                                  : colorScheme.onSurface,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ],
+              ),
             ],
           ),
         ),
       ),
     );
+
+    if (labelOpacity < 0.5) {
+      return Tooltip(message: item.route.label, child: destination);
+    }
+
+    return destination;
   }
 }
 
 class _SidebarContextCard extends StatelessWidget {
-  const _SidebarContextCard({required this.isExpanded});
+  const _SidebarContextCard({required this.sidebarProgress});
 
-  final bool isExpanded;
+  final double sidebarProgress;
 
   @override
   Widget build(BuildContext context) {
-    if (!isExpanded) {
-      return Icon(
-        Icons.offline_bolt_outlined,
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
-      );
-    }
-
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final labelOpacity = _expandedContentProgress(sidebarProgress);
+    final cardHeight = lerpDouble(40, 116, labelOpacity)!;
 
-    return DecoratedBox(
+    return SizedBox(
+      height: cardHeight,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Opacity(
+            opacity: 1 - labelOpacity,
+            child: Center(
+              child: Icon(
+                Icons.offline_bolt_outlined,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          ClipRect(
+            child: SizedBox(
+              height: 116 * labelOpacity,
+              child: OverflowBox(
+                alignment: Alignment.bottomCenter,
+                minHeight: 116,
+                maxHeight: 116,
+                child: Opacity(
+                  opacity: labelOpacity,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHighest.withValues(
+                        alpha: 0.58,
+                      ),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: colorScheme.outlineVariant),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('工作区', style: textTheme.labelMedium),
+                          const SizedBox(height: 8),
+                          Text('本地优先', style: textTheme.titleMedium),
+                          const SizedBox(height: 2),
+                          Text(
+                            '待配置 BYOK Provider',
+                            style: textTheme.bodyMedium,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+double _expandedContentProgress(double sidebarProgress) {
+  if (sidebarProgress <= 0.42) {
+    return 0;
+  }
+
+  return ((sidebarProgress - 0.42) / 0.58).clamp(0.0, 1.0).toDouble();
+}
+
+class _SidebarLogo extends StatelessWidget {
+  const _SidebarLogo({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      width: 40,
+      height: 40,
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.58),
+        color: colorScheme.primary,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: colorScheme.outlineVariant),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('工作区', style: textTheme.labelMedium),
-            const SizedBox(height: 8),
-            Text('本地优先', style: textTheme.titleMedium),
-            const SizedBox(height: 2),
-            Text('待配置 BYOK Provider', style: textTheme.bodyMedium),
-          ],
-        ),
-      ),
+      child: Icon(Icons.auto_stories, color: colorScheme.onPrimary),
     );
   }
 }

@@ -38,6 +38,31 @@ void main() {
     expect(tester.getSize(sidebar).width, initialWidth);
   });
 
+  testWidgets('aligns collapsed sidebar icons on the same vertical axis', (
+    tester,
+  ) async {
+    final router = _buildShellTestRouter();
+
+    await tester.pumpWidget(_ShellTestApp(router: router));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('折叠侧栏'));
+    await tester.pumpAndSettle();
+
+    final logoCenter = tester.getCenter(
+      find.byKey(const ValueKey('sidebar-brand-logo')).first,
+    );
+    final selectedFolderCenter = tester.getCenter(
+      find.byIcon(Icons.folder).first,
+    );
+    final toggleCenter = tester.getCenter(
+      find.byIcon(Icons.keyboard_double_arrow_right),
+    );
+
+    expect((logoCenter.dx - selectedFolderCenter.dx).abs(), lessThan(0.1));
+    expect((logoCenter.dx - toggleCenter.dx).abs(), lessThan(0.1));
+  });
+
   testWidgets('does not keep outgoing route page content during navigation', (
     tester,
   ) async {

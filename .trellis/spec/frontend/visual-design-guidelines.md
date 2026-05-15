@@ -152,6 +152,12 @@ Rules:
 * Operations console motion should prioritize clarity for running, queued, error, and progress states.
 * Respect reduced-motion accessibility settings when implemented.
 
+### Animated Shell Surfaces
+
+When animating shell surfaces such as the expandable desktop sidebar, drive width, label reveal, and contextual content reveal from one shared animation progress. Do not toggle expanded-only children directly at the start of a width animation: that causes labels and cards to lay out inside the collapsed width and produces visible flicker or `RenderFlex overflowed` errors.
+
+If text should fade in after there is enough room, lay it out at its expanded size behind a `ClipRect` / `OverflowBox` reveal or delay rendering until the width can contain it. Regression tests for these interactions should check both the final geometry, such as collapsed icon center alignment, and the absence of layout exceptions during `pumpAndSettle()`.
+
 ---
 
 ## Forbidden Patterns
