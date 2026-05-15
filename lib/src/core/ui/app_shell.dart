@@ -117,8 +117,6 @@ class _PersonaSidebar extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              _SidebarContextCard(sidebarProgress: sidebarProgress),
-              const SizedBox(height: 12),
               IconButton(
                 tooltip: isExpanded ? '折叠侧栏' : '展开侧栏',
                 onPressed: onToggle,
@@ -299,77 +297,6 @@ class _SidebarDestination extends StatelessWidget {
     }
 
     return destination;
-  }
-}
-
-class _SidebarContextCard extends StatelessWidget {
-  const _SidebarContextCard({required this.sidebarProgress});
-
-  final double sidebarProgress;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final labelOpacity = _expandedContentProgress(sidebarProgress);
-    final cardHeight = lerpDouble(40, 116, labelOpacity)!;
-
-    return SizedBox(
-      height: cardHeight,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Opacity(
-            opacity: 1 - labelOpacity,
-            child: Center(
-              child: Icon(
-                Icons.offline_bolt_outlined,
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-          ClipRect(
-            child: SizedBox(
-              height: 116 * labelOpacity,
-              child: OverflowBox(
-                alignment: Alignment.bottomCenter,
-                minHeight: 116,
-                maxHeight: 116,
-                child: Opacity(
-                  opacity: labelOpacity,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: colorScheme.surfaceContainerHighest.withValues(
-                        alpha: 0.58,
-                      ),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: colorScheme.outlineVariant),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text('工作区', style: textTheme.labelMedium),
-                          const SizedBox(height: 8),
-                          Text('本地优先', style: textTheme.titleMedium),
-                          const SizedBox(height: 2),
-                          Text(
-                            '待配置 BYOK Provider',
-                            style: textTheme.bodyMedium,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 

@@ -35,7 +35,7 @@ class SettingsPage extends ConsumerWidget {
           loading: () => const PersonaPanel(child: LinearProgressIndicator()),
         ),
         const SizedBox(height: 18),
-        const _LocalDataGrid(),
+        const _PendingActionsPanel(),
       ],
     );
   }
@@ -53,8 +53,8 @@ class _ProviderSettings extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           PersonaSectionHeader(
-            title: 'Provider 设置',
-            description: '保存 OpenAI-compatible 连接配置。API Key 当前按项目决策存入 SQLite。',
+            title: 'Provider 控制台',
+            description: '管理 OpenAI-compatible 连接。页头新增配置，卡片内优先测试当前 Provider。',
             trailing: PersonaStatusPill(
               label: '${items.length} 个配置',
               icon: Icons.key_outlined,
@@ -108,7 +108,7 @@ class _EmptyProviderState extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: () => _showProviderDialog(context),
               icon: const Icon(Icons.add),
-              label: const Text('添加'),
+              label: const Text('新增 Provider'),
             ),
           ],
         ),
@@ -127,104 +127,358 @@ class _ProviderList extends StatelessWidget {
     return Column(
       children: [
         for (final item in items) ...[
-          _ProviderRow(provider: item),
-          if (item != items.last) const Divider(height: 1),
+          _ProviderCard(provider: item),
+          if (item != items.last) const SizedBox(height: 12),
         ],
       ],
     );
   }
 }
 
-class _ProviderRow extends ConsumerWidget {
-  const _ProviderRow({required this.provider});
+class _ProviderCard extends ConsumerWidget {
+  const _ProviderCard({required this.provider});
 
   final ProviderConfig provider;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
     final statusColor = _statusColor(colorScheme, provider.testStatus);
     final controllerState = ref.watch(providerConfigControllerProvider);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 150,
-            child: PersonaStatusPill(
-              label: _statusLabel(provider.testStatus),
-              icon: _statusIcon(provider.testStatus),
-              color: statusColor,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.28),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final details = _ProviderDetails(
+              provider: provider,
+              statusColor: statusColor,
+            );
+            final actions = _ProviderActions(
+              provider: provider,
+              isBusy: controllerState.isLoading,
+            );
+
+            if (constraints.maxWidth < 720) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [details, const SizedBox(height: 14), actions],
+              );
+            }
+
+            return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(provider.name, style: textTheme.titleMedium),
-                    ),
-                    if (!provider.isEnabled) ...[
-                      const SizedBox(width: 8),
-                      PersonaStatusPill(
-                        label: '已停用',
-                        icon: Icons.pause_circle_outline,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(provider.baseUrl, style: textTheme.bodyMedium),
-                const SizedBox(height: 4),
-                Text(
-                  '默认模型：${provider.defaultModel} · API Key：${_maskApiKey(provider.apiKey)}',
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                if (provider.lastTestMessage != null) ...[
-                  const SizedBox(height: 6),
+                Expanded(child: details),
+                const SizedBox(width: 18),
+                SizedBox(width: 190, child: actions),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _ProviderDetails extends StatelessWidget {
+  const _ProviderDetails({required this.provider, required this.statusColor});
+
+  final ProviderConfig provider;
+  final Color statusColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: statusColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: statusColor.withValues(alpha: 0.24)),
+          ),
+          child: Icon(
+            _statusIcon(provider.testStatus),
+            color: statusColor,
+            size: 21,
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
                   Text(
-                    provider.lastTestMessage!,
-                    style: textTheme.bodySmall?.copyWith(color: statusColor),
+                    provider.name,
+                    style: textTheme.titleMedium,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  PersonaStatusPill(
+                    label: _statusLabel(provider.testStatus),
+                    icon: _statusIcon(provider.testStatus),
+                    color: statusColor,
+                  ),
+                  if (!provider.isEnabled)
+                    PersonaStatusPill(
+                      label: '已停用',
+                      icon: Icons.pause_circle_outline,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              _ProviderMetaGrid(provider: provider),
+              if (provider.lastTestMessage != null) ...[
+                const SizedBox(height: 10),
+                _ProviderTestMessage(
+                  message: provider.lastTestMessage!,
+                  color: statusColor,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProviderMetaGrid extends StatelessWidget {
+  const _ProviderMetaGrid({required this.provider});
+
+  final ProviderConfig provider;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cells = [
+          _ProviderMetaCell(
+            label: 'Base URL',
+            value: provider.baseUrl,
+            icon: Icons.link_outlined,
+          ),
+          _ProviderMetaCell(
+            label: '默认模型',
+            value: provider.defaultModel,
+            icon: Icons.memory_outlined,
+          ),
+          _ProviderMetaCell(
+            label: 'API Key',
+            value: _maskApiKey(provider.apiKey),
+            icon: Icons.vpn_key_outlined,
+          ),
+        ];
+
+        if (constraints.maxWidth < 620) {
+          return Column(
+            children: [
+              for (final cell in cells) ...[
+                cell,
+                if (cell != cells.last) const SizedBox(height: 8),
+              ],
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            for (final cell in cells) ...[
+              Expanded(child: cell),
+              if (cell != cells.last) const SizedBox(width: 8),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ProviderMetaCell extends StatelessWidget {
+  const _ProviderMetaCell({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.72),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+        child: Row(
+          children: [
+            Icon(icon, color: colorScheme.onSurfaceVariant, size: 16),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: textTheme.labelMedium),
+                  const SizedBox(height: 2),
+                  Text(
+                    value,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurface,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
-              ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProviderTestMessage extends StatelessWidget {
+  const _ProviderTestMessage({required this.message, required this.color});
+
+  final String message;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Row(
+          children: [
+            Icon(Icons.bolt_outlined, color: color, size: 16),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                message,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurface,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProviderActions extends ConsumerWidget {
+  const _ProviderActions({required this.provider, required this.isBusy});
+
+  final ProviderConfig provider;
+  final bool isBusy;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      alignment: WrapAlignment.end,
+      children: [
+        FilledButton.icon(
+          onPressed: isBusy
+              ? null
+              : () => ref
+                    .read(providerConfigControllerProvider.notifier)
+                    .test(provider.id),
+          icon: const Icon(Icons.network_check),
+          label: const Text('测试连接'),
+        ),
+        IconButton(
+          tooltip: '编辑',
+          onPressed: () => _showProviderDialog(context, provider: provider),
+          icon: const Icon(Icons.edit_outlined),
+        ),
+        IconButton(
+          tooltip: '删除',
+          onPressed: () => _confirmDelete(context, ref, provider),
+          icon: const Icon(Icons.delete_outline),
+        ),
+      ],
+    );
+  }
+}
+
+class _PendingActionsPanel extends StatelessWidget {
+  const _PendingActionsPanel();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return PersonaPanel(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PersonaSectionHeader(
+            title: '待开发',
+            description: '本地数据 / 导入导出 / 备份恢复',
+            trailing: PersonaStatusPill(
+              label: '3 项',
+              icon: Icons.construction_outlined,
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(height: 14),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              OutlinedButton.icon(
-                onPressed: controllerState.isLoading
-                    ? null
-                    : () => ref
-                          .read(providerConfigControllerProvider.notifier)
-                          .test(provider.id),
-                icon: const Icon(Icons.network_check),
-                label: const Text('测试'),
-              ),
-              IconButton(
-                tooltip: '编辑',
-                onPressed: () =>
-                    _showProviderDialog(context, provider: provider),
-                icon: const Icon(Icons.edit_outlined),
-              ),
-              IconButton(
-                tooltip: '删除',
-                onPressed: () => _confirmDelete(context, ref, provider),
-                icon: const Icon(Icons.delete_outline),
-              ),
+            spacing: 10,
+            runSpacing: 10,
+            children: const [
+              _PendingItem(label: '本地数据'),
+              _PendingItem(label: '导入 / 导出'),
+              _PendingItem(label: '备份 / 恢复'),
             ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '这些功能还未完成，先保留占位，不提供误导性的点击入口。',
+            style: textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -232,41 +486,44 @@ class _ProviderRow extends ConsumerWidget {
   }
 }
 
-class _LocalDataGrid extends StatelessWidget {
-  const _LocalDataGrid();
+class _PendingItem extends StatelessWidget {
+  const _PendingItem({required this.label});
+
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 900 ? 3 : 1;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
-        return GridView.count(
-          crossAxisCount: columns,
-          crossAxisSpacing: 14,
-          mainAxisSpacing: 14,
-          shrinkWrap: true,
-          childAspectRatio: columns == 3 ? 2.55 : 4,
-          physics: const NeverScrollableScrollPhysics(),
-          children: const [
-            PersonaActionTile(
-              icon: Icons.storage_outlined,
-              title: '本地数据',
-              description: 'SQLite 工作区边界和重置控制。',
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.construction_outlined,
+              size: 16,
+              color: colorScheme.onSurfaceVariant,
             ),
-            PersonaActionTile(
-              icon: Icons.import_export,
-              title: '导入 / 导出',
-              description: '迁移手稿、档案和项目文件。',
-            ),
-            PersonaActionTile(
-              icon: Icons.settings_backup_restore,
-              title: '备份 / 恢复',
-              description: '备份会包含 SQLite 中的 Provider API Key。',
+            const SizedBox(width: 8),
+            Text(label, style: textTheme.titleSmall),
+            const SizedBox(width: 10),
+            Text(
+              '待开发',
+              style: textTheme.labelMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
-        );
-      },
+        ),
+      ),
     );
   }
 }

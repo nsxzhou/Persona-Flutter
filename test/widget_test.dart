@@ -18,7 +18,6 @@ void main() {
     expect(find.text('剧情实验室'), findsWidgets);
     expect(find.text('工作流任务'), findsWidgets);
     expect(find.text('设置'), findsWidgets);
-    expect(find.text('本地写作系统'), findsOneWidget);
   });
 
   testWidgets('keeps sidebar width stable when workflow runs is selected', (
