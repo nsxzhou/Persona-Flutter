@@ -30,7 +30,6 @@ class _AppShellState extends ConsumerState<AppShell> {
   @override
   Widget build(BuildContext context) {
     final selectedIndex = widget.navigationShell.currentIndex;
-    final themeMode = ref.watch(themeModeProvider);
     final colorScheme = Theme.of(context).colorScheme;
     final scaffoldBackgroundColor = Theme.of(context).scaffoldBackgroundColor;
 
@@ -55,7 +54,6 @@ class _AppShellState extends ConsumerState<AppShell> {
                     sidebarProgress: sidebarProgress,
                     isExpanded: _isExpanded,
                     selectedIndex: selectedIndex,
-                    themeMode: themeMode,
                     onToggle: () {
                       setState(() => _isExpanded = !_isExpanded);
                     },
@@ -100,7 +98,6 @@ class _PersonaSidebar extends StatelessWidget {
     required this.sidebarProgress,
     required this.isExpanded,
     required this.selectedIndex,
-    required this.themeMode,
     required this.onToggle,
     required this.onThemeToggle,
     required this.onDestinationSelected,
@@ -109,7 +106,6 @@ class _PersonaSidebar extends StatelessWidget {
   final double sidebarProgress;
   final bool isExpanded;
   final int selectedIndex;
-  final ThemeMode themeMode;
   final VoidCallback onToggle;
   final VoidCallback onThemeToggle;
   final ValueChanged<int> onDestinationSelected;
@@ -118,7 +114,7 @@ class _PersonaSidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     return GlassContainer(
       borderRadius: 0,
-      blurSigma: 20,
+      blurSigma: 14,
       border: Border.all(color: Colors.transparent),
       child: Material(
         color: Colors.transparent,
@@ -154,10 +150,7 @@ class _PersonaSidebar extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      AnimatedThemeToggler(
-                        themeMode: themeMode,
-                        onPressed: onThemeToggle,
-                      ),
+                      AnimatedThemeToggler(onPressed: onThemeToggle),
                       const SizedBox(width: 8),
                       IconButton(
                         tooltip: isExpanded ? '折叠侧栏' : '展开侧栏',
@@ -174,10 +167,7 @@ class _PersonaSidebar extends StatelessWidget {
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      AnimatedThemeToggler(
-                        themeMode: themeMode,
-                        onPressed: onThemeToggle,
-                      ),
+                      AnimatedThemeToggler(onPressed: onThemeToggle),
                       const SizedBox(height: 8),
                       IconButton(
                         tooltip: isExpanded ? '折叠侧栏' : '展开侧栏',
