@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Persona Palette Comparison</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: #171713;
+      color: #f4f0e7;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .page {
+      width: 1600px;
+      min-height: 1280px;
+      padding: 32px;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px) 0 0 / 72px 72px,
+        radial-gradient(circle at 12% 10%, rgba(213, 184, 118, .14), transparent 26%),
+        radial-gradient(circle at 88% 14%, rgba(92, 123, 130, .12), transparent 30%),
+        #171713;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      gap: 28px;
+      align-items: end;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 36px;
+      font-weight: 500;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      margin: 0;
+      max-width: 930px;
+      color: #c9c3b8;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .note {
+      max-width: 400px;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 14px;
+      padding: 13px 15px;
+      background: rgba(255,255,255,.055);
+      color: #d5cec1;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .palette {
+      border-radius: 18px;
+      padding: 14px;
+      border: 1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.055);
+      box-shadow: 0 24px 70px rgba(0,0,0,.30);
+    }
+
+    .palette h2 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    .palette .desc {
+      margin: 7px 0 12px;
+      min-height: 56px;
+      color: #c9c3b8;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .swatches {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .swatch {
+      height: 26px;
+      border-radius: 7px;
+      border: 1px solid rgba(0,0,0,.12);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.25);
+    }
+
+    .mock {
+      height: 404px;
+      display: grid;
+      grid-template-columns: 58px 1fr 116px;
+      overflow: hidden;
+      border-radius: 14px;
+      border: 1px solid color-mix(in srgb, var(--ink) 16%, transparent);
+      background: var(--shell);
+      color: var(--ink);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.24);
+    }
+
+    .rail {
+      padding: 12px 8px;
+      display: grid;
+      align-content: start;
+      gap: 9px;
+      background: var(--rail);
+      border-right: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+    }
+
+    .dot {
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 10px;
+      color: color-mix(in srgb, var(--ink) 62%, transparent);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .dot.active {
+      background: var(--accent);
+      color: var(--on-accent);
+      box-shadow: 0 8px 18px color-mix(in srgb, var(--accent) 28%, transparent);
+    }
+
+    .stage {
+      padding: 20px;
+      background:
+        linear-gradient(90deg, color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 1px) 0 0 / 26px 26px,
+        var(--shell);
+    }
+
+    .crumb {
+      color: color-mix(in srgb, var(--ink) 58%, transparent);
+      font-size: 11px;
+      margin-bottom: 13px;
+    }
+
+    .paper {
+      min-height: 290px;
+      padding: 24px 26px;
+      background: var(--paper);
+      color: var(--paper-ink);
+      border: 1px solid color-mix(in srgb, var(--paper-ink) 12%, transparent);
+      border-radius: var(--paper-radius);
+      box-shadow:
+        0 18px 42px color-mix(in srgb, var(--shadow) 22%, transparent),
+        inset 0 1px 0 rgba(255,255,255,.45);
+      font-family: Georgia, "Times New Roman", serif;
+    }
+
+    .paper h3 {
+      margin: 0 0 14px;
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--paper-ink);
+    }
+
+    .paper p {
+      margin: 0 0 12px;
+      color: color-mix(in srgb, var(--paper-ink) 76%, transparent);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .context {
+      padding: 14px 11px;
+      background: var(--panel);
+      border-left: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+    }
+
+    .context h4 {
+      margin: 0 0 10px;
+      color: var(--accent);
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .context div {
+      padding: 9px 0;
+      border-top: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+      color: color-mix(in srgb, var(--ink) 72%, transparent);
+      font-size: 11px;
+      line-height: 1.36;
+    }
+
+    .chips {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .chip {
+      border-radius: 999px;
+      padding: 7px 9px;
+      background: color-mix(in srgb, var(--accent) 14%, var(--paper));
+      color: var(--paper-ink);
+      font-size: 11px;
+      text-align: center;
+      border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+    }
+
+    .caption {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      color: #d5cec1;
+      font-size: 12px;
+      line-height: 1.42;
+    }
+
+    .caption div {
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      padding: 9px;
+      background: rgba(255,255,255,.045);
+    }
+
+    .p1 {
+      --shell: #f1eadc;
+      --rail: #ded2bd;
+      --panel: #e7dcc9;
+      --paper: #fffaf0;
+      --ink: #2e2a22;
+      --paper-ink: #27231c;
+      --accent: #315f58;
+      --on-accent: #fffaf0;
+      --shadow: #6b5630;
+      --paper-radius: 4px;
+    }
+
+    .p2 {
+      --shell: #eef2ee;
+      --rail: #d9e3dc;
+      --panel: #e3ebe5;
+      --paper: #fbfcf8;
+      --ink: #1f2d2a;
+      --paper-ink: #1c2825;
+      --accent: #2e6f63;
+      --on-accent: #f7fff9;
+      --shadow: #3d5c52;
+      --paper-radius: 6px;
+    }
+
+    .p3 {
+      --shell: #ece8df;
+      --rail: #d7d3ca;
+      --panel: #e1ded5;
+      --paper: #fbf8f0;
+      --ink: #262b2e;
+      --paper-ink: #25292b;
+      --accent: #4b6772;
+      --on-accent: #f5f8f7;
+      --shadow: #44545a;
+      --paper-radius: 3px;
+    }
+
+    .p4 {
+      --shell: #f0e5d4;
+      --rail: #e2cab0;
+      --panel: #ead8c0;
+      --paper: #fff7e7;
+      --ink: #33251f;
+      --paper-ink: #2a211c;
+      --accent: #9b4b34;
+      --on-accent: #fff6e7;
+      --shadow: #7f4b2c;
+      --paper-radius: 8px;
+    }
+
+    .p5 {
+      --shell: #e8e3d8;
+      --rail: #d0c5b2;
+      --panel: #ded5c7;
+      --paper: #f7f0e2;
+      --ink: #2a2722;
+      --paper-ink: #26231e;
+      --accent: #5e4a7f;
+      --on-accent: #fbf4e8;
+      --shadow: #4f405f;
+      --paper-radius: 2px;
+    }
+
+    .p6 {
+      --shell: #202225;
+      --rail: #17191c;
+      --panel: #25282b;
+      --paper: #e9ddc4;
+      --ink: #f0eadb;
+      --paper-ink: #28231b;
+      --accent: #d2a84f;
+      --on-accent: #181713;
+      --shadow: #000000;
+      --paper-radius: 4px;
+    }
+
+    .footer {
+      margin-top: 18px;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 14px;
+      padding: 14px;
+      background: rgba(255,255,255,.045);
+      color: #d5cec1;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <div>
+        <h1>Persona 质感配色方案</h1>
+        <p class="lead">同一套写作台 UI，只替换色彩系统和材质倾向。目标不是“更花”，而是通过纸张、墨色、边框、阴影、强调色和中性色层级建立质感。</p>
+      </div>
+      <div class="note">判断方式：看哪一组最适合长时间写作、最不像默认 Material、同时还能支撑 Style Lab / Plot Lab / Workflow Runs 的局部变体。</div>
+    </header>
+
+    <section class="grid">
+      <article class="palette p1">
+        <h2>1. 温润纸墨 + 深松石</h2>
+        <p class="desc">经典写作台。暖纸色、深墨色、松石绿强调，稳重但不沉闷。</p>
+        <div class="swatches"><i class="swatch" style="background:#f1eadc"></i><i class="swatch" style="background:#ded2bd"></i><i class="swatch" style="background:#fffaf0"></i><i class="swatch" style="background:#2e2a22"></i><i class="swatch" style="background:#315f58"></i><i class="swatch" style="background:#b9904c"></i></div>
+        <div class="mock">
+          <nav class="rail"><div class="dot active">P</div><div class="dot">S</div><div class="dot">G</div><div class="dot">R</div></nav>
+          <section class="stage"><div class="crumb">Projects / Winter Archive</div><article class="paper"><h3>The Locked Station</h3><p>The platform clock had stopped at 02:17, though the snow outside kept falling.</p><p>Mara folded the conductor's letter twice, then once more.</p><div class="chips"><span class="chip">Draft</span><span class="chip">Style OK</span></div></article></section>
+          <aside class="context"><h4>Context</h4><div>Voice: restrained</div><div>Thread: conductor</div><div>Next: revise ending</div></aside>
+        </div>
+        <div class="caption"><div>质感：纸张、木桌、墨色。</div><div>风险：偏传统，需要细节避免老气。</div></div>
+      </article>
+
+      <article class="palette p2">
+        <h2>2. 瓷白 + 雾青绿</h2>
+        <p class="desc">更清爽现代。像安静的创作工具，不是复古书房；适合亮色默认。</p>
+        <div class="swatches"><i class="swatch" style="background:#eef2ee"></i><i class="swatch" style="background:#d9e3dc"></i><i class="swatch" style="background:#fbfcf8"></i><i class="swatch" style="background:#1f2d2a"></i><i class="swatch" style="background:#2e6f63"></i><i class="swatch" style="background:#8eaa9d"></i></div>
+        <div class="mock">
+          <nav class="rail"><div class="dot active">P</div><div class="dot">S</div><div class="dot">G</div><div class="dot">R</div></nav>
+          <section class="stage"><div class="crumb">Projects / Winter Archive</div><article class="paper"><h3>The Locked Station</h3><p>The platform clock had stopped at 02:17, though the snow outside kept falling.</p><p>Mara folded the conductor's letter twice, then once more.</p><div class="chips"><span class="chip">Draft</span><span class="chip">Style OK</span></div></article></section>
+          <aside class="context"><h4>Context</h4><div>Voice: restrained</div><div>Thread: conductor</div><div>Next: revise ending</div></aside>
+        </div>
+        <div class="caption"><div>质感：瓷面、雾面、干净。</div><div>风险：可能偏 SaaS，需要字体和纸面补充温度。</div></div>
+      </article>
+
+      <article class="palette p3">
+        <h2>3. 石墨灰 + 蓝灰墨</h2>
+        <p class="desc">更专业克制。适合工程能力强的写作产品，容易支撑 B/C 子页面。</p>
+        <div class="swatches"><i class="swatch" style="background:#ece8df"></i><i class="swatch" style="background:#d7d3ca"></i><i class="swatch" style="background:#fbf8f0"></i><i class="swatch" style="background:#262b2e"></i><i class="swatch" style="background:#4b6772"></i><i class="swatch" style="background:#8b7e6d"></i></div>
+        <div class="mock">
+          <nav class="rail"><div class="dot active">P</div><div class="dot">S</div><div class="dot">G</div><div class="dot">R</div></nav>
+          <section class="stage"><div class="crumb">Projects / Winter Archive</div><article class="paper"><h3>The Locked Station</h3><p>The platform clock had stopped at 02:17, though the snow outside kept falling.</p><p>Mara folded the conductor's letter twice, then once more.</p><div class="chips"><span class="chip">Draft</span><span class="chip">Style OK</span></div></article></section>
+          <aside class="context"><h4>Context</h4><div>Voice: restrained</div><div>Thread: conductor</div><div>Next: revise ending</div></aside>
+        </div>
+        <div class="caption"><div>质感：石材、墨水、档案。</div><div>风险：若控制不好会显得冷。</div></div>
+      </article>
+
+      <article class="palette p4">
+        <h2>4. 羊皮纸 + 赤陶红</h2>
+        <p class="desc">更有文学实验室气质。温暖、戏剧化，适合创作画布方向。</p>
+        <div class="swatches"><i class="swatch" style="background:#f0e5d4"></i><i class="swatch" style="background:#e2cab0"></i><i class="swatch" style="background:#fff7e7"></i><i class="swatch" style="background:#33251f"></i><i class="swatch" style="background:#9b4b34"></i><i class="swatch" style="background:#c18d4b"></i></div>
+        <div class="mock">
+          <nav class="rail"><div class="dot active">P</div><div class="dot">S</div><div class="dot">G</div><div class="dot">R</div></nav>
+          <section class="stage"><div class="crumb">Projects / Winter Archive</div><article class="paper"><h3>The Locked Station</h3><p>The platform clock had stopped at 02:17, though the snow outside kept falling.</p><p>Mara folded the conductor's letter twice, then once more.</p><div class="chips"><span class="chip">Draft</span><span class="chip">Style OK</span></div></article></section>
+          <aside class="context"><h4>Context</h4><div>Voice: restrained</div><div>Thread: conductor</div><div>Next: revise ending</div></aside>
+        </div>
+        <div class="caption"><div>质感：羊皮纸、陶土、暖光。</div><div>风险：全局使用可能太暖、太戏剧。</div></div>
+      </article>
+
+      <article class="palette p5">
+        <h2>5. 档案米灰 + 烟紫</h2>
+        <p class="desc">偏高级、安静、略神秘。比常见紫色 AI 风格更低饱和。</p>
+        <div class="swatches"><i class="swatch" style="background:#e8e3d8"></i><i class="swatch" style="background:#d0c5b2"></i><i class="swatch" style="background:#f7f0e2"></i><i class="swatch" style="background:#2a2722"></i><i class="swatch" style="background:#5e4a7f"></i><i class="swatch" style="background:#8c7b9f"></i></div>
+        <div class="mock">
+          <nav class="rail"><div class="dot active">P</div><div class="dot">S</div><div class="dot">G</div><div class="dot">R</div></nav>
+          <section class="stage"><div class="crumb">Projects / Winter Archive</div><article class="paper"><h3>The Locked Station</h3><p>The platform clock had stopped at 02:17, though the snow outside kept falling.</p><p>Mara folded the conductor's letter twice, then once more.</p><div class="chips"><span class="chip">Draft</span><span class="chip">Style OK</span></div></article></section>
+          <aside class="context"><h4>Context</h4><div>Voice: restrained</div><div>Thread: conductor</div><div>Next: revise ending</div></aside>
+        </div>
+        <div class="caption"><div>质感：档案馆、烟雾、夜读。</div><div>风险：紫色要克制，避免 AI 套路感。</div></div>
+      </article>
+
+      <article class="palette p6">
+        <h2>6. 夜墨 + 古金纸面</h2>
+        <p class="desc">暗色模式候选。壳层深、纸面亮，适合夜间但不牺牲阅读。</p>
+        <div class="swatches"><i class="swatch" style="background:#202225"></i><i class="swatch" style="background:#17191c"></i><i class="swatch" style="background:#e9ddc4"></i><i class="swatch" style="background:#f0eadb"></i><i class="swatch" style="background:#d2a84f"></i><i class="swatch" style="background:#6f8790"></i></div>
+        <div class="mock">
+          <nav class="rail"><div class="dot active">P</div><div class="dot">S</div><div class="dot">G</div><div class="dot">R</div></nav>
+          <section class="stage"><div class="crumb">Projects / Winter Archive</div><article class="paper"><h3>The Locked Station</h3><p>The platform clock had stopped at 02:17, though the snow outside kept falling.</p><p>Mara folded the conductor's letter twice, then once more.</p><div class="chips"><span class="chip">Draft</span><span class="chip">Style OK</span></div></article></section>
+          <aside class="context"><h4>Context</h4><div>Voice: restrained</div><div>Thread: conductor</div><div>Next: revise ending</div></aside>
+        </div>
+        <div class="caption"><div>质感：夜间书桌、金属、旧纸。</div><div>风险：不适合作为亮色默认，只适合暗色对照。</div></div>
+      </article>
+    </section>
+
+    <section class="footer">
+      我的初步判断：如果你想要“亮色为主但有质感”，优先看 2 和 3；如果你希望 Persona 更有文学气质，看 1 和 4；6 更适合作为暗色模式，不适合作为默认主题。
+    </section>
+  </main>
+</body>
+</html>

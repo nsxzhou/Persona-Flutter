@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Persona UI Style Comparison V2</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #111211;
+      color: #f0efe7;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .page {
+      width: 1600px;
+      min-height: 1040px;
+      padding: 30px;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px) 0 0 / 80px 80px,
+        radial-gradient(circle at 18% 18%, rgba(209, 184, 126, .14), transparent 28%),
+        radial-gradient(circle at 84% 12%, rgba(73, 139, 145, .12), transparent 30%),
+        #111211;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      gap: 28px;
+      align-items: end;
+      margin-bottom: 22px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 34px;
+      font-weight: 500;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      margin: 0;
+      max-width: 980px;
+      color: #bfc3ba;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .rule {
+      max-width: 360px;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: #d8d6ca;
+      font-size: 13px;
+      line-height: 1.55;
+      background: rgba(255,255,255,.045);
+    }
+
+    .boards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .board {
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 18px;
+      padding: 14px;
+      background: rgba(255,255,255,.05);
+      box-shadow: 0 20px 65px rgba(0,0,0,.34);
+    }
+
+    .board-head {
+      min-height: 92px;
+      margin: 2px 3px 12px;
+    }
+
+    .board h2 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    .board p {
+      margin: 7px 0 0;
+      color: #bdc1b7;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .mock {
+      height: 715px;
+      overflow: hidden;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.15);
+      position: relative;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-top: 10px;
+      border-radius: 999px;
+      padding: 5px 8px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #161713;
+      background: #dcc98c;
+    }
+
+    /* A: writing desk */
+    .a .mock {
+      display: grid;
+      grid-template-columns: 62px 1fr 144px;
+      background: #181a17;
+      color: #eee8d9;
+    }
+
+    .a .rail {
+      padding: 16px 10px;
+      background: #22251f;
+      border-right: 1px solid #37392f;
+      display: grid;
+      align-content: start;
+      gap: 12px;
+    }
+
+    .a .dot {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 9px;
+      color: #aeb3a7;
+    }
+
+    .a .dot.active {
+      background: #d8c68a;
+      color: #161713;
+    }
+
+    .a .editor {
+      padding: 30px 34px;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px) 0 0 / 28px 28px,
+        #181a17;
+    }
+
+    .a .crumb {
+      color: #aaa897;
+      font-size: 12px;
+      margin-bottom: 24px;
+    }
+
+    .a .paper {
+      max-width: 460px;
+      min-height: 560px;
+      margin: 0 auto;
+      padding: 36px 42px;
+      background: #ede2c7;
+      color: #242019;
+      box-shadow: 0 24px 70px rgba(0,0,0,.35);
+      border-radius: 4px;
+      font-family: Georgia, "Times New Roman", serif;
+    }
+
+    .a .paper h3 {
+      margin: 0 0 24px;
+      font-size: 28px;
+      font-weight: 500;
+    }
+
+    .a .paper p {
+      color: #4a4235;
+      font-size: 15px;
+      line-height: 1.85;
+      margin: 0 0 16px;
+    }
+
+    .a .aside {
+      padding: 18px 14px;
+      background: #20231d;
+      border-left: 1px solid #37392f;
+    }
+
+    .a .aside h4 {
+      margin: 0 0 12px;
+      color: #d8c68a;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .a .aside div {
+      border-top: 1px solid #383a30;
+      padding: 10px 0;
+      color: #d4d1c4;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    /* B: creative canvas */
+    .b .mock {
+      background:
+        radial-gradient(circle at 24% 20%, rgba(228, 85, 58, .2), transparent 28%),
+        radial-gradient(circle at 76% 82%, rgba(245, 188, 90, .18), transparent 32%),
+        #211916;
+      color: #fff0d5;
+      font-family: "Iowan Old Style", Georgia, serif;
+    }
+
+    .b .topbar {
+      height: 60px;
+      padding: 13px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255,226,167,.18);
+      background: rgba(36,25,21,.82);
+    }
+
+    .b .topbar strong {
+      color: #ffe0a0;
+      font-size: 18px;
+    }
+
+    .b .topbar span {
+      font-size: 12px;
+      color: #f4bc80;
+    }
+
+    .b .canvas {
+      height: 655px;
+      position: relative;
+      padding: 24px;
+      background:
+        linear-gradient(135deg, transparent 0 48%, rgba(255,235,190,.09) 48% 49%, transparent 49%),
+        transparent;
+    }
+
+    .b .note {
+      position: absolute;
+      width: 150px;
+      min-height: 106px;
+      padding: 14px;
+      border: 1px solid rgba(255,224,160,.32);
+      background: rgba(255,244,220,.10);
+      box-shadow: 0 18px 40px rgba(0,0,0,.30);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .b .note strong {
+      display: block;
+      margin-bottom: 8px;
+      color: #ffd16d;
+      font-size: 15px;
+    }
+
+    .b .n1 { left: 42px; top: 44px; transform: rotate(-4deg); }
+    .b .n2 { right: 44px; top: 86px; width: 178px; transform: rotate(3deg); }
+    .b .n3 { left: 148px; top: 260px; width: 185px; min-height: 132px; transform: rotate(1deg); }
+    .b .n4 { right: 72px; bottom: 84px; transform: rotate(-6deg); }
+
+    .b .thread {
+      position: absolute;
+      height: 2px;
+      transform-origin: left center;
+      background: linear-gradient(90deg, rgba(229,83,61,.9), rgba(255,208,110,.2));
+    }
+
+    .b .t1 { width: 220px; left: 178px; top: 155px; transform: rotate(15deg); }
+    .b .t2 { width: 190px; left: 250px; top: 286px; transform: rotate(-30deg); }
+    .b .t3 { width: 150px; left: 315px; top: 426px; transform: rotate(18deg); }
+
+    .b .floating-tool {
+      position: absolute;
+      left: 32px;
+      bottom: 28px;
+      display: flex;
+      gap: 8px;
+      padding: 9px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.28);
+      border: 1px solid rgba(255,224,160,.2);
+    }
+
+    .b .floating-tool i {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-style: normal;
+      background: rgba(255,255,255,.12);
+      color: #ffd16d;
+    }
+
+    /* C: operations console */
+    .c .mock {
+      display: grid;
+      grid-template-rows: 48px 1fr 36px;
+      background: #0b1014;
+      color: #dff7ff;
+      font-family: "SF Mono", "JetBrains Mono", ui-monospace, monospace;
+    }
+
+    .c .tabs {
+      display: grid;
+      grid-template-columns: 110px 110px 110px 1fr 96px;
+      align-items: center;
+      border-bottom: 1px solid rgba(98,207,255,.22);
+      background: #101821;
+      font-size: 12px;
+    }
+
+    .c .tabs span {
+      height: 48px;
+      display: grid;
+      place-items: center;
+      border-right: 1px solid rgba(98,207,255,.13);
+      color: #91aebb;
+    }
+
+    .c .tabs .active {
+      color: #8be9ff;
+      box-shadow: inset 0 -3px 0 #42c7ff;
+      background: #102232;
+    }
+
+    .c .console {
+      display: grid;
+      grid-template-columns: 168px 1fr;
+      min-height: 0;
+    }
+
+    .c .queue {
+      border-right: 1px solid rgba(98,207,255,.18);
+      background: #0f1720;
+      padding: 12px;
+    }
+
+    .c .queue h4,
+    .c .log h4 {
+      margin: 0 0 10px;
+      color: #8be9ff;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .c .job {
+      border: 1px solid rgba(98,207,255,.18);
+      border-radius: 5px;
+      padding: 9px;
+      margin-bottom: 8px;
+      color: #cde9f5;
+      font-size: 11px;
+      line-height: 1.4;
+      background: rgba(66,199,255,.045);
+    }
+
+    .c .job strong {
+      display: block;
+      color: #8be9ff;
+      margin-bottom: 4px;
+    }
+
+    .c .main-console {
+      display: grid;
+      grid-template-rows: 150px 1fr;
+      min-width: 0;
+    }
+
+    .c .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      padding: 12px;
+      border-bottom: 1px solid rgba(98,207,255,.18);
+    }
+
+    .c .stat {
+      border: 1px solid rgba(98,207,255,.2);
+      border-radius: 5px;
+      padding: 12px;
+      background: #101821;
+    }
+
+    .c .stat span {
+      display: block;
+      color: #8aa7b4;
+      font-size: 10px;
+      margin-bottom: 12px;
+    }
+
+    .c .stat b {
+      font-size: 21px;
+      color: #e8fbff;
+    }
+
+    .c .log {
+      padding: 12px;
+      background:
+        linear-gradient(rgba(98,207,255,.04) 1px, transparent 1px) 0 0 / 100% 24px,
+        #0b1014;
+      font-size: 11px;
+      line-height: 1.65;
+      overflow: hidden;
+    }
+
+    .c .log div {
+      color: #c9e5ef;
+      white-space: nowrap;
+    }
+
+    .c .log em {
+      color: #8be9ff;
+      font-style: normal;
+    }
+
+    .c .status {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 0 12px;
+      border-top: 1px solid rgba(98,207,255,.18);
+      background: #101821;
+      color: #8aa7b4;
+      font-size: 11px;
+    }
+
+    .notes {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-top: 16px;
+    }
+
+    .note-card {
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 14px;
+      padding: 14px;
+      background: rgba(255,255,255,.045);
+      color: #d3d6cf;
+      font-size: 13px;
+      line-height: 1.58;
+    }
+
+    .note-card strong {
+      color: #f1ead6;
+      display: block;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <div>
+        <h1>Persona UI 风格对照板 V2</h1>
+        <p class="lead">这版不再只换颜色，而是比较三种不同的产品工作模型：写作台、创作画布、运行控制台。真正的设计方向会决定用户每天面对的是“正文”“灵感关系”还是“任务状态”。</p>
+      </div>
+      <div class="rule">判断标准：不要问哪栏颜色好看，问哪栏更像 Persona 的核心体验。布局、信息密度、主操作和组件形态必须一起决定。</div>
+    </header>
+
+    <section class="boards">
+      <article class="board a">
+        <div class="board-head">
+          <h2>A. 写作台中心</h2>
+          <p>正文和章节是主角。导航最小化，右侧只保留上下文提示，适合长时间写作。</p>
+          <span class="badge">quiet editor</span>
+        </div>
+        <div class="mock">
+          <nav class="rail">
+            <div class="dot active">P</div>
+            <div class="dot">S</div>
+            <div class="dot">G</div>
+            <div class="dot">R</div>
+            <div class="dot">⚙</div>
+          </nav>
+          <section class="editor">
+            <div class="crumb">Projects / Winter Archive / Chapter 03</div>
+            <article class="paper">
+              <h3>The Locked Station</h3>
+              <p>The platform clock had stopped at 02:17, though the snow outside kept falling with the patience of an old machine.</p>
+              <p>Mara folded the conductor's letter twice, then once more, until the paper remembered a shape smaller than blame.</p>
+              <p>Behind the ticket window, something moved through the reflected glass.</p>
+            </article>
+          </section>
+          <aside class="aside">
+            <h4>Context</h4>
+            <div>Voice: restrained suspense</div>
+            <div>Open thread: missing conductor</div>
+            <div>Style note: avoid overexplaining</div>
+            <div>Next: revise scene ending</div>
+          </aside>
+        </div>
+      </article>
+
+      <article class="board b">
+        <div class="board-head">
+          <h2>B. 创作画布中心</h2>
+          <p>灵感、风格、剧情关系是主角。界面像故事墙，更适合探索和重组。</p>
+          <span class="badge">story canvas</span>
+        </div>
+        <div class="mock">
+          <div class="topbar">
+            <strong>Winter Archive / Plot Lab</strong>
+            <span>motifs · voices · scene tension · character arcs</span>
+          </div>
+          <section class="canvas">
+            <div class="thread t1"></div>
+            <div class="thread t2"></div>
+            <div class="thread t3"></div>
+            <div class="note n1"><strong>Scene</strong>Station locked from inside. Clock frozen at 02:17.</div>
+            <div class="note n2"><strong>Voice</strong>Close third-person, low exposition, tactile details.</div>
+            <div class="note n3"><strong>Conflict</strong>Mara wants proof. The town wants silence. The letter contradicts both.</div>
+            <div class="note n4"><strong>Motif</strong>Snow, ink, schedule boards, reflected glass.</div>
+            <div class="floating-tool">
+              <i>+</i><i>✎</i><i>⛓</i><i>AI</i>
+            </div>
+          </section>
+        </div>
+      </article>
+
+      <article class="board c">
+        <div class="board-head">
+          <h2>C. 运行控制台中心</h2>
+          <p>AI 任务、队列、日志、错误和产物是主角。适合自动化编排和调试。</p>
+          <span class="badge">ops console</span>
+        </div>
+        <div class="mock">
+          <nav class="tabs">
+            <span class="active">RUNS</span>
+            <span>PROJECTS</span>
+            <span>STYLE</span>
+            <span></span>
+            <span>LOCAL</span>
+          </nav>
+          <section class="console">
+            <aside class="queue">
+              <h4>Queue</h4>
+              <div class="job"><strong>style.extract</strong>running · 64%</div>
+              <div class="job"><strong>plot.validate</strong>queued · p2</div>
+              <div class="job"><strong>chapter.expand</strong>waiting · provider</div>
+              <div class="job"><strong>backup.local</strong>idle · ok</div>
+            </aside>
+            <section class="main-console">
+              <div class="stats">
+                <div class="stat"><span>TOKENS</span><b>42K</b></div>
+                <div class="stat"><span>JOBS</span><b>07</b></div>
+                <div class="stat"><span>ERR</span><b>00</b></div>
+                <div class="stat"><span>STORE</span><b>OK</b></div>
+              </div>
+              <div class="log">
+                <h4>Live log</h4>
+                <div><em>11:04:12</em> provider.local ready model=writing-large</div>
+                <div><em>11:04:18</em> style.extract started project=winter_archive</div>
+                <div><em>11:04:28</em> chunk 12/18 processed tone=restrained</div>
+                <div><em>11:04:37</em> plot.validate waiting dependency=style.extract</div>
+                <div><em>11:04:45</em> chapter.expand skipped reason=manual_review</div>
+                <div><em>11:05:02</em> artifact generated style_memory.json</div>
+                <div><em>11:05:18</em> no remote sync configured local_only=true</div>
+              </div>
+            </section>
+          </section>
+          <footer class="status">
+            <span>SQLite: healthy</span>
+            <span>BYOK: configured</span>
+            <span>Latency: 328ms</span>
+          </footer>
+        </div>
+      </article>
+    </section>
+
+    <section class="notes">
+      <div class="note-card"><strong>A 会让 Persona 更像写作软件。</strong>主页面服务于阅读、编辑、章节组织和长期沉浸；AI 功能作为上下文工具出现。</div>
+      <div class="note-card"><strong>B 会让 Persona 更像创作工作室。</strong>主页面服务于灵感组合、风格试验和剧情关系；适合 Style Lab / Plot Lab，但可能不适合所有页面。</div>
+      <div class="note-card"><strong>C 会让 Persona 更像 AI 自动化工具。</strong>主页面服务于任务编排、运行观察和错误处理；Workflow Runs 很适合，但整体使用会偏工程化。</div>
+    </section>
+  </main>
+</body>
+</html>
