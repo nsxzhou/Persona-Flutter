@@ -20,6 +20,7 @@ This directory contains guidelines for Flutter presentation and app-shell develo
 | [State Management](./state-management.md) | Local state, provider state, persistence state | Filled |
 | [Quality Guidelines](./quality-guidelines.md) | Linting, generated code, testing | Filled |
 | [Type Safety](./type-safety.md) | Dart model and generated contract patterns | Filled |
+| [Visual Design Guidelines](./visual-design-guidelines.md) | Product-level visual style, palette, density, motion | Filled |
 
 ---
 
