@@ -27,6 +27,8 @@ Flutter UI quality is enforced with `flutter_lints`, generated-code freshness, a
 * Use `ConsumerWidget` when reading providers in widgets.
 * Handle loading/error/data branches for async providers.
 * Add or update widget tests when changing shell navigation, responsive layout behavior, or empty/loading/error states that users can see.
+* Cache expensive pure theme objects at module scope when `MaterialApp.router` switches between them frequently; do not rebuild the full light/dark theme graph on every widget rebuild.
+* Keep persistent shell blur and glass effects conservative; prefer lower blur values on large always-on surfaces when theme switching or navigation feels sluggish.
 
 ---
 
