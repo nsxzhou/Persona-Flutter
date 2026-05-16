@@ -33,8 +33,6 @@ Map<String, dynamic> _$WorkflowTaskToJson(_WorkflowTask instance) =>
 const _$WorkflowTaskStatusEnumMap = {
   WorkflowTaskStatus.pending: 'pending',
   WorkflowTaskStatus.running: 'running',
-  WorkflowTaskStatus.paused: 'paused',
   WorkflowTaskStatus.succeeded: 'succeeded',
   WorkflowTaskStatus.failed: 'failed',
-  WorkflowTaskStatus.canceled: 'canceled',
 };

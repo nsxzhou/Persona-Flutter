@@ -3,14 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'workflow_task.freezed.dart';
 part 'workflow_task.g.dart';
 
-enum WorkflowTaskStatus {
-  pending,
-  running,
-  paused,
-  succeeded,
-  failed,
-  canceled,
-}
+enum WorkflowTaskStatus { pending, running, succeeded, failed }
 
 @freezed
 abstract class WorkflowTask with _$WorkflowTask {

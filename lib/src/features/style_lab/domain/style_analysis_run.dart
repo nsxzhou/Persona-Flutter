@@ -3,14 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'style_analysis_run.freezed.dart';
 part 'style_analysis_run.g.dart';
 
-enum StyleAnalysisStatus {
-  pending,
-  running,
-  paused,
-  succeeded,
-  failed,
-  canceled,
-}
+enum StyleAnalysisStatus { pending, running, succeeded, failed }
 
 enum StyleAnalysisStage {
   preparingInput,

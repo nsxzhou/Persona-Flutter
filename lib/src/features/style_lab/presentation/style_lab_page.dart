@@ -2386,10 +2386,8 @@ String _statusLabel(StyleAnalysisStatus status) {
   return switch (status) {
     StyleAnalysisStatus.pending => 'pending',
     StyleAnalysisStatus.running => 'running',
-    StyleAnalysisStatus.paused => 'paused',
     StyleAnalysisStatus.succeeded => 'succeeded',
     StyleAnalysisStatus.failed => 'failed',
-    StyleAnalysisStatus.canceled => 'canceled',
   };
 }
 
@@ -2397,10 +2395,8 @@ IconData _statusIcon(StyleAnalysisStatus status) {
   return switch (status) {
     StyleAnalysisStatus.pending => Icons.schedule,
     StyleAnalysisStatus.running => Icons.sync,
-    StyleAnalysisStatus.paused => Icons.pause_circle_outline,
     StyleAnalysisStatus.succeeded => Icons.check_circle_outline,
     StyleAnalysisStatus.failed => Icons.error_outline,
-    StyleAnalysisStatus.canceled => Icons.cancel_outlined,
   };
 }
 
@@ -2408,10 +2404,8 @@ Color _statusColor(ColorScheme colorScheme, StyleAnalysisStatus status) {
   return switch (status) {
     StyleAnalysisStatus.pending => colorScheme.tertiary,
     StyleAnalysisStatus.running => colorScheme.primary,
-    StyleAnalysisStatus.paused => const Color(0xFF8C6A14),
     StyleAnalysisStatus.succeeded => const Color(0xFF16825D),
     StyleAnalysisStatus.failed => colorScheme.error,
-    StyleAnalysisStatus.canceled => colorScheme.onSurfaceVariant,
   };
 }
 
@@ -2465,14 +2459,6 @@ _RunProgress _progressForRun(StyleAnalysisRun run) {
     StyleAnalysisStatus.failed => _RunProgress(
       value: _stageProgressValue(run.stage, run),
       label: '失败',
-    ),
-    StyleAnalysisStatus.canceled => const _RunProgress(
-      value: null,
-      label: '已取消',
-    ),
-    StyleAnalysisStatus.paused => _RunProgress(
-      value: _stageProgressValue(run.stage, run),
-      label: '已暂停',
     ),
     StyleAnalysisStatus.pending => const _RunProgress(
       value: null,

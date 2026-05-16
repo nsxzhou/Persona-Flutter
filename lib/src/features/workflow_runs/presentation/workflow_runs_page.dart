@@ -285,8 +285,6 @@ Color _statusColor(ColorScheme colorScheme, WorkflowTaskStatus status) {
     WorkflowTaskStatus.running => colorScheme.primary,
     WorkflowTaskStatus.failed => colorScheme.error,
     WorkflowTaskStatus.succeeded => const Color(0xFF16825D),
-    WorkflowTaskStatus.paused => const Color(0xFF8C6A14),
-    WorkflowTaskStatus.canceled => colorScheme.onSurfaceVariant,
     WorkflowTaskStatus.pending => colorScheme.tertiary,
   };
 }
@@ -296,8 +294,6 @@ IconData _statusIcon(WorkflowTaskStatus status) {
     WorkflowTaskStatus.running => Icons.sync,
     WorkflowTaskStatus.failed => Icons.error_outline,
     WorkflowTaskStatus.succeeded => Icons.check_circle_outline,
-    WorkflowTaskStatus.paused => Icons.pause_circle_outline,
-    WorkflowTaskStatus.canceled => Icons.cancel_outlined,
     WorkflowTaskStatus.pending => Icons.schedule,
   };
 }

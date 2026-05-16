@@ -173,6 +173,24 @@ class DriftStyleLabRepository implements StyleLabRepository {
   }
 
   @override
+  Future<StyleAnalysisRun> createRunFromExisting(String id) async {
+    final existing = await findRun(id);
+    if (existing == null) {
+      throw StateError('Style analysis run does not exist: $id');
+    }
+    return createRun(
+      StyleAnalysisRunInput(
+        sampleId: existing.sampleId,
+        providerId: existing.providerId,
+        modelName: existing.modelName,
+        styleName: existing.styleName,
+        characterCount: existing.characterCount,
+        projectId: existing.projectId,
+      ),
+    );
+  }
+
+  @override
   Future<void> deleteRun(String id) async {
     final run = await findRun(id);
     if (run == null) {
@@ -497,10 +515,8 @@ class DriftStyleLabRepository implements StyleLabRepository {
     return switch (status) {
       StyleAnalysisStatus.pending => WorkflowTaskStatus.pending,
       StyleAnalysisStatus.running => WorkflowTaskStatus.running,
-      StyleAnalysisStatus.paused => WorkflowTaskStatus.paused,
       StyleAnalysisStatus.succeeded => WorkflowTaskStatus.succeeded,
       StyleAnalysisStatus.failed => WorkflowTaskStatus.failed,
-      StyleAnalysisStatus.canceled => WorkflowTaskStatus.canceled,
     };
   }
 

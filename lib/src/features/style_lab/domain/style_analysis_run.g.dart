@@ -61,10 +61,8 @@ Map<String, dynamic> _$StyleAnalysisRunToJson(_StyleAnalysisRun instance) =>
 const _$StyleAnalysisStatusEnumMap = {
   StyleAnalysisStatus.pending: 'pending',
   StyleAnalysisStatus.running: 'running',
-  StyleAnalysisStatus.paused: 'paused',
   StyleAnalysisStatus.succeeded: 'succeeded',
   StyleAnalysisStatus.failed: 'failed',
-  StyleAnalysisStatus.canceled: 'canceled',
 };
 
 const _$StyleAnalysisStageEnumMap = {
