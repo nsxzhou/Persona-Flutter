@@ -8,6 +8,7 @@ import 'package:persona_flutter/src/core/llm/domain/llm_stream_event.dart';
 import 'package:persona_flutter/src/core/tasks/data/drift_workflow_task_repository.dart';
 import 'package:persona_flutter/src/features/settings/data/drift_provider_config_repository.dart';
 import 'package:persona_flutter/src/features/settings/domain/provider_config.dart';
+import 'package:persona_flutter/src/features/style_lab/application/style_input_classification.dart';
 import 'package:persona_flutter/src/features/style_lab/application/style_analysis_pipeline.dart';
 import 'package:persona_flutter/src/features/style_lab/application/style_lab_prompts.dart';
 import 'package:persona_flutter/src/features/style_lab/application/voice_profile_front_matter.dart';
@@ -79,11 +80,32 @@ void main() {
       expect(profile.profileMarkdown, startsWith('---\nname: "冷雨风格"'));
       expect(profile.profileMarkdown, contains('# Voice Profile'));
 
+      final rerun = await repository.createRunFromExisting(run.id);
+      expect(rerun.id, isNot(run.id));
+      expect(rerun.sampleId, run.sampleId);
+      expect(rerun.providerId, run.providerId);
+      expect(rerun.status, StyleAnalysisStatus.pending);
+      expect(rerun.logs, isEmpty);
+      expect(rerun.analysisReportMarkdown, isNull);
+      expect(rerun.voiceProfileMarkdown, isNull);
+      expect(
+        (await repository.findRun(run.id))!.status,
+        StyleAnalysisStatus.succeeded,
+      );
+
       final tasks = await DriftWorkflowTaskRepository(
         database,
       ).watchRecentTasks().first;
-      expect(tasks.single.kind, DriftStyleLabRepository.workflowTaskKind);
-      expect(tasks.single.status, WorkflowTaskStatus.succeeded);
+      expect(tasks, hasLength(2));
+      expect(tasks.first.kind, DriftStyleLabRepository.workflowTaskKind);
+      expect(
+        tasks.map((task) => task.status),
+        contains(WorkflowTaskStatus.succeeded),
+      );
+      expect(
+        tasks.map((task) => task.status),
+        contains(WorkflowTaskStatus.pending),
+      );
 
       await repository.deleteProfile(profile.id);
       expect(await repository.findProfile(profile.id), isNull);
@@ -91,6 +113,7 @@ void main() {
 
       await repository.deleteRun(run.id);
       expect(await repository.findRun(run.id), isNull);
+      await repository.deleteRun(rerun.id);
       expect(
         await DriftWorkflowTaskRepository(database).watchRecentTasks().first,
         isEmpty,
@@ -117,11 +140,38 @@ void main() {
 
   test('style lab prompts preserve old Persona sections and YAML contract', () {
     const builder = StyleLabPromptBuilder();
+    const classification = StyleInputClassification(
+      textType: '混合文本',
+      hasTimestamps: false,
+      hasSpeakerLabels: true,
+      hasNoiseMarkers: false,
+      usesBatchProcessing: true,
+      locationIndexing: '章节或段落位置',
+      noiseNotes: '未发现显著噪声。',
+    );
+    final chunkPrompt = builder.buildChunkAnalysisPrompt(
+      chunk: '甲：他说话很短。',
+      chunkIndex: 0,
+      chunkCount: 2,
+      classification: classification,
+    );
+    final mergePrompt = builder.buildMergePrompt(
+      chunkAnalyses: const ['# 执行摘要\nchunk'],
+      classification: classification,
+    );
+    final reportPrompt = builder.buildReportPrompt(
+      mergedAnalysisMarkdown: '# 执行摘要\nmerged',
+      classification: classification,
+    );
     final prompt = builder.buildVoiceProfilePrompt(
       reportMarkdown: '# 执行摘要\n冷。',
       styleName: '冷雨风格',
     );
 
+    expect(chunkPrompt, contains('输入判定'));
+    expect(chunkPrompt, contains('has_speaker_labels'));
+    expect(mergePrompt, contains('多说话人差异不抹平'));
+    expect(reportPrompt, contains('是否多说话人'));
     expect(prompt, contains('YAML front matter'));
     expect(prompt, contains('voice_summary'));
     for (final section in styleAnalysisSections) {
@@ -185,6 +235,114 @@ void main() {
     expect(updated.voiceProfileMarkdown, startsWith('---\nname: "冷雨风格"'));
     expect(updated.voiceProfileMarkdown, contains('# Voice Profile'));
   });
+
+  test(
+    'style analysis pipeline fails empty samples before LLM calls',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final (provider, repository) = await _styleLabTestContext(database);
+      final sample = await repository.saveSample(
+        const StyleSampleInput(
+          sourceType: StyleSampleSourceType.txt,
+          title: '空样本',
+          content: '   ',
+        ),
+      );
+      final run = await repository.createRun(
+        StyleAnalysisRunInput(
+          sampleId: sample.id,
+          providerId: provider.id,
+          modelName: provider.defaultModel,
+          styleName: '空样本',
+          characterCount: 0,
+        ),
+      );
+      final client = _QueuedLlmClient(const []);
+      final pipeline = StyleAnalysisPipeline(
+        repository: repository,
+        completionService: MarkdownCompletionService(
+          invocation: LlmInvocationService(client: client),
+        ),
+      );
+
+      await expectLater(
+        pipeline.run(runId: run.id, provider: provider),
+        throwsA(isA<StateError>()),
+      );
+
+      final updated = await repository.findRun(run.id);
+      expect(updated!.status, StyleAnalysisStatus.failed);
+      expect(updated.errorMessage, contains('没有可分析的有效内容'));
+      expect(client.invocationCount, 0);
+    },
+  );
+
+  test(
+    'style analysis pipeline rejects invalid voice profile markdown',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final (provider, repository) = await _styleLabTestContext(database);
+      final sample = await repository.saveSample(
+        const StyleSampleInput(
+          sourceType: StyleSampleSourceType.txt,
+          title: '样本',
+          content: '第一段。\n\n第二段。',
+        ),
+      );
+      final run = await repository.createRun(
+        StyleAnalysisRunInput(
+          sampleId: sample.id,
+          providerId: provider.id,
+          modelName: provider.defaultModel,
+          styleName: '冷雨风格',
+          characterCount: sample.characterCount,
+        ),
+      );
+      final pipeline = StyleAnalysisPipeline(
+        repository: repository,
+        completionService: MarkdownCompletionService(
+          invocation: LlmInvocationService(
+            client: _QueuedLlmClient([
+              '# 执行摘要\nchunk',
+              '# 执行摘要\nreport',
+              '# Voice Profile\n缺 YAML。',
+            ]),
+          ),
+        ),
+      );
+
+      await expectLater(
+        pipeline.run(runId: run.id, provider: provider),
+        throwsA(isA<VoiceProfileValidationException>()),
+      );
+
+      final updated = await repository.findRun(run.id);
+      expect(updated!.status, StyleAnalysisStatus.failed);
+      expect(updated.analysisReportMarkdown, contains('report'));
+      expect(updated.voiceProfileMarkdown, isNull);
+      expect(updated.errorMessage, contains('YAML front matter'));
+    },
+  );
+}
+
+Future<(ProviderConfig, DriftStyleLabRepository)> _styleLabTestContext(
+  AppDatabase database,
+) async {
+  final providerRepository = DriftProviderConfigRepository(database);
+  await providerRepository.saveProvider(
+    input: const ProviderConfigInput(
+      name: 'deepseek',
+      baseUrl: 'https://api.example.com/v1',
+      apiKey: 'sk-secret',
+      defaultModel: 'deepseek-chat',
+      systemPrompt: '',
+      isEnabled: true,
+    ),
+  );
+  final provider = (await providerRepository.watchProviders().first).single;
+  return (provider, DriftStyleLabRepository(database));
 }
 
 const _validProfile = '''---
@@ -210,12 +368,14 @@ class _QueuedLlmClient implements LlmClient {
   _QueuedLlmClient(this._responses);
 
   final List<String> _responses;
+  var invocationCount = 0;
 
   @override
   Stream<LlmStreamEvent> streamChat({
     required ProviderConfig provider,
     required LlmRequest request,
   }) async* {
+    invocationCount += 1;
     if (_responses.isEmpty) {
       yield const LlmStreamDone();
       return;

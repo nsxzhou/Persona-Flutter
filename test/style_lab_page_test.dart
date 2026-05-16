@@ -489,6 +489,11 @@ class _FakeStyleLabRepository implements StyleLabRepository {
   }
 
   @override
+  Future<StyleAnalysisRun> createRunFromExisting(String id) {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<void> deleteRun(String id) async {}
 
   @override
