@@ -6,6 +6,8 @@ import '../../../core/tasks/application/workflow_task_providers.dart';
 import '../../../core/tasks/domain/workflow_task.dart';
 import '../../../core/ui/persona_page.dart';
 import '../../../core/ui/skeleton_loader.dart';
+import '../../plot_lab/application/plot_lab_providers.dart';
+import '../../plot_lab/domain/plot_analysis_run.dart';
 import '../../style_lab/application/style_lab_providers.dart';
 import '../../style_lab/domain/style_analysis_run.dart';
 
@@ -230,9 +232,21 @@ class _WorkflowRunRowState extends ConsumerState<_WorkflowRunRow> {
     final styleRun = widget.item.kind == styleAnalysisWorkflowTaskKind
         ? ref.watch(styleAnalysisRunByWorkflowTaskProvider(widget.item.id))
         : const AsyncValue<StyleAnalysisRun?>.data(null);
-    final targetRun = styleRun.value;
-    final canOpenDetail =
-        widget.item.kind == styleAnalysisWorkflowTaskKind && targetRun != null;
+    final plotRun = widget.item.kind == plotAnalysisWorkflowTaskKind
+        ? ref.watch(plotAnalysisRunByWorkflowTaskProvider(widget.item.id))
+        : const AsyncValue<PlotAnalysisRun?>.data(null);
+    final detailPath = switch (widget.item.kind) {
+      styleAnalysisWorkflowTaskKind => switch (styleRun) {
+        AsyncData(value: final run?) => '/style-lab/tasks/${run.id}',
+        _ => null,
+      },
+      plotAnalysisWorkflowTaskKind => switch (plotRun) {
+        AsyncData(value: final run?) => '/plot-lab/tasks/${run.id}',
+        _ => null,
+      },
+      _ => null,
+    };
+    final canOpenDetail = detailPath != null;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -240,9 +254,7 @@ class _WorkflowRunRowState extends ConsumerState<_WorkflowRunRow> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: canOpenDetail
-              ? () => context.go('/style-lab/tasks/${targetRun.id}')
-              : null,
+          onTap: detailPath == null ? null : () => context.go(detailPath),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 160),
             curve: Curves.easeOutCubic,
@@ -261,7 +273,7 @@ class _WorkflowRunRowState extends ConsumerState<_WorkflowRunRow> {
                   SizedBox(
                     width: 126,
                     child: PersonaStatusPill(
-                      label: widget.item.status.name,
+                      label: _statusLabel(widget.item.status),
                       icon: _statusIcon(widget.item.status),
                       color: statusColor,
                     ),
@@ -285,6 +297,10 @@ class _WorkflowRunRowState extends ConsumerState<_WorkflowRunRow> {
                   const SizedBox(width: 16),
                   if (widget.item.kind == styleAnalysisWorkflowTaskKind) ...[
                     _WorkflowDetailState(run: styleRun),
+                    const SizedBox(width: 14),
+                  ],
+                  if (widget.item.kind == plotAnalysisWorkflowTaskKind) ...[
+                    _WorkflowDetailState(run: plotRun),
                     const SizedBox(width: 14),
                   ],
                   Text(
@@ -313,10 +329,10 @@ class _WorkflowRunRowState extends ConsumerState<_WorkflowRunRow> {
   }
 }
 
-class _WorkflowDetailState extends StatelessWidget {
+class _WorkflowDetailState<T> extends StatelessWidget {
   const _WorkflowDetailState({required this.run});
 
-  final AsyncValue<StyleAnalysisRun?> run;
+  final AsyncValue<T?> run;
 
   @override
   Widget build(BuildContext context) {
@@ -358,6 +374,15 @@ IconData _statusIcon(WorkflowTaskStatus status) {
     WorkflowTaskStatus.failed => Icons.error_outline,
     WorkflowTaskStatus.succeeded => Icons.check_circle_outline,
     WorkflowTaskStatus.pending => Icons.schedule,
+  };
+}
+
+String _statusLabel(WorkflowTaskStatus status) {
+  return switch (status) {
+    WorkflowTaskStatus.running => '运行中',
+    WorkflowTaskStatus.failed => '失败',
+    WorkflowTaskStatus.succeeded => '完成',
+    WorkflowTaskStatus.pending => '排队中',
   };
 }
 
