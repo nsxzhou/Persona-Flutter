@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 9
+- **Total Sessions**: 10
 - **Last Active**: 2026-05-16
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~313 | Active |
+| `journal-1.md` | ~347 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 10 | 2026-05-16 | Archive theme persistence task | `52a6c2c`, `e755ace` | `main` |
 | 9 | 2026-05-16 | Persist theme mode selection | `52a6c2c` | `main` |
 | 8 | 2026-05-16 | Project CRUD vertical slice | `4f3d4b1`, `87e32ab`, `2e8cd8a` | `main` |
 | 7 | 2026-05-15 | Provider configuration slice | `6ed24b0`, `7db3b4f` | `main` |

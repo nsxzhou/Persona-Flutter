@@ -311,3 +311,37 @@ Fixed theme mode persistence by initializing a shared_preferences-backed store b
 ### Next Steps
 
 - None - task complete
+
+
+## Session 10: Archive theme persistence task
+
+**Date**: 2026-05-16
+**Task**: Archive theme persistence task
+**Branch**: `main`
+
+### Summary
+
+Committed the remaining macOS shared_preferences plugin wiring, archived the theme persistence Trellis task, and left the workspace clean.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `52a6c2c` | (see git log) |
+| `e755ace` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
