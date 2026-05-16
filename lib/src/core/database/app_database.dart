@@ -39,12 +39,26 @@ class ProviderConfigRecords extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [WorkflowTaskRecords, ProviderConfigRecords])
+class ProjectRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get title => text()();
+  TextColumn get description => text().withDefault(const Constant(''))();
+  TextColumn get status => text()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+@DriftDatabase(
+  tables: [WorkflowTaskRecords, ProviderConfigRecords, ProjectRecords],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration {
@@ -59,6 +73,9 @@ class AppDatabase extends _$AppDatabase {
             providerConfigRecords,
             providerConfigRecords.systemPrompt,
           );
+        }
+        if (from < 4) {
+          await migrator.createTable(projectRecords);
         }
       },
     );

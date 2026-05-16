@@ -235,8 +235,7 @@ class _WorkflowRunRowState extends State<_WorkflowRunRow> {
           color: _isHovered
               ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)
               : Colors.transparent,
-          border:
-              Border(bottom: BorderSide(color: colorScheme.outlineVariant)),
+          border: Border(bottom: BorderSide(color: colorScheme.outlineVariant)),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),

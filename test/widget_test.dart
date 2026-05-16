@@ -6,12 +6,14 @@ import 'package:persona_flutter/src/app/persona_app.dart';
 import 'package:persona_flutter/src/core/router/app_route.dart';
 import 'package:persona_flutter/src/core/theme/app_theme.dart';
 import 'package:persona_flutter/src/core/ui/app_shell.dart';
+import 'package:persona_flutter/src/features/projects/application/project_providers.dart';
+import 'package:persona_flutter/src/features/projects/domain/writing_project.dart';
 
 void main() {
   testWidgets('shows the desktop shell and core product entries', (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: PersonaApp()));
+    await tester.pumpWidget(_TestProviderScope(child: const PersonaApp()));
     await tester.pumpAndSettle();
 
     expect(find.text('项目'), findsWidgets);
@@ -68,7 +70,7 @@ void main() {
   testWidgets('toggles app theme mode from the sidebar control', (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: PersonaApp()));
+    await tester.pumpWidget(_TestProviderScope(child: const PersonaApp()));
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.dark_mode_outlined), findsOneWidget);
@@ -85,7 +87,7 @@ void main() {
   testWidgets('does not keep outgoing route page content during navigation', (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: PersonaApp()));
+    await tester.pumpWidget(_TestProviderScope(child: const PersonaApp()));
     await tester.pumpAndSettle();
 
     const projectsDescription = '用于长篇项目、蓝图、章节工作和后续 Zen Editor 写作会话的本地写作工作台。';
@@ -146,6 +148,24 @@ class _ShellTestApp extends StatelessWidget {
         theme: buildPersonaTheme(Brightness.light),
         darkTheme: buildPersonaTheme(Brightness.dark),
       ),
+    );
+  }
+}
+
+class _TestProviderScope extends StatelessWidget {
+  const _TestProviderScope({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ProviderScope(
+      overrides: [
+        writingProjectsProvider.overrideWith(
+          (ref, status) => Stream<List<WritingProject>>.value(const []),
+        ),
+      ],
+      child: child,
     );
   }
 }

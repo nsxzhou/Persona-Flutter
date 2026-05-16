@@ -95,3 +95,33 @@ Keep navigation labels visible in expanded desktop navigation. If the shell supp
 Hard-code Provider cards in `core/ui/` or bypass the repository layer from the widget.
 #### Correct
 Keep Provider management widgets in `features/settings/presentation/` and bind them through Riverpod providers.
+
+## Scenario: Projects writing dossier surface
+
+### 1. Scope / Trigger
+- Trigger: The Projects page now renders persisted writing projects, a create/edit dialog, active/archived filtering, project actions, and a project detail route.
+- This is a feature-specific presentation surface and must stay under `features/projects/presentation/`.
+
+### 2. Contracts
+- The Projects page reads `writingProjectsProvider(ProjectStatus status)`.
+- The default selected status is `ProjectStatus.active`.
+- The archived view is explicitly selected by the user; archived projects do not appear in the default view.
+- Project detail pages read `writingProjectProvider(projectId)` and handle loading, data, missing, and error states.
+- Dialog validation blocks empty project titles before saving.
+
+### 3. Validation & Error Matrix
+- Empty active list -> show a create-project empty state.
+- Empty archived list -> show an archived-empty state without a create CTA.
+- Missing project detail -> show "项目不存在" and a return action.
+- Repository/provider error -> render an error panel, not a blank page.
+
+### 4. Good/Base/Bad Cases
+- Good: list rows show title, description, status, update time, and action menu.
+- Base: an active project can be created and opened into its detail dossier.
+- Bad: keep the old placeholder action tiles after real project data exists.
+
+### 5. Wrong vs Correct
+#### Wrong
+Make Projects a generic card gallery or static placeholder wall after persistence exists.
+#### Correct
+Use a restrained writing-dossier layout: text-first list rows, compact status controls, and a detail page that reserves future workbench entry points without pretending they are implemented.

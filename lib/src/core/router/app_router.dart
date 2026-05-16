@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/plot_lab/presentation/plot_lab_page.dart';
+import '../../features/projects/presentation/project_detail_page.dart';
 import '../../features/projects/presentation/projects_page.dart';
 import '../../features/settings/presentation/provider_detail_page.dart';
 import '../../features/settings/presentation/settings_page.dart';
@@ -24,6 +25,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: AppRoute.projects.path,
                 builder: (context, state) => const ProjectsPage(),
+                routes: [
+                  GoRoute(
+                    path: ':projectId',
+                    builder: (context, state) => ProjectDetailPage(
+                      projectId: state.pathParameters['projectId']!,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

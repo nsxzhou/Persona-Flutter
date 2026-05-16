@@ -1,0 +1,12 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend spec index for persistence and application-layer work."}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Feature repository/data/application placement rules."}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Drift table, migration, repository, and generated-file rules."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Async repository/provider error surfacing conventions."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Backend quality and testing requirements."}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend spec index for presentation work."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Persona UI primitive and widget composition conventions."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Riverpod and routing state conventions."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Widget test and route quality requirements."}
+{"file": ".trellis/spec/frontend/visual-design-guidelines.md", "reason": "Writing desk visual model for Projects UI."}
+{"file": ".trellis/spec/guides/index.md", "reason": "Shared thinking guide entry point."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Project CRUD spans database, repository, providers, routes, and UI."}

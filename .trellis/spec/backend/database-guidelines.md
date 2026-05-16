@@ -92,3 +92,52 @@ Use descriptive table class names ending in `Records` for persisted task-like re
 Store Provider metadata in SQLite but keep API Key in logs, snackbars, or plain text UI.
 #### Correct
 Store API Key only in SQLite, mask it in UI, and sanitize any test failure message.
+
+## Scenario: Project CRUD storage
+
+### 1. Scope / Trigger
+- Trigger: The Projects feature persists local writing project records and exposes them through repository and Riverpod contracts.
+- This is a cross-layer persistence contract because database schema, domain model, list filtering, route detail pages, and widget tests all depend on the same fields.
+
+### 2. Signatures
+- Drift table: `ProjectRecords`
+- Domain model: `WritingProject`
+- Repository contract: `ProjectRepository`
+- Persistence fields:
+  - `id: Text`
+  - `title: Text`
+  - `description: Text`
+  - `status: Text`
+  - `createdAt: DateTime`
+  - `updatedAt: DateTime`
+
+### 3. Contracts
+- `status` is stored as the enum name of `ProjectStatus`.
+- Valid status values are `active` and `archived`.
+- The default Projects list reads only `active` projects.
+- The archived Projects view reads only `archived` projects.
+- Delete is a hard delete of the project record.
+- `updatedAt` should advance on edits even when a test or fast local write happens within the same wall-clock tick. For SQLite-backed project records, use at least a one-second minimum increment over the existing stored value when the current wall clock has not passed that threshold.
+
+### 4. Validation & Error Matrix
+- Empty title -> validation error before write.
+- Empty description -> allowed and rendered as an explicit empty-description state.
+- Unknown status string in SQLite -> mapping fails at repository boundary; do not silently coerce.
+- Missing project detail record -> render a friendly missing-project state.
+
+### 5. Good/Base/Bad Cases
+- Good: create a project, edit it, archive it out of the active list, restore it, then hard delete it.
+- Base: create an active project with a title and optional description.
+- Bad: let presentation widgets import Drift records or query `ProjectRecords` directly.
+
+### 6. Tests Required
+- Repository test for create/read/update/filter/delete.
+- Widget test for empty Projects state.
+- Widget test for active-vs-archived list switching.
+- Widget test for project detail found and missing states.
+
+### 7. Wrong vs Correct
+#### Wrong
+Render all projects in one list and let the UI infer hidden/archived behavior ad hoc.
+#### Correct
+Expose status-filtered streams through `ProjectRepository.watchProjects(ProjectStatus status)` and bind the Projects view to the selected status.

@@ -5,10 +5,7 @@ enum AppRoute {
   workflowRuns(path: '/workflow-runs', label: '工作流任务'),
   settings(path: '/settings', label: '设置');
 
-  const AppRoute({
-    required this.path,
-    required this.label,
-  });
+  const AppRoute({required this.path, required this.label});
 
   final String path;
   final String label;

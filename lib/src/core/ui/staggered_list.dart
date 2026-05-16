@@ -42,8 +42,7 @@ class _StaggeredListState extends State<StaggeredList> {
               return Opacity(
                 opacity: delayedValue,
                 child: Transform.translate(
-                  offset:
-                      Offset(0, widget.verticalOffset * (1 - delayedValue)),
+                  offset: Offset(0, widget.verticalOffset * (1 - delayedValue)),
                   child: child,
                 ),
               );

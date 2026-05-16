@@ -10,7 +10,7 @@ class HoverableWidget extends StatefulWidget {
   });
 
   final Widget Function(BuildContext context, bool isHovered, Widget? child)
-      builder;
+  builder;
   final Widget? child;
   final double scaleOnHover;
   final Duration duration;

@@ -266,11 +266,14 @@ class PersonaActionTile extends StatelessWidget {
               child: PersonaPanel(
                 padding: const EdgeInsets.all(16),
                 backgroundColor: accent
-                    ? colorScheme.primary.withValues(alpha: isHovered ? 0.12 : 0.08)
+                    ? colorScheme.primary.withValues(
+                        alpha: isHovered ? 0.12 : 0.08,
+                      )
                     : (isHovered
-                        ? colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.5)
-                        : null),
+                          ? colorScheme.surfaceContainerHighest.withValues(
+                              alpha: 0.5,
+                            )
+                          : null),
                 child: Row(
                   children: [
                     Container(
@@ -358,10 +361,7 @@ class PersonaEmptyStateCard extends StatelessWidget {
                 ],
               ),
             ),
-            if (action != null) ...[
-              const SizedBox(width: 16),
-              action!,
-            ],
+            if (action != null) ...[const SizedBox(width: 16), action!],
           ],
         ),
       ),
