@@ -243,3 +243,38 @@ Built the Settings Provider configuration slice with SQLite-backed API keys, rea
 ### Next Steps
 
 - None - task complete
+
+
+## Session 8: Project CRUD vertical slice
+
+**Date**: 2026-05-16
+**Task**: Project CRUD vertical slice
+**Branch**: `main`
+
+### Summary
+
+Built the Projects CRUD vertical slice, polished the Projects dossier UI and shell tab stability, then fixed the ProjectController lifecycle bug that could occur when archive or restore actions removed a row during an async status update.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4f3d4b1` | (see git log) |
+| `87e32ab` | (see git log) |
+| `2e8cd8a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

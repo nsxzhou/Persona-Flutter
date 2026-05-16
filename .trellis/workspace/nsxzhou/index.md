@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 7
-- **Last Active**: 2026-05-15
+- **Total Sessions**: 8
+- **Last Active**: 2026-05-16
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~245 | Active |
+| `journal-1.md` | ~280 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 8 | 2026-05-16 | Project CRUD vertical slice | `4f3d4b1`, `87e32ab`, `2e8cd8a` | `main` |
 | 7 | 2026-05-15 | Provider configuration slice | `6ed24b0`, `7db3b4f` | `main` |
 | 6 | 2026-05-15 | Fix sidebar animation and alignment | `c85f7a7`, `08c81d2` | `main` |
 | 5 | 2026-05-15 | Frontend page redesign | `8f5c43e`, `7bc0648` | `main` |
