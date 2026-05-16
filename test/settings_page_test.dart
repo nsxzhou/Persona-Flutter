@@ -68,12 +68,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Provider 控制台'), findsOneWidget);
-      expect(find.text('测试连接'), findsWidgets);
-      expect(find.text('打开详情'), findsWidgets);
-      expect(find.text('可用'), findsWidgets);
-      expect(find.text('已配置'), findsWidgets);
-      expect(find.text('未配置'), findsOneWidget);
-      expect(find.byIcon(Icons.more_horiz), findsNWidgets(2));
+      expect(find.byIcon(Icons.network_check), findsNWidgets(2));
+      expect(find.byIcon(Icons.chevron_right), findsNWidgets(2));
+      expect(find.byIcon(Icons.edit_outlined), findsNWidgets(2));
+      expect(find.byIcon(Icons.delete_outline), findsNWidgets(2));
+      expect(find.text('deepseek'), findsOneWidget);
+      expect(find.text('openai'), findsOneWidget);
       expect(find.text('sk-secret-deepseek'), findsNothing);
       expect(find.text('sk-secret-openai'), findsNothing);
     },
@@ -105,19 +105,17 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('新增 Provider').first);
+    await tester.tap(find.text('新增'));
     await tester.pumpAndSettle();
 
-    expect(find.text('新增 Provider'), findsWidgets);
+    expect(find.text('新增 Provider'), findsOneWidget);
     expect(find.textContaining('API Key 只保存在本地 SQLite'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     await tester.tap(find.text('取消').last);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.more_horiz));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('删除 Provider'));
+    await tester.tap(find.byIcon(Icons.delete_outline));
     await tester.pumpAndSettle();
 
     expect(find.text('删除 Provider'), findsWidgets);
