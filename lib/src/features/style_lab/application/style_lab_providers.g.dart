@@ -628,7 +628,7 @@ final class StyleLabControllerProvider
 }
 
 String _$styleLabControllerHash() =>
-    r'4544eb6b4cd922570bc6cf7ea68701318e0dc6ee';
+    r'a49a87a667f5541108a93a757da628dd984a06e5';
 
 abstract class _$StyleLabController extends $AsyncNotifier<void> {
   FutureOr<void> build();

@@ -158,10 +158,14 @@ class StyleLabController extends _$StyleLabController {
       if (provider == null) {
         throw StateError('Provider 不存在。');
       }
+      if (!provider.isEnabled) {
+        throw StateError('Provider 已停用。');
+      }
+      final newRun = await repository.createRunFromExisting(run.id);
       unawaited(
         ref
             .read(styleAnalysisPipelineProvider)
-            .run(runId: run.id, provider: provider)
+            .run(runId: newRun.id, provider: provider)
             .catchError((Object _) {}),
       );
     });

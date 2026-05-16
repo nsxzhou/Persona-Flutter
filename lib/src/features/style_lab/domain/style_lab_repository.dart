@@ -19,6 +19,8 @@ abstract interface class StyleLabRepository {
 
   Future<StyleAnalysisRun> createRun(StyleAnalysisRunInput input);
 
+  Future<StyleAnalysisRun> createRunFromExisting(String id);
+
   Future<void> deleteRun(String id);
 
   Future<void> updateRunState({
