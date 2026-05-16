@@ -220,7 +220,7 @@ final class ProjectControllerProvider
         argument: null,
         retry: null,
         name: r'projectControllerProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -233,7 +233,7 @@ final class ProjectControllerProvider
   ProjectController create() => ProjectController();
 }
 
-String _$projectControllerHash() => r'64d314b2d30578847017372d2475e17487c4c7da';
+String _$projectControllerHash() => r'2822d64cc41f18897f824968880bfdbd6bb3c441';
 
 abstract class _$ProjectController extends $AsyncNotifier<void> {
   FutureOr<void> build();

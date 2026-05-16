@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:persona_flutter/src/features/projects/application/project_providers.dart';
+import 'package:persona_flutter/src/features/projects/domain/project_repository.dart';
 import 'package:persona_flutter/src/features/projects/domain/writing_project.dart';
 import 'package:persona_flutter/src/features/projects/presentation/project_detail_page.dart';
 import 'package:persona_flutter/src/features/projects/presentation/projects_page.dart';
@@ -76,6 +79,39 @@ void main() {
     },
   );
 
+  testWidgets(
+    'project archive action survives row removal after status change',
+    (tester) async {
+      final repository = _MutableProjectRepository([
+        _project(
+          id: 'active-project',
+          title: '活动长篇',
+          status: ProjectStatus.active,
+        ),
+      ]);
+      addTearDown(repository.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [projectRepositoryProvider.overrideWithValue(repository)],
+          child: const MaterialApp(home: ProjectsPage()),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      expect(find.text('活动长篇'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('项目操作'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('归档项目'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('活动长篇'), findsNothing);
+      expect(find.text('尚未创建项目'), findsOneWidget);
+    },
+  );
+
   testWidgets('project detail page renders loaded project dossier', (
     tester,
   ) async {
@@ -141,4 +177,90 @@ WritingProject _project({
     createdAt: DateTime(2026, 5, 16, 9),
     updatedAt: DateTime(2026, 5, 16, 10),
   );
+}
+
+class _MutableProjectRepository implements ProjectRepository {
+  _MutableProjectRepository(List<WritingProject> initialProjects)
+    : _projects = [...initialProjects];
+
+  final List<WritingProject> _projects;
+  final _changes = StreamController<void>.broadcast();
+
+  void dispose() {
+    _changes.close();
+  }
+
+  @override
+  Stream<List<WritingProject>> watchProjects(ProjectStatus status) async* {
+    List<WritingProject> snapshot() => _projects
+        .where((project) => project.status == status)
+        .toList(growable: false);
+
+    yield snapshot();
+    yield* _changes.stream.map((_) => snapshot());
+  }
+
+  @override
+  Stream<WritingProject?> watchProject(String id) async* {
+    WritingProject? snapshot() =>
+        _projects.where((project) => project.id == id).firstOrNull;
+
+    yield snapshot();
+    yield* _changes.stream.map((_) => snapshot());
+  }
+
+  @override
+  Future<WritingProject?> findProject(String id) async {
+    return _projects.where((project) => project.id == id).firstOrNull;
+  }
+
+  @override
+  Future<void> saveProject({
+    String? id,
+    required WritingProjectInput input,
+  }) async {
+    final existingIndex = id == null
+        ? -1
+        : _projects.indexWhere((project) => project.id == id);
+    final now = DateTime(2026, 5, 16, 12);
+    final project = WritingProject(
+      id: id ?? 'created-project',
+      title: input.title,
+      description: input.description,
+      status: input.status,
+      createdAt: existingIndex == -1 ? now : _projects[existingIndex].createdAt,
+      updatedAt: now,
+    );
+
+    if (existingIndex == -1) {
+      _projects.add(project);
+    } else {
+      _projects[existingIndex] = project;
+    }
+    _changes.add(null);
+  }
+
+  @override
+  Future<void> updateStatus({
+    required String id,
+    required ProjectStatus status,
+  }) async {
+    final index = _projects.indexWhere((project) => project.id == id);
+    if (index == -1) {
+      return;
+    }
+
+    _projects[index] = _projects[index].copyWith(
+      status: status,
+      updatedAt: DateTime(2026, 5, 16, 12),
+    );
+    _changes.add(null);
+    await Future<void>.delayed(Duration.zero);
+  }
+
+  @override
+  Future<void> deleteProject(String id) async {
+    _projects.removeWhere((project) => project.id == id);
+    _changes.add(null);
+  }
 }

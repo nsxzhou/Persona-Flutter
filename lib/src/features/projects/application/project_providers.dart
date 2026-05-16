@@ -27,7 +27,7 @@ Stream<WritingProject?> writingProject(Ref ref, String id) {
   return repository.watchProject(id);
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class ProjectController extends _$ProjectController {
   @override
   FutureOr<void> build() {}

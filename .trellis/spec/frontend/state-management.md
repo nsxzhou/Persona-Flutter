@@ -40,6 +40,12 @@ Use a provider when state:
 * wraps a Drift stream or long-running task status,
 * must survive route changes.
 
+Command-style providers that run async mutations from transient UI controls
+(for example popup menu actions) must either be `keepAlive` or explicitly guard
+`ref.mounted` after async gaps before writing `state`. Prefer `keepAlive` when
+the provider represents a feature command surface rather than widget-local
+state.
+
 ---
 
 ## Server State
