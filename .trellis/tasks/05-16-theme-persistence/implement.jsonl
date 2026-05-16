@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Theme mode is shared provider state with local preference persistence."}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Provider placement and Riverpod wiring conventions for shared app state."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Required analyzer, build_runner, and widget test expectations for frontend changes."}
+{"file": ".trellis/spec/guides/index.md", "reason": "Shared thinking guide index used for cross-layer and reuse checks."}

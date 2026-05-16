@@ -46,6 +46,20 @@ Command-style providers that run async mutations from transient UI controls
 the provider represents a feature command surface rather than widget-local
 state.
 
+## App Preference State
+
+Small cross-session app preferences, such as theme mode, should use a tiny
+storage abstraction that is injected through Riverpod. Initialize any cached
+preference store before `runApp`, then override the store provider at the root
+`ProviderScope` so synchronous app-shell providers can read the restored value
+without introducing a startup loading state or theme flash.
+
+Example contract:
+
+* `ThemeModeStore.read()` returns the current cached preference synchronously.
+* `ThemeModeStore.write(mode)` persists user changes asynchronously.
+* Missing or invalid preference values must fall back to the documented default.
+
 ---
 
 ## Server State
@@ -58,4 +72,6 @@ Persona Flutter has no remote server in the baseline. Local persisted data is ex
 
 * Do not let presentation widgets import Drift tables directly.
 * Do not bypass repository contracts from feature UI.
+* Do not store cross-session preferences only in a `Notifier` field or `state`;
+  the value will reset when the app restarts.
 * Keep generated provider files in sync with `dart run build_runner build`.

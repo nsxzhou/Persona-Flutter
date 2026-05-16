@@ -5,11 +5,18 @@ import 'package:go_router/go_router.dart';
 import 'package:persona_flutter/src/app/persona_app.dart';
 import 'package:persona_flutter/src/core/router/app_route.dart';
 import 'package:persona_flutter/src/core/theme/app_theme.dart';
+import 'package:persona_flutter/src/core/theme/theme_mode_provider.dart';
 import 'package:persona_flutter/src/core/ui/app_shell.dart';
 import 'package:persona_flutter/src/features/projects/application/project_providers.dart';
 import 'package:persona_flutter/src/features/projects/domain/writing_project.dart';
 
 void main() {
+  test('theme mode preference falls back to dark for invalid values', () {
+    expect(ThemeModePreference.decode(null), ThemeMode.dark);
+    expect(ThemeModePreference.decode('system'), ThemeMode.dark);
+    expect(ThemeModePreference.decode('light'), ThemeMode.light);
+  });
+
   testWidgets('shows the desktop shell and core product entries', (
     tester,
   ) async {
@@ -78,6 +85,38 @@ void main() {
     expect(find.byTooltip('切换亮色模式'), findsOneWidget);
 
     await tester.tap(find.byTooltip('切换亮色模式'));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.wb_sunny_outlined), findsOneWidget);
+    expect(find.byTooltip('切换暗色模式'), findsOneWidget);
+  });
+
+  testWidgets('persists theme mode and restores it in a fresh app instance', (
+    tester,
+  ) async {
+    final themeModeStore = InMemoryThemeModeStore();
+
+    await tester.pumpWidget(
+      _TestProviderScope(
+        themeModeStore: themeModeStore,
+        child: const PersonaApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('切换亮色模式'));
+    await tester.pumpAndSettle();
+
+    expect(themeModeStore.read(), ThemeMode.light);
+
+    await tester.pumpWidget(const ProviderScope(child: SizedBox.shrink()));
+    await tester.pump();
+    await tester.pumpWidget(
+      _TestProviderScope(
+        themeModeStore: themeModeStore,
+        child: const PersonaApp(),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.wb_sunny_outlined), findsOneWidget);
@@ -170,14 +209,17 @@ class _ShellTestApp extends StatelessWidget {
 }
 
 class _TestProviderScope extends StatelessWidget {
-  const _TestProviderScope({required this.child});
+  const _TestProviderScope({required this.child, this.themeModeStore});
 
   final Widget child;
+  final ThemeModeStore? themeModeStore;
 
   @override
   Widget build(BuildContext context) {
     return ProviderScope(
       overrides: [
+        if (themeModeStore != null)
+          themeModeStoreProvider.overrideWithValue(themeModeStore!),
         writingProjectsProvider.overrideWith(
           (ref, status) => Stream<List<WritingProject>>.value(const []),
         ),
