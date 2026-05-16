@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/glass_container.dart';
@@ -123,39 +124,57 @@ class _ProviderCard extends ConsumerWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.28),
-        borderRadius: BorderRadius.circular(kPanelRadius),
-        border: Border.all(color: colorScheme.outlineVariant),
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.82),
+        ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final details = _ProviderDetails(
-              provider: provider,
-              statusColor: statusColor,
-            );
-            final actions = _ProviderActions(
-              provider: provider,
-              isBusy: controllerState.isLoading,
-            );
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: ColoredBox(
+                  color: statusColor,
+                  child: const SizedBox(width: 4, height: double.infinity),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 14, 14, 12),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final details = _ProviderDetails(
+                    provider: provider,
+                    statusColor: statusColor,
+                  );
+                  final actions = _ProviderActions(
+                    provider: provider,
+                    isBusy: controllerState.isLoading,
+                  );
 
-            if (constraints.maxWidth < 720) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [details, const SizedBox(height: 14), actions],
-              );
-            }
+                  if (constraints.maxWidth < 760) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [details, const SizedBox(height: 12), actions],
+                    );
+                  }
 
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: details),
-                const SizedBox(width: 18),
-                SizedBox(width: 190, child: actions),
-              ],
-            );
-          },
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: details),
+                      const SizedBox(width: 18),
+                      SizedBox(width: 178, child: actions),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -176,21 +195,8 @@ class _ProviderDetails extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: statusColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: statusColor.withValues(alpha: 0.24)),
-          ),
-          child: Icon(
-            _statusIcon(provider.testStatus),
-            color: statusColor,
-            size: 21,
-          ),
-        ),
-        const SizedBox(width: 14),
+        _ProviderStatusMark(status: provider.testStatus, color: statusColor),
+        const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,7 +208,9 @@ class _ProviderDetails extends StatelessWidget {
                 children: [
                   Text(
                     provider.name,
-                    style: textTheme.titleMedium,
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -219,10 +227,10 @@ class _ProviderDetails extends StatelessWidget {
                     ),
                 ],
               ),
-              const SizedBox(height: 10),
-              _ProviderMetaGrid(provider: provider),
+              const SizedBox(height: 8),
+              _ProviderMetaStrip(provider: provider),
               if (provider.lastTestMessage != null) ...[
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 _ProviderTestMessage(
                   message: provider.lastTestMessage!,
                   color: statusColor,
@@ -236,8 +244,31 @@ class _ProviderDetails extends StatelessWidget {
   }
 }
 
-class _ProviderMetaGrid extends StatelessWidget {
-  const _ProviderMetaGrid({required this.provider});
+class _ProviderStatusMark extends StatelessWidget {
+  const _ProviderStatusMark({required this.status, required this.color});
+
+  final ProviderTestStatus status;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.24)),
+      ),
+      child: SizedBox(
+        width: 36,
+        height: 36,
+        child: Icon(_statusIcon(status), color: color, size: 19),
+      ),
+    );
+  }
+}
+
+class _ProviderMetaStrip extends StatelessWidget {
+  const _ProviderMetaStrip({required this.provider});
 
   final ProviderConfig provider;
 
@@ -261,25 +292,31 @@ class _ProviderMetaGrid extends StatelessWidget {
             value: _maskApiKey(provider.apiKey),
             icon: Icons.vpn_key_outlined,
           ),
+          _ProviderMetaCell(
+            label: 'Provider Prompt',
+            value: provider.systemPrompt.trim().isEmpty ? '未配置' : '已配置',
+            icon: Icons.notes_outlined,
+          ),
         ];
 
         if (constraints.maxWidth < 620) {
           return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               for (final cell in cells) ...[
                 cell,
-                if (cell != cells.last) const SizedBox(height: 8),
+                if (cell != cells.last) const SizedBox(height: 6),
               ],
             ],
           );
         }
 
-        return Row(
+        final cellWidth = constraints.maxWidth < 820 ? 168.0 : 192.0;
+        return Wrap(
+          spacing: 14,
+          runSpacing: 6,
           children: [
-            for (final cell in cells) ...[
-              Expanded(child: cell),
-              if (cell != cells.last) const SizedBox(width: 8),
-            ],
+            for (final cell in cells) SizedBox(width: cellWidth, child: cell),
           ],
         );
       },
@@ -303,39 +340,44 @@ class _ProviderMetaCell extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(kPanelRadius),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.72),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-        child: Row(
-          children: [
-            Icon(icon, color: colorScheme.onSurfaceVariant, size: 16),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label, style: textTheme.labelMedium),
-                  const SizedBox(height: 2),
-                  Text(
-                    value,
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurface,
-                    ),
+    return Tooltip(
+      message: value,
+      waitDuration: const Duration(milliseconds: 450),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: colorScheme.onSurfaceVariant, size: 15),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 72,
+                  child: Text(
+                    label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -355,11 +397,11 @@ class _ProviderTestMessage extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(kPanelRadius),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: color.withValues(alpha: 0.18)),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
         child: Row(
           children: [
             Icon(Icons.bolt_outlined, color: color, size: 16),
@@ -387,34 +429,88 @@ class _ProviderActions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      alignment: WrapAlignment.end,
-      children: [
-        FilledButton.icon(
-          onPressed: isBusy
-              ? null
-              : () => ref
-                    .read(providerConfigControllerProvider.notifier)
-                    .test(provider.id),
-          icon: const Icon(Icons.network_check),
-          label: const Text('测试连接'),
+    final primary = FilledButton.icon(
+      onPressed: isBusy
+          ? null
+          : () => ref
+                .read(providerConfigControllerProvider.notifier)
+                .test(provider.id),
+      icon: const Icon(Icons.network_check),
+      label: const Text('测试连接'),
+    );
+
+    final secondary = OutlinedButton.icon(
+      onPressed: () => context.go('/settings/providers/${provider.id}'),
+      icon: const Icon(Icons.tune_outlined),
+      label: const Text('打开详情'),
+    );
+
+    final more = PopupMenuButton<_ProviderMenuAction>(
+      tooltip: '更多操作',
+      icon: const Icon(Icons.more_horiz),
+      onSelected: (action) {
+        switch (action) {
+          case _ProviderMenuAction.edit:
+            _showProviderDialog(context, provider: provider);
+          case _ProviderMenuAction.delete:
+            _confirmDelete(context, ref, provider);
+        }
+      },
+      itemBuilder: (context) => const [
+        PopupMenuItem(
+          value: _ProviderMenuAction.edit,
+          child: Row(
+            children: [
+              Icon(Icons.edit_outlined, size: 18),
+              SizedBox(width: 10),
+              Text('编辑配置'),
+            ],
+          ),
         ),
-        IconButton(
-          tooltip: '编辑',
-          onPressed: () => _showProviderDialog(context, provider: provider),
-          icon: const Icon(Icons.edit_outlined),
-        ),
-        IconButton(
-          tooltip: '删除',
-          onPressed: () => _confirmDelete(context, ref, provider),
-          icon: const Icon(Icons.delete_outline),
+        PopupMenuItem(
+          value: _ProviderMenuAction.delete,
+          child: Row(
+            children: [
+              Icon(Icons.delete_outline, size: 18),
+              SizedBox(width: 10),
+              Text('删除 Provider'),
+            ],
+          ),
         ),
       ],
     );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 260) {
+          return Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [primary, secondary, more],
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            primary,
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(child: secondary),
+                const SizedBox(width: 6),
+                more,
+              ],
+            ),
+          ],
+        );
+      },
+    );
   }
 }
+
+enum _ProviderMenuAction { edit, delete }
 
 class _PendingActionsPanel extends StatelessWidget {
   const _PendingActionsPanel();
@@ -545,6 +641,8 @@ class _ProviderDialogState extends ConsumerState<_ProviderDialog> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(providerConfigControllerProvider);
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
 
     ref.listen(providerConfigControllerProvider, (previous, next) {
       if (next.hasError) {
@@ -560,59 +658,131 @@ class _ProviderDialogState extends ConsumerState<_ProviderDialog> {
       children: [
         Text(
           widget.provider == null ? '新增 Provider' : '编辑 Provider',
-          style: Theme.of(context).textTheme.titleLarge,
+          style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
         ),
-        const SizedBox(height: 20),
-        SizedBox(
-          width: 520,
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+        const SizedBox(height: 6),
+        Text(
+          '配置 OpenAI-compatible 连接。API Key 只保存在本地 SQLite 中。',
+          style: textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 18),
+        Form(
+          key: _formKey,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth >= 620;
+              final nameField = TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(labelText: '名称'),
+                validator: _requiredValidator,
+              );
+              final modelField = TextFormField(
+                controller: _modelController,
+                decoration: const InputDecoration(
+                  labelText: '默认模型',
+                  hintText: 'gpt-4.1-mini',
+                ),
+                validator: _requiredValidator,
+              );
+              final baseUrlField = TextFormField(
+                controller: _baseUrlController,
+                decoration: const InputDecoration(
+                  labelText: 'Base URL',
+                  hintText: 'https://api.openai.com/v1',
+                ),
+                keyboardType: TextInputType.url,
+                validator: _urlValidator,
+              );
+              final apiKeyField = TextFormField(
+                controller: _apiKeyController,
+                decoration: const InputDecoration(labelText: 'API Key'),
+                obscureText: true,
+                validator: _requiredValidator,
+              );
+
+              final fields = [nameField, modelField, baseUrlField, apiKeyField];
+
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (isWide) ...[
+                    Row(
+                      children: [
+                        Expanded(child: nameField),
+                        const SizedBox(width: 12),
+                        Expanded(child: modelField),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(child: baseUrlField),
+                        const SizedBox(width: 12),
+                        Expanded(child: apiKeyField),
+                      ],
+                    ),
+                  ] else
+                    for (final field in fields) ...[
+                      field,
+                      if (field != fields.last) const SizedBox(height: 12),
+                    ],
+                  const SizedBox(height: 14),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHighest.withValues(
+                        alpha: 0.28,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: colorScheme.outlineVariant),
+                    ),
+                    child: SwitchListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 2,
+                      ),
+                      title: const Text('启用 Provider'),
+                      subtitle: const Text('停用后不参与正式生成选择，但详情页仍可测试。'),
+                      value: _isEnabled,
+                      onChanged: (value) => setState(() => _isEnabled = value),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 18),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: colorScheme.primary.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: colorScheme.primary.withValues(alpha: 0.18),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
               children: [
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(labelText: '名称'),
-                  validator: _requiredValidator,
+                Icon(
+                  Icons.shield_outlined,
+                  color: colorScheme.primary,
+                  size: 18,
                 ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _baseUrlController,
-                  decoration: const InputDecoration(
-                    labelText: 'Base URL',
-                    hintText: 'https://api.openai.com/v1',
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    '保存后连接测试状态会按现有规则重置，完整密钥不会在界面中展示。',
+                    style: textTheme.bodySmall,
                   ),
-                  keyboardType: TextInputType.url,
-                  validator: _urlValidator,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _apiKeyController,
-                  decoration: const InputDecoration(labelText: 'API Key'),
-                  obscureText: true,
-                  validator: _requiredValidator,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _modelController,
-                  decoration: const InputDecoration(
-                    labelText: '默认模型',
-                    hintText: 'gpt-4.1-mini',
-                  ),
-                  validator: _requiredValidator,
-                ),
-                const SizedBox(height: 12),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('启用 Provider'),
-                  value: _isEnabled,
-                  onChanged: (value) => setState(() => _isEnabled = value),
                 ),
               ],
             ),
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 18),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
@@ -647,6 +817,7 @@ class _ProviderDialogState extends ConsumerState<_ProviderDialog> {
             baseUrl: _baseUrlController.text,
             apiKey: _apiKeyController.text,
             defaultModel: _modelController.text,
+            systemPrompt: widget.provider?.systemPrompt ?? '',
             isEnabled: _isEnabled,
           ),
         );
@@ -660,6 +831,7 @@ class _ProviderDialogState extends ConsumerState<_ProviderDialog> {
 void _showProviderDialog(BuildContext context, {ProviderConfig? provider}) {
   showGlassDialog<void>(
     context: context,
+    maxWidth: 720,
     builder: (context) => _ProviderDialog(provider: provider),
   );
 }
@@ -671,11 +843,21 @@ Future<void> _confirmDelete(
 ) async {
   final confirmed = await showGlassDialog<bool>(
     context: context,
+    maxWidth: 500,
     builder: (context) => Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('删除 Provider', style: Theme.of(context).textTheme.titleLarge),
+        Row(
+          children: [
+            Icon(
+              Icons.warning_amber_rounded,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            const SizedBox(width: 10),
+            Text('删除 Provider', style: Theme.of(context).textTheme.titleLarge),
+          ],
+        ),
         const SizedBox(height: 12),
         Text('确定删除「${provider.name}」吗？API Key 会从 SQLite 中删除。'),
         const SizedBox(height: 20),
@@ -688,6 +870,10 @@ Future<void> _confirmDelete(
             ),
             const SizedBox(width: 8),
             FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+                foregroundColor: Theme.of(context).colorScheme.onError,
+              ),
               onPressed: () => Navigator.of(context).pop(true),
               child: const Text('删除'),
             ),
@@ -750,11 +936,7 @@ IconData _statusIcon(ProviderTestStatus status) {
 }
 
 Widget _buildSkeletonLoading() {
-  return Column(
-    children: [
-      const PersonaPanel(child: _ProviderListSkeleton()),
-    ],
-  );
+  return Column(children: [const PersonaPanel(child: _ProviderListSkeleton())]);
 }
 
 class _ProviderListSkeleton extends StatelessWidget {

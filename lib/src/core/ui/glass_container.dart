@@ -35,7 +35,8 @@ class GlassContainer extends StatelessWidget {
           decoration: BoxDecoration(
             color: tint ?? defaultTint,
             borderRadius: BorderRadius.circular(borderRadius),
-            border: border ??
+            border:
+                border ??
                 Border.all(
                   color: isDark
                       ? Colors.white.withValues(alpha: 0.08)
@@ -55,6 +56,13 @@ Future<T?> showGlassDialog<T>({
   required BuildContext context,
   required WidgetBuilder builder,
   bool barrierDismissible = true,
+  double maxWidth = 560,
+  double? maxHeight,
+  EdgeInsets insetPadding = const EdgeInsets.symmetric(
+    horizontal: 24,
+    vertical: 24,
+  ),
+  EdgeInsetsGeometry padding = const EdgeInsets.all(24),
 }) {
   return showDialog<T>(
     context: context,
@@ -66,11 +74,17 @@ Future<T?> showGlassDialog<T>({
         child: Dialog(
           backgroundColor: Colors.transparent,
           elevation: 0,
+          insetPadding: insetPadding,
           child: GlassContainer(
             borderRadius: 12,
             blurSigma: 24,
-            padding: const EdgeInsets.all(24),
-            child: builder(context),
+            padding: padding,
+            child: ConstrainedBox(
+              constraints: maxHeight == null
+                  ? BoxConstraints(maxWidth: maxWidth)
+                  : BoxConstraints(maxWidth: maxWidth, maxHeight: maxHeight),
+              child: builder(context),
+            ),
           ),
         ),
       );

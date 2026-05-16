@@ -27,6 +27,7 @@ class ProviderConfigRecords extends Table {
   TextColumn get baseUrl => text()();
   TextColumn get apiKey => text()();
   TextColumn get defaultModel => text()();
+  TextColumn get systemPrompt => text().withDefault(const Constant(''))();
   BoolColumn get isEnabled => boolean().withDefault(const Constant(true))();
   TextColumn get testStatus => text()();
   DateTimeColumn get lastTestedAt => dateTime().nullable()();
@@ -43,7 +44,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration {
@@ -52,6 +53,12 @@ class AppDatabase extends _$AppDatabase {
       onUpgrade: (migrator, from, to) async {
         if (from < 2) {
           await migrator.createTable(providerConfigRecords);
+        }
+        if (from < 3) {
+          await migrator.addColumn(
+            providerConfigRecords,
+            providerConfigRecords.systemPrompt,
+          );
         }
       },
     );

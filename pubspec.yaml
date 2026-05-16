@@ -46,6 +46,9 @@ dependencies:
   freezed_annotation: ^3.1.0
   json_annotation: ^4.11.0
   riverpod_annotation: ^4.0.2
+  langchain: ^0.8.1
+  langchain_openai: ^0.8.1+1
+  langchain_core: ^0.4.1
 
 dev_dependencies:
   flutter_test:

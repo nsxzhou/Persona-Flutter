@@ -18,6 +18,7 @@ Backend-like infrastructure belongs under `lib/src/core/` when it is shared by m
 lib/src/
 ├── core/
 │   ├── database/        # AppDatabase, Drift table definitions, DB providers
+│   ├── llm/             # Shared LLM ports, prompt composition, adapters
 │   └── tasks/
 │       ├── domain/      # Shared task entities/value objects
 │       ├── application/ # Shared task repository contracts/providers
@@ -39,6 +40,13 @@ Shared task primitives live in `lib/src/core/tasks/`, as shown by:
 * `lib/src/core/tasks/domain/workflow_task.dart`
 * `lib/src/core/tasks/application/workflow_task_repository.dart`
 * `lib/src/core/tasks/data/drift_workflow_task_repository.dart`
+
+Shared LLM primitives live in `lib/src/core/llm/` and must keep third-party
+LLM framework types behind data adapters:
+
+* `domain/` — Persona-owned request/message/event contracts such as `LlmClient`.
+* `application/` — prompt composition and invocation orchestration.
+* `data/` — concrete LangChain.dart/OpenAI-compatible adapter implementations.
 
 ---
 

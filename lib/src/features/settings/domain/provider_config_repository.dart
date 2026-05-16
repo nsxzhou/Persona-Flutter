@@ -9,10 +9,17 @@ abstract interface class ProviderConfigRepository {
 
   Future<ProviderConfig?> findProvider(String id);
 
+  Stream<ProviderConfig?> watchProvider(String id);
+
   Future<void> updateTestResult({
     required String id,
     required ProviderTestStatus status,
     required DateTime testedAt,
     String? message,
+  });
+
+  Future<void> updateSystemPrompt({
+    required String id,
+    required String systemPrompt,
   });
 }

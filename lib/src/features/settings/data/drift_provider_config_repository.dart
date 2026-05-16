@@ -45,6 +45,7 @@ class DriftProviderConfigRepository implements ProviderConfigRepository {
             baseUrl: Value(input.baseUrl.trim()),
             apiKey: Value(input.apiKey.trim()),
             defaultModel: Value(input.defaultModel.trim()),
+            systemPrompt: Value(input.systemPrompt.trim()),
             isEnabled: Value(input.isEnabled),
             testStatus: Value(ProviderTestStatus.untested.name),
             lastTestedAt: const Value(null),
@@ -72,6 +73,16 @@ class DriftProviderConfigRepository implements ProviderConfigRepository {
   }
 
   @override
+  Stream<ProviderConfig?> watchProvider(String id) {
+    final query = _database.select(_database.providerConfigRecords)
+      ..where((provider) => provider.id.equals(id))
+      ..limit(1);
+    return query.watchSingleOrNull().map(
+      (row) => row == null ? null : _mapRecord(row),
+    );
+  }
+
+  @override
   Future<void> updateTestResult({
     required String id,
     required ProviderTestStatus status,
@@ -90,6 +101,21 @@ class DriftProviderConfigRepository implements ProviderConfigRepository {
     );
   }
 
+  @override
+  Future<void> updateSystemPrompt({
+    required String id,
+    required String systemPrompt,
+  }) {
+    return (_database.update(
+      _database.providerConfigRecords,
+    )..where((provider) => provider.id.equals(id))).write(
+      ProviderConfigRecordsCompanion(
+        systemPrompt: Value(systemPrompt.trim()),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
   ProviderConfig _mapRecord(ProviderConfigRecord row) {
     return ProviderConfig(
       id: row.id,
@@ -97,6 +123,7 @@ class DriftProviderConfigRepository implements ProviderConfigRepository {
       baseUrl: row.baseUrl,
       apiKey: row.apiKey,
       defaultModel: row.defaultModel,
+      systemPrompt: row.systemPrompt,
       isEnabled: row.isEnabled,
       testStatus: ProviderTestStatus.values.byName(row.testStatus),
       lastTestedAt: row.lastTestedAt,

@@ -25,6 +25,9 @@ Backend-like Dart code must keep persistence, domain, application, and presentat
 * Convert Drift rows to domain models before UI consumption.
 * Use Riverpod providers for service/repository wiring.
 * Run `dart run build_runner build` after changing Drift, Freezed, JSON, or Riverpod annotations.
+* Keep LLM framework types behind `core/llm/data` adapters. UI and feature
+  application code must depend on Persona-owned contracts such as `LlmClient`,
+  `LlmRequest`, `LlmMessage`, and `LlmStreamEvent`, not LangChain.dart types.
 
 ---
 
@@ -85,3 +88,45 @@ Add focused tests for changed behavior. Current smoke coverage lives in `test/wi
 Assume `com.apple.security.network.server` permits outbound Provider requests.
 #### Correct
 Enable `com.apple.security.network.client` for outbound Provider connectivity.
+
+## Scenario: Shared LLM invocation boundary
+
+### 1. Scope / Trigger
+- Trigger: Any feature that calls a user-configured OpenAI-compatible Provider.
+- This is a cross-layer contract because Provider persistence, prompt composition, streaming model calls, UI state, and secret redaction all meet at the LLM boundary.
+
+### 2. Signatures
+- Domain port: `LlmClient.streamChat({required ProviderConfig provider, required LlmRequest request})`.
+- Request types: `LlmRequest(model, temperature, messages)`, `LlmMessage(role, content)`.
+- Stream events: `LlmStreamDelta(text)` and `LlmStreamDone()`.
+- Adapter: `LangChainLlmClient implements LlmClient` lives under `core/llm/data`.
+- Prompt composition: `ProviderPromptComposer.compose(businessSystemPrompt, providerSystemPrompt)`.
+
+### 3. Contracts
+- Business code and presentation widgets must not import LangChain.dart message, model, or result types directly.
+- Provider-level system prompt is appended after the business system prompt; it does not replace feature-specific prompts.
+- Empty Provider prompt means "append nothing" for production calls.
+- API keys may be passed to the adapter but must never be logged or rendered in UI/debug panels.
+
+### 4. Validation & Error Matrix
+- Empty Provider prompt -> skip Provider prompt append.
+- Empty business prompt + non-empty Provider prompt -> use Provider prompt as the system prompt.
+- Adapter error containing API key -> replace the key with `[REDACTED]` before surfacing the error.
+- Unsupported Provider protocol -> fail at the adapter boundary, not in UI.
+
+### 5. Good/Base/Bad Cases
+- Good: feature service calls `LlmInvocationService`, which composes prompts and delegates to `LlmClient`.
+- Base: Provider settings uses `LlmClient` for chat tests with fake clients in tests.
+- Bad: a widget constructs `ChatOpenAI` directly or stores LangChain messages in feature state.
+
+### 6. Tests Required
+- Unit test `ProviderPromptComposer` for empty and non-empty prompt composition.
+- Unit test `LlmInvocationService` for system-message ordering and temperature.
+- Adapter test with fake chat model for stream-event conversion and key redaction.
+- Widget tests should override `llmClientProvider` instead of making live LLM calls.
+
+### 7. Wrong vs Correct
+#### Wrong
+Import `ChatOpenAI` in a feature page and stream directly into widget state.
+#### Correct
+Feature code depends on `LlmInvocationService` / `LlmClient`; only `core/llm/data` imports LangChain.dart.

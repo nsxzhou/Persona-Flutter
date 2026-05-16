@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ProviderConfig {
 
- String get id; String get name; String get baseUrl; String get apiKey; String get defaultModel; bool get isEnabled; ProviderTestStatus get testStatus; DateTime? get lastTestedAt; String? get lastTestMessage; DateTime get createdAt; DateTime get updatedAt;
+ String get id; String get name; String get baseUrl; String get apiKey; String get defaultModel; String get systemPrompt; bool get isEnabled; ProviderTestStatus get testStatus; DateTime? get lastTestedAt; String? get lastTestMessage; DateTime get createdAt; DateTime get updatedAt;
 /// Create a copy of ProviderConfig
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $ProviderConfigCopyWith<ProviderConfig> get copyWith => _$ProviderConfigCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProviderConfig&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.baseUrl, baseUrl) || other.baseUrl == baseUrl)&&(identical(other.apiKey, apiKey) || other.apiKey == apiKey)&&(identical(other.defaultModel, defaultModel) || other.defaultModel == defaultModel)&&(identical(other.isEnabled, isEnabled) || other.isEnabled == isEnabled)&&(identical(other.testStatus, testStatus) || other.testStatus == testStatus)&&(identical(other.lastTestedAt, lastTestedAt) || other.lastTestedAt == lastTestedAt)&&(identical(other.lastTestMessage, lastTestMessage) || other.lastTestMessage == lastTestMessage)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProviderConfig&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.baseUrl, baseUrl) || other.baseUrl == baseUrl)&&(identical(other.apiKey, apiKey) || other.apiKey == apiKey)&&(identical(other.defaultModel, defaultModel) || other.defaultModel == defaultModel)&&(identical(other.systemPrompt, systemPrompt) || other.systemPrompt == systemPrompt)&&(identical(other.isEnabled, isEnabled) || other.isEnabled == isEnabled)&&(identical(other.testStatus, testStatus) || other.testStatus == testStatus)&&(identical(other.lastTestedAt, lastTestedAt) || other.lastTestedAt == lastTestedAt)&&(identical(other.lastTestMessage, lastTestMessage) || other.lastTestMessage == lastTestMessage)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,baseUrl,apiKey,defaultModel,isEnabled,testStatus,lastTestedAt,lastTestMessage,createdAt,updatedAt);
+int get hashCode => Object.hash(runtimeType,id,name,baseUrl,apiKey,defaultModel,systemPrompt,isEnabled,testStatus,lastTestedAt,lastTestMessage,createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'ProviderConfig(id: $id, name: $name, baseUrl: $baseUrl, apiKey: $apiKey, defaultModel: $defaultModel, isEnabled: $isEnabled, testStatus: $testStatus, lastTestedAt: $lastTestedAt, lastTestMessage: $lastTestMessage, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'ProviderConfig(id: $id, name: $name, baseUrl: $baseUrl, apiKey: $apiKey, defaultModel: $defaultModel, systemPrompt: $systemPrompt, isEnabled: $isEnabled, testStatus: $testStatus, lastTestedAt: $lastTestedAt, lastTestMessage: $lastTestMessage, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $ProviderConfigCopyWith<$Res>  {
   factory $ProviderConfigCopyWith(ProviderConfig value, $Res Function(ProviderConfig) _then) = _$ProviderConfigCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String baseUrl, String apiKey, String defaultModel, bool isEnabled, ProviderTestStatus testStatus, DateTime? lastTestedAt, String? lastTestMessage, DateTime createdAt, DateTime updatedAt
+ String id, String name, String baseUrl, String apiKey, String defaultModel, String systemPrompt, bool isEnabled, ProviderTestStatus testStatus, DateTime? lastTestedAt, String? lastTestMessage, DateTime createdAt, DateTime updatedAt
 });
 
 
@@ -65,13 +65,14 @@ class _$ProviderConfigCopyWithImpl<$Res>
 
 /// Create a copy of ProviderConfig
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? baseUrl = null,Object? apiKey = null,Object? defaultModel = null,Object? isEnabled = null,Object? testStatus = null,Object? lastTestedAt = freezed,Object? lastTestMessage = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? baseUrl = null,Object? apiKey = null,Object? defaultModel = null,Object? systemPrompt = null,Object? isEnabled = null,Object? testStatus = null,Object? lastTestedAt = freezed,Object? lastTestMessage = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,baseUrl: null == baseUrl ? _self.baseUrl : baseUrl // ignore: cast_nullable_to_non_nullable
 as String,apiKey: null == apiKey ? _self.apiKey : apiKey // ignore: cast_nullable_to_non_nullable
 as String,defaultModel: null == defaultModel ? _self.defaultModel : defaultModel // ignore: cast_nullable_to_non_nullable
+as String,systemPrompt: null == systemPrompt ? _self.systemPrompt : systemPrompt // ignore: cast_nullable_to_non_nullable
 as String,isEnabled: null == isEnabled ? _self.isEnabled : isEnabled // ignore: cast_nullable_to_non_nullable
 as bool,testStatus: null == testStatus ? _self.testStatus : testStatus // ignore: cast_nullable_to_non_nullable
 as ProviderTestStatus,lastTestedAt: freezed == lastTestedAt ? _self.lastTestedAt : lastTestedAt // ignore: cast_nullable_to_non_nullable
@@ -163,10 +164,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String baseUrl,  String apiKey,  String defaultModel,  bool isEnabled,  ProviderTestStatus testStatus,  DateTime? lastTestedAt,  String? lastTestMessage,  DateTime createdAt,  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String baseUrl,  String apiKey,  String defaultModel,  String systemPrompt,  bool isEnabled,  ProviderTestStatus testStatus,  DateTime? lastTestedAt,  String? lastTestMessage,  DateTime createdAt,  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProviderConfig() when $default != null:
-return $default(_that.id,_that.name,_that.baseUrl,_that.apiKey,_that.defaultModel,_that.isEnabled,_that.testStatus,_that.lastTestedAt,_that.lastTestMessage,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.name,_that.baseUrl,_that.apiKey,_that.defaultModel,_that.systemPrompt,_that.isEnabled,_that.testStatus,_that.lastTestedAt,_that.lastTestMessage,_that.createdAt,_that.updatedAt);case _:
   return orElse();
 
 }
@@ -184,10 +185,10 @@ return $default(_that.id,_that.name,_that.baseUrl,_that.apiKey,_that.defaultMode
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String baseUrl,  String apiKey,  String defaultModel,  bool isEnabled,  ProviderTestStatus testStatus,  DateTime? lastTestedAt,  String? lastTestMessage,  DateTime createdAt,  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String baseUrl,  String apiKey,  String defaultModel,  String systemPrompt,  bool isEnabled,  ProviderTestStatus testStatus,  DateTime? lastTestedAt,  String? lastTestMessage,  DateTime createdAt,  DateTime updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _ProviderConfig():
-return $default(_that.id,_that.name,_that.baseUrl,_that.apiKey,_that.defaultModel,_that.isEnabled,_that.testStatus,_that.lastTestedAt,_that.lastTestMessage,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.name,_that.baseUrl,_that.apiKey,_that.defaultModel,_that.systemPrompt,_that.isEnabled,_that.testStatus,_that.lastTestedAt,_that.lastTestMessage,_that.createdAt,_that.updatedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -204,10 +205,10 @@ return $default(_that.id,_that.name,_that.baseUrl,_that.apiKey,_that.defaultMode
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String baseUrl,  String apiKey,  String defaultModel,  bool isEnabled,  ProviderTestStatus testStatus,  DateTime? lastTestedAt,  String? lastTestMessage,  DateTime createdAt,  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String baseUrl,  String apiKey,  String defaultModel,  String systemPrompt,  bool isEnabled,  ProviderTestStatus testStatus,  DateTime? lastTestedAt,  String? lastTestMessage,  DateTime createdAt,  DateTime updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _ProviderConfig() when $default != null:
-return $default(_that.id,_that.name,_that.baseUrl,_that.apiKey,_that.defaultModel,_that.isEnabled,_that.testStatus,_that.lastTestedAt,_that.lastTestMessage,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.name,_that.baseUrl,_that.apiKey,_that.defaultModel,_that.systemPrompt,_that.isEnabled,_that.testStatus,_that.lastTestedAt,_that.lastTestMessage,_that.createdAt,_that.updatedAt);case _:
   return null;
 
 }
@@ -219,7 +220,7 @@ return $default(_that.id,_that.name,_that.baseUrl,_that.apiKey,_that.defaultMode
 @JsonSerializable()
 
 class _ProviderConfig implements ProviderConfig {
-  const _ProviderConfig({required this.id, required this.name, required this.baseUrl, required this.apiKey, required this.defaultModel, required this.isEnabled, required this.testStatus, this.lastTestedAt, this.lastTestMessage, required this.createdAt, required this.updatedAt});
+  const _ProviderConfig({required this.id, required this.name, required this.baseUrl, required this.apiKey, required this.defaultModel, this.systemPrompt = '', required this.isEnabled, required this.testStatus, this.lastTestedAt, this.lastTestMessage, required this.createdAt, required this.updatedAt});
   factory _ProviderConfig.fromJson(Map<String, dynamic> json) => _$ProviderConfigFromJson(json);
 
 @override final  String id;
@@ -227,6 +228,7 @@ class _ProviderConfig implements ProviderConfig {
 @override final  String baseUrl;
 @override final  String apiKey;
 @override final  String defaultModel;
+@override@JsonKey() final  String systemPrompt;
 @override final  bool isEnabled;
 @override final  ProviderTestStatus testStatus;
 @override final  DateTime? lastTestedAt;
@@ -247,16 +249,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProviderConfig&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.baseUrl, baseUrl) || other.baseUrl == baseUrl)&&(identical(other.apiKey, apiKey) || other.apiKey == apiKey)&&(identical(other.defaultModel, defaultModel) || other.defaultModel == defaultModel)&&(identical(other.isEnabled, isEnabled) || other.isEnabled == isEnabled)&&(identical(other.testStatus, testStatus) || other.testStatus == testStatus)&&(identical(other.lastTestedAt, lastTestedAt) || other.lastTestedAt == lastTestedAt)&&(identical(other.lastTestMessage, lastTestMessage) || other.lastTestMessage == lastTestMessage)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProviderConfig&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.baseUrl, baseUrl) || other.baseUrl == baseUrl)&&(identical(other.apiKey, apiKey) || other.apiKey == apiKey)&&(identical(other.defaultModel, defaultModel) || other.defaultModel == defaultModel)&&(identical(other.systemPrompt, systemPrompt) || other.systemPrompt == systemPrompt)&&(identical(other.isEnabled, isEnabled) || other.isEnabled == isEnabled)&&(identical(other.testStatus, testStatus) || other.testStatus == testStatus)&&(identical(other.lastTestedAt, lastTestedAt) || other.lastTestedAt == lastTestedAt)&&(identical(other.lastTestMessage, lastTestMessage) || other.lastTestMessage == lastTestMessage)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,baseUrl,apiKey,defaultModel,isEnabled,testStatus,lastTestedAt,lastTestMessage,createdAt,updatedAt);
+int get hashCode => Object.hash(runtimeType,id,name,baseUrl,apiKey,defaultModel,systemPrompt,isEnabled,testStatus,lastTestedAt,lastTestMessage,createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'ProviderConfig(id: $id, name: $name, baseUrl: $baseUrl, apiKey: $apiKey, defaultModel: $defaultModel, isEnabled: $isEnabled, testStatus: $testStatus, lastTestedAt: $lastTestedAt, lastTestMessage: $lastTestMessage, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'ProviderConfig(id: $id, name: $name, baseUrl: $baseUrl, apiKey: $apiKey, defaultModel: $defaultModel, systemPrompt: $systemPrompt, isEnabled: $isEnabled, testStatus: $testStatus, lastTestedAt: $lastTestedAt, lastTestMessage: $lastTestMessage, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -267,7 +269,7 @@ abstract mixin class _$ProviderConfigCopyWith<$Res> implements $ProviderConfigCo
   factory _$ProviderConfigCopyWith(_ProviderConfig value, $Res Function(_ProviderConfig) _then) = __$ProviderConfigCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String baseUrl, String apiKey, String defaultModel, bool isEnabled, ProviderTestStatus testStatus, DateTime? lastTestedAt, String? lastTestMessage, DateTime createdAt, DateTime updatedAt
+ String id, String name, String baseUrl, String apiKey, String defaultModel, String systemPrompt, bool isEnabled, ProviderTestStatus testStatus, DateTime? lastTestedAt, String? lastTestMessage, DateTime createdAt, DateTime updatedAt
 });
 
 
@@ -284,13 +286,14 @@ class __$ProviderConfigCopyWithImpl<$Res>
 
 /// Create a copy of ProviderConfig
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? baseUrl = null,Object? apiKey = null,Object? defaultModel = null,Object? isEnabled = null,Object? testStatus = null,Object? lastTestedAt = freezed,Object? lastTestMessage = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? baseUrl = null,Object? apiKey = null,Object? defaultModel = null,Object? systemPrompt = null,Object? isEnabled = null,Object? testStatus = null,Object? lastTestedAt = freezed,Object? lastTestMessage = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_ProviderConfig(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,baseUrl: null == baseUrl ? _self.baseUrl : baseUrl // ignore: cast_nullable_to_non_nullable
 as String,apiKey: null == apiKey ? _self.apiKey : apiKey // ignore: cast_nullable_to_non_nullable
 as String,defaultModel: null == defaultModel ? _self.defaultModel : defaultModel // ignore: cast_nullable_to_non_nullable
+as String,systemPrompt: null == systemPrompt ? _self.systemPrompt : systemPrompt // ignore: cast_nullable_to_non_nullable
 as String,isEnabled: null == isEnabled ? _self.isEnabled : isEnabled // ignore: cast_nullable_to_non_nullable
 as bool,testStatus: null == testStatus ? _self.testStatus : testStatus // ignore: cast_nullable_to_non_nullable
 as ProviderTestStatus,lastTestedAt: freezed == lastTestedAt ? _self.lastTestedAt : lastTestedAt // ignore: cast_nullable_to_non_nullable

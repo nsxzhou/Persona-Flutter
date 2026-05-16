@@ -4,6 +4,9 @@ import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/database/database_providers.dart';
+import '../../../core/llm/application/llm_invocation_service.dart';
+import '../../../core/llm/data/langchain_llm_client.dart';
+import '../../../core/llm/domain/llm_client.dart';
 import '../data/drift_provider_config_repository.dart';
 import '../domain/provider_config.dart';
 import '../domain/provider_config_repository.dart';
@@ -31,10 +34,26 @@ ProviderConnectivityTester providerConnectivityTester(Ref ref) {
   );
 }
 
+@Riverpod(keepAlive: true)
+LlmClient llmClient(Ref ref) {
+  return LangChainLlmClient(client: ref.watch(providerHttpClientProvider));
+}
+
+@Riverpod(keepAlive: true)
+LlmInvocationService llmInvocationService(Ref ref) {
+  return LlmInvocationService(client: ref.watch(llmClientProvider));
+}
+
 @riverpod
 Stream<List<ProviderConfig>> providerConfigs(Ref ref) {
   final repository = ref.watch(providerConfigRepositoryProvider);
   return repository.watchProviders();
+}
+
+@riverpod
+Stream<ProviderConfig?> providerConfig(Ref ref, String id) {
+  final repository = ref.watch(providerConfigRepositoryProvider);
+  return repository.watchProvider(id);
 }
 
 @riverpod
@@ -55,6 +74,18 @@ class ProviderConfigController extends _$ProviderConfigController {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       await ref.read(providerConfigRepositoryProvider).deleteProvider(id);
+    });
+  }
+
+  Future<void> updateSystemPrompt({
+    required String id,
+    required String systemPrompt,
+  }) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref
+          .read(providerConfigRepositoryProvider)
+          .updateSystemPrompt(id: id, systemPrompt: systemPrompt);
     });
   }
 

@@ -13,6 +13,7 @@ _ProviderConfig _$ProviderConfigFromJson(Map<String, dynamic> json) =>
       baseUrl: json['baseUrl'] as String,
       apiKey: json['apiKey'] as String,
       defaultModel: json['defaultModel'] as String,
+      systemPrompt: json['systemPrompt'] as String? ?? '',
       isEnabled: json['isEnabled'] as bool,
       testStatus: $enumDecode(_$ProviderTestStatusEnumMap, json['testStatus']),
       lastTestedAt: json['lastTestedAt'] == null
@@ -30,6 +31,7 @@ Map<String, dynamic> _$ProviderConfigToJson(_ProviderConfig instance) =>
       'baseUrl': instance.baseUrl,
       'apiKey': instance.apiKey,
       'defaultModel': instance.defaultModel,
+      'systemPrompt': instance.systemPrompt,
       'isEnabled': instance.isEnabled,
       'testStatus': _$ProviderTestStatusEnumMap[instance.testStatus]!,
       'lastTestedAt': instance.lastTestedAt?.toIso8601String(),

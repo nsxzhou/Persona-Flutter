@@ -13,6 +13,7 @@ abstract class ProviderConfig with _$ProviderConfig {
     required String baseUrl,
     required String apiKey,
     required String defaultModel,
+    @Default('') String systemPrompt,
     required bool isEnabled,
     required ProviderTestStatus testStatus,
     DateTime? lastTestedAt,
@@ -31,6 +32,7 @@ class ProviderConfigInput {
     required this.baseUrl,
     required this.apiKey,
     required this.defaultModel,
+    required this.systemPrompt,
     required this.isEnabled,
   });
 
@@ -38,5 +40,6 @@ class ProviderConfigInput {
   final String baseUrl;
   final String apiKey;
   final String defaultModel;
+  final String systemPrompt;
   final bool isEnabled;
 }

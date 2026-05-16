@@ -148,6 +148,95 @@ final class ProviderConnectivityTesterProvider
 String _$providerConnectivityTesterHash() =>
     r'8936203422076b12b6df802544940bb8d175c818';
 
+@ProviderFor(llmClient)
+final llmClientProvider = LlmClientProvider._();
+
+final class LlmClientProvider
+    extends $FunctionalProvider<LlmClient, LlmClient, LlmClient>
+    with $Provider<LlmClient> {
+  LlmClientProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'llmClientProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$llmClientHash();
+
+  @$internal
+  @override
+  $ProviderElement<LlmClient> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  LlmClient create(Ref ref) {
+    return llmClient(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(LlmClient value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<LlmClient>(value),
+    );
+  }
+}
+
+String _$llmClientHash() => r'3b0008d2c079a4e8af4ce3bc70463354b858e24a';
+
+@ProviderFor(llmInvocationService)
+final llmInvocationServiceProvider = LlmInvocationServiceProvider._();
+
+final class LlmInvocationServiceProvider
+    extends
+        $FunctionalProvider<
+          LlmInvocationService,
+          LlmInvocationService,
+          LlmInvocationService
+        >
+    with $Provider<LlmInvocationService> {
+  LlmInvocationServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'llmInvocationServiceProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$llmInvocationServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<LlmInvocationService> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  LlmInvocationService create(Ref ref) {
+    return llmInvocationService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(LlmInvocationService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<LlmInvocationService>(value),
+    );
+  }
+}
+
+String _$llmInvocationServiceHash() =>
+    r'bfc3ecc5e39cb441766b99a3c092d92876092640';
+
 @ProviderFor(providerConfigs)
 final providerConfigsProvider = ProviderConfigsProvider._();
 
@@ -189,6 +278,81 @@ final class ProviderConfigsProvider
 
 String _$providerConfigsHash() => r'a5abbbc643d365f3c3750013b73edd3a430a6502';
 
+@ProviderFor(providerConfig)
+final providerConfigProvider = ProviderConfigFamily._();
+
+final class ProviderConfigProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<ProviderConfig?>,
+          ProviderConfig?,
+          Stream<ProviderConfig?>
+        >
+    with $FutureModifier<ProviderConfig?>, $StreamProvider<ProviderConfig?> {
+  ProviderConfigProvider._({
+    required ProviderConfigFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'providerConfigProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$providerConfigHash();
+
+  @override
+  String toString() {
+    return r'providerConfigProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<ProviderConfig?> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<ProviderConfig?> create(Ref ref) {
+    final argument = this.argument as String;
+    return providerConfig(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ProviderConfigProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$providerConfigHash() => r'90a584e54145484b8b78eaf332015b1ddce12e7f';
+
+final class ProviderConfigFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<ProviderConfig?>, String> {
+  ProviderConfigFamily._()
+    : super(
+        retry: null,
+        name: r'providerConfigProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  ProviderConfigProvider call(String id) =>
+      ProviderConfigProvider._(argument: id, from: this);
+
+  @override
+  String toString() => r'providerConfigProvider';
+}
+
 @ProviderFor(ProviderConfigController)
 final providerConfigControllerProvider = ProviderConfigControllerProvider._();
 
@@ -214,7 +378,7 @@ final class ProviderConfigControllerProvider
 }
 
 String _$providerConfigControllerHash() =>
-    r'950ac73d07d8a0fd19d66f4683e10e78d7a15f06';
+    r'49b8d80f8453e5d65b54565ba4a0e619bc380e71';
 
 abstract class _$ProviderConfigController extends $AsyncNotifier<void> {
   FutureOr<void> build();

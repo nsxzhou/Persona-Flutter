@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/plot_lab/presentation/plot_lab_page.dart';
 import '../../features/projects/presentation/projects_page.dart';
+import '../../features/settings/presentation/provider_detail_page.dart';
 import '../../features/settings/presentation/settings_page.dart';
 import '../../features/style_lab/presentation/style_lab_page.dart';
 import '../../features/workflow_runs/presentation/workflow_runs_page.dart';
@@ -55,6 +56,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: AppRoute.settings.path,
                 builder: (context, state) => const SettingsPage(),
+                routes: [
+                  GoRoute(
+                    path: 'providers/:providerId',
+                    builder: (context, state) => ProviderDetailPage(
+                      providerId: state.pathParameters['providerId']!,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
