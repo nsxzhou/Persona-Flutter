@@ -69,6 +69,99 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('style lab shows running analysis progress and logs', (
+    tester,
+  ) async {
+    final sample = _sample(id: 'sample-1', title: '冷雨样本');
+    final running = _run(
+      id: 'run-running',
+      sampleId: sample.id,
+      status: StyleAnalysisStatus.running,
+      stage: StyleAnalysisStage.analyzingChunks,
+      chunkCount: 3,
+      logs:
+          '[2026-05-16T11:00:00] 阶段: 分块分析。开始分块分析：3 个 chunk。\n'
+          '[2026-05-16T11:01:00] 完成 chunk 1/3。',
+    );
+
+    await tester.pumpWidget(
+      _StyleLabTestApp(samples: [sample], runs: [running], profiles: const []),
+    );
+    await _pumpStyleLab(tester);
+
+    expect(find.text('任务活动'), findsOneWidget);
+    expect(find.text('分块分析'), findsWidgets);
+    expect(find.text('1/3 chunks'), findsWidgets);
+    expect(find.text('32%'), findsOneWidget);
+    expect(find.textContaining('完成 chunk 1/3'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('style lab activity shows failed progress and error logs', (
+    tester,
+  ) async {
+    final sample = _sample(id: 'sample-1', title: '雾线样本');
+    final failed = _run(
+      id: 'run-failed',
+      sampleId: sample.id,
+      status: StyleAnalysisStatus.failed,
+      stage: StyleAnalysisStage.reporting,
+      errorMessage: '模型返回为空。',
+      chunkCount: 2,
+      logs:
+          '[2026-05-16T11:00:00] 完成 chunk 1/2。\n'
+          '[2026-05-16T11:02:00] 阶段: 生成报告。生成最终分析报告。\n'
+          '[2026-05-16T11:03:00] 分析失败。',
+    );
+
+    await tester.pumpWidget(
+      _StyleLabTestApp(samples: [sample], runs: [failed], profiles: const []),
+    );
+    await _pumpStyleLab(tester);
+
+    expect(find.text('生成报告'), findsWidgets);
+    expect(find.text('1/2 chunks'), findsWidgets);
+    expect(find.text('失败'), findsWidgets);
+    expect(find.textContaining('分析失败。'), findsOneWidget);
+    expect(find.text('模型返回为空。'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('style lab draft detail shows progress and run logs', (
+    tester,
+  ) async {
+    final sample = _sample(id: 'sample-1', title: '雾线样本');
+    final draft = _run(
+      id: 'run-draft',
+      sampleId: sample.id,
+      status: StyleAnalysisStatus.succeeded,
+      analysisReportMarkdown: '# 分析报告\n节奏克制。',
+      voiceProfileMarkdown: _validProfile('雾线草稿'),
+      chunkCount: 2,
+      logs:
+          '[2026-05-16T11:00:00] 完成 chunk 1/2。\n'
+          '[2026-05-16T11:02:00] 完成 chunk 2/2。\n'
+          '[2026-05-16T11:03:00] 分析完成。',
+    );
+
+    await tester.pumpWidget(
+      _StyleLabTestApp(samples: [sample], runs: [draft], profiles: const []),
+    );
+    await _pumpStyleLab(tester);
+
+    await tester.ensureVisible(find.text('雾线草稿').first);
+    await tester.tap(find.text('雾线草稿').first);
+    await _pumpStyleLab(tester);
+    await tester.tap(find.text('任务日志'));
+    await _pumpStyleLab(tester);
+
+    expect(find.text('100%'), findsOneWidget);
+    expect(find.text('2/2 chunks'), findsWidgets);
+    expect(find.text('完整日志'), findsOneWidget);
+    expect(find.textContaining('分析完成。'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('style lab routes to saved profile detail', (tester) async {
     final sample = _sample(id: 'sample-1', title: '冷雨样本');
     final run = _run(
@@ -253,10 +346,13 @@ StyleAnalysisRun _run({
   required String sampleId,
   required StyleAnalysisStatus status,
   String styleName = '雾线草稿',
+  StyleAnalysisStage? stage,
   String? profileId,
   String? analysisReportMarkdown,
   String? voiceProfileMarkdown,
   String? errorMessage,
+  String logs = 'prepare_input\nbuild_voice_profile',
+  int chunkCount = 1,
 }) {
   return StyleAnalysisRun(
     id: id,
@@ -266,12 +362,13 @@ StyleAnalysisRun _run({
     modelName: 'deepseek-chat',
     styleName: styleName,
     status: status,
+    stage: stage,
     errorMessage: errorMessage,
-    logs: 'prepare_input\nbuild_voice_profile',
+    logs: logs,
     analysisReportMarkdown: analysisReportMarkdown,
     voiceProfileMarkdown: voiceProfileMarkdown,
     profileId: profileId,
-    chunkCount: 1,
+    chunkCount: chunkCount,
     characterCount: 15,
     createdAt: DateTime(2026, 5, 16, 11),
     updatedAt: DateTime(2026, 5, 16, 12),
@@ -392,6 +489,9 @@ class _FakeStyleLabRepository implements StyleLabRepository {
   }
 
   @override
+  Future<void> deleteRun(String id) async {}
+
+  @override
   Future<void> updateRunState({
     required String id,
     required StyleAnalysisStatus status,
@@ -440,4 +540,7 @@ class _FakeStyleLabRepository implements StyleLabRepository {
   }) {
     throw UnimplementedError();
   }
+
+  @override
+  Future<void> deleteProfile(String id) async {}
 }

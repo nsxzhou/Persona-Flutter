@@ -167,6 +167,13 @@ class StyleLabController extends _$StyleLabController {
     });
   }
 
+  Future<void> deleteRun(String runId) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref.read(styleLabRepositoryProvider).deleteRun(runId);
+    });
+  }
+
   Future<StyleProfile> saveProfile({
     required String runId,
     required String styleName,
@@ -213,5 +220,12 @@ class StyleLabController extends _$StyleLabController {
     });
     state = result.whenData((_) {});
     return result.requireValue;
+  }
+
+  Future<void> deleteProfile(String id) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref.read(styleLabRepositoryProvider).deleteProfile(id);
+    });
   }
 }

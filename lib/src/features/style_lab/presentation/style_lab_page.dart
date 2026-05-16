@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/glass_container.dart';
 import '../../../core/ui/persona_page.dart';
 import '../../settings/application/provider_config_providers.dart';
 import '../../settings/domain/provider_config.dart';
@@ -94,6 +95,8 @@ class _StyleLabPageState extends ConsumerState<StyleLabPage> {
                 onFilterChanged: (filter) => setState(() => _filter = filter),
                 onAssetSelected: _openAsset,
                 onRerun: _rerun,
+                onDeleteAsset: _deleteAsset,
+                onDeleteRun: _deleteRun,
               );
             },
             loading: _loadingPanel,
@@ -114,6 +117,44 @@ class _StyleLabPageState extends ConsumerState<StyleLabPage> {
     try {
       await ref.read(styleLabControllerProvider.notifier).rerun(run.id);
       _showSnack('任务已重跑。');
+    } on Object catch (error) {
+      _showSnack('$error');
+    }
+  }
+
+  Future<void> _deleteAsset(_StyleLibraryAsset asset) async {
+    final confirmed = await _confirmDeleteStyleItem(
+      context: context,
+      title: asset.kind == _StyleLibraryAssetKind.saved
+          ? '删除 Style Profile'
+          : '删除 Voice Profile 草稿',
+      message: '确定删除「${asset.title}」吗？该记录会从本地数据库中移除。',
+    );
+    if (!mounted || !confirmed) return;
+    try {
+      final controller = ref.read(styleLabControllerProvider.notifier);
+      switch (asset.kind) {
+        case _StyleLibraryAssetKind.saved:
+          await controller.deleteProfile(asset.id);
+        case _StyleLibraryAssetKind.draft:
+          await controller.deleteRun(asset.id);
+      }
+      _showSnack('已删除。');
+    } on Object catch (error) {
+      _showSnack('$error');
+    }
+  }
+
+  Future<void> _deleteRun(StyleAnalysisRun run) async {
+    final confirmed = await _confirmDeleteStyleItem(
+      context: context,
+      title: '删除分析任务',
+      message: '确定删除「${run.styleName}」吗？任务状态、日志和草稿会从本地数据库中移除。',
+    );
+    if (!mounted || !confirmed) return;
+    try {
+      await ref.read(styleLabControllerProvider.notifier).deleteRun(run.id);
+      _showSnack('分析任务已删除。');
     } on Object catch (error) {
       _showSnack('$error');
     }
@@ -228,6 +269,8 @@ class _StyleLibraryCanvas extends StatelessWidget {
     required this.onFilterChanged,
     required this.onAssetSelected,
     required this.onRerun,
+    required this.onDeleteAsset,
+    required this.onDeleteRun,
   });
 
   final List<_StyleLibraryAsset> assets;
@@ -236,6 +279,8 @@ class _StyleLibraryCanvas extends StatelessWidget {
   final ValueChanged<_StyleLibraryFilter> onFilterChanged;
   final ValueChanged<_StyleLibraryAsset> onAssetSelected;
   final ValueChanged<StyleAnalysisRun> onRerun;
+  final ValueChanged<_StyleLibraryAsset> onDeleteAsset;
+  final ValueChanged<StyleAnalysisRun> onDeleteRun;
 
   @override
   Widget build(BuildContext context) {
@@ -253,10 +298,15 @@ class _StyleLibraryCanvas extends StatelessWidget {
           assets: filteredAssets,
           filter: filter,
           onAssetSelected: onAssetSelected,
+          onDeleteAsset: onDeleteAsset,
         ),
         if (activeRuns.isNotEmpty) ...[
           const SizedBox(height: 14),
-          _ActivityRunsPanel(runs: activeRuns, onRerun: onRerun),
+          _ActivityRunsPanel(
+            runs: activeRuns,
+            onRerun: onRerun,
+            onDeleteRun: onDeleteRun,
+          ),
         ],
       ],
     );
@@ -664,11 +714,13 @@ class _StyleLibraryList extends StatelessWidget {
     required this.assets,
     required this.filter,
     required this.onAssetSelected,
+    required this.onDeleteAsset,
   });
 
   final List<_StyleLibraryAsset> assets;
   final _StyleLibraryFilter filter;
   final ValueChanged<_StyleLibraryAsset> onAssetSelected;
+  final ValueChanged<_StyleLibraryAsset> onDeleteAsset;
 
   @override
   Widget build(BuildContext context) {
@@ -695,6 +747,7 @@ class _StyleLibraryList extends StatelessWidget {
                   asset: asset,
                   compact: compact,
                   onTap: () => onAssetSelected(asset),
+                  onDelete: () => onDeleteAsset(asset),
                 ),
             ],
           );
@@ -742,11 +795,13 @@ class _LibraryAssetRow extends StatelessWidget {
     required this.asset,
     required this.compact,
     required this.onTap,
+    required this.onDelete,
   });
 
   final _StyleLibraryAsset asset;
   final bool compact;
   final VoidCallback onTap;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -788,6 +843,7 @@ class _LibraryAssetRow extends StatelessWidget {
                           icon: _statusIcon(asset.status),
                           color: _statusColor(colorScheme, asset.status),
                         ),
+                        _AssetMoreButton(onDelete: onDelete),
                       ],
                     ),
                   ],
@@ -832,10 +888,46 @@ class _LibraryAssetRow extends StatelessWidget {
                         ),
                       ),
                     ),
+                    SizedBox(
+                      width: 44,
+                      child: _AssetMoreButton(onDelete: onDelete),
+                    ),
                   ],
                 ),
         ),
       ),
+    );
+  }
+}
+
+class _AssetMoreButton extends StatelessWidget {
+  const _AssetMoreButton({required this.onDelete});
+
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<_StyleAssetMenuAction>(
+      tooltip: '档案操作',
+      icon: const Icon(Icons.more_horiz),
+      onSelected: (action) {
+        switch (action) {
+          case _StyleAssetMenuAction.delete:
+            onDelete();
+        }
+      },
+      itemBuilder: (context) => const [
+        PopupMenuItem(
+          value: _StyleAssetMenuAction.delete,
+          child: Row(
+            children: [
+              Icon(Icons.delete_outline, size: 18),
+              SizedBox(width: 10),
+              Text('删除'),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -922,10 +1014,15 @@ class _YamlPill extends StatelessWidget {
 }
 
 class _ActivityRunsPanel extends StatelessWidget {
-  const _ActivityRunsPanel({required this.runs, required this.onRerun});
+  const _ActivityRunsPanel({
+    required this.runs,
+    required this.onRerun,
+    required this.onDeleteRun,
+  });
 
   final List<StyleAnalysisRun> runs;
   final ValueChanged<StyleAnalysisRun> onRerun;
+  final ValueChanged<StyleAnalysisRun> onDeleteRun;
 
   @override
   Widget build(BuildContext context) {
@@ -939,7 +1036,11 @@ class _ActivityRunsPanel extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           for (final run in runs) ...[
-            _ActivityRunRow(run: run, onRerun: () => onRerun(run)),
+            _ActivityRunRow(
+              run: run,
+              onRerun: () => onRerun(run),
+              onDelete: () => onDeleteRun(run),
+            ),
             if (run != runs.last) const Divider(height: 18),
           ],
         ],
@@ -949,45 +1050,121 @@ class _ActivityRunsPanel extends StatelessWidget {
 }
 
 class _ActivityRunRow extends StatelessWidget {
-  const _ActivityRunRow({required this.run, required this.onRerun});
+  const _ActivityRunRow({
+    required this.run,
+    required this.onRerun,
+    required this.onDelete,
+  });
 
   final StyleAnalysisRun run;
   final VoidCallback onRerun;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        Expanded(
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text(run.styleName),
-              PersonaStatusPill(
-                label: _statusLabel(run.status),
-                icon: _statusIcon(run.status),
-                color: _statusColor(colorScheme, run.status),
-              ),
-              if (run.stage != null)
-                PersonaStatusPill(label: run.stage!.name, icon: Icons.timeline),
-              if (run.errorMessage != null)
-                Text(
-                  run.errorMessage!,
-                  style: TextStyle(color: colorScheme.error),
-                ),
+    final logText = run.logs.trim();
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final compact = constraints.maxWidth < 640;
+                final title = Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      run.styleName,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        PersonaStatusPill(
+                          label: _statusLabel(run.status),
+                          icon: _statusIcon(run.status),
+                          color: _statusColor(colorScheme, run.status),
+                        ),
+                        PersonaStatusPill(
+                          label: _stageLabel(run.stage),
+                          icon: Icons.timeline,
+                        ),
+                        PersonaStatusPill(
+                          label: _chunkProgressLabel(run),
+                          icon: Icons.grain,
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+                final action = OutlinedButton.icon(
+                  onPressed: run.status == StyleAnalysisStatus.failed
+                      ? onRerun
+                      : null,
+                  icon: const Icon(Icons.replay_outlined),
+                  label: const Text('重跑'),
+                );
+                final deleteAction = IconButton.outlined(
+                  tooltip: '删除分析任务',
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline),
+                );
+                if (compact) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      title,
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [action, deleteAction],
+                      ),
+                    ],
+                  );
+                }
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: title),
+                    const SizedBox(width: 12),
+                    action,
+                    const SizedBox(width: 8),
+                    deleteAction,
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 14),
+            _RunProgressOverview(run: run),
+            if (run.errorMessage != null) ...[
+              const SizedBox(height: 12),
+              _InlineError(message: run.errorMessage!),
             ],
-          ),
+            const SizedBox(height: 12),
+            Text('运行日志', style: Theme.of(context).textTheme.labelMedium),
+            const SizedBox(height: 8),
+            _CodeBlock(
+              text: logText.isEmpty ? '暂无日志。' : logText,
+              minHeight: 96,
+              maxHeight: 180,
+              fontSize: 12,
+            ),
+          ],
         ),
-        const SizedBox(width: 12),
-        OutlinedButton.icon(
-          onPressed: run.status == StyleAnalysisStatus.failed ? onRerun : null,
-          icon: const Icon(Icons.replay_outlined),
-          label: const Text('重跑'),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -1117,6 +1294,7 @@ class _StyleLabSavedProfileDetailState
       onPreviewChanged: (value) => setState(() => _previewProfile = value),
       onPrimaryAction: _updateProfile,
       onCopyProfile: _copyProfile,
+      onDelete: _deleteProfile,
     );
   }
 
@@ -1139,6 +1317,25 @@ class _StyleLabSavedProfileDetailState
   Future<void> _copyProfile() async {
     await Clipboard.setData(ClipboardData(text: _profileController.text));
     _showSnack('已复制 Voice Profile。');
+  }
+
+  Future<void> _deleteProfile() async {
+    final confirmed = await _confirmDeleteStyleItem(
+      context: context,
+      title: '删除 Style Profile',
+      message: '确定删除「${widget.profile.styleName}」吗？该 Profile 会从本地数据库中移除。',
+    );
+    if (!mounted || !confirmed) return;
+    try {
+      await ref
+          .read(styleLabControllerProvider.notifier)
+          .deleteProfile(widget.profile.id);
+      if (!mounted) return;
+      _showSnack('风格档案已删除。');
+      context.go('/style-lab');
+    } on Object catch (error) {
+      _showSnack('$error');
+    }
   }
 
   void _showSnack(String message) {
@@ -1210,6 +1407,7 @@ class _StyleLabDraftProfileDetailState
       onPreviewChanged: (value) => setState(() => _previewProfile = value),
       onPrimaryAction: _saveProfile,
       onCopyProfile: _copyProfile,
+      onDelete: _deleteDraft,
     );
   }
 
@@ -1236,6 +1434,25 @@ class _StyleLabDraftProfileDetailState
     _showSnack('已复制 Voice Profile。');
   }
 
+  Future<void> _deleteDraft() async {
+    final confirmed = await _confirmDeleteStyleItem(
+      context: context,
+      title: '删除 Voice Profile 草稿',
+      message: '确定删除「${widget.run.styleName}」吗？草稿、任务状态和日志会从本地数据库中移除。',
+    );
+    if (!mounted || !confirmed) return;
+    try {
+      await ref
+          .read(styleLabControllerProvider.notifier)
+          .deleteRun(widget.run.id);
+      if (!mounted) return;
+      _showSnack('草稿已删除。');
+      context.go('/style-lab');
+    } on Object catch (error) {
+      _showSnack('$error');
+    }
+  }
+
   void _showSnack(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(
@@ -1257,6 +1474,7 @@ class _ProfileDetailBody extends StatefulWidget {
     required this.onPreviewChanged,
     required this.onPrimaryAction,
     required this.onCopyProfile,
+    required this.onDelete,
     this.sourceTitle,
     this.primaryActionEnabled = true,
   });
@@ -1274,6 +1492,7 @@ class _ProfileDetailBody extends StatefulWidget {
   final ValueChanged<bool> onPreviewChanged;
   final VoidCallback onPrimaryAction;
   final VoidCallback onCopyProfile;
+  final VoidCallback onDelete;
 
   @override
   State<_ProfileDetailBody> createState() => _ProfileDetailBodyState();
@@ -1327,6 +1546,7 @@ class _ProfileDetailBodyState extends State<_ProfileDetailBody>
               primaryActionEnabled: widget.primaryActionEnabled,
               onPrimaryAction: widget.onPrimaryAction,
               onCopyProfile: widget.onCopyProfile,
+              onDelete: widget.onDelete,
             ),
           ),
           TabBar(
@@ -1374,6 +1594,7 @@ class _DetailHeader extends StatelessWidget {
     required this.primaryActionEnabled,
     required this.onPrimaryAction,
     required this.onCopyProfile,
+    required this.onDelete,
   });
 
   final TextEditingController titleController;
@@ -1384,6 +1605,7 @@ class _DetailHeader extends StatelessWidget {
   final bool primaryActionEnabled;
   final VoidCallback onPrimaryAction;
   final VoidCallback onCopyProfile;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -1413,6 +1635,11 @@ class _DetailHeader extends StatelessWidget {
               tooltip: '复制完整 YAML+MD',
               onPressed: profileMarkdown.trim().isEmpty ? null : onCopyProfile,
               icon: const Icon(Icons.copy_outlined),
+            ),
+            IconButton.outlined(
+              tooltip: '删除',
+              onPressed: onDelete,
+              icon: const Icon(Icons.delete_outline),
             ),
           ],
         );
@@ -1607,20 +1834,24 @@ class _RunLogTab extends StatelessWidget {
                   ),
                   if (item.stage != null)
                     PersonaStatusPill(
-                      label: item.stage!.name,
+                      label: _stageLabel(item.stage),
                       icon: Icons.timeline,
                     ),
                   PersonaStatusPill(
-                    label: '${item.chunkCount} chunks',
+                    label: _chunkProgressLabel(item),
                     icon: Icons.grain,
                   ),
                 ],
               ),
+              const SizedBox(height: 14),
+              _RunProgressOverview(run: item),
               if (item.errorMessage != null) ...[
                 const SizedBox(height: 12),
                 _InlineError(message: item.errorMessage!),
               ],
               const SizedBox(height: 14),
+              Text('完整日志', style: Theme.of(context).textTheme.labelMedium),
+              const SizedBox(height: 8),
               _CodeBlock(text: item.logs.trim().isEmpty ? '暂无日志。' : item.logs),
             ],
           ),
@@ -1630,6 +1861,105 @@ class _RunLogTab extends StatelessWidget {
       error: (error, stackTrace) => Padding(
         padding: const EdgeInsets.all(18),
         child: _InlineError(message: '$error'),
+      ),
+    );
+  }
+}
+
+class _RunProgressOverview extends StatelessWidget {
+  const _RunProgressOverview({required this.run});
+
+  final StyleAnalysisRun run;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final progress = _progressForRun(run);
+    final statusColor = _statusColor(colorScheme, run.status);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: LinearProgressIndicator(
+                  value: progress.value,
+                  minHeight: 7,
+                  color: statusColor,
+                  backgroundColor: colorScheme.outlineVariant.withValues(
+                    alpha: 0.5,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              progress.label,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 6,
+          runSpacing: 8,
+          children: [
+            for (final step in _styleAnalysisSteps)
+              _StageStepPill(
+                label: step.label,
+                state: _stageStepState(run, step),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _StageStepPill extends StatelessWidget {
+  const _StageStepPill({required this.label, required this.state});
+
+  final String label;
+  final _StageStepState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final (icon, color) = switch (state) {
+      _StageStepState.done => (Icons.check, const Color(0xFF16825D)),
+      _StageStepState.active => (Icons.sync, colorScheme.primary),
+      _StageStepState.failed => (Icons.error_outline, colorScheme.error),
+      _StageStepState.waiting => (
+        Icons.radio_button_unchecked,
+        colorScheme.onSurfaceVariant,
+      ),
+    };
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.24)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 13, color: color),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.labelMedium?.copyWith(color: color),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1764,9 +2094,17 @@ class _StyleLabMissingDetail extends StatelessWidget {
 }
 
 class _CodeBlock extends StatelessWidget {
-  const _CodeBlock({required this.text});
+  const _CodeBlock({
+    required this.text,
+    this.minHeight = 220,
+    this.maxHeight = 520,
+    this.fontSize = 12.5,
+  });
 
   final String text;
+  final double minHeight;
+  final double maxHeight;
+  final double fontSize;
 
   @override
   Widget build(BuildContext context) {
@@ -1778,12 +2116,12 @@ class _CodeBlock extends StatelessWidget {
         border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 220, maxHeight: 520),
+        constraints: BoxConstraints(minHeight: minHeight, maxHeight: maxHeight),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(12),
           child: SelectableText(
             text,
-            style: const TextStyle(fontFamily: 'monospace', fontSize: 12.5),
+            style: TextStyle(fontFamily: 'monospace', fontSize: fontSize),
           ),
         ),
       ),
@@ -1821,9 +2159,88 @@ class _InlineError extends StatelessWidget {
   }
 }
 
+Future<bool> _confirmDeleteStyleItem({
+  required BuildContext context,
+  required String title,
+  required String message,
+}) async {
+  final confirmed = await showGlassDialog<bool>(
+    context: context,
+    maxWidth: 500,
+    builder: (context) => Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.warning_amber_rounded,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            const SizedBox(width: 10),
+            Text(title, style: Theme.of(context).textTheme.titleLarge),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(message),
+        const SizedBox(height: 20),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('取消'),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+                foregroundColor: Theme.of(context).colorScheme.onError,
+              ),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('删除'),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+  return confirmed ?? false;
+}
+
 enum _StyleLibraryFilter { all, saved, drafts, activity }
 
 enum _StyleLibraryAssetKind { saved, draft }
+
+enum _StyleAssetMenuAction { delete }
+
+enum _StageStepState { waiting, active, done, failed }
+
+class _StyleAnalysisStep {
+  const _StyleAnalysisStep({required this.stage, required this.label});
+
+  final StyleAnalysisStage? stage;
+  final String label;
+}
+
+class _RunProgress {
+  const _RunProgress({required this.value, required this.label});
+
+  final double? value;
+  final String label;
+}
+
+const _styleAnalysisSteps = [
+  _StyleAnalysisStep(stage: StyleAnalysisStage.preparingInput, label: '准备输入'),
+  _StyleAnalysisStep(stage: StyleAnalysisStage.analyzingChunks, label: '分块分析'),
+  _StyleAnalysisStep(stage: StyleAnalysisStage.aggregating, label: '聚合'),
+  _StyleAnalysisStep(stage: StyleAnalysisStage.reporting, label: '报告'),
+  _StyleAnalysisStep(
+    stage: StyleAnalysisStage.buildingVoiceProfile,
+    label: 'Voice Profile',
+  ),
+  _StyleAnalysisStep(stage: null, label: '完成'),
+];
 
 class _StyleLibraryAsset {
   const _StyleLibraryAsset({
@@ -1953,6 +2370,18 @@ String _sourceLabel(StyleSample sample) {
   };
 }
 
+String _stageLabel(StyleAnalysisStage? stage) {
+  return switch (stage) {
+    StyleAnalysisStage.preparingInput => '准备输入',
+    StyleAnalysisStage.analyzingChunks => '分块分析',
+    StyleAnalysisStage.aggregating => '聚合分析',
+    StyleAnalysisStage.reporting => '生成报告',
+    StyleAnalysisStage.buildingVoiceProfile => '生成 Voice Profile',
+    StyleAnalysisStage.persistingResult => '保存结果',
+    null => '等待阶段',
+  };
+}
+
 String _statusLabel(StyleAnalysisStatus status) {
   return switch (status) {
     StyleAnalysisStatus.pending => 'pending',
@@ -1984,6 +2413,127 @@ Color _statusColor(ColorScheme colorScheme, StyleAnalysisStatus status) {
     StyleAnalysisStatus.failed => colorScheme.error,
     StyleAnalysisStatus.canceled => colorScheme.onSurfaceVariant,
   };
+}
+
+String _chunkProgressLabel(StyleAnalysisRun run) {
+  final chunkCount = run.chunkCount;
+  if (chunkCount <= 0) {
+    return 'chunks 待计算';
+  }
+  final completed = _completedChunkCount(run);
+  if (completed == null) {
+    return '$chunkCount chunks';
+  }
+  return '$completed/$chunkCount chunks';
+}
+
+int? _completedChunkCount(StyleAnalysisRun run) {
+  final chunkCount = run.chunkCount;
+  if (chunkCount <= 0) {
+    return null;
+  }
+  if (run.status == StyleAnalysisStatus.succeeded) {
+    return chunkCount;
+  }
+  final matches = RegExp(
+    r'完成 chunk\s+(\d+)/(\d+)',
+    caseSensitive: false,
+  ).allMatches(run.logs);
+  if (matches.isEmpty) {
+    return null;
+  }
+  var completed = 0;
+  for (final match in matches) {
+    final current = int.tryParse(match.group(1) ?? '');
+    final total = int.tryParse(match.group(2) ?? '');
+    if (current == null || total == null || total != chunkCount) {
+      continue;
+    }
+    if (current > completed) {
+      completed = current;
+    }
+  }
+  return completed.clamp(0, chunkCount);
+}
+
+_RunProgress _progressForRun(StyleAnalysisRun run) {
+  return switch (run.status) {
+    StyleAnalysisStatus.succeeded => const _RunProgress(
+      value: 1,
+      label: '100%',
+    ),
+    StyleAnalysisStatus.failed => _RunProgress(
+      value: _stageProgressValue(run.stage, run),
+      label: '失败',
+    ),
+    StyleAnalysisStatus.canceled => const _RunProgress(
+      value: null,
+      label: '已取消',
+    ),
+    StyleAnalysisStatus.paused => _RunProgress(
+      value: _stageProgressValue(run.stage, run),
+      label: '已暂停',
+    ),
+    StyleAnalysisStatus.pending => const _RunProgress(
+      value: null,
+      label: '等待中',
+    ),
+    StyleAnalysisStatus.running => _runningProgress(run),
+  };
+}
+
+_RunProgress _runningProgress(StyleAnalysisRun run) {
+  final value = _stageProgressValue(run.stage, run);
+  if (value == null) {
+    return const _RunProgress(value: null, label: '运行中');
+  }
+  return _RunProgress(value: value, label: '${(value * 100).round()}%');
+}
+
+double? _stageProgressValue(StyleAnalysisStage? stage, StyleAnalysisRun run) {
+  final base = switch (stage) {
+    StyleAnalysisStage.preparingInput => 0.08,
+    StyleAnalysisStage.analyzingChunks => _chunkStageProgress(run),
+    StyleAnalysisStage.aggregating => 0.64,
+    StyleAnalysisStage.reporting => 0.78,
+    StyleAnalysisStage.buildingVoiceProfile => 0.9,
+    StyleAnalysisStage.persistingResult => 0.96,
+    null => null,
+  };
+  return base?.clamp(0.0, 1.0).toDouble();
+}
+
+double _chunkStageProgress(StyleAnalysisRun run) {
+  final chunkCount = run.chunkCount;
+  final completed = _completedChunkCount(run);
+  if (chunkCount <= 0 || completed == null) {
+    return 0.18;
+  }
+  return 0.18 + (0.42 * completed / chunkCount);
+}
+
+_StageStepState _stageStepState(StyleAnalysisRun run, _StyleAnalysisStep step) {
+  if (run.status == StyleAnalysisStatus.failed &&
+      (step.stage == run.stage || (run.stage == null && step.stage == null))) {
+    return _StageStepState.failed;
+  }
+  if (run.status == StyleAnalysisStatus.succeeded) {
+    return _StageStepState.done;
+  }
+  if (step.stage == run.stage) {
+    return _StageStepState.active;
+  }
+  final currentIndex = _stageIndex(run.stage);
+  final stepIndex = _stageIndex(step.stage);
+  if (currentIndex != null && stepIndex != null && stepIndex < currentIndex) {
+    return _StageStepState.done;
+  }
+  return _StageStepState.waiting;
+}
+
+int? _stageIndex(StyleAnalysisStage? stage) {
+  final index = _styleAnalysisSteps.indexWhere((step) => step.stage == stage);
+  return index < 0 ? null : index;
 }
 
 String _stripFrontMatter(String markdown) {

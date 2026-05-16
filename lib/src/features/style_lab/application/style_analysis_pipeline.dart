@@ -65,14 +65,14 @@ class StyleAnalysisPipeline {
       await transition(
         StyleAnalysisStatus.running,
         StyleAnalysisStage.preparingInput,
-        message: '准备样本文本。',
+        message: '阶段: 准备输入。准备样本文本。',
         startedAt: DateTime.now(),
       );
       final chunks = splitIntoChunks(sample.content);
       await transition(
         StyleAnalysisStatus.running,
         StyleAnalysisStage.analyzingChunks,
-        message: '开始分块分析：${chunks.length} 个 chunk。',
+        message: '阶段: 分块分析。开始分块分析：${chunks.length} 个 chunk。',
         chunkCount: chunks.length,
       );
 
@@ -98,7 +98,7 @@ class StyleAnalysisPipeline {
       await transition(
         StyleAnalysisStatus.running,
         StyleAnalysisStage.aggregating,
-        message: '聚合分块分析。',
+        message: '阶段: 聚合分析。聚合分块分析。',
       );
       final merged = chunkAnalyses.length == 1
           ? chunkAnalyses.single
@@ -112,7 +112,7 @@ class StyleAnalysisPipeline {
       await transition(
         StyleAnalysisStatus.running,
         StyleAnalysisStage.reporting,
-        message: '生成最终分析报告。',
+        message: '阶段: 生成报告。生成最终分析报告。',
       );
       final report = await _completionService.completeMarkdown(
         provider: provider,
@@ -124,7 +124,7 @@ class StyleAnalysisPipeline {
       await transition(
         StyleAnalysisStatus.running,
         StyleAnalysisStage.buildingVoiceProfile,
-        message: '生成 YAML+MD Voice Profile。',
+        message: '阶段: 生成 Voice Profile。生成 YAML+MD Voice Profile。',
         analysisReportMarkdown: report,
       );
       final profile = await _completionService.completeMarkdown(
@@ -136,6 +136,11 @@ class StyleAnalysisPipeline {
         temperature: 0.35,
       );
 
+      await transition(
+        StyleAnalysisStatus.running,
+        StyleAnalysisStage.persistingResult,
+        message: '阶段: 保存结果。写入分析报告与 Voice Profile。',
+      );
       await transition(
         StyleAnalysisStatus.succeeded,
         null,

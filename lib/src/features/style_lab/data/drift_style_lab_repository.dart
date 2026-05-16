@@ -173,6 +173,25 @@ class DriftStyleLabRepository implements StyleLabRepository {
   }
 
   @override
+  Future<void> deleteRun(String id) async {
+    final run = await findRun(id);
+    if (run == null) {
+      return;
+    }
+    await _database.transaction(() async {
+      await (_database.delete(
+        _database.styleProfileRecords,
+      )..where((profile) => profile.sourceRunId.equals(id))).go();
+      await (_database.delete(
+        _database.styleAnalysisRunRecords,
+      )..where((row) => row.id.equals(id))).go();
+      await (_database.delete(
+        _database.workflowTaskRecords,
+      )..where((task) => task.id.equals(run.workflowTaskId))).go();
+    });
+  }
+
+  @override
   Future<void> updateRunState({
     required String id,
     required StyleAnalysisStatus status,
@@ -389,6 +408,27 @@ class DriftStyleLabRepository implements StyleLabRepository {
       throw StateError('Style profile was not updated.');
     }
     return updated;
+  }
+
+  @override
+  Future<void> deleteProfile(String id) async {
+    final existing = await findProfile(id);
+    if (existing == null) {
+      return;
+    }
+    await _database.transaction(() async {
+      await (_database.update(
+        _database.styleAnalysisRunRecords,
+      )..where((run) => run.profileId.equals(id))).write(
+        StyleAnalysisRunRecordsCompanion(
+          profileId: const Value(null),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+      await (_database.delete(
+        _database.styleProfileRecords,
+      )..where((profile) => profile.id.equals(id))).go();
+    });
   }
 
   StyleSample _mapSample(StyleSampleRecord row) {

@@ -20,6 +20,7 @@ Persona_副本/
 *.log
 *.tmp
 *.temp
+.run/
 tmp/
 temp/
 .cache/
