@@ -2,20 +2,26 @@ import '../../../core/llm/application/markdown_completion_service.dart';
 import '../../settings/domain/provider_config.dart';
 import '../domain/style_analysis_run.dart';
 import '../domain/style_lab_repository.dart';
+import 'style_input_classification.dart';
 import 'style_lab_prompts.dart';
+import 'voice_profile_front_matter.dart';
 
 class StyleAnalysisPipeline {
   const StyleAnalysisPipeline({
     required StyleLabRepository repository,
     required MarkdownCompletionService completionService,
     StyleLabPromptBuilder promptBuilder = const StyleLabPromptBuilder(),
+    VoiceProfileFrontMatterParser frontMatterParser =
+        const VoiceProfileFrontMatterParser(),
   }) : _repository = repository,
        _completionService = completionService,
-       _promptBuilder = promptBuilder;
+       _promptBuilder = promptBuilder,
+       _frontMatterParser = frontMatterParser;
 
   final StyleLabRepository _repository;
   final MarkdownCompletionService _completionService;
   final StyleLabPromptBuilder _promptBuilder;
+  final VoiceProfileFrontMatterParser _frontMatterParser;
 
   static const chunkSize = 12000;
 
@@ -69,6 +75,13 @@ class StyleAnalysisPipeline {
         startedAt: DateTime.now(),
       );
       final chunks = splitIntoChunks(sample.content);
+      if (chunks.isEmpty) {
+        throw StateError('样本文本没有可分析的有效内容。');
+      }
+      final classification = StyleInputClassification.detect(
+        text: sample.content,
+        chunkCount: chunks.length,
+      );
       await transition(
         StyleAnalysisStatus.running,
         StyleAnalysisStage.analyzingChunks,
@@ -82,6 +95,7 @@ class StyleAnalysisPipeline {
           chunk: chunks[index],
           chunkIndex: index,
           chunkCount: chunks.length,
+          classification: classification,
         );
         final analysis = await _completionService.completeMarkdown(
           provider: provider,
@@ -106,6 +120,7 @@ class StyleAnalysisPipeline {
               provider: provider,
               prompt: _promptBuilder.buildMergePrompt(
                 chunkAnalyses: chunkAnalyses,
+                classification: classification,
               ),
             );
 
@@ -118,6 +133,7 @@ class StyleAnalysisPipeline {
         provider: provider,
         prompt: _promptBuilder.buildReportPrompt(
           mergedAnalysisMarkdown: merged,
+          classification: classification,
         ),
       );
 
@@ -135,6 +151,7 @@ class StyleAnalysisPipeline {
         ),
         temperature: 0.35,
       );
+      _frontMatterParser.parse(profile);
 
       await transition(
         StyleAnalysisStatus.running,
