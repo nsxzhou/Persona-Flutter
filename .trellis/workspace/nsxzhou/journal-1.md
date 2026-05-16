@@ -278,3 +278,36 @@ Built the Projects CRUD vertical slice, polished the Projects dossier UI and she
 ### Next Steps
 
 - None - task complete
+
+
+## Session 9: Persist theme mode selection
+
+**Date**: 2026-05-16
+**Task**: Persist theme mode selection
+**Branch**: `main`
+
+### Summary
+
+Fixed theme mode persistence by initializing a shared_preferences-backed store before runApp, injecting it through Riverpod, adding regression tests, and documenting the app preference state convention.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `52a6c2c` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
