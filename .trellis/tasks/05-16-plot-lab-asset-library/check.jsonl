@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Verify Drift schema, generated files, and repository boundaries"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Verify task logs avoid secrets and manuscript text"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Verify provider/routing contracts"}
+{"file": ".trellis/spec/frontend/visual-design-guidelines.md", "reason": "Verify Plot Lab UI follows product visual model"}

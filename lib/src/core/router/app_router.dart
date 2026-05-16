@@ -69,6 +69,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: AppRoute.plotLab.path,
                 builder: (context, state) => const PlotLabPage(),
+                routes: [
+                  GoRoute(
+                    path: 'profiles/:profileId',
+                    builder: (context, state) => PlotLabProfileDetailPage(
+                      profileId: state.pathParameters['profileId']!,
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'tasks/:runId',
+                    builder: (context, state) => PlotLabTaskDetailPage(
+                      runId: state.pathParameters['runId']!,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

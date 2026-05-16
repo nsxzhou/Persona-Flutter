@@ -120,6 +120,70 @@ class StyleProfileRecords extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+class PlotSampleRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get sourceType => text()();
+  TextColumn get title => text()();
+  TextColumn get content => text()();
+  IntColumn get characterCount => integer()();
+  TextColumn get sourceFilename => text().nullable()();
+  TextColumn get epubBookTitle => text().nullable()();
+  TextColumn get epubAuthor => text().nullable()();
+  IntColumn get epubChapterCount => integer().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+class PlotAnalysisRunRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get workflowTaskId =>
+      text().references(WorkflowTaskRecords, #id)();
+  TextColumn get sampleId => text().references(PlotSampleRecords, #id)();
+  TextColumn get providerId => text().references(ProviderConfigRecords, #id)();
+  TextColumn get modelName => text()();
+  TextColumn get plotName => text()();
+  TextColumn get status => text()();
+  TextColumn get stage => text().nullable()();
+  TextColumn get errorMessage => text().nullable()();
+  TextColumn get logs => text().withDefault(const Constant(''))();
+  TextColumn get analysisReportMarkdown => text().nullable()();
+  TextColumn get plotSkeletonMarkdown => text().nullable()();
+  TextColumn get storyEngineMarkdown => text().nullable()();
+  TextColumn get profileId => text().nullable()();
+  IntColumn get chunkCount => integer().withDefault(const Constant(0))();
+  IntColumn get characterCount => integer()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  DateTimeColumn get startedAt => dateTime().nullable()();
+  DateTimeColumn get completedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+class PlotProfileRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get sourceRunId =>
+      text().unique().references(PlotAnalysisRunRecords, #id)();
+  TextColumn get providerId => text().references(ProviderConfigRecords, #id)();
+  TextColumn get modelName => text()();
+  TextColumn get plotName => text()();
+  TextColumn get storyEngineMarkdown => text()();
+  TextColumn get analysisReportMarkdown => text()();
+  TextColumn get plotSkeletonMarkdown => text()();
+  TextColumn get sourceSampleId =>
+      text().nullable().references(PlotSampleRecords, #id)();
+  TextColumn get sourceTitle => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     WorkflowTaskRecords,
@@ -128,13 +192,16 @@ class StyleProfileRecords extends Table {
     StyleSampleRecords,
     StyleAnalysisRunRecords,
     StyleProfileRecords,
+    PlotSampleRecords,
+    PlotAnalysisRunRecords,
+    PlotProfileRecords,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration {
@@ -157,6 +224,11 @@ class AppDatabase extends _$AppDatabase {
           await migrator.createTable(styleSampleRecords);
           await migrator.createTable(styleAnalysisRunRecords);
           await migrator.createTable(styleProfileRecords);
+        }
+        if (from < 6) {
+          await migrator.createTable(plotSampleRecords);
+          await migrator.createTable(plotAnalysisRunRecords);
+          await migrator.createTable(plotProfileRecords);
         }
       },
     );

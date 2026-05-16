@@ -4361,6 +4361,2628 @@ class StyleProfileRecordsCompanion extends UpdateCompanion<StyleProfileRecord> {
   }
 }
 
+class $PlotSampleRecordsTable extends PlotSampleRecords
+    with TableInfo<$PlotSampleRecordsTable, PlotSampleRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PlotSampleRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceTypeMeta = const VerificationMeta(
+    'sourceType',
+  );
+  @override
+  late final GeneratedColumn<String> sourceType = GeneratedColumn<String>(
+    'source_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contentMeta = const VerificationMeta(
+    'content',
+  );
+  @override
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+    'content',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _characterCountMeta = const VerificationMeta(
+    'characterCount',
+  );
+  @override
+  late final GeneratedColumn<int> characterCount = GeneratedColumn<int>(
+    'character_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceFilenameMeta = const VerificationMeta(
+    'sourceFilename',
+  );
+  @override
+  late final GeneratedColumn<String> sourceFilename = GeneratedColumn<String>(
+    'source_filename',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _epubBookTitleMeta = const VerificationMeta(
+    'epubBookTitle',
+  );
+  @override
+  late final GeneratedColumn<String> epubBookTitle = GeneratedColumn<String>(
+    'epub_book_title',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _epubAuthorMeta = const VerificationMeta(
+    'epubAuthor',
+  );
+  @override
+  late final GeneratedColumn<String> epubAuthor = GeneratedColumn<String>(
+    'epub_author',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _epubChapterCountMeta = const VerificationMeta(
+    'epubChapterCount',
+  );
+  @override
+  late final GeneratedColumn<int> epubChapterCount = GeneratedColumn<int>(
+    'epub_chapter_count',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    sourceType,
+    title,
+    content,
+    characterCount,
+    sourceFilename,
+    epubBookTitle,
+    epubAuthor,
+    epubChapterCount,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'plot_sample_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PlotSampleRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('source_type')) {
+      context.handle(
+        _sourceTypeMeta,
+        sourceType.isAcceptableOrUnknown(data['source_type']!, _sourceTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceTypeMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('content')) {
+      context.handle(
+        _contentMeta,
+        content.isAcceptableOrUnknown(data['content']!, _contentMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contentMeta);
+    }
+    if (data.containsKey('character_count')) {
+      context.handle(
+        _characterCountMeta,
+        characterCount.isAcceptableOrUnknown(
+          data['character_count']!,
+          _characterCountMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_characterCountMeta);
+    }
+    if (data.containsKey('source_filename')) {
+      context.handle(
+        _sourceFilenameMeta,
+        sourceFilename.isAcceptableOrUnknown(
+          data['source_filename']!,
+          _sourceFilenameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('epub_book_title')) {
+      context.handle(
+        _epubBookTitleMeta,
+        epubBookTitle.isAcceptableOrUnknown(
+          data['epub_book_title']!,
+          _epubBookTitleMeta,
+        ),
+      );
+    }
+    if (data.containsKey('epub_author')) {
+      context.handle(
+        _epubAuthorMeta,
+        epubAuthor.isAcceptableOrUnknown(data['epub_author']!, _epubAuthorMeta),
+      );
+    }
+    if (data.containsKey('epub_chapter_count')) {
+      context.handle(
+        _epubChapterCountMeta,
+        epubChapterCount.isAcceptableOrUnknown(
+          data['epub_chapter_count']!,
+          _epubChapterCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PlotSampleRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PlotSampleRecord(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      sourceType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_type'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      content: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content'],
+      )!,
+      characterCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}character_count'],
+      )!,
+      sourceFilename: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_filename'],
+      ),
+      epubBookTitle: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}epub_book_title'],
+      ),
+      epubAuthor: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}epub_author'],
+      ),
+      epubChapterCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}epub_chapter_count'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $PlotSampleRecordsTable createAlias(String alias) {
+    return $PlotSampleRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class PlotSampleRecord extends DataClass
+    implements Insertable<PlotSampleRecord> {
+  final String id;
+  final String sourceType;
+  final String title;
+  final String content;
+  final int characterCount;
+  final String? sourceFilename;
+  final String? epubBookTitle;
+  final String? epubAuthor;
+  final int? epubChapterCount;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const PlotSampleRecord({
+    required this.id,
+    required this.sourceType,
+    required this.title,
+    required this.content,
+    required this.characterCount,
+    this.sourceFilename,
+    this.epubBookTitle,
+    this.epubAuthor,
+    this.epubChapterCount,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['source_type'] = Variable<String>(sourceType);
+    map['title'] = Variable<String>(title);
+    map['content'] = Variable<String>(content);
+    map['character_count'] = Variable<int>(characterCount);
+    if (!nullToAbsent || sourceFilename != null) {
+      map['source_filename'] = Variable<String>(sourceFilename);
+    }
+    if (!nullToAbsent || epubBookTitle != null) {
+      map['epub_book_title'] = Variable<String>(epubBookTitle);
+    }
+    if (!nullToAbsent || epubAuthor != null) {
+      map['epub_author'] = Variable<String>(epubAuthor);
+    }
+    if (!nullToAbsent || epubChapterCount != null) {
+      map['epub_chapter_count'] = Variable<int>(epubChapterCount);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  PlotSampleRecordsCompanion toCompanion(bool nullToAbsent) {
+    return PlotSampleRecordsCompanion(
+      id: Value(id),
+      sourceType: Value(sourceType),
+      title: Value(title),
+      content: Value(content),
+      characterCount: Value(characterCount),
+      sourceFilename: sourceFilename == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceFilename),
+      epubBookTitle: epubBookTitle == null && nullToAbsent
+          ? const Value.absent()
+          : Value(epubBookTitle),
+      epubAuthor: epubAuthor == null && nullToAbsent
+          ? const Value.absent()
+          : Value(epubAuthor),
+      epubChapterCount: epubChapterCount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(epubChapterCount),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory PlotSampleRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PlotSampleRecord(
+      id: serializer.fromJson<String>(json['id']),
+      sourceType: serializer.fromJson<String>(json['sourceType']),
+      title: serializer.fromJson<String>(json['title']),
+      content: serializer.fromJson<String>(json['content']),
+      characterCount: serializer.fromJson<int>(json['characterCount']),
+      sourceFilename: serializer.fromJson<String?>(json['sourceFilename']),
+      epubBookTitle: serializer.fromJson<String?>(json['epubBookTitle']),
+      epubAuthor: serializer.fromJson<String?>(json['epubAuthor']),
+      epubChapterCount: serializer.fromJson<int?>(json['epubChapterCount']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'sourceType': serializer.toJson<String>(sourceType),
+      'title': serializer.toJson<String>(title),
+      'content': serializer.toJson<String>(content),
+      'characterCount': serializer.toJson<int>(characterCount),
+      'sourceFilename': serializer.toJson<String?>(sourceFilename),
+      'epubBookTitle': serializer.toJson<String?>(epubBookTitle),
+      'epubAuthor': serializer.toJson<String?>(epubAuthor),
+      'epubChapterCount': serializer.toJson<int?>(epubChapterCount),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  PlotSampleRecord copyWith({
+    String? id,
+    String? sourceType,
+    String? title,
+    String? content,
+    int? characterCount,
+    Value<String?> sourceFilename = const Value.absent(),
+    Value<String?> epubBookTitle = const Value.absent(),
+    Value<String?> epubAuthor = const Value.absent(),
+    Value<int?> epubChapterCount = const Value.absent(),
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => PlotSampleRecord(
+    id: id ?? this.id,
+    sourceType: sourceType ?? this.sourceType,
+    title: title ?? this.title,
+    content: content ?? this.content,
+    characterCount: characterCount ?? this.characterCount,
+    sourceFilename: sourceFilename.present
+        ? sourceFilename.value
+        : this.sourceFilename,
+    epubBookTitle: epubBookTitle.present
+        ? epubBookTitle.value
+        : this.epubBookTitle,
+    epubAuthor: epubAuthor.present ? epubAuthor.value : this.epubAuthor,
+    epubChapterCount: epubChapterCount.present
+        ? epubChapterCount.value
+        : this.epubChapterCount,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  PlotSampleRecord copyWithCompanion(PlotSampleRecordsCompanion data) {
+    return PlotSampleRecord(
+      id: data.id.present ? data.id.value : this.id,
+      sourceType: data.sourceType.present
+          ? data.sourceType.value
+          : this.sourceType,
+      title: data.title.present ? data.title.value : this.title,
+      content: data.content.present ? data.content.value : this.content,
+      characterCount: data.characterCount.present
+          ? data.characterCount.value
+          : this.characterCount,
+      sourceFilename: data.sourceFilename.present
+          ? data.sourceFilename.value
+          : this.sourceFilename,
+      epubBookTitle: data.epubBookTitle.present
+          ? data.epubBookTitle.value
+          : this.epubBookTitle,
+      epubAuthor: data.epubAuthor.present
+          ? data.epubAuthor.value
+          : this.epubAuthor,
+      epubChapterCount: data.epubChapterCount.present
+          ? data.epubChapterCount.value
+          : this.epubChapterCount,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PlotSampleRecord(')
+          ..write('id: $id, ')
+          ..write('sourceType: $sourceType, ')
+          ..write('title: $title, ')
+          ..write('content: $content, ')
+          ..write('characterCount: $characterCount, ')
+          ..write('sourceFilename: $sourceFilename, ')
+          ..write('epubBookTitle: $epubBookTitle, ')
+          ..write('epubAuthor: $epubAuthor, ')
+          ..write('epubChapterCount: $epubChapterCount, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    sourceType,
+    title,
+    content,
+    characterCount,
+    sourceFilename,
+    epubBookTitle,
+    epubAuthor,
+    epubChapterCount,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PlotSampleRecord &&
+          other.id == this.id &&
+          other.sourceType == this.sourceType &&
+          other.title == this.title &&
+          other.content == this.content &&
+          other.characterCount == this.characterCount &&
+          other.sourceFilename == this.sourceFilename &&
+          other.epubBookTitle == this.epubBookTitle &&
+          other.epubAuthor == this.epubAuthor &&
+          other.epubChapterCount == this.epubChapterCount &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class PlotSampleRecordsCompanion extends UpdateCompanion<PlotSampleRecord> {
+  final Value<String> id;
+  final Value<String> sourceType;
+  final Value<String> title;
+  final Value<String> content;
+  final Value<int> characterCount;
+  final Value<String?> sourceFilename;
+  final Value<String?> epubBookTitle;
+  final Value<String?> epubAuthor;
+  final Value<int?> epubChapterCount;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const PlotSampleRecordsCompanion({
+    this.id = const Value.absent(),
+    this.sourceType = const Value.absent(),
+    this.title = const Value.absent(),
+    this.content = const Value.absent(),
+    this.characterCount = const Value.absent(),
+    this.sourceFilename = const Value.absent(),
+    this.epubBookTitle = const Value.absent(),
+    this.epubAuthor = const Value.absent(),
+    this.epubChapterCount = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PlotSampleRecordsCompanion.insert({
+    required String id,
+    required String sourceType,
+    required String title,
+    required String content,
+    required int characterCount,
+    this.sourceFilename = const Value.absent(),
+    this.epubBookTitle = const Value.absent(),
+    this.epubAuthor = const Value.absent(),
+    this.epubChapterCount = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       sourceType = Value(sourceType),
+       title = Value(title),
+       content = Value(content),
+       characterCount = Value(characterCount),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<PlotSampleRecord> custom({
+    Expression<String>? id,
+    Expression<String>? sourceType,
+    Expression<String>? title,
+    Expression<String>? content,
+    Expression<int>? characterCount,
+    Expression<String>? sourceFilename,
+    Expression<String>? epubBookTitle,
+    Expression<String>? epubAuthor,
+    Expression<int>? epubChapterCount,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (sourceType != null) 'source_type': sourceType,
+      if (title != null) 'title': title,
+      if (content != null) 'content': content,
+      if (characterCount != null) 'character_count': characterCount,
+      if (sourceFilename != null) 'source_filename': sourceFilename,
+      if (epubBookTitle != null) 'epub_book_title': epubBookTitle,
+      if (epubAuthor != null) 'epub_author': epubAuthor,
+      if (epubChapterCount != null) 'epub_chapter_count': epubChapterCount,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PlotSampleRecordsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? sourceType,
+    Value<String>? title,
+    Value<String>? content,
+    Value<int>? characterCount,
+    Value<String?>? sourceFilename,
+    Value<String?>? epubBookTitle,
+    Value<String?>? epubAuthor,
+    Value<int?>? epubChapterCount,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return PlotSampleRecordsCompanion(
+      id: id ?? this.id,
+      sourceType: sourceType ?? this.sourceType,
+      title: title ?? this.title,
+      content: content ?? this.content,
+      characterCount: characterCount ?? this.characterCount,
+      sourceFilename: sourceFilename ?? this.sourceFilename,
+      epubBookTitle: epubBookTitle ?? this.epubBookTitle,
+      epubAuthor: epubAuthor ?? this.epubAuthor,
+      epubChapterCount: epubChapterCount ?? this.epubChapterCount,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (sourceType.present) {
+      map['source_type'] = Variable<String>(sourceType.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
+    }
+    if (characterCount.present) {
+      map['character_count'] = Variable<int>(characterCount.value);
+    }
+    if (sourceFilename.present) {
+      map['source_filename'] = Variable<String>(sourceFilename.value);
+    }
+    if (epubBookTitle.present) {
+      map['epub_book_title'] = Variable<String>(epubBookTitle.value);
+    }
+    if (epubAuthor.present) {
+      map['epub_author'] = Variable<String>(epubAuthor.value);
+    }
+    if (epubChapterCount.present) {
+      map['epub_chapter_count'] = Variable<int>(epubChapterCount.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PlotSampleRecordsCompanion(')
+          ..write('id: $id, ')
+          ..write('sourceType: $sourceType, ')
+          ..write('title: $title, ')
+          ..write('content: $content, ')
+          ..write('characterCount: $characterCount, ')
+          ..write('sourceFilename: $sourceFilename, ')
+          ..write('epubBookTitle: $epubBookTitle, ')
+          ..write('epubAuthor: $epubAuthor, ')
+          ..write('epubChapterCount: $epubChapterCount, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PlotAnalysisRunRecordsTable extends PlotAnalysisRunRecords
+    with TableInfo<$PlotAnalysisRunRecordsTable, PlotAnalysisRunRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PlotAnalysisRunRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _workflowTaskIdMeta = const VerificationMeta(
+    'workflowTaskId',
+  );
+  @override
+  late final GeneratedColumn<String> workflowTaskId = GeneratedColumn<String>(
+    'workflow_task_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES workflow_task_records (id)',
+    ),
+  );
+  static const VerificationMeta _sampleIdMeta = const VerificationMeta(
+    'sampleId',
+  );
+  @override
+  late final GeneratedColumn<String> sampleId = GeneratedColumn<String>(
+    'sample_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES plot_sample_records (id)',
+    ),
+  );
+  static const VerificationMeta _providerIdMeta = const VerificationMeta(
+    'providerId',
+  );
+  @override
+  late final GeneratedColumn<String> providerId = GeneratedColumn<String>(
+    'provider_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES provider_config_records (id)',
+    ),
+  );
+  static const VerificationMeta _modelNameMeta = const VerificationMeta(
+    'modelName',
+  );
+  @override
+  late final GeneratedColumn<String> modelName = GeneratedColumn<String>(
+    'model_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _plotNameMeta = const VerificationMeta(
+    'plotName',
+  );
+  @override
+  late final GeneratedColumn<String> plotName = GeneratedColumn<String>(
+    'plot_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _stageMeta = const VerificationMeta('stage');
+  @override
+  late final GeneratedColumn<String> stage = GeneratedColumn<String>(
+    'stage',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _errorMessageMeta = const VerificationMeta(
+    'errorMessage',
+  );
+  @override
+  late final GeneratedColumn<String> errorMessage = GeneratedColumn<String>(
+    'error_message',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _logsMeta = const VerificationMeta('logs');
+  @override
+  late final GeneratedColumn<String> logs = GeneratedColumn<String>(
+    'logs',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _analysisReportMarkdownMeta =
+      const VerificationMeta('analysisReportMarkdown');
+  @override
+  late final GeneratedColumn<String> analysisReportMarkdown =
+      GeneratedColumn<String>(
+        'analysis_report_markdown',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _plotSkeletonMarkdownMeta =
+      const VerificationMeta('plotSkeletonMarkdown');
+  @override
+  late final GeneratedColumn<String> plotSkeletonMarkdown =
+      GeneratedColumn<String>(
+        'plot_skeleton_markdown',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _storyEngineMarkdownMeta =
+      const VerificationMeta('storyEngineMarkdown');
+  @override
+  late final GeneratedColumn<String> storyEngineMarkdown =
+      GeneratedColumn<String>(
+        'story_engine_markdown',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _profileIdMeta = const VerificationMeta(
+    'profileId',
+  );
+  @override
+  late final GeneratedColumn<String> profileId = GeneratedColumn<String>(
+    'profile_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _chunkCountMeta = const VerificationMeta(
+    'chunkCount',
+  );
+  @override
+  late final GeneratedColumn<int> chunkCount = GeneratedColumn<int>(
+    'chunk_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _characterCountMeta = const VerificationMeta(
+    'characterCount',
+  );
+  @override
+  late final GeneratedColumn<int> characterCount = GeneratedColumn<int>(
+    'character_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _startedAtMeta = const VerificationMeta(
+    'startedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startedAt = GeneratedColumn<DateTime>(
+    'started_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _completedAtMeta = const VerificationMeta(
+    'completedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> completedAt = GeneratedColumn<DateTime>(
+    'completed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    workflowTaskId,
+    sampleId,
+    providerId,
+    modelName,
+    plotName,
+    status,
+    stage,
+    errorMessage,
+    logs,
+    analysisReportMarkdown,
+    plotSkeletonMarkdown,
+    storyEngineMarkdown,
+    profileId,
+    chunkCount,
+    characterCount,
+    createdAt,
+    updatedAt,
+    startedAt,
+    completedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'plot_analysis_run_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PlotAnalysisRunRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('workflow_task_id')) {
+      context.handle(
+        _workflowTaskIdMeta,
+        workflowTaskId.isAcceptableOrUnknown(
+          data['workflow_task_id']!,
+          _workflowTaskIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_workflowTaskIdMeta);
+    }
+    if (data.containsKey('sample_id')) {
+      context.handle(
+        _sampleIdMeta,
+        sampleId.isAcceptableOrUnknown(data['sample_id']!, _sampleIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sampleIdMeta);
+    }
+    if (data.containsKey('provider_id')) {
+      context.handle(
+        _providerIdMeta,
+        providerId.isAcceptableOrUnknown(data['provider_id']!, _providerIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_providerIdMeta);
+    }
+    if (data.containsKey('model_name')) {
+      context.handle(
+        _modelNameMeta,
+        modelName.isAcceptableOrUnknown(data['model_name']!, _modelNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_modelNameMeta);
+    }
+    if (data.containsKey('plot_name')) {
+      context.handle(
+        _plotNameMeta,
+        plotName.isAcceptableOrUnknown(data['plot_name']!, _plotNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_plotNameMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('stage')) {
+      context.handle(
+        _stageMeta,
+        stage.isAcceptableOrUnknown(data['stage']!, _stageMeta),
+      );
+    }
+    if (data.containsKey('error_message')) {
+      context.handle(
+        _errorMessageMeta,
+        errorMessage.isAcceptableOrUnknown(
+          data['error_message']!,
+          _errorMessageMeta,
+        ),
+      );
+    }
+    if (data.containsKey('logs')) {
+      context.handle(
+        _logsMeta,
+        logs.isAcceptableOrUnknown(data['logs']!, _logsMeta),
+      );
+    }
+    if (data.containsKey('analysis_report_markdown')) {
+      context.handle(
+        _analysisReportMarkdownMeta,
+        analysisReportMarkdown.isAcceptableOrUnknown(
+          data['analysis_report_markdown']!,
+          _analysisReportMarkdownMeta,
+        ),
+      );
+    }
+    if (data.containsKey('plot_skeleton_markdown')) {
+      context.handle(
+        _plotSkeletonMarkdownMeta,
+        plotSkeletonMarkdown.isAcceptableOrUnknown(
+          data['plot_skeleton_markdown']!,
+          _plotSkeletonMarkdownMeta,
+        ),
+      );
+    }
+    if (data.containsKey('story_engine_markdown')) {
+      context.handle(
+        _storyEngineMarkdownMeta,
+        storyEngineMarkdown.isAcceptableOrUnknown(
+          data['story_engine_markdown']!,
+          _storyEngineMarkdownMeta,
+        ),
+      );
+    }
+    if (data.containsKey('profile_id')) {
+      context.handle(
+        _profileIdMeta,
+        profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta),
+      );
+    }
+    if (data.containsKey('chunk_count')) {
+      context.handle(
+        _chunkCountMeta,
+        chunkCount.isAcceptableOrUnknown(data['chunk_count']!, _chunkCountMeta),
+      );
+    }
+    if (data.containsKey('character_count')) {
+      context.handle(
+        _characterCountMeta,
+        characterCount.isAcceptableOrUnknown(
+          data['character_count']!,
+          _characterCountMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_characterCountMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('started_at')) {
+      context.handle(
+        _startedAtMeta,
+        startedAt.isAcceptableOrUnknown(data['started_at']!, _startedAtMeta),
+      );
+    }
+    if (data.containsKey('completed_at')) {
+      context.handle(
+        _completedAtMeta,
+        completedAt.isAcceptableOrUnknown(
+          data['completed_at']!,
+          _completedAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PlotAnalysisRunRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PlotAnalysisRunRecord(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      workflowTaskId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}workflow_task_id'],
+      )!,
+      sampleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sample_id'],
+      )!,
+      providerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}provider_id'],
+      )!,
+      modelName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model_name'],
+      )!,
+      plotName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}plot_name'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      stage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stage'],
+      ),
+      errorMessage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}error_message'],
+      ),
+      logs: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}logs'],
+      )!,
+      analysisReportMarkdown: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}analysis_report_markdown'],
+      ),
+      plotSkeletonMarkdown: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}plot_skeleton_markdown'],
+      ),
+      storyEngineMarkdown: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}story_engine_markdown'],
+      ),
+      profileId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}profile_id'],
+      ),
+      chunkCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}chunk_count'],
+      )!,
+      characterCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}character_count'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      startedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}started_at'],
+      ),
+      completedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}completed_at'],
+      ),
+    );
+  }
+
+  @override
+  $PlotAnalysisRunRecordsTable createAlias(String alias) {
+    return $PlotAnalysisRunRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class PlotAnalysisRunRecord extends DataClass
+    implements Insertable<PlotAnalysisRunRecord> {
+  final String id;
+  final String workflowTaskId;
+  final String sampleId;
+  final String providerId;
+  final String modelName;
+  final String plotName;
+  final String status;
+  final String? stage;
+  final String? errorMessage;
+  final String logs;
+  final String? analysisReportMarkdown;
+  final String? plotSkeletonMarkdown;
+  final String? storyEngineMarkdown;
+  final String? profileId;
+  final int chunkCount;
+  final int characterCount;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? startedAt;
+  final DateTime? completedAt;
+  const PlotAnalysisRunRecord({
+    required this.id,
+    required this.workflowTaskId,
+    required this.sampleId,
+    required this.providerId,
+    required this.modelName,
+    required this.plotName,
+    required this.status,
+    this.stage,
+    this.errorMessage,
+    required this.logs,
+    this.analysisReportMarkdown,
+    this.plotSkeletonMarkdown,
+    this.storyEngineMarkdown,
+    this.profileId,
+    required this.chunkCount,
+    required this.characterCount,
+    required this.createdAt,
+    required this.updatedAt,
+    this.startedAt,
+    this.completedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['workflow_task_id'] = Variable<String>(workflowTaskId);
+    map['sample_id'] = Variable<String>(sampleId);
+    map['provider_id'] = Variable<String>(providerId);
+    map['model_name'] = Variable<String>(modelName);
+    map['plot_name'] = Variable<String>(plotName);
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || stage != null) {
+      map['stage'] = Variable<String>(stage);
+    }
+    if (!nullToAbsent || errorMessage != null) {
+      map['error_message'] = Variable<String>(errorMessage);
+    }
+    map['logs'] = Variable<String>(logs);
+    if (!nullToAbsent || analysisReportMarkdown != null) {
+      map['analysis_report_markdown'] = Variable<String>(
+        analysisReportMarkdown,
+      );
+    }
+    if (!nullToAbsent || plotSkeletonMarkdown != null) {
+      map['plot_skeleton_markdown'] = Variable<String>(plotSkeletonMarkdown);
+    }
+    if (!nullToAbsent || storyEngineMarkdown != null) {
+      map['story_engine_markdown'] = Variable<String>(storyEngineMarkdown);
+    }
+    if (!nullToAbsent || profileId != null) {
+      map['profile_id'] = Variable<String>(profileId);
+    }
+    map['chunk_count'] = Variable<int>(chunkCount);
+    map['character_count'] = Variable<int>(characterCount);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || startedAt != null) {
+      map['started_at'] = Variable<DateTime>(startedAt);
+    }
+    if (!nullToAbsent || completedAt != null) {
+      map['completed_at'] = Variable<DateTime>(completedAt);
+    }
+    return map;
+  }
+
+  PlotAnalysisRunRecordsCompanion toCompanion(bool nullToAbsent) {
+    return PlotAnalysisRunRecordsCompanion(
+      id: Value(id),
+      workflowTaskId: Value(workflowTaskId),
+      sampleId: Value(sampleId),
+      providerId: Value(providerId),
+      modelName: Value(modelName),
+      plotName: Value(plotName),
+      status: Value(status),
+      stage: stage == null && nullToAbsent
+          ? const Value.absent()
+          : Value(stage),
+      errorMessage: errorMessage == null && nullToAbsent
+          ? const Value.absent()
+          : Value(errorMessage),
+      logs: Value(logs),
+      analysisReportMarkdown: analysisReportMarkdown == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisReportMarkdown),
+      plotSkeletonMarkdown: plotSkeletonMarkdown == null && nullToAbsent
+          ? const Value.absent()
+          : Value(plotSkeletonMarkdown),
+      storyEngineMarkdown: storyEngineMarkdown == null && nullToAbsent
+          ? const Value.absent()
+          : Value(storyEngineMarkdown),
+      profileId: profileId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(profileId),
+      chunkCount: Value(chunkCount),
+      characterCount: Value(characterCount),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      startedAt: startedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(startedAt),
+      completedAt: completedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(completedAt),
+    );
+  }
+
+  factory PlotAnalysisRunRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PlotAnalysisRunRecord(
+      id: serializer.fromJson<String>(json['id']),
+      workflowTaskId: serializer.fromJson<String>(json['workflowTaskId']),
+      sampleId: serializer.fromJson<String>(json['sampleId']),
+      providerId: serializer.fromJson<String>(json['providerId']),
+      modelName: serializer.fromJson<String>(json['modelName']),
+      plotName: serializer.fromJson<String>(json['plotName']),
+      status: serializer.fromJson<String>(json['status']),
+      stage: serializer.fromJson<String?>(json['stage']),
+      errorMessage: serializer.fromJson<String?>(json['errorMessage']),
+      logs: serializer.fromJson<String>(json['logs']),
+      analysisReportMarkdown: serializer.fromJson<String?>(
+        json['analysisReportMarkdown'],
+      ),
+      plotSkeletonMarkdown: serializer.fromJson<String?>(
+        json['plotSkeletonMarkdown'],
+      ),
+      storyEngineMarkdown: serializer.fromJson<String?>(
+        json['storyEngineMarkdown'],
+      ),
+      profileId: serializer.fromJson<String?>(json['profileId']),
+      chunkCount: serializer.fromJson<int>(json['chunkCount']),
+      characterCount: serializer.fromJson<int>(json['characterCount']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      startedAt: serializer.fromJson<DateTime?>(json['startedAt']),
+      completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'workflowTaskId': serializer.toJson<String>(workflowTaskId),
+      'sampleId': serializer.toJson<String>(sampleId),
+      'providerId': serializer.toJson<String>(providerId),
+      'modelName': serializer.toJson<String>(modelName),
+      'plotName': serializer.toJson<String>(plotName),
+      'status': serializer.toJson<String>(status),
+      'stage': serializer.toJson<String?>(stage),
+      'errorMessage': serializer.toJson<String?>(errorMessage),
+      'logs': serializer.toJson<String>(logs),
+      'analysisReportMarkdown': serializer.toJson<String?>(
+        analysisReportMarkdown,
+      ),
+      'plotSkeletonMarkdown': serializer.toJson<String?>(plotSkeletonMarkdown),
+      'storyEngineMarkdown': serializer.toJson<String?>(storyEngineMarkdown),
+      'profileId': serializer.toJson<String?>(profileId),
+      'chunkCount': serializer.toJson<int>(chunkCount),
+      'characterCount': serializer.toJson<int>(characterCount),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'startedAt': serializer.toJson<DateTime?>(startedAt),
+      'completedAt': serializer.toJson<DateTime?>(completedAt),
+    };
+  }
+
+  PlotAnalysisRunRecord copyWith({
+    String? id,
+    String? workflowTaskId,
+    String? sampleId,
+    String? providerId,
+    String? modelName,
+    String? plotName,
+    String? status,
+    Value<String?> stage = const Value.absent(),
+    Value<String?> errorMessage = const Value.absent(),
+    String? logs,
+    Value<String?> analysisReportMarkdown = const Value.absent(),
+    Value<String?> plotSkeletonMarkdown = const Value.absent(),
+    Value<String?> storyEngineMarkdown = const Value.absent(),
+    Value<String?> profileId = const Value.absent(),
+    int? chunkCount,
+    int? characterCount,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Value<DateTime?> startedAt = const Value.absent(),
+    Value<DateTime?> completedAt = const Value.absent(),
+  }) => PlotAnalysisRunRecord(
+    id: id ?? this.id,
+    workflowTaskId: workflowTaskId ?? this.workflowTaskId,
+    sampleId: sampleId ?? this.sampleId,
+    providerId: providerId ?? this.providerId,
+    modelName: modelName ?? this.modelName,
+    plotName: plotName ?? this.plotName,
+    status: status ?? this.status,
+    stage: stage.present ? stage.value : this.stage,
+    errorMessage: errorMessage.present ? errorMessage.value : this.errorMessage,
+    logs: logs ?? this.logs,
+    analysisReportMarkdown: analysisReportMarkdown.present
+        ? analysisReportMarkdown.value
+        : this.analysisReportMarkdown,
+    plotSkeletonMarkdown: plotSkeletonMarkdown.present
+        ? plotSkeletonMarkdown.value
+        : this.plotSkeletonMarkdown,
+    storyEngineMarkdown: storyEngineMarkdown.present
+        ? storyEngineMarkdown.value
+        : this.storyEngineMarkdown,
+    profileId: profileId.present ? profileId.value : this.profileId,
+    chunkCount: chunkCount ?? this.chunkCount,
+    characterCount: characterCount ?? this.characterCount,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    startedAt: startedAt.present ? startedAt.value : this.startedAt,
+    completedAt: completedAt.present ? completedAt.value : this.completedAt,
+  );
+  PlotAnalysisRunRecord copyWithCompanion(
+    PlotAnalysisRunRecordsCompanion data,
+  ) {
+    return PlotAnalysisRunRecord(
+      id: data.id.present ? data.id.value : this.id,
+      workflowTaskId: data.workflowTaskId.present
+          ? data.workflowTaskId.value
+          : this.workflowTaskId,
+      sampleId: data.sampleId.present ? data.sampleId.value : this.sampleId,
+      providerId: data.providerId.present
+          ? data.providerId.value
+          : this.providerId,
+      modelName: data.modelName.present ? data.modelName.value : this.modelName,
+      plotName: data.plotName.present ? data.plotName.value : this.plotName,
+      status: data.status.present ? data.status.value : this.status,
+      stage: data.stage.present ? data.stage.value : this.stage,
+      errorMessage: data.errorMessage.present
+          ? data.errorMessage.value
+          : this.errorMessage,
+      logs: data.logs.present ? data.logs.value : this.logs,
+      analysisReportMarkdown: data.analysisReportMarkdown.present
+          ? data.analysisReportMarkdown.value
+          : this.analysisReportMarkdown,
+      plotSkeletonMarkdown: data.plotSkeletonMarkdown.present
+          ? data.plotSkeletonMarkdown.value
+          : this.plotSkeletonMarkdown,
+      storyEngineMarkdown: data.storyEngineMarkdown.present
+          ? data.storyEngineMarkdown.value
+          : this.storyEngineMarkdown,
+      profileId: data.profileId.present ? data.profileId.value : this.profileId,
+      chunkCount: data.chunkCount.present
+          ? data.chunkCount.value
+          : this.chunkCount,
+      characterCount: data.characterCount.present
+          ? data.characterCount.value
+          : this.characterCount,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      startedAt: data.startedAt.present ? data.startedAt.value : this.startedAt,
+      completedAt: data.completedAt.present
+          ? data.completedAt.value
+          : this.completedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PlotAnalysisRunRecord(')
+          ..write('id: $id, ')
+          ..write('workflowTaskId: $workflowTaskId, ')
+          ..write('sampleId: $sampleId, ')
+          ..write('providerId: $providerId, ')
+          ..write('modelName: $modelName, ')
+          ..write('plotName: $plotName, ')
+          ..write('status: $status, ')
+          ..write('stage: $stage, ')
+          ..write('errorMessage: $errorMessage, ')
+          ..write('logs: $logs, ')
+          ..write('analysisReportMarkdown: $analysisReportMarkdown, ')
+          ..write('plotSkeletonMarkdown: $plotSkeletonMarkdown, ')
+          ..write('storyEngineMarkdown: $storyEngineMarkdown, ')
+          ..write('profileId: $profileId, ')
+          ..write('chunkCount: $chunkCount, ')
+          ..write('characterCount: $characterCount, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('completedAt: $completedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    workflowTaskId,
+    sampleId,
+    providerId,
+    modelName,
+    plotName,
+    status,
+    stage,
+    errorMessage,
+    logs,
+    analysisReportMarkdown,
+    plotSkeletonMarkdown,
+    storyEngineMarkdown,
+    profileId,
+    chunkCount,
+    characterCount,
+    createdAt,
+    updatedAt,
+    startedAt,
+    completedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PlotAnalysisRunRecord &&
+          other.id == this.id &&
+          other.workflowTaskId == this.workflowTaskId &&
+          other.sampleId == this.sampleId &&
+          other.providerId == this.providerId &&
+          other.modelName == this.modelName &&
+          other.plotName == this.plotName &&
+          other.status == this.status &&
+          other.stage == this.stage &&
+          other.errorMessage == this.errorMessage &&
+          other.logs == this.logs &&
+          other.analysisReportMarkdown == this.analysisReportMarkdown &&
+          other.plotSkeletonMarkdown == this.plotSkeletonMarkdown &&
+          other.storyEngineMarkdown == this.storyEngineMarkdown &&
+          other.profileId == this.profileId &&
+          other.chunkCount == this.chunkCount &&
+          other.characterCount == this.characterCount &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.startedAt == this.startedAt &&
+          other.completedAt == this.completedAt);
+}
+
+class PlotAnalysisRunRecordsCompanion
+    extends UpdateCompanion<PlotAnalysisRunRecord> {
+  final Value<String> id;
+  final Value<String> workflowTaskId;
+  final Value<String> sampleId;
+  final Value<String> providerId;
+  final Value<String> modelName;
+  final Value<String> plotName;
+  final Value<String> status;
+  final Value<String?> stage;
+  final Value<String?> errorMessage;
+  final Value<String> logs;
+  final Value<String?> analysisReportMarkdown;
+  final Value<String?> plotSkeletonMarkdown;
+  final Value<String?> storyEngineMarkdown;
+  final Value<String?> profileId;
+  final Value<int> chunkCount;
+  final Value<int> characterCount;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> startedAt;
+  final Value<DateTime?> completedAt;
+  final Value<int> rowid;
+  const PlotAnalysisRunRecordsCompanion({
+    this.id = const Value.absent(),
+    this.workflowTaskId = const Value.absent(),
+    this.sampleId = const Value.absent(),
+    this.providerId = const Value.absent(),
+    this.modelName = const Value.absent(),
+    this.plotName = const Value.absent(),
+    this.status = const Value.absent(),
+    this.stage = const Value.absent(),
+    this.errorMessage = const Value.absent(),
+    this.logs = const Value.absent(),
+    this.analysisReportMarkdown = const Value.absent(),
+    this.plotSkeletonMarkdown = const Value.absent(),
+    this.storyEngineMarkdown = const Value.absent(),
+    this.profileId = const Value.absent(),
+    this.chunkCount = const Value.absent(),
+    this.characterCount = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.startedAt = const Value.absent(),
+    this.completedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PlotAnalysisRunRecordsCompanion.insert({
+    required String id,
+    required String workflowTaskId,
+    required String sampleId,
+    required String providerId,
+    required String modelName,
+    required String plotName,
+    required String status,
+    this.stage = const Value.absent(),
+    this.errorMessage = const Value.absent(),
+    this.logs = const Value.absent(),
+    this.analysisReportMarkdown = const Value.absent(),
+    this.plotSkeletonMarkdown = const Value.absent(),
+    this.storyEngineMarkdown = const Value.absent(),
+    this.profileId = const Value.absent(),
+    this.chunkCount = const Value.absent(),
+    required int characterCount,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.startedAt = const Value.absent(),
+    this.completedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       workflowTaskId = Value(workflowTaskId),
+       sampleId = Value(sampleId),
+       providerId = Value(providerId),
+       modelName = Value(modelName),
+       plotName = Value(plotName),
+       status = Value(status),
+       characterCount = Value(characterCount),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<PlotAnalysisRunRecord> custom({
+    Expression<String>? id,
+    Expression<String>? workflowTaskId,
+    Expression<String>? sampleId,
+    Expression<String>? providerId,
+    Expression<String>? modelName,
+    Expression<String>? plotName,
+    Expression<String>? status,
+    Expression<String>? stage,
+    Expression<String>? errorMessage,
+    Expression<String>? logs,
+    Expression<String>? analysisReportMarkdown,
+    Expression<String>? plotSkeletonMarkdown,
+    Expression<String>? storyEngineMarkdown,
+    Expression<String>? profileId,
+    Expression<int>? chunkCount,
+    Expression<int>? characterCount,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? startedAt,
+    Expression<DateTime>? completedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (workflowTaskId != null) 'workflow_task_id': workflowTaskId,
+      if (sampleId != null) 'sample_id': sampleId,
+      if (providerId != null) 'provider_id': providerId,
+      if (modelName != null) 'model_name': modelName,
+      if (plotName != null) 'plot_name': plotName,
+      if (status != null) 'status': status,
+      if (stage != null) 'stage': stage,
+      if (errorMessage != null) 'error_message': errorMessage,
+      if (logs != null) 'logs': logs,
+      if (analysisReportMarkdown != null)
+        'analysis_report_markdown': analysisReportMarkdown,
+      if (plotSkeletonMarkdown != null)
+        'plot_skeleton_markdown': plotSkeletonMarkdown,
+      if (storyEngineMarkdown != null)
+        'story_engine_markdown': storyEngineMarkdown,
+      if (profileId != null) 'profile_id': profileId,
+      if (chunkCount != null) 'chunk_count': chunkCount,
+      if (characterCount != null) 'character_count': characterCount,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (startedAt != null) 'started_at': startedAt,
+      if (completedAt != null) 'completed_at': completedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PlotAnalysisRunRecordsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? workflowTaskId,
+    Value<String>? sampleId,
+    Value<String>? providerId,
+    Value<String>? modelName,
+    Value<String>? plotName,
+    Value<String>? status,
+    Value<String?>? stage,
+    Value<String?>? errorMessage,
+    Value<String>? logs,
+    Value<String?>? analysisReportMarkdown,
+    Value<String?>? plotSkeletonMarkdown,
+    Value<String?>? storyEngineMarkdown,
+    Value<String?>? profileId,
+    Value<int>? chunkCount,
+    Value<int>? characterCount,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? startedAt,
+    Value<DateTime?>? completedAt,
+    Value<int>? rowid,
+  }) {
+    return PlotAnalysisRunRecordsCompanion(
+      id: id ?? this.id,
+      workflowTaskId: workflowTaskId ?? this.workflowTaskId,
+      sampleId: sampleId ?? this.sampleId,
+      providerId: providerId ?? this.providerId,
+      modelName: modelName ?? this.modelName,
+      plotName: plotName ?? this.plotName,
+      status: status ?? this.status,
+      stage: stage ?? this.stage,
+      errorMessage: errorMessage ?? this.errorMessage,
+      logs: logs ?? this.logs,
+      analysisReportMarkdown:
+          analysisReportMarkdown ?? this.analysisReportMarkdown,
+      plotSkeletonMarkdown: plotSkeletonMarkdown ?? this.plotSkeletonMarkdown,
+      storyEngineMarkdown: storyEngineMarkdown ?? this.storyEngineMarkdown,
+      profileId: profileId ?? this.profileId,
+      chunkCount: chunkCount ?? this.chunkCount,
+      characterCount: characterCount ?? this.characterCount,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      startedAt: startedAt ?? this.startedAt,
+      completedAt: completedAt ?? this.completedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (workflowTaskId.present) {
+      map['workflow_task_id'] = Variable<String>(workflowTaskId.value);
+    }
+    if (sampleId.present) {
+      map['sample_id'] = Variable<String>(sampleId.value);
+    }
+    if (providerId.present) {
+      map['provider_id'] = Variable<String>(providerId.value);
+    }
+    if (modelName.present) {
+      map['model_name'] = Variable<String>(modelName.value);
+    }
+    if (plotName.present) {
+      map['plot_name'] = Variable<String>(plotName.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (stage.present) {
+      map['stage'] = Variable<String>(stage.value);
+    }
+    if (errorMessage.present) {
+      map['error_message'] = Variable<String>(errorMessage.value);
+    }
+    if (logs.present) {
+      map['logs'] = Variable<String>(logs.value);
+    }
+    if (analysisReportMarkdown.present) {
+      map['analysis_report_markdown'] = Variable<String>(
+        analysisReportMarkdown.value,
+      );
+    }
+    if (plotSkeletonMarkdown.present) {
+      map['plot_skeleton_markdown'] = Variable<String>(
+        plotSkeletonMarkdown.value,
+      );
+    }
+    if (storyEngineMarkdown.present) {
+      map['story_engine_markdown'] = Variable<String>(
+        storyEngineMarkdown.value,
+      );
+    }
+    if (profileId.present) {
+      map['profile_id'] = Variable<String>(profileId.value);
+    }
+    if (chunkCount.present) {
+      map['chunk_count'] = Variable<int>(chunkCount.value);
+    }
+    if (characterCount.present) {
+      map['character_count'] = Variable<int>(characterCount.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (startedAt.present) {
+      map['started_at'] = Variable<DateTime>(startedAt.value);
+    }
+    if (completedAt.present) {
+      map['completed_at'] = Variable<DateTime>(completedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PlotAnalysisRunRecordsCompanion(')
+          ..write('id: $id, ')
+          ..write('workflowTaskId: $workflowTaskId, ')
+          ..write('sampleId: $sampleId, ')
+          ..write('providerId: $providerId, ')
+          ..write('modelName: $modelName, ')
+          ..write('plotName: $plotName, ')
+          ..write('status: $status, ')
+          ..write('stage: $stage, ')
+          ..write('errorMessage: $errorMessage, ')
+          ..write('logs: $logs, ')
+          ..write('analysisReportMarkdown: $analysisReportMarkdown, ')
+          ..write('plotSkeletonMarkdown: $plotSkeletonMarkdown, ')
+          ..write('storyEngineMarkdown: $storyEngineMarkdown, ')
+          ..write('profileId: $profileId, ')
+          ..write('chunkCount: $chunkCount, ')
+          ..write('characterCount: $characterCount, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PlotProfileRecordsTable extends PlotProfileRecords
+    with TableInfo<$PlotProfileRecordsTable, PlotProfileRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PlotProfileRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceRunIdMeta = const VerificationMeta(
+    'sourceRunId',
+  );
+  @override
+  late final GeneratedColumn<String> sourceRunId = GeneratedColumn<String>(
+    'source_run_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'UNIQUE REFERENCES plot_analysis_run_records (id)',
+    ),
+  );
+  static const VerificationMeta _providerIdMeta = const VerificationMeta(
+    'providerId',
+  );
+  @override
+  late final GeneratedColumn<String> providerId = GeneratedColumn<String>(
+    'provider_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES provider_config_records (id)',
+    ),
+  );
+  static const VerificationMeta _modelNameMeta = const VerificationMeta(
+    'modelName',
+  );
+  @override
+  late final GeneratedColumn<String> modelName = GeneratedColumn<String>(
+    'model_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _plotNameMeta = const VerificationMeta(
+    'plotName',
+  );
+  @override
+  late final GeneratedColumn<String> plotName = GeneratedColumn<String>(
+    'plot_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _storyEngineMarkdownMeta =
+      const VerificationMeta('storyEngineMarkdown');
+  @override
+  late final GeneratedColumn<String> storyEngineMarkdown =
+      GeneratedColumn<String>(
+        'story_engine_markdown',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _analysisReportMarkdownMeta =
+      const VerificationMeta('analysisReportMarkdown');
+  @override
+  late final GeneratedColumn<String> analysisReportMarkdown =
+      GeneratedColumn<String>(
+        'analysis_report_markdown',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _plotSkeletonMarkdownMeta =
+      const VerificationMeta('plotSkeletonMarkdown');
+  @override
+  late final GeneratedColumn<String> plotSkeletonMarkdown =
+      GeneratedColumn<String>(
+        'plot_skeleton_markdown',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _sourceSampleIdMeta = const VerificationMeta(
+    'sourceSampleId',
+  );
+  @override
+  late final GeneratedColumn<String> sourceSampleId = GeneratedColumn<String>(
+    'source_sample_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES plot_sample_records (id)',
+    ),
+  );
+  static const VerificationMeta _sourceTitleMeta = const VerificationMeta(
+    'sourceTitle',
+  );
+  @override
+  late final GeneratedColumn<String> sourceTitle = GeneratedColumn<String>(
+    'source_title',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    sourceRunId,
+    providerId,
+    modelName,
+    plotName,
+    storyEngineMarkdown,
+    analysisReportMarkdown,
+    plotSkeletonMarkdown,
+    sourceSampleId,
+    sourceTitle,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'plot_profile_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PlotProfileRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('source_run_id')) {
+      context.handle(
+        _sourceRunIdMeta,
+        sourceRunId.isAcceptableOrUnknown(
+          data['source_run_id']!,
+          _sourceRunIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceRunIdMeta);
+    }
+    if (data.containsKey('provider_id')) {
+      context.handle(
+        _providerIdMeta,
+        providerId.isAcceptableOrUnknown(data['provider_id']!, _providerIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_providerIdMeta);
+    }
+    if (data.containsKey('model_name')) {
+      context.handle(
+        _modelNameMeta,
+        modelName.isAcceptableOrUnknown(data['model_name']!, _modelNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_modelNameMeta);
+    }
+    if (data.containsKey('plot_name')) {
+      context.handle(
+        _plotNameMeta,
+        plotName.isAcceptableOrUnknown(data['plot_name']!, _plotNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_plotNameMeta);
+    }
+    if (data.containsKey('story_engine_markdown')) {
+      context.handle(
+        _storyEngineMarkdownMeta,
+        storyEngineMarkdown.isAcceptableOrUnknown(
+          data['story_engine_markdown']!,
+          _storyEngineMarkdownMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_storyEngineMarkdownMeta);
+    }
+    if (data.containsKey('analysis_report_markdown')) {
+      context.handle(
+        _analysisReportMarkdownMeta,
+        analysisReportMarkdown.isAcceptableOrUnknown(
+          data['analysis_report_markdown']!,
+          _analysisReportMarkdownMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_analysisReportMarkdownMeta);
+    }
+    if (data.containsKey('plot_skeleton_markdown')) {
+      context.handle(
+        _plotSkeletonMarkdownMeta,
+        plotSkeletonMarkdown.isAcceptableOrUnknown(
+          data['plot_skeleton_markdown']!,
+          _plotSkeletonMarkdownMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_plotSkeletonMarkdownMeta);
+    }
+    if (data.containsKey('source_sample_id')) {
+      context.handle(
+        _sourceSampleIdMeta,
+        sourceSampleId.isAcceptableOrUnknown(
+          data['source_sample_id']!,
+          _sourceSampleIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('source_title')) {
+      context.handle(
+        _sourceTitleMeta,
+        sourceTitle.isAcceptableOrUnknown(
+          data['source_title']!,
+          _sourceTitleMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PlotProfileRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PlotProfileRecord(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      sourceRunId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_run_id'],
+      )!,
+      providerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}provider_id'],
+      )!,
+      modelName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model_name'],
+      )!,
+      plotName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}plot_name'],
+      )!,
+      storyEngineMarkdown: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}story_engine_markdown'],
+      )!,
+      analysisReportMarkdown: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}analysis_report_markdown'],
+      )!,
+      plotSkeletonMarkdown: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}plot_skeleton_markdown'],
+      )!,
+      sourceSampleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_sample_id'],
+      ),
+      sourceTitle: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_title'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $PlotProfileRecordsTable createAlias(String alias) {
+    return $PlotProfileRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class PlotProfileRecord extends DataClass
+    implements Insertable<PlotProfileRecord> {
+  final String id;
+  final String sourceRunId;
+  final String providerId;
+  final String modelName;
+  final String plotName;
+  final String storyEngineMarkdown;
+  final String analysisReportMarkdown;
+  final String plotSkeletonMarkdown;
+  final String? sourceSampleId;
+  final String? sourceTitle;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const PlotProfileRecord({
+    required this.id,
+    required this.sourceRunId,
+    required this.providerId,
+    required this.modelName,
+    required this.plotName,
+    required this.storyEngineMarkdown,
+    required this.analysisReportMarkdown,
+    required this.plotSkeletonMarkdown,
+    this.sourceSampleId,
+    this.sourceTitle,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['source_run_id'] = Variable<String>(sourceRunId);
+    map['provider_id'] = Variable<String>(providerId);
+    map['model_name'] = Variable<String>(modelName);
+    map['plot_name'] = Variable<String>(plotName);
+    map['story_engine_markdown'] = Variable<String>(storyEngineMarkdown);
+    map['analysis_report_markdown'] = Variable<String>(analysisReportMarkdown);
+    map['plot_skeleton_markdown'] = Variable<String>(plotSkeletonMarkdown);
+    if (!nullToAbsent || sourceSampleId != null) {
+      map['source_sample_id'] = Variable<String>(sourceSampleId);
+    }
+    if (!nullToAbsent || sourceTitle != null) {
+      map['source_title'] = Variable<String>(sourceTitle);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  PlotProfileRecordsCompanion toCompanion(bool nullToAbsent) {
+    return PlotProfileRecordsCompanion(
+      id: Value(id),
+      sourceRunId: Value(sourceRunId),
+      providerId: Value(providerId),
+      modelName: Value(modelName),
+      plotName: Value(plotName),
+      storyEngineMarkdown: Value(storyEngineMarkdown),
+      analysisReportMarkdown: Value(analysisReportMarkdown),
+      plotSkeletonMarkdown: Value(plotSkeletonMarkdown),
+      sourceSampleId: sourceSampleId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceSampleId),
+      sourceTitle: sourceTitle == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceTitle),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory PlotProfileRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PlotProfileRecord(
+      id: serializer.fromJson<String>(json['id']),
+      sourceRunId: serializer.fromJson<String>(json['sourceRunId']),
+      providerId: serializer.fromJson<String>(json['providerId']),
+      modelName: serializer.fromJson<String>(json['modelName']),
+      plotName: serializer.fromJson<String>(json['plotName']),
+      storyEngineMarkdown: serializer.fromJson<String>(
+        json['storyEngineMarkdown'],
+      ),
+      analysisReportMarkdown: serializer.fromJson<String>(
+        json['analysisReportMarkdown'],
+      ),
+      plotSkeletonMarkdown: serializer.fromJson<String>(
+        json['plotSkeletonMarkdown'],
+      ),
+      sourceSampleId: serializer.fromJson<String?>(json['sourceSampleId']),
+      sourceTitle: serializer.fromJson<String?>(json['sourceTitle']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'sourceRunId': serializer.toJson<String>(sourceRunId),
+      'providerId': serializer.toJson<String>(providerId),
+      'modelName': serializer.toJson<String>(modelName),
+      'plotName': serializer.toJson<String>(plotName),
+      'storyEngineMarkdown': serializer.toJson<String>(storyEngineMarkdown),
+      'analysisReportMarkdown': serializer.toJson<String>(
+        analysisReportMarkdown,
+      ),
+      'plotSkeletonMarkdown': serializer.toJson<String>(plotSkeletonMarkdown),
+      'sourceSampleId': serializer.toJson<String?>(sourceSampleId),
+      'sourceTitle': serializer.toJson<String?>(sourceTitle),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  PlotProfileRecord copyWith({
+    String? id,
+    String? sourceRunId,
+    String? providerId,
+    String? modelName,
+    String? plotName,
+    String? storyEngineMarkdown,
+    String? analysisReportMarkdown,
+    String? plotSkeletonMarkdown,
+    Value<String?> sourceSampleId = const Value.absent(),
+    Value<String?> sourceTitle = const Value.absent(),
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => PlotProfileRecord(
+    id: id ?? this.id,
+    sourceRunId: sourceRunId ?? this.sourceRunId,
+    providerId: providerId ?? this.providerId,
+    modelName: modelName ?? this.modelName,
+    plotName: plotName ?? this.plotName,
+    storyEngineMarkdown: storyEngineMarkdown ?? this.storyEngineMarkdown,
+    analysisReportMarkdown:
+        analysisReportMarkdown ?? this.analysisReportMarkdown,
+    plotSkeletonMarkdown: plotSkeletonMarkdown ?? this.plotSkeletonMarkdown,
+    sourceSampleId: sourceSampleId.present
+        ? sourceSampleId.value
+        : this.sourceSampleId,
+    sourceTitle: sourceTitle.present ? sourceTitle.value : this.sourceTitle,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  PlotProfileRecord copyWithCompanion(PlotProfileRecordsCompanion data) {
+    return PlotProfileRecord(
+      id: data.id.present ? data.id.value : this.id,
+      sourceRunId: data.sourceRunId.present
+          ? data.sourceRunId.value
+          : this.sourceRunId,
+      providerId: data.providerId.present
+          ? data.providerId.value
+          : this.providerId,
+      modelName: data.modelName.present ? data.modelName.value : this.modelName,
+      plotName: data.plotName.present ? data.plotName.value : this.plotName,
+      storyEngineMarkdown: data.storyEngineMarkdown.present
+          ? data.storyEngineMarkdown.value
+          : this.storyEngineMarkdown,
+      analysisReportMarkdown: data.analysisReportMarkdown.present
+          ? data.analysisReportMarkdown.value
+          : this.analysisReportMarkdown,
+      plotSkeletonMarkdown: data.plotSkeletonMarkdown.present
+          ? data.plotSkeletonMarkdown.value
+          : this.plotSkeletonMarkdown,
+      sourceSampleId: data.sourceSampleId.present
+          ? data.sourceSampleId.value
+          : this.sourceSampleId,
+      sourceTitle: data.sourceTitle.present
+          ? data.sourceTitle.value
+          : this.sourceTitle,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PlotProfileRecord(')
+          ..write('id: $id, ')
+          ..write('sourceRunId: $sourceRunId, ')
+          ..write('providerId: $providerId, ')
+          ..write('modelName: $modelName, ')
+          ..write('plotName: $plotName, ')
+          ..write('storyEngineMarkdown: $storyEngineMarkdown, ')
+          ..write('analysisReportMarkdown: $analysisReportMarkdown, ')
+          ..write('plotSkeletonMarkdown: $plotSkeletonMarkdown, ')
+          ..write('sourceSampleId: $sourceSampleId, ')
+          ..write('sourceTitle: $sourceTitle, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    sourceRunId,
+    providerId,
+    modelName,
+    plotName,
+    storyEngineMarkdown,
+    analysisReportMarkdown,
+    plotSkeletonMarkdown,
+    sourceSampleId,
+    sourceTitle,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PlotProfileRecord &&
+          other.id == this.id &&
+          other.sourceRunId == this.sourceRunId &&
+          other.providerId == this.providerId &&
+          other.modelName == this.modelName &&
+          other.plotName == this.plotName &&
+          other.storyEngineMarkdown == this.storyEngineMarkdown &&
+          other.analysisReportMarkdown == this.analysisReportMarkdown &&
+          other.plotSkeletonMarkdown == this.plotSkeletonMarkdown &&
+          other.sourceSampleId == this.sourceSampleId &&
+          other.sourceTitle == this.sourceTitle &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class PlotProfileRecordsCompanion extends UpdateCompanion<PlotProfileRecord> {
+  final Value<String> id;
+  final Value<String> sourceRunId;
+  final Value<String> providerId;
+  final Value<String> modelName;
+  final Value<String> plotName;
+  final Value<String> storyEngineMarkdown;
+  final Value<String> analysisReportMarkdown;
+  final Value<String> plotSkeletonMarkdown;
+  final Value<String?> sourceSampleId;
+  final Value<String?> sourceTitle;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const PlotProfileRecordsCompanion({
+    this.id = const Value.absent(),
+    this.sourceRunId = const Value.absent(),
+    this.providerId = const Value.absent(),
+    this.modelName = const Value.absent(),
+    this.plotName = const Value.absent(),
+    this.storyEngineMarkdown = const Value.absent(),
+    this.analysisReportMarkdown = const Value.absent(),
+    this.plotSkeletonMarkdown = const Value.absent(),
+    this.sourceSampleId = const Value.absent(),
+    this.sourceTitle = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PlotProfileRecordsCompanion.insert({
+    required String id,
+    required String sourceRunId,
+    required String providerId,
+    required String modelName,
+    required String plotName,
+    required String storyEngineMarkdown,
+    required String analysisReportMarkdown,
+    required String plotSkeletonMarkdown,
+    this.sourceSampleId = const Value.absent(),
+    this.sourceTitle = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       sourceRunId = Value(sourceRunId),
+       providerId = Value(providerId),
+       modelName = Value(modelName),
+       plotName = Value(plotName),
+       storyEngineMarkdown = Value(storyEngineMarkdown),
+       analysisReportMarkdown = Value(analysisReportMarkdown),
+       plotSkeletonMarkdown = Value(plotSkeletonMarkdown),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<PlotProfileRecord> custom({
+    Expression<String>? id,
+    Expression<String>? sourceRunId,
+    Expression<String>? providerId,
+    Expression<String>? modelName,
+    Expression<String>? plotName,
+    Expression<String>? storyEngineMarkdown,
+    Expression<String>? analysisReportMarkdown,
+    Expression<String>? plotSkeletonMarkdown,
+    Expression<String>? sourceSampleId,
+    Expression<String>? sourceTitle,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (sourceRunId != null) 'source_run_id': sourceRunId,
+      if (providerId != null) 'provider_id': providerId,
+      if (modelName != null) 'model_name': modelName,
+      if (plotName != null) 'plot_name': plotName,
+      if (storyEngineMarkdown != null)
+        'story_engine_markdown': storyEngineMarkdown,
+      if (analysisReportMarkdown != null)
+        'analysis_report_markdown': analysisReportMarkdown,
+      if (plotSkeletonMarkdown != null)
+        'plot_skeleton_markdown': plotSkeletonMarkdown,
+      if (sourceSampleId != null) 'source_sample_id': sourceSampleId,
+      if (sourceTitle != null) 'source_title': sourceTitle,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PlotProfileRecordsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? sourceRunId,
+    Value<String>? providerId,
+    Value<String>? modelName,
+    Value<String>? plotName,
+    Value<String>? storyEngineMarkdown,
+    Value<String>? analysisReportMarkdown,
+    Value<String>? plotSkeletonMarkdown,
+    Value<String?>? sourceSampleId,
+    Value<String?>? sourceTitle,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return PlotProfileRecordsCompanion(
+      id: id ?? this.id,
+      sourceRunId: sourceRunId ?? this.sourceRunId,
+      providerId: providerId ?? this.providerId,
+      modelName: modelName ?? this.modelName,
+      plotName: plotName ?? this.plotName,
+      storyEngineMarkdown: storyEngineMarkdown ?? this.storyEngineMarkdown,
+      analysisReportMarkdown:
+          analysisReportMarkdown ?? this.analysisReportMarkdown,
+      plotSkeletonMarkdown: plotSkeletonMarkdown ?? this.plotSkeletonMarkdown,
+      sourceSampleId: sourceSampleId ?? this.sourceSampleId,
+      sourceTitle: sourceTitle ?? this.sourceTitle,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (sourceRunId.present) {
+      map['source_run_id'] = Variable<String>(sourceRunId.value);
+    }
+    if (providerId.present) {
+      map['provider_id'] = Variable<String>(providerId.value);
+    }
+    if (modelName.present) {
+      map['model_name'] = Variable<String>(modelName.value);
+    }
+    if (plotName.present) {
+      map['plot_name'] = Variable<String>(plotName.value);
+    }
+    if (storyEngineMarkdown.present) {
+      map['story_engine_markdown'] = Variable<String>(
+        storyEngineMarkdown.value,
+      );
+    }
+    if (analysisReportMarkdown.present) {
+      map['analysis_report_markdown'] = Variable<String>(
+        analysisReportMarkdown.value,
+      );
+    }
+    if (plotSkeletonMarkdown.present) {
+      map['plot_skeleton_markdown'] = Variable<String>(
+        plotSkeletonMarkdown.value,
+      );
+    }
+    if (sourceSampleId.present) {
+      map['source_sample_id'] = Variable<String>(sourceSampleId.value);
+    }
+    if (sourceTitle.present) {
+      map['source_title'] = Variable<String>(sourceTitle.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PlotProfileRecordsCompanion(')
+          ..write('id: $id, ')
+          ..write('sourceRunId: $sourceRunId, ')
+          ..write('providerId: $providerId, ')
+          ..write('modelName: $modelName, ')
+          ..write('plotName: $plotName, ')
+          ..write('storyEngineMarkdown: $storyEngineMarkdown, ')
+          ..write('analysisReportMarkdown: $analysisReportMarkdown, ')
+          ..write('plotSkeletonMarkdown: $plotSkeletonMarkdown, ')
+          ..write('sourceSampleId: $sourceSampleId, ')
+          ..write('sourceTitle: $sourceTitle, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4375,6 +6997,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $StyleAnalysisRunRecordsTable(this);
   late final $StyleProfileRecordsTable styleProfileRecords =
       $StyleProfileRecordsTable(this);
+  late final $PlotSampleRecordsTable plotSampleRecords =
+      $PlotSampleRecordsTable(this);
+  late final $PlotAnalysisRunRecordsTable plotAnalysisRunRecords =
+      $PlotAnalysisRunRecordsTable(this);
+  late final $PlotProfileRecordsTable plotProfileRecords =
+      $PlotProfileRecordsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4386,6 +7014,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     styleSampleRecords,
     styleAnalysisRunRecords,
     styleProfileRecords,
+    plotSampleRecords,
+    plotAnalysisRunRecords,
+    plotProfileRecords,
   ];
 }
 
@@ -4449,6 +7080,34 @@ final class $$WorkflowTaskRecordsTableReferences
 
     final cache = $_typedResult.readTableOrNull(
       _styleAnalysisRunRecordsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $PlotAnalysisRunRecordsTable,
+    List<PlotAnalysisRunRecord>
+  >
+  _plotAnalysisRunRecordsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.plotAnalysisRunRecords,
+        aliasName: $_aliasNameGenerator(
+          db.workflowTaskRecords.id,
+          db.plotAnalysisRunRecords.workflowTaskId,
+        ),
+      );
+
+  $$PlotAnalysisRunRecordsTableProcessedTableManager
+  get plotAnalysisRunRecordsRefs {
+    final manager = $$PlotAnalysisRunRecordsTableTableManager(
+      $_db,
+      $_db.plotAnalysisRunRecords,
+    ).filter((f) => f.workflowTaskId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _plotAnalysisRunRecordsRefsTable($_db),
     );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
@@ -4522,6 +7181,32 @@ class $$WorkflowTaskRecordsTableFilterComposer
               }) => $$StyleAnalysisRunRecordsTableFilterComposer(
                 $db: $db,
                 $table: $db.styleAnalysisRunRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<bool> plotAnalysisRunRecordsRefs(
+    Expression<bool> Function($$PlotAnalysisRunRecordsTableFilterComposer f) f,
+  ) {
+    final $$PlotAnalysisRunRecordsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.plotAnalysisRunRecords,
+          getReferencedColumn: (t) => t.workflowTaskId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PlotAnalysisRunRecordsTableFilterComposer(
+                $db: $db,
+                $table: $db.plotAnalysisRunRecords,
                 $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
                 joinBuilder: joinBuilder,
                 $removeJoinBuilderFromRootComposer:
@@ -4643,6 +7328,32 @@ class $$WorkflowTaskRecordsTableAnnotationComposer
         );
     return f(composer);
   }
+
+  Expression<T> plotAnalysisRunRecordsRefs<T extends Object>(
+    Expression<T> Function($$PlotAnalysisRunRecordsTableAnnotationComposer a) f,
+  ) {
+    final $$PlotAnalysisRunRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.plotAnalysisRunRecords,
+          getReferencedColumn: (t) => t.workflowTaskId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PlotAnalysisRunRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.plotAnalysisRunRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$WorkflowTaskRecordsTableTableManager
@@ -4658,7 +7369,10 @@ class $$WorkflowTaskRecordsTableTableManager
           $$WorkflowTaskRecordsTableUpdateCompanionBuilder,
           (WorkflowTaskRecord, $$WorkflowTaskRecordsTableReferences),
           WorkflowTaskRecord,
-          PrefetchHooks Function({bool styleAnalysisRunRecordsRefs})
+          PrefetchHooks Function({
+            bool styleAnalysisRunRecordsRefs,
+            bool plotAnalysisRunRecordsRefs,
+          })
         > {
   $$WorkflowTaskRecordsTableTableManager(
     _$AppDatabase db,
@@ -4731,40 +7445,66 @@ class $$WorkflowTaskRecordsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({styleAnalysisRunRecordsRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [
-                if (styleAnalysisRunRecordsRefs) db.styleAnalysisRunRecords,
-              ],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (styleAnalysisRunRecordsRefs)
-                    await $_getPrefetchedData<
-                      WorkflowTaskRecord,
-                      $WorkflowTaskRecordsTable,
-                      StyleAnalysisRunRecord
-                    >(
-                      currentTable: table,
-                      referencedTable: $$WorkflowTaskRecordsTableReferences
-                          ._styleAnalysisRunRecordsRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$WorkflowTaskRecordsTableReferences(
-                            db,
-                            table,
-                            p0,
-                          ).styleAnalysisRunRecordsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where(
-                            (e) => e.workflowTaskId == item.id,
-                          ),
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({
+                styleAnalysisRunRecordsRefs = false,
+                plotAnalysisRunRecordsRefs = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (styleAnalysisRunRecordsRefs) db.styleAnalysisRunRecords,
+                    if (plotAnalysisRunRecordsRefs) db.plotAnalysisRunRecords,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (styleAnalysisRunRecordsRefs)
+                        await $_getPrefetchedData<
+                          WorkflowTaskRecord,
+                          $WorkflowTaskRecordsTable,
+                          StyleAnalysisRunRecord
+                        >(
+                          currentTable: table,
+                          referencedTable: $$WorkflowTaskRecordsTableReferences
+                              ._styleAnalysisRunRecordsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$WorkflowTaskRecordsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).styleAnalysisRunRecordsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.workflowTaskId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (plotAnalysisRunRecordsRefs)
+                        await $_getPrefetchedData<
+                          WorkflowTaskRecord,
+                          $WorkflowTaskRecordsTable,
+                          PlotAnalysisRunRecord
+                        >(
+                          currentTable: table,
+                          referencedTable: $$WorkflowTaskRecordsTableReferences
+                              ._plotAnalysisRunRecordsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$WorkflowTaskRecordsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).plotAnalysisRunRecordsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.workflowTaskId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -4781,7 +7521,10 @@ typedef $$WorkflowTaskRecordsTableProcessedTableManager =
       $$WorkflowTaskRecordsTableUpdateCompanionBuilder,
       (WorkflowTaskRecord, $$WorkflowTaskRecordsTableReferences),
       WorkflowTaskRecord,
-      PrefetchHooks Function({bool styleAnalysisRunRecordsRefs})
+      PrefetchHooks Function({
+        bool styleAnalysisRunRecordsRefs,
+        bool plotAnalysisRunRecordsRefs,
+      })
     >;
 typedef $$ProviderConfigRecordsTableCreateCompanionBuilder =
     ProviderConfigRecordsCompanion Function({
@@ -4878,6 +7621,58 @@ final class $$ProviderConfigRecordsTableReferences
 
     final cache = $_typedResult.readTableOrNull(
       _styleProfileRecordsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $PlotAnalysisRunRecordsTable,
+    List<PlotAnalysisRunRecord>
+  >
+  _plotAnalysisRunRecordsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.plotAnalysisRunRecords,
+        aliasName: $_aliasNameGenerator(
+          db.providerConfigRecords.id,
+          db.plotAnalysisRunRecords.providerId,
+        ),
+      );
+
+  $$PlotAnalysisRunRecordsTableProcessedTableManager
+  get plotAnalysisRunRecordsRefs {
+    final manager = $$PlotAnalysisRunRecordsTableTableManager(
+      $_db,
+      $_db.plotAnalysisRunRecords,
+    ).filter((f) => f.providerId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _plotAnalysisRunRecordsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$PlotProfileRecordsTable, List<PlotProfileRecord>>
+  _plotProfileRecordsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.plotProfileRecords,
+        aliasName: $_aliasNameGenerator(
+          db.providerConfigRecords.id,
+          db.plotProfileRecords.providerId,
+        ),
+      );
+
+  $$PlotProfileRecordsTableProcessedTableManager get plotProfileRecordsRefs {
+    final manager = $$PlotProfileRecordsTableTableManager(
+      $_db,
+      $_db.plotProfileRecords,
+    ).filter((f) => f.providerId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _plotProfileRecordsRefsTable($_db),
     );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
@@ -4996,6 +7791,57 @@ class $$ProviderConfigRecordsTableFilterComposer
           }) => $$StyleProfileRecordsTableFilterComposer(
             $db: $db,
             $table: $db.styleProfileRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> plotAnalysisRunRecordsRefs(
+    Expression<bool> Function($$PlotAnalysisRunRecordsTableFilterComposer f) f,
+  ) {
+    final $$PlotAnalysisRunRecordsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.plotAnalysisRunRecords,
+          getReferencedColumn: (t) => t.providerId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PlotAnalysisRunRecordsTableFilterComposer(
+                $db: $db,
+                $table: $db.plotAnalysisRunRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<bool> plotProfileRecordsRefs(
+    Expression<bool> Function($$PlotProfileRecordsTableFilterComposer f) f,
+  ) {
+    final $$PlotProfileRecordsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.plotProfileRecords,
+      getReferencedColumn: (t) => t.providerId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PlotProfileRecordsTableFilterComposer(
+            $db: $db,
+            $table: $db.plotProfileRecords,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5183,6 +8029,58 @@ class $$ProviderConfigRecordsTableAnnotationComposer
         );
     return f(composer);
   }
+
+  Expression<T> plotAnalysisRunRecordsRefs<T extends Object>(
+    Expression<T> Function($$PlotAnalysisRunRecordsTableAnnotationComposer a) f,
+  ) {
+    final $$PlotAnalysisRunRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.plotAnalysisRunRecords,
+          getReferencedColumn: (t) => t.providerId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PlotAnalysisRunRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.plotAnalysisRunRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<T> plotProfileRecordsRefs<T extends Object>(
+    Expression<T> Function($$PlotProfileRecordsTableAnnotationComposer a) f,
+  ) {
+    final $$PlotProfileRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.plotProfileRecords,
+          getReferencedColumn: (t) => t.providerId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PlotProfileRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.plotProfileRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$ProviderConfigRecordsTableTableManager
@@ -5201,6 +8099,8 @@ class $$ProviderConfigRecordsTableTableManager
           PrefetchHooks Function({
             bool styleAnalysisRunRecordsRefs,
             bool styleProfileRecordsRefs,
+            bool plotAnalysisRunRecordsRefs,
+            bool plotProfileRecordsRefs,
           })
         > {
   $$ProviderConfigRecordsTableTableManager(
@@ -5297,12 +8197,16 @@ class $$ProviderConfigRecordsTableTableManager
               ({
                 styleAnalysisRunRecordsRefs = false,
                 styleProfileRecordsRefs = false,
+                plotAnalysisRunRecordsRefs = false,
+                plotProfileRecordsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (styleAnalysisRunRecordsRefs) db.styleAnalysisRunRecords,
                     if (styleProfileRecordsRefs) db.styleProfileRecords,
+                    if (plotAnalysisRunRecordsRefs) db.plotAnalysisRunRecords,
+                    if (plotProfileRecordsRefs) db.plotProfileRecords,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -5351,6 +8255,50 @@ class $$ProviderConfigRecordsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (plotAnalysisRunRecordsRefs)
+                        await $_getPrefetchedData<
+                          ProviderConfigRecord,
+                          $ProviderConfigRecordsTable,
+                          PlotAnalysisRunRecord
+                        >(
+                          currentTable: table,
+                          referencedTable:
+                              $$ProviderConfigRecordsTableReferences
+                                  ._plotAnalysisRunRecordsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ProviderConfigRecordsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).plotAnalysisRunRecordsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.providerId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (plotProfileRecordsRefs)
+                        await $_getPrefetchedData<
+                          ProviderConfigRecord,
+                          $ProviderConfigRecordsTable,
+                          PlotProfileRecord
+                        >(
+                          currentTable: table,
+                          referencedTable:
+                              $$ProviderConfigRecordsTableReferences
+                                  ._plotProfileRecordsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ProviderConfigRecordsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).plotProfileRecordsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.providerId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -5374,6 +8322,8 @@ typedef $$ProviderConfigRecordsTableProcessedTableManager =
       PrefetchHooks Function({
         bool styleAnalysisRunRecordsRefs,
         bool styleProfileRecordsRefs,
+        bool plotAnalysisRunRecordsRefs,
+        bool plotProfileRecordsRefs,
       })
     >;
 typedef $$ProjectRecordsTableCreateCompanionBuilder =
@@ -8483,6 +11433,2206 @@ typedef $$StyleProfileRecordsTableProcessedTableManager =
         bool sourceSampleId,
       })
     >;
+typedef $$PlotSampleRecordsTableCreateCompanionBuilder =
+    PlotSampleRecordsCompanion Function({
+      required String id,
+      required String sourceType,
+      required String title,
+      required String content,
+      required int characterCount,
+      Value<String?> sourceFilename,
+      Value<String?> epubBookTitle,
+      Value<String?> epubAuthor,
+      Value<int?> epubChapterCount,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$PlotSampleRecordsTableUpdateCompanionBuilder =
+    PlotSampleRecordsCompanion Function({
+      Value<String> id,
+      Value<String> sourceType,
+      Value<String> title,
+      Value<String> content,
+      Value<int> characterCount,
+      Value<String?> sourceFilename,
+      Value<String?> epubBookTitle,
+      Value<String?> epubAuthor,
+      Value<int?> epubChapterCount,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+final class $$PlotSampleRecordsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $PlotSampleRecordsTable,
+          PlotSampleRecord
+        > {
+  $$PlotSampleRecordsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static MultiTypedResultKey<
+    $PlotAnalysisRunRecordsTable,
+    List<PlotAnalysisRunRecord>
+  >
+  _plotAnalysisRunRecordsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.plotAnalysisRunRecords,
+        aliasName: $_aliasNameGenerator(
+          db.plotSampleRecords.id,
+          db.plotAnalysisRunRecords.sampleId,
+        ),
+      );
+
+  $$PlotAnalysisRunRecordsTableProcessedTableManager
+  get plotAnalysisRunRecordsRefs {
+    final manager = $$PlotAnalysisRunRecordsTableTableManager(
+      $_db,
+      $_db.plotAnalysisRunRecords,
+    ).filter((f) => f.sampleId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _plotAnalysisRunRecordsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$PlotProfileRecordsTable, List<PlotProfileRecord>>
+  _plotProfileRecordsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.plotProfileRecords,
+        aliasName: $_aliasNameGenerator(
+          db.plotSampleRecords.id,
+          db.plotProfileRecords.sourceSampleId,
+        ),
+      );
+
+  $$PlotProfileRecordsTableProcessedTableManager get plotProfileRecordsRefs {
+    final manager = $$PlotProfileRecordsTableTableManager(
+      $_db,
+      $_db.plotProfileRecords,
+    ).filter((f) => f.sourceSampleId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _plotProfileRecordsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$PlotSampleRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $PlotSampleRecordsTable> {
+  $$PlotSampleRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceType => $composableBuilder(
+    column: $table.sourceType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get characterCount => $composableBuilder(
+    column: $table.characterCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceFilename => $composableBuilder(
+    column: $table.sourceFilename,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get epubBookTitle => $composableBuilder(
+    column: $table.epubBookTitle,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get epubAuthor => $composableBuilder(
+    column: $table.epubAuthor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get epubChapterCount => $composableBuilder(
+    column: $table.epubChapterCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> plotAnalysisRunRecordsRefs(
+    Expression<bool> Function($$PlotAnalysisRunRecordsTableFilterComposer f) f,
+  ) {
+    final $$PlotAnalysisRunRecordsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.plotAnalysisRunRecords,
+          getReferencedColumn: (t) => t.sampleId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PlotAnalysisRunRecordsTableFilterComposer(
+                $db: $db,
+                $table: $db.plotAnalysisRunRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<bool> plotProfileRecordsRefs(
+    Expression<bool> Function($$PlotProfileRecordsTableFilterComposer f) f,
+  ) {
+    final $$PlotProfileRecordsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.plotProfileRecords,
+      getReferencedColumn: (t) => t.sourceSampleId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PlotProfileRecordsTableFilterComposer(
+            $db: $db,
+            $table: $db.plotProfileRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$PlotSampleRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $PlotSampleRecordsTable> {
+  $$PlotSampleRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceType => $composableBuilder(
+    column: $table.sourceType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get characterCount => $composableBuilder(
+    column: $table.characterCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceFilename => $composableBuilder(
+    column: $table.sourceFilename,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get epubBookTitle => $composableBuilder(
+    column: $table.epubBookTitle,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get epubAuthor => $composableBuilder(
+    column: $table.epubAuthor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get epubChapterCount => $composableBuilder(
+    column: $table.epubChapterCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PlotSampleRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PlotSampleRecordsTable> {
+  $$PlotSampleRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceType => $composableBuilder(
+    column: $table.sourceType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get content =>
+      $composableBuilder(column: $table.content, builder: (column) => column);
+
+  GeneratedColumn<int> get characterCount => $composableBuilder(
+    column: $table.characterCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sourceFilename => $composableBuilder(
+    column: $table.sourceFilename,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get epubBookTitle => $composableBuilder(
+    column: $table.epubBookTitle,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get epubAuthor => $composableBuilder(
+    column: $table.epubAuthor,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get epubChapterCount => $composableBuilder(
+    column: $table.epubChapterCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  Expression<T> plotAnalysisRunRecordsRefs<T extends Object>(
+    Expression<T> Function($$PlotAnalysisRunRecordsTableAnnotationComposer a) f,
+  ) {
+    final $$PlotAnalysisRunRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.plotAnalysisRunRecords,
+          getReferencedColumn: (t) => t.sampleId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PlotAnalysisRunRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.plotAnalysisRunRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<T> plotProfileRecordsRefs<T extends Object>(
+    Expression<T> Function($$PlotProfileRecordsTableAnnotationComposer a) f,
+  ) {
+    final $$PlotProfileRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.plotProfileRecords,
+          getReferencedColumn: (t) => t.sourceSampleId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PlotProfileRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.plotProfileRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+}
+
+class $$PlotSampleRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PlotSampleRecordsTable,
+          PlotSampleRecord,
+          $$PlotSampleRecordsTableFilterComposer,
+          $$PlotSampleRecordsTableOrderingComposer,
+          $$PlotSampleRecordsTableAnnotationComposer,
+          $$PlotSampleRecordsTableCreateCompanionBuilder,
+          $$PlotSampleRecordsTableUpdateCompanionBuilder,
+          (PlotSampleRecord, $$PlotSampleRecordsTableReferences),
+          PlotSampleRecord,
+          PrefetchHooks Function({
+            bool plotAnalysisRunRecordsRefs,
+            bool plotProfileRecordsRefs,
+          })
+        > {
+  $$PlotSampleRecordsTableTableManager(
+    _$AppDatabase db,
+    $PlotSampleRecordsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PlotSampleRecordsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PlotSampleRecordsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PlotSampleRecordsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> sourceType = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> content = const Value.absent(),
+                Value<int> characterCount = const Value.absent(),
+                Value<String?> sourceFilename = const Value.absent(),
+                Value<String?> epubBookTitle = const Value.absent(),
+                Value<String?> epubAuthor = const Value.absent(),
+                Value<int?> epubChapterCount = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PlotSampleRecordsCompanion(
+                id: id,
+                sourceType: sourceType,
+                title: title,
+                content: content,
+                characterCount: characterCount,
+                sourceFilename: sourceFilename,
+                epubBookTitle: epubBookTitle,
+                epubAuthor: epubAuthor,
+                epubChapterCount: epubChapterCount,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String sourceType,
+                required String title,
+                required String content,
+                required int characterCount,
+                Value<String?> sourceFilename = const Value.absent(),
+                Value<String?> epubBookTitle = const Value.absent(),
+                Value<String?> epubAuthor = const Value.absent(),
+                Value<int?> epubChapterCount = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => PlotSampleRecordsCompanion.insert(
+                id: id,
+                sourceType: sourceType,
+                title: title,
+                content: content,
+                characterCount: characterCount,
+                sourceFilename: sourceFilename,
+                epubBookTitle: epubBookTitle,
+                epubAuthor: epubAuthor,
+                epubChapterCount: epubChapterCount,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$PlotSampleRecordsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({
+                plotAnalysisRunRecordsRefs = false,
+                plotProfileRecordsRefs = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (plotAnalysisRunRecordsRefs) db.plotAnalysisRunRecords,
+                    if (plotProfileRecordsRefs) db.plotProfileRecords,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (plotAnalysisRunRecordsRefs)
+                        await $_getPrefetchedData<
+                          PlotSampleRecord,
+                          $PlotSampleRecordsTable,
+                          PlotAnalysisRunRecord
+                        >(
+                          currentTable: table,
+                          referencedTable: $$PlotSampleRecordsTableReferences
+                              ._plotAnalysisRunRecordsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$PlotSampleRecordsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).plotAnalysisRunRecordsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.sampleId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (plotProfileRecordsRefs)
+                        await $_getPrefetchedData<
+                          PlotSampleRecord,
+                          $PlotSampleRecordsTable,
+                          PlotProfileRecord
+                        >(
+                          currentTable: table,
+                          referencedTable: $$PlotSampleRecordsTableReferences
+                              ._plotProfileRecordsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$PlotSampleRecordsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).plotProfileRecordsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.sourceSampleId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$PlotSampleRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PlotSampleRecordsTable,
+      PlotSampleRecord,
+      $$PlotSampleRecordsTableFilterComposer,
+      $$PlotSampleRecordsTableOrderingComposer,
+      $$PlotSampleRecordsTableAnnotationComposer,
+      $$PlotSampleRecordsTableCreateCompanionBuilder,
+      $$PlotSampleRecordsTableUpdateCompanionBuilder,
+      (PlotSampleRecord, $$PlotSampleRecordsTableReferences),
+      PlotSampleRecord,
+      PrefetchHooks Function({
+        bool plotAnalysisRunRecordsRefs,
+        bool plotProfileRecordsRefs,
+      })
+    >;
+typedef $$PlotAnalysisRunRecordsTableCreateCompanionBuilder =
+    PlotAnalysisRunRecordsCompanion Function({
+      required String id,
+      required String workflowTaskId,
+      required String sampleId,
+      required String providerId,
+      required String modelName,
+      required String plotName,
+      required String status,
+      Value<String?> stage,
+      Value<String?> errorMessage,
+      Value<String> logs,
+      Value<String?> analysisReportMarkdown,
+      Value<String?> plotSkeletonMarkdown,
+      Value<String?> storyEngineMarkdown,
+      Value<String?> profileId,
+      Value<int> chunkCount,
+      required int characterCount,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<DateTime?> startedAt,
+      Value<DateTime?> completedAt,
+      Value<int> rowid,
+    });
+typedef $$PlotAnalysisRunRecordsTableUpdateCompanionBuilder =
+    PlotAnalysisRunRecordsCompanion Function({
+      Value<String> id,
+      Value<String> workflowTaskId,
+      Value<String> sampleId,
+      Value<String> providerId,
+      Value<String> modelName,
+      Value<String> plotName,
+      Value<String> status,
+      Value<String?> stage,
+      Value<String?> errorMessage,
+      Value<String> logs,
+      Value<String?> analysisReportMarkdown,
+      Value<String?> plotSkeletonMarkdown,
+      Value<String?> storyEngineMarkdown,
+      Value<String?> profileId,
+      Value<int> chunkCount,
+      Value<int> characterCount,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> startedAt,
+      Value<DateTime?> completedAt,
+      Value<int> rowid,
+    });
+
+final class $$PlotAnalysisRunRecordsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $PlotAnalysisRunRecordsTable,
+          PlotAnalysisRunRecord
+        > {
+  $$PlotAnalysisRunRecordsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $WorkflowTaskRecordsTable _workflowTaskIdTable(_$AppDatabase db) =>
+      db.workflowTaskRecords.createAlias(
+        $_aliasNameGenerator(
+          db.plotAnalysisRunRecords.workflowTaskId,
+          db.workflowTaskRecords.id,
+        ),
+      );
+
+  $$WorkflowTaskRecordsTableProcessedTableManager get workflowTaskId {
+    final $_column = $_itemColumn<String>('workflow_task_id')!;
+
+    final manager = $$WorkflowTaskRecordsTableTableManager(
+      $_db,
+      $_db.workflowTaskRecords,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_workflowTaskIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $PlotSampleRecordsTable _sampleIdTable(_$AppDatabase db) =>
+      db.plotSampleRecords.createAlias(
+        $_aliasNameGenerator(
+          db.plotAnalysisRunRecords.sampleId,
+          db.plotSampleRecords.id,
+        ),
+      );
+
+  $$PlotSampleRecordsTableProcessedTableManager get sampleId {
+    final $_column = $_itemColumn<String>('sample_id')!;
+
+    final manager = $$PlotSampleRecordsTableTableManager(
+      $_db,
+      $_db.plotSampleRecords,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_sampleIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $ProviderConfigRecordsTable _providerIdTable(_$AppDatabase db) =>
+      db.providerConfigRecords.createAlias(
+        $_aliasNameGenerator(
+          db.plotAnalysisRunRecords.providerId,
+          db.providerConfigRecords.id,
+        ),
+      );
+
+  $$ProviderConfigRecordsTableProcessedTableManager get providerId {
+    final $_column = $_itemColumn<String>('provider_id')!;
+
+    final manager = $$ProviderConfigRecordsTableTableManager(
+      $_db,
+      $_db.providerConfigRecords,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_providerIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<$PlotProfileRecordsTable, List<PlotProfileRecord>>
+  _plotProfileRecordsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.plotProfileRecords,
+        aliasName: $_aliasNameGenerator(
+          db.plotAnalysisRunRecords.id,
+          db.plotProfileRecords.sourceRunId,
+        ),
+      );
+
+  $$PlotProfileRecordsTableProcessedTableManager get plotProfileRecordsRefs {
+    final manager = $$PlotProfileRecordsTableTableManager(
+      $_db,
+      $_db.plotProfileRecords,
+    ).filter((f) => f.sourceRunId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _plotProfileRecordsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$PlotAnalysisRunRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $PlotAnalysisRunRecordsTable> {
+  $$PlotAnalysisRunRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get modelName => $composableBuilder(
+    column: $table.modelName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get plotName => $composableBuilder(
+    column: $table.plotName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get stage => $composableBuilder(
+    column: $table.stage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get errorMessage => $composableBuilder(
+    column: $table.errorMessage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get logs => $composableBuilder(
+    column: $table.logs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get analysisReportMarkdown => $composableBuilder(
+    column: $table.analysisReportMarkdown,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get plotSkeletonMarkdown => $composableBuilder(
+    column: $table.plotSkeletonMarkdown,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get storyEngineMarkdown => $composableBuilder(
+    column: $table.storyEngineMarkdown,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get profileId => $composableBuilder(
+    column: $table.profileId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get chunkCount => $composableBuilder(
+    column: $table.chunkCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get characterCount => $composableBuilder(
+    column: $table.characterCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$WorkflowTaskRecordsTableFilterComposer get workflowTaskId {
+    final $$WorkflowTaskRecordsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.workflowTaskId,
+      referencedTable: $db.workflowTaskRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkflowTaskRecordsTableFilterComposer(
+            $db: $db,
+            $table: $db.workflowTaskRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PlotSampleRecordsTableFilterComposer get sampleId {
+    final $$PlotSampleRecordsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sampleId,
+      referencedTable: $db.plotSampleRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PlotSampleRecordsTableFilterComposer(
+            $db: $db,
+            $table: $db.plotSampleRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ProviderConfigRecordsTableFilterComposer get providerId {
+    final $$ProviderConfigRecordsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.providerId,
+          referencedTable: $db.providerConfigRecords,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ProviderConfigRecordsTableFilterComposer(
+                $db: $db,
+                $table: $db.providerConfigRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+
+  Expression<bool> plotProfileRecordsRefs(
+    Expression<bool> Function($$PlotProfileRecordsTableFilterComposer f) f,
+  ) {
+    final $$PlotProfileRecordsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.plotProfileRecords,
+      getReferencedColumn: (t) => t.sourceRunId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PlotProfileRecordsTableFilterComposer(
+            $db: $db,
+            $table: $db.plotProfileRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$PlotAnalysisRunRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $PlotAnalysisRunRecordsTable> {
+  $$PlotAnalysisRunRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get modelName => $composableBuilder(
+    column: $table.modelName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get plotName => $composableBuilder(
+    column: $table.plotName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get stage => $composableBuilder(
+    column: $table.stage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get errorMessage => $composableBuilder(
+    column: $table.errorMessage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get logs => $composableBuilder(
+    column: $table.logs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get analysisReportMarkdown => $composableBuilder(
+    column: $table.analysisReportMarkdown,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get plotSkeletonMarkdown => $composableBuilder(
+    column: $table.plotSkeletonMarkdown,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get storyEngineMarkdown => $composableBuilder(
+    column: $table.storyEngineMarkdown,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get profileId => $composableBuilder(
+    column: $table.profileId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get chunkCount => $composableBuilder(
+    column: $table.chunkCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get characterCount => $composableBuilder(
+    column: $table.characterCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$WorkflowTaskRecordsTableOrderingComposer get workflowTaskId {
+    final $$WorkflowTaskRecordsTableOrderingComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.workflowTaskId,
+          referencedTable: $db.workflowTaskRecords,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$WorkflowTaskRecordsTableOrderingComposer(
+                $db: $db,
+                $table: $db.workflowTaskRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+
+  $$PlotSampleRecordsTableOrderingComposer get sampleId {
+    final $$PlotSampleRecordsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sampleId,
+      referencedTable: $db.plotSampleRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PlotSampleRecordsTableOrderingComposer(
+            $db: $db,
+            $table: $db.plotSampleRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ProviderConfigRecordsTableOrderingComposer get providerId {
+    final $$ProviderConfigRecordsTableOrderingComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.providerId,
+          referencedTable: $db.providerConfigRecords,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ProviderConfigRecordsTableOrderingComposer(
+                $db: $db,
+                $table: $db.providerConfigRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$PlotAnalysisRunRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PlotAnalysisRunRecordsTable> {
+  $$PlotAnalysisRunRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get modelName =>
+      $composableBuilder(column: $table.modelName, builder: (column) => column);
+
+  GeneratedColumn<String> get plotName =>
+      $composableBuilder(column: $table.plotName, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get stage =>
+      $composableBuilder(column: $table.stage, builder: (column) => column);
+
+  GeneratedColumn<String> get errorMessage => $composableBuilder(
+    column: $table.errorMessage,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get logs =>
+      $composableBuilder(column: $table.logs, builder: (column) => column);
+
+  GeneratedColumn<String> get analysisReportMarkdown => $composableBuilder(
+    column: $table.analysisReportMarkdown,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get plotSkeletonMarkdown => $composableBuilder(
+    column: $table.plotSkeletonMarkdown,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get storyEngineMarkdown => $composableBuilder(
+    column: $table.storyEngineMarkdown,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get profileId =>
+      $composableBuilder(column: $table.profileId, builder: (column) => column);
+
+  GeneratedColumn<int> get chunkCount => $composableBuilder(
+    column: $table.chunkCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get characterCount => $composableBuilder(
+    column: $table.characterCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startedAt =>
+      $composableBuilder(column: $table.startedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => column,
+  );
+
+  $$WorkflowTaskRecordsTableAnnotationComposer get workflowTaskId {
+    final $$WorkflowTaskRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.workflowTaskId,
+          referencedTable: $db.workflowTaskRecords,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$WorkflowTaskRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.workflowTaskRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+
+  $$PlotSampleRecordsTableAnnotationComposer get sampleId {
+    final $$PlotSampleRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.sampleId,
+          referencedTable: $db.plotSampleRecords,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PlotSampleRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.plotSampleRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+
+  $$ProviderConfigRecordsTableAnnotationComposer get providerId {
+    final $$ProviderConfigRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.providerId,
+          referencedTable: $db.providerConfigRecords,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ProviderConfigRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.providerConfigRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+
+  Expression<T> plotProfileRecordsRefs<T extends Object>(
+    Expression<T> Function($$PlotProfileRecordsTableAnnotationComposer a) f,
+  ) {
+    final $$PlotProfileRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.plotProfileRecords,
+          getReferencedColumn: (t) => t.sourceRunId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PlotProfileRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.plotProfileRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+}
+
+class $$PlotAnalysisRunRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PlotAnalysisRunRecordsTable,
+          PlotAnalysisRunRecord,
+          $$PlotAnalysisRunRecordsTableFilterComposer,
+          $$PlotAnalysisRunRecordsTableOrderingComposer,
+          $$PlotAnalysisRunRecordsTableAnnotationComposer,
+          $$PlotAnalysisRunRecordsTableCreateCompanionBuilder,
+          $$PlotAnalysisRunRecordsTableUpdateCompanionBuilder,
+          (PlotAnalysisRunRecord, $$PlotAnalysisRunRecordsTableReferences),
+          PlotAnalysisRunRecord,
+          PrefetchHooks Function({
+            bool workflowTaskId,
+            bool sampleId,
+            bool providerId,
+            bool plotProfileRecordsRefs,
+          })
+        > {
+  $$PlotAnalysisRunRecordsTableTableManager(
+    _$AppDatabase db,
+    $PlotAnalysisRunRecordsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PlotAnalysisRunRecordsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$PlotAnalysisRunRecordsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$PlotAnalysisRunRecordsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> workflowTaskId = const Value.absent(),
+                Value<String> sampleId = const Value.absent(),
+                Value<String> providerId = const Value.absent(),
+                Value<String> modelName = const Value.absent(),
+                Value<String> plotName = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String?> stage = const Value.absent(),
+                Value<String?> errorMessage = const Value.absent(),
+                Value<String> logs = const Value.absent(),
+                Value<String?> analysisReportMarkdown = const Value.absent(),
+                Value<String?> plotSkeletonMarkdown = const Value.absent(),
+                Value<String?> storyEngineMarkdown = const Value.absent(),
+                Value<String?> profileId = const Value.absent(),
+                Value<int> chunkCount = const Value.absent(),
+                Value<int> characterCount = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> startedAt = const Value.absent(),
+                Value<DateTime?> completedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PlotAnalysisRunRecordsCompanion(
+                id: id,
+                workflowTaskId: workflowTaskId,
+                sampleId: sampleId,
+                providerId: providerId,
+                modelName: modelName,
+                plotName: plotName,
+                status: status,
+                stage: stage,
+                errorMessage: errorMessage,
+                logs: logs,
+                analysisReportMarkdown: analysisReportMarkdown,
+                plotSkeletonMarkdown: plotSkeletonMarkdown,
+                storyEngineMarkdown: storyEngineMarkdown,
+                profileId: profileId,
+                chunkCount: chunkCount,
+                characterCount: characterCount,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                startedAt: startedAt,
+                completedAt: completedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String workflowTaskId,
+                required String sampleId,
+                required String providerId,
+                required String modelName,
+                required String plotName,
+                required String status,
+                Value<String?> stage = const Value.absent(),
+                Value<String?> errorMessage = const Value.absent(),
+                Value<String> logs = const Value.absent(),
+                Value<String?> analysisReportMarkdown = const Value.absent(),
+                Value<String?> plotSkeletonMarkdown = const Value.absent(),
+                Value<String?> storyEngineMarkdown = const Value.absent(),
+                Value<String?> profileId = const Value.absent(),
+                Value<int> chunkCount = const Value.absent(),
+                required int characterCount,
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<DateTime?> startedAt = const Value.absent(),
+                Value<DateTime?> completedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PlotAnalysisRunRecordsCompanion.insert(
+                id: id,
+                workflowTaskId: workflowTaskId,
+                sampleId: sampleId,
+                providerId: providerId,
+                modelName: modelName,
+                plotName: plotName,
+                status: status,
+                stage: stage,
+                errorMessage: errorMessage,
+                logs: logs,
+                analysisReportMarkdown: analysisReportMarkdown,
+                plotSkeletonMarkdown: plotSkeletonMarkdown,
+                storyEngineMarkdown: storyEngineMarkdown,
+                profileId: profileId,
+                chunkCount: chunkCount,
+                characterCount: characterCount,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                startedAt: startedAt,
+                completedAt: completedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$PlotAnalysisRunRecordsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({
+                workflowTaskId = false,
+                sampleId = false,
+                providerId = false,
+                plotProfileRecordsRefs = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (plotProfileRecordsRefs) db.plotProfileRecords,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (workflowTaskId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.workflowTaskId,
+                                    referencedTable:
+                                        $$PlotAnalysisRunRecordsTableReferences
+                                            ._workflowTaskIdTable(db),
+                                    referencedColumn:
+                                        $$PlotAnalysisRunRecordsTableReferences
+                                            ._workflowTaskIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (sampleId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.sampleId,
+                                    referencedTable:
+                                        $$PlotAnalysisRunRecordsTableReferences
+                                            ._sampleIdTable(db),
+                                    referencedColumn:
+                                        $$PlotAnalysisRunRecordsTableReferences
+                                            ._sampleIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (providerId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.providerId,
+                                    referencedTable:
+                                        $$PlotAnalysisRunRecordsTableReferences
+                                            ._providerIdTable(db),
+                                    referencedColumn:
+                                        $$PlotAnalysisRunRecordsTableReferences
+                                            ._providerIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (plotProfileRecordsRefs)
+                        await $_getPrefetchedData<
+                          PlotAnalysisRunRecord,
+                          $PlotAnalysisRunRecordsTable,
+                          PlotProfileRecord
+                        >(
+                          currentTable: table,
+                          referencedTable:
+                              $$PlotAnalysisRunRecordsTableReferences
+                                  ._plotProfileRecordsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$PlotAnalysisRunRecordsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).plotProfileRecordsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.sourceRunId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$PlotAnalysisRunRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PlotAnalysisRunRecordsTable,
+      PlotAnalysisRunRecord,
+      $$PlotAnalysisRunRecordsTableFilterComposer,
+      $$PlotAnalysisRunRecordsTableOrderingComposer,
+      $$PlotAnalysisRunRecordsTableAnnotationComposer,
+      $$PlotAnalysisRunRecordsTableCreateCompanionBuilder,
+      $$PlotAnalysisRunRecordsTableUpdateCompanionBuilder,
+      (PlotAnalysisRunRecord, $$PlotAnalysisRunRecordsTableReferences),
+      PlotAnalysisRunRecord,
+      PrefetchHooks Function({
+        bool workflowTaskId,
+        bool sampleId,
+        bool providerId,
+        bool plotProfileRecordsRefs,
+      })
+    >;
+typedef $$PlotProfileRecordsTableCreateCompanionBuilder =
+    PlotProfileRecordsCompanion Function({
+      required String id,
+      required String sourceRunId,
+      required String providerId,
+      required String modelName,
+      required String plotName,
+      required String storyEngineMarkdown,
+      required String analysisReportMarkdown,
+      required String plotSkeletonMarkdown,
+      Value<String?> sourceSampleId,
+      Value<String?> sourceTitle,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$PlotProfileRecordsTableUpdateCompanionBuilder =
+    PlotProfileRecordsCompanion Function({
+      Value<String> id,
+      Value<String> sourceRunId,
+      Value<String> providerId,
+      Value<String> modelName,
+      Value<String> plotName,
+      Value<String> storyEngineMarkdown,
+      Value<String> analysisReportMarkdown,
+      Value<String> plotSkeletonMarkdown,
+      Value<String?> sourceSampleId,
+      Value<String?> sourceTitle,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+final class $$PlotProfileRecordsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $PlotProfileRecordsTable,
+          PlotProfileRecord
+        > {
+  $$PlotProfileRecordsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $PlotAnalysisRunRecordsTable _sourceRunIdTable(_$AppDatabase db) =>
+      db.plotAnalysisRunRecords.createAlias(
+        $_aliasNameGenerator(
+          db.plotProfileRecords.sourceRunId,
+          db.plotAnalysisRunRecords.id,
+        ),
+      );
+
+  $$PlotAnalysisRunRecordsTableProcessedTableManager get sourceRunId {
+    final $_column = $_itemColumn<String>('source_run_id')!;
+
+    final manager = $$PlotAnalysisRunRecordsTableTableManager(
+      $_db,
+      $_db.plotAnalysisRunRecords,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_sourceRunIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $ProviderConfigRecordsTable _providerIdTable(_$AppDatabase db) =>
+      db.providerConfigRecords.createAlias(
+        $_aliasNameGenerator(
+          db.plotProfileRecords.providerId,
+          db.providerConfigRecords.id,
+        ),
+      );
+
+  $$ProviderConfigRecordsTableProcessedTableManager get providerId {
+    final $_column = $_itemColumn<String>('provider_id')!;
+
+    final manager = $$ProviderConfigRecordsTableTableManager(
+      $_db,
+      $_db.providerConfigRecords,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_providerIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $PlotSampleRecordsTable _sourceSampleIdTable(_$AppDatabase db) =>
+      db.plotSampleRecords.createAlias(
+        $_aliasNameGenerator(
+          db.plotProfileRecords.sourceSampleId,
+          db.plotSampleRecords.id,
+        ),
+      );
+
+  $$PlotSampleRecordsTableProcessedTableManager? get sourceSampleId {
+    final $_column = $_itemColumn<String>('source_sample_id');
+    if ($_column == null) return null;
+    final manager = $$PlotSampleRecordsTableTableManager(
+      $_db,
+      $_db.plotSampleRecords,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_sourceSampleIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$PlotProfileRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $PlotProfileRecordsTable> {
+  $$PlotProfileRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get modelName => $composableBuilder(
+    column: $table.modelName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get plotName => $composableBuilder(
+    column: $table.plotName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get storyEngineMarkdown => $composableBuilder(
+    column: $table.storyEngineMarkdown,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get analysisReportMarkdown => $composableBuilder(
+    column: $table.analysisReportMarkdown,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get plotSkeletonMarkdown => $composableBuilder(
+    column: $table.plotSkeletonMarkdown,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceTitle => $composableBuilder(
+    column: $table.sourceTitle,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$PlotAnalysisRunRecordsTableFilterComposer get sourceRunId {
+    final $$PlotAnalysisRunRecordsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.sourceRunId,
+          referencedTable: $db.plotAnalysisRunRecords,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PlotAnalysisRunRecordsTableFilterComposer(
+                $db: $db,
+                $table: $db.plotAnalysisRunRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+
+  $$ProviderConfigRecordsTableFilterComposer get providerId {
+    final $$ProviderConfigRecordsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.providerId,
+          referencedTable: $db.providerConfigRecords,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ProviderConfigRecordsTableFilterComposer(
+                $db: $db,
+                $table: $db.providerConfigRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+
+  $$PlotSampleRecordsTableFilterComposer get sourceSampleId {
+    final $$PlotSampleRecordsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sourceSampleId,
+      referencedTable: $db.plotSampleRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PlotSampleRecordsTableFilterComposer(
+            $db: $db,
+            $table: $db.plotSampleRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PlotProfileRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $PlotProfileRecordsTable> {
+  $$PlotProfileRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get modelName => $composableBuilder(
+    column: $table.modelName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get plotName => $composableBuilder(
+    column: $table.plotName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get storyEngineMarkdown => $composableBuilder(
+    column: $table.storyEngineMarkdown,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get analysisReportMarkdown => $composableBuilder(
+    column: $table.analysisReportMarkdown,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get plotSkeletonMarkdown => $composableBuilder(
+    column: $table.plotSkeletonMarkdown,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceTitle => $composableBuilder(
+    column: $table.sourceTitle,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$PlotAnalysisRunRecordsTableOrderingComposer get sourceRunId {
+    final $$PlotAnalysisRunRecordsTableOrderingComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.sourceRunId,
+          referencedTable: $db.plotAnalysisRunRecords,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PlotAnalysisRunRecordsTableOrderingComposer(
+                $db: $db,
+                $table: $db.plotAnalysisRunRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+
+  $$ProviderConfigRecordsTableOrderingComposer get providerId {
+    final $$ProviderConfigRecordsTableOrderingComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.providerId,
+          referencedTable: $db.providerConfigRecords,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ProviderConfigRecordsTableOrderingComposer(
+                $db: $db,
+                $table: $db.providerConfigRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+
+  $$PlotSampleRecordsTableOrderingComposer get sourceSampleId {
+    final $$PlotSampleRecordsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sourceSampleId,
+      referencedTable: $db.plotSampleRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PlotSampleRecordsTableOrderingComposer(
+            $db: $db,
+            $table: $db.plotSampleRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PlotProfileRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PlotProfileRecordsTable> {
+  $$PlotProfileRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get modelName =>
+      $composableBuilder(column: $table.modelName, builder: (column) => column);
+
+  GeneratedColumn<String> get plotName =>
+      $composableBuilder(column: $table.plotName, builder: (column) => column);
+
+  GeneratedColumn<String> get storyEngineMarkdown => $composableBuilder(
+    column: $table.storyEngineMarkdown,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get analysisReportMarkdown => $composableBuilder(
+    column: $table.analysisReportMarkdown,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get plotSkeletonMarkdown => $composableBuilder(
+    column: $table.plotSkeletonMarkdown,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sourceTitle => $composableBuilder(
+    column: $table.sourceTitle,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$PlotAnalysisRunRecordsTableAnnotationComposer get sourceRunId {
+    final $$PlotAnalysisRunRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.sourceRunId,
+          referencedTable: $db.plotAnalysisRunRecords,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PlotAnalysisRunRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.plotAnalysisRunRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+
+  $$ProviderConfigRecordsTableAnnotationComposer get providerId {
+    final $$ProviderConfigRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.providerId,
+          referencedTable: $db.providerConfigRecords,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ProviderConfigRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.providerConfigRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+
+  $$PlotSampleRecordsTableAnnotationComposer get sourceSampleId {
+    final $$PlotSampleRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.sourceSampleId,
+          referencedTable: $db.plotSampleRecords,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PlotSampleRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.plotSampleRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$PlotProfileRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PlotProfileRecordsTable,
+          PlotProfileRecord,
+          $$PlotProfileRecordsTableFilterComposer,
+          $$PlotProfileRecordsTableOrderingComposer,
+          $$PlotProfileRecordsTableAnnotationComposer,
+          $$PlotProfileRecordsTableCreateCompanionBuilder,
+          $$PlotProfileRecordsTableUpdateCompanionBuilder,
+          (PlotProfileRecord, $$PlotProfileRecordsTableReferences),
+          PlotProfileRecord,
+          PrefetchHooks Function({
+            bool sourceRunId,
+            bool providerId,
+            bool sourceSampleId,
+          })
+        > {
+  $$PlotProfileRecordsTableTableManager(
+    _$AppDatabase db,
+    $PlotProfileRecordsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PlotProfileRecordsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PlotProfileRecordsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PlotProfileRecordsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> sourceRunId = const Value.absent(),
+                Value<String> providerId = const Value.absent(),
+                Value<String> modelName = const Value.absent(),
+                Value<String> plotName = const Value.absent(),
+                Value<String> storyEngineMarkdown = const Value.absent(),
+                Value<String> analysisReportMarkdown = const Value.absent(),
+                Value<String> plotSkeletonMarkdown = const Value.absent(),
+                Value<String?> sourceSampleId = const Value.absent(),
+                Value<String?> sourceTitle = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PlotProfileRecordsCompanion(
+                id: id,
+                sourceRunId: sourceRunId,
+                providerId: providerId,
+                modelName: modelName,
+                plotName: plotName,
+                storyEngineMarkdown: storyEngineMarkdown,
+                analysisReportMarkdown: analysisReportMarkdown,
+                plotSkeletonMarkdown: plotSkeletonMarkdown,
+                sourceSampleId: sourceSampleId,
+                sourceTitle: sourceTitle,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String sourceRunId,
+                required String providerId,
+                required String modelName,
+                required String plotName,
+                required String storyEngineMarkdown,
+                required String analysisReportMarkdown,
+                required String plotSkeletonMarkdown,
+                Value<String?> sourceSampleId = const Value.absent(),
+                Value<String?> sourceTitle = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => PlotProfileRecordsCompanion.insert(
+                id: id,
+                sourceRunId: sourceRunId,
+                providerId: providerId,
+                modelName: modelName,
+                plotName: plotName,
+                storyEngineMarkdown: storyEngineMarkdown,
+                analysisReportMarkdown: analysisReportMarkdown,
+                plotSkeletonMarkdown: plotSkeletonMarkdown,
+                sourceSampleId: sourceSampleId,
+                sourceTitle: sourceTitle,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$PlotProfileRecordsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({
+                sourceRunId = false,
+                providerId = false,
+                sourceSampleId = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (sourceRunId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.sourceRunId,
+                                    referencedTable:
+                                        $$PlotProfileRecordsTableReferences
+                                            ._sourceRunIdTable(db),
+                                    referencedColumn:
+                                        $$PlotProfileRecordsTableReferences
+                                            ._sourceRunIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (providerId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.providerId,
+                                    referencedTable:
+                                        $$PlotProfileRecordsTableReferences
+                                            ._providerIdTable(db),
+                                    referencedColumn:
+                                        $$PlotProfileRecordsTableReferences
+                                            ._providerIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (sourceSampleId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.sourceSampleId,
+                                    referencedTable:
+                                        $$PlotProfileRecordsTableReferences
+                                            ._sourceSampleIdTable(db),
+                                    referencedColumn:
+                                        $$PlotProfileRecordsTableReferences
+                                            ._sourceSampleIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$PlotProfileRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PlotProfileRecordsTable,
+      PlotProfileRecord,
+      $$PlotProfileRecordsTableFilterComposer,
+      $$PlotProfileRecordsTableOrderingComposer,
+      $$PlotProfileRecordsTableAnnotationComposer,
+      $$PlotProfileRecordsTableCreateCompanionBuilder,
+      $$PlotProfileRecordsTableUpdateCompanionBuilder,
+      (PlotProfileRecord, $$PlotProfileRecordsTableReferences),
+      PlotProfileRecord,
+      PrefetchHooks Function({
+        bool sourceRunId,
+        bool providerId,
+        bool sourceSampleId,
+      })
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -8502,4 +13652,13 @@ class $AppDatabaseManager {
       );
   $$StyleProfileRecordsTableTableManager get styleProfileRecords =>
       $$StyleProfileRecordsTableTableManager(_db, _db.styleProfileRecords);
+  $$PlotSampleRecordsTableTableManager get plotSampleRecords =>
+      $$PlotSampleRecordsTableTableManager(_db, _db.plotSampleRecords);
+  $$PlotAnalysisRunRecordsTableTableManager get plotAnalysisRunRecords =>
+      $$PlotAnalysisRunRecordsTableTableManager(
+        _db,
+        _db.plotAnalysisRunRecords,
+      );
+  $$PlotProfileRecordsTableTableManager get plotProfileRecords =>
+      $$PlotProfileRecordsTableTableManager(_db, _db.plotProfileRecords);
 }

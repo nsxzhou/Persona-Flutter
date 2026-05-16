@@ -1,0 +1,435 @@
+import 'package:drift/native.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:persona_flutter/src/features/plot_lab/application/plot_chunk_sketch_document.dart';
+import 'package:persona_flutter/src/core/database/app_database.dart';
+import 'package:persona_flutter/src/core/llm/application/llm_invocation_service.dart';
+import 'package:persona_flutter/src/core/llm/application/markdown_completion_service.dart';
+import 'package:persona_flutter/src/core/llm/domain/llm_client.dart';
+import 'package:persona_flutter/src/core/llm/domain/llm_request.dart';
+import 'package:persona_flutter/src/core/llm/domain/llm_stream_event.dart';
+import 'package:persona_flutter/src/core/tasks/data/drift_workflow_task_repository.dart';
+import 'package:persona_flutter/src/core/tasks/domain/workflow_task.dart';
+import 'package:persona_flutter/src/features/plot_lab/application/plot_analysis_pipeline.dart';
+import 'package:persona_flutter/src/features/plot_lab/application/plot_input_classification.dart';
+import 'package:persona_flutter/src/features/plot_lab/application/plot_lab_prompts.dart';
+import 'package:persona_flutter/src/features/plot_lab/application/story_engine_normalizer.dart';
+import 'package:persona_flutter/src/features/plot_lab/data/drift_plot_lab_repository.dart';
+import 'package:persona_flutter/src/features/plot_lab/domain/plot_analysis_run.dart';
+import 'package:persona_flutter/src/features/plot_lab/domain/plot_chunk_sketch.dart';
+import 'package:persona_flutter/src/features/plot_lab/domain/plot_profile.dart';
+import 'package:persona_flutter/src/features/plot_lab/domain/plot_sample.dart';
+import 'package:persona_flutter/src/features/settings/data/drift_provider_config_repository.dart';
+import 'package:persona_flutter/src/features/settings/domain/provider_config.dart';
+
+void main() {
+  test(
+    'plot lab repository round-trips samples runs profiles and tasks',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final (provider, repository) = await _plotLabTestContext(database);
+
+      final sample = await repository.saveSample(
+        const PlotSampleInput(
+          sourceType: PlotSampleSourceType.txt,
+          title: '裂缝样本',
+          content: '第一章 开端\n\n他被迫做出选择。',
+          sourceFilename: 'sample.txt',
+        ),
+      );
+      expect(sample.characterCount, greaterThan(0));
+
+      final run = await repository.createRun(
+        PlotAnalysisRunInput(
+          sampleId: sample.id,
+          providerId: provider.id,
+          modelName: provider.defaultModel,
+          plotName: '裂缝骨架',
+          characterCount: sample.characterCount,
+        ),
+      );
+
+      await repository.updateRunState(
+        id: run.id,
+        status: PlotAnalysisStatus.succeeded,
+        analysisReportMarkdown: '# 执行摘要\n压力推进。',
+        plotSkeletonMarkdown: '# 全书骨架\n## 主线推进链\n@chunk0',
+        storyEngineMarkdown: _validStoryEngine,
+        completedAt: DateTime.utc(2026, 5, 16),
+      );
+
+      final profile = await repository.saveProfileFromRun(
+        PlotProfileInput(
+          runId: run.id,
+          plotName: '裂缝骨架',
+          storyEngineMarkdown: _validStoryEngine,
+        ),
+      );
+
+      expect(profile.plotName, '裂缝骨架');
+      expect(profile.storyEngineMarkdown, contains('# Plot Writing Guide'));
+      expect(profile.analysisReportMarkdown, contains('压力推进'));
+      expect(profile.plotSkeletonMarkdown, contains('全书骨架'));
+
+      final updated = await repository.updateProfile(
+        id: profile.id,
+        input: const PlotProfileUpdateInput(
+          plotName: '裂缝骨架 v2',
+          storyEngineMarkdown:
+              '# Plot Writing Guide\n\n## Core Plot Formula\n- 新规则\n\n## Anti-Drift Rules\n- 不漂移',
+        ),
+      );
+      expect(updated.plotName, '裂缝骨架 v2');
+      expect(updated.storyEngineMarkdown, contains('新规则'));
+      expect(updated.analysisReportMarkdown, profile.analysisReportMarkdown);
+
+      final rerun = await repository.createRunFromExisting(run.id);
+      expect(rerun.id, isNot(run.id));
+      expect(rerun.status, PlotAnalysisStatus.pending);
+
+      final tasks = await DriftWorkflowTaskRepository(
+        database,
+      ).watchRecentTasks().first;
+      expect(tasks, hasLength(2));
+      expect(tasks.first.kind, plotAnalysisWorkflowTaskKind);
+      expect(
+        tasks.map((task) => task.status),
+        contains(WorkflowTaskStatus.succeeded),
+      );
+      expect(
+        tasks.map((task) => task.status),
+        contains(WorkflowTaskStatus.pending),
+      );
+
+      await repository.deleteProfile(profile.id);
+      expect(await repository.findProfile(profile.id), isNull);
+      expect((await repository.findRun(run.id))!.profileId, isNull);
+
+      await repository.deleteRun(run.id);
+      await repository.deleteRun(rerun.id);
+      expect(
+        await DriftWorkflowTaskRepository(database).watchRecentTasks().first,
+        isEmpty,
+      );
+    },
+  );
+
+  test('plot prompts preserve required sketch and Story Engine contracts', () {
+    const builder = PlotLabPromptBuilder();
+    const classification = PlotInputClassification(
+      textType: '章节正文',
+      hasTimestamps: false,
+      hasSpeakerLabels: false,
+      hasNoiseMarkers: false,
+      usesBatchProcessing: true,
+      locationIndexing: '章节或段落位置',
+      noiseNotes: '未发现显著噪声。',
+    );
+    final sketchPrompt = builder.buildSketchPrompt(
+      chunk: '主角被宗门压制。',
+      chunkIndex: 0,
+      chunkCount: 2,
+      classification: classification,
+    );
+    final skeletonPrompt = builder.buildSkeletonPrompt(
+      sketches: const [],
+      classification: classification,
+      chunkCount: 2,
+    );
+    final reportPrompt = builder.buildReportPrompt(
+      plotSkeletonMarkdown: '# 全书骨架',
+      classification: classification,
+    );
+    final storyPrompt = builder.buildStoryEnginePrompt(
+      reportMarkdown: '# 执行摘要\n压力推进。',
+      plotName: '宗门夺位',
+    );
+
+    expect(sketchPrompt, contains('YAML front matter'));
+    expect(sketchPrompt, contains('chunk_index'));
+    expect(sketchPrompt, contains('# Chunk Sketch'));
+    expect(sketchPrompt, contains('sample_coverage'));
+    expect(sketchPrompt, contains('不得推断完整小说'));
+    expect(skeletonPrompt, contains('# 全书骨架'));
+    expect(skeletonPrompt, contains('证据不足项'));
+    expect(reportPrompt, contains('## 2.5.1 主线剧情分析'));
+    expect(reportPrompt, contains('当前样本未覆盖'));
+    expect(storyPrompt, contains('# Plot Writing Guide'));
+    expect(storyPrompt, contains('YAML front matter'));
+    expect(storyPrompt, contains('plot_summary'));
+    expect(storyPrompt, contains('## Core Plot Formula'));
+    expect(storyPrompt, contains('禁止保留样本人物名'));
+  });
+
+  test(
+    'plot chunk sketch parser reads YAML front matter and Markdown body',
+    () {
+      const parser = PlotChunkSketchDocumentParser();
+      final sketch = parser.parse(
+        markdown: _sketchDocument(),
+        chunkIndex: 0,
+        chunkCount: 1,
+      );
+
+      expect(sketch.chunkIndex, 0);
+      expect(sketch.chunkCount, 1);
+      expect(sketch.charactersPresent, ['主角']);
+      expect(sketch.timeMarker, PlotChunkTimeMarker.linear);
+      expect(sketch.sampleCoverage, [PlotSampleCoverage.developmentSeen]);
+      expect(sketch.bodyMarkdown, startsWith('# Chunk Sketch'));
+    },
+  );
+
+  test('story engine normalizer keeps only allowed sections', () {
+    const normalizer = StoryEngineNormalizer();
+    final normalized = normalizer.normalize(
+      '好的。\n\n$_validStoryEngine\n\n# 无关说明\n- 应移除',
+    );
+
+    expect(normalized.startsWith('---'), isTrue);
+    expect(normalized, contains('plot_summary'));
+    expect(normalized, contains('## Core Plot Formula'));
+    expect(normalized, contains('## Anti-Drift Rules'));
+    expect(normalized, isNot(contains('# 无关说明')));
+  });
+
+  test('story engine normalizer enforces required section order', () {
+    const normalizer = StoryEngineNormalizer();
+    final normalized = normalizer.normalize('''
+---
+name: "测试剧情"
+tags:
+  - 智谋
+plot_summary: "压力推动行动。"
+core_formula: "主角被压制后必须行动。"
+progression_loop: "压力 -> 行动 -> 半兑现"
+tension_rhythm: "压制后反击。"
+hook_strategy: "用新压力收尾。"
+anti_drift:
+  - 不要空泛升级。
+intensity: 0.7
+---
+
+# Plot Writing Guide
+
+## Anti-Drift Rules
+- 不漂移。
+
+## Core Plot Formula
+- 公式。
+
+## Extra Section
+- 删除。
+''');
+
+    expect(
+      normalized,
+      contains('# Plot Writing Guide\n\n## Core Plot Formula'),
+    );
+    expect(normalized, startsWith('---'));
+    for (final header in storyEngineSectionHeaders) {
+      expect(normalized, contains(header));
+    }
+    expect(normalized, contains('## Chapter Progression Loop'));
+    expect(normalized, contains('当前样本中证据有限'));
+    expect(normalized, isNot(contains('## Extra Section')));
+  });
+
+  test(
+    'plot analysis pipeline builds skeleton report and story engine',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final (provider, repository) = await _plotLabTestContext(database);
+      final sample = await repository.saveSample(
+        const PlotSampleInput(
+          sourceType: PlotSampleSourceType.txt,
+          title: '样本',
+          content: '第一段。\n\n第二段。',
+        ),
+      );
+      final run = await repository.createRun(
+        PlotAnalysisRunInput(
+          sampleId: sample.id,
+          providerId: provider.id,
+          modelName: provider.defaultModel,
+          plotName: '裂缝骨架',
+          characterCount: sample.characterCount,
+        ),
+      );
+      final client = _QueuedLlmClient([
+        _sketchDocument(),
+        '# 全书骨架\n## 主线推进链\n@chunk0 压力 -> 行动',
+        '# 执行摘要\n压力迫使行动。',
+        '前言\n\n$_validStoryEngine\n\n# 无关说明\n- 删除',
+      ]);
+      final pipeline = PlotAnalysisPipeline(
+        repository: repository,
+        completionService: MarkdownCompletionService(
+          invocation: LlmInvocationService(client: client),
+        ),
+      );
+
+      await pipeline.run(runId: run.id, provider: provider);
+
+      final updated = await repository.findRun(run.id);
+      expect(updated!.status, PlotAnalysisStatus.succeeded);
+      expect(updated.chunkCount, 1);
+      expect(updated.plotSkeletonMarkdown, contains('全书骨架'));
+      expect(updated.analysisReportMarkdown, contains('压力迫使行动'));
+      expect(updated.storyEngineMarkdown, startsWith('---'));
+      expect(updated.storyEngineMarkdown, contains('plot_summary'));
+      expect(updated.storyEngineMarkdown, contains('# Plot Writing Guide'));
+      expect(updated.storyEngineMarkdown, isNot(contains('# 无关说明')));
+    },
+  );
+
+  test(
+    'plot analysis pipeline rejects invalid sketch YAML front matter',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final (provider, repository) = await _plotLabTestContext(database);
+      final sample = await repository.saveSample(
+        const PlotSampleInput(
+          sourceType: PlotSampleSourceType.txt,
+          title: '样本',
+          content: '第一段。',
+        ),
+      );
+      final run = await repository.createRun(
+        PlotAnalysisRunInput(
+          sampleId: sample.id,
+          providerId: provider.id,
+          modelName: provider.defaultModel,
+          plotName: '裂缝骨架',
+          characterCount: sample.characterCount,
+        ),
+      );
+      final pipeline = PlotAnalysisPipeline(
+        repository: repository,
+        completionService: MarkdownCompletionService(
+          invocation: LlmInvocationService(
+            client: _QueuedLlmClient(['not yaml front matter']),
+          ),
+        ),
+      );
+
+      await expectLater(
+        pipeline.run(runId: run.id, provider: provider),
+        throwsA(isA<FormatException>()),
+      );
+
+      final updated = await repository.findRun(run.id);
+      expect(updated!.status, PlotAnalysisStatus.failed);
+      expect(updated.errorMessage, contains('invalid YAML+MD'));
+    },
+  );
+}
+
+Future<(ProviderConfig, DriftPlotLabRepository)> _plotLabTestContext(
+  AppDatabase database,
+) async {
+  final providerRepository = DriftProviderConfigRepository(database);
+  await providerRepository.saveProvider(
+    input: const ProviderConfigInput(
+      name: 'deepseek',
+      baseUrl: 'https://api.example.com/v1',
+      apiKey: 'sk-secret',
+      defaultModel: 'deepseek-chat',
+      systemPrompt: '',
+      isEnabled: true,
+    ),
+  );
+  final provider = (await providerRepository.watchProviders().first).single;
+  return (provider, DriftPlotLabRepository(database));
+}
+
+String _sketchDocument() {
+  return '''---
+characters_present:
+  - 主角
+scene_units:
+  - 场景：主角被压力推入行动
+main_events:
+  - 主角遭遇压力
+side_threads: []
+payoff_points:
+  - 小反击
+tension_points:
+  - 压力升级
+hooks:
+  - 局面未解
+setup_payoff_links:
+  - 压力铺垫 -> 小反击
+pacing_shift: 压迫转入行动
+time_marker: linear
+sample_coverage:
+  - development_seen
+---
+
+# Chunk Sketch
+- 主角遭遇压力后进入行动位，当前 chunk 形成压迫到小反击的半兑现。
+''';
+}
+
+const _validStoryEngine = '''---
+name: "裂缝骨架"
+tags:
+  - 身份压力
+  - 半兑现
+plot_summary: "主角在身份压力下被迫行动，用半兑现维持追读。"
+core_formula: "当主角遭遇身份压力，必须采取行动，否则失去关键关系。"
+progression_loop: "目标 -> 阻碍 -> 行动 -> 半兑现 -> 新压力。"
+tension_rhythm: "半兑现后追加代价。"
+hook_strategy: "用信息差或资源诱惑制造下一步选择。"
+anti_drift:
+  - 不要把输出写成世界观说明。
+intensity: 0.7
+---
+
+# Plot Writing Guide
+
+## Core Plot Formula
+- 当主角遭遇身份压力，必须采取行动，否则失去关键关系。
+
+## Chapter Progression Loop
+- 目标 -> 阻碍 -> 行动 -> 半兑现 -> 新压力。
+
+## Scene Construction Rules
+- 每场从欲望和压力开始，并以筹码变化结束。
+
+## Setup and Payoff Rules
+- 伏笔必须经历埋设 -> 强化 -> 回收。
+
+## Payoff and Tension Rhythm
+- 半兑现后追加代价。
+
+## Side Plot Usage
+- 支线必须回流主线。
+
+## Hook Recipes
+- 章末用信息差或资源诱惑制造下一步选择。
+
+## Anti-Drift Rules
+- 不要把输出写成世界观说明。
+''';
+
+class _QueuedLlmClient implements LlmClient {
+  _QueuedLlmClient(this._responses);
+
+  final List<String> _responses;
+
+  @override
+  Stream<LlmStreamEvent> streamChat({
+    required ProviderConfig provider,
+    required LlmRequest request,
+  }) async* {
+    if (_responses.isEmpty) {
+      yield const LlmStreamDone();
+      return;
+    }
+    yield LlmStreamDelta(_responses.removeAt(0));
+    yield const LlmStreamDone();
+  }
+}
