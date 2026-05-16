@@ -41,6 +41,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: AppRoute.styleLab.path,
                 builder: (context, state) => const StyleLabPage(),
+                routes: [
+                  GoRoute(
+                    path: 'profiles/:profileId',
+                    builder: (context, state) => StyleLabProfileDetailPage(
+                      profileId: state.pathParameters['profileId']!,
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'drafts/:runId',
+                    builder: (context, state) => StyleLabDraftDetailPage(
+                      runId: state.pathParameters['runId']!,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

@@ -9,6 +9,12 @@ import 'package:persona_flutter/src/core/theme/theme_mode_provider.dart';
 import 'package:persona_flutter/src/core/ui/app_shell.dart';
 import 'package:persona_flutter/src/features/projects/application/project_providers.dart';
 import 'package:persona_flutter/src/features/projects/domain/writing_project.dart';
+import 'package:persona_flutter/src/features/settings/application/provider_config_providers.dart';
+import 'package:persona_flutter/src/features/settings/domain/provider_config.dart';
+import 'package:persona_flutter/src/features/style_lab/application/style_lab_providers.dart';
+import 'package:persona_flutter/src/features/style_lab/domain/style_analysis_run.dart';
+import 'package:persona_flutter/src/features/style_lab/domain/style_profile.dart';
+import 'package:persona_flutter/src/features/style_lab/domain/style_sample.dart';
 
 void main() {
   test('theme mode preference falls back to dark for invalid values', () {
@@ -130,7 +136,8 @@ void main() {
     await tester.pumpAndSettle();
 
     const projectsDescription = '用于长篇项目、蓝图、章节工作和后续 Zen Editor 写作会话的本地写作工作台。';
-    const styleLabDescription = '分析样本文本，提炼 Voice Profile，并为长篇写作准备可复用的风格方向。';
+    const styleLabDescription =
+        '管理已保存的 Style Profile 和待保存的 Voice Profile 草稿，追溯来源样本、分析报告与任务日志。';
 
     expect(find.text(projectsDescription), findsOneWidget);
     expect(find.text(styleLabDescription), findsNothing);
@@ -222,6 +229,18 @@ class _TestProviderScope extends StatelessWidget {
           themeModeStoreProvider.overrideWithValue(themeModeStore!),
         writingProjectsProvider.overrideWith(
           (ref, status) => Stream<List<WritingProject>>.value(const []),
+        ),
+        providerConfigsProvider.overrideWith(
+          (ref) => Stream<List<ProviderConfig>>.value(const []),
+        ),
+        styleSamplesProvider.overrideWith(
+          (ref) => Stream<List<StyleSample>>.value(const []),
+        ),
+        recentStyleAnalysisRunsProvider.overrideWith(
+          (ref) => Stream<List<StyleAnalysisRun>>.value(const []),
+        ),
+        styleProfilesProvider.overrideWith(
+          (ref) => Stream<List<StyleProfile>>.value(const []),
         ),
       ],
       child: child,
