@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/tasks/application/workflow_task_providers.dart';
 import '../../../core/tasks/domain/workflow_task.dart';
 import '../../../core/ui/persona_page.dart';
 import '../../../core/ui/skeleton_loader.dart';
+import '../../style_lab/application/style_lab_providers.dart';
+import '../../style_lab/domain/style_analysis_run.dart';
 
 class WorkflowRunsPage extends ConsumerWidget {
   const WorkflowRunsPage({super.key});
@@ -207,16 +210,16 @@ class _SkeletonLoading extends StatelessWidget {
   }
 }
 
-class _WorkflowRunRow extends StatefulWidget {
+class _WorkflowRunRow extends ConsumerStatefulWidget {
   const _WorkflowRunRow({required this.item});
 
   final WorkflowTask item;
 
   @override
-  State<_WorkflowRunRow> createState() => _WorkflowRunRowState();
+  ConsumerState<_WorkflowRunRow> createState() => _WorkflowRunRowState();
 }
 
-class _WorkflowRunRowState extends State<_WorkflowRunRow> {
+class _WorkflowRunRowState extends ConsumerState<_WorkflowRunRow> {
   bool _isHovered = false;
 
   @override
@@ -224,57 +227,117 @@ class _WorkflowRunRowState extends State<_WorkflowRunRow> {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
     final statusColor = _statusColor(colorScheme, widget.item.status);
+    final styleRun = widget.item.kind == styleAnalysisWorkflowTaskKind
+        ? ref.watch(styleAnalysisRunByWorkflowTaskProvider(widget.item.id))
+        : const AsyncValue<StyleAnalysisRun?>.data(null);
+    final targetRun = styleRun.value;
+    final canOpenDetail =
+        widget.item.kind == styleAnalysisWorkflowTaskKind && targetRun != null;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        curve: Curves.easeOutCubic,
-        decoration: BoxDecoration(
-          color: _isHovered
-              ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)
-              : Colors.transparent,
-          border: Border(bottom: BorderSide(color: colorScheme.outlineVariant)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 126,
-                child: PersonaStatusPill(
-                  label: widget.item.status.name,
-                  icon: _statusIcon(widget.item.status),
-                  color: statusColor,
-                ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: canOpenDetail
+              ? () => context.go('/style-lab/tasks/${targetRun.id}')
+              : null,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            curve: Curves.easeOutCubic,
+            decoration: BoxDecoration(
+              color: _isHovered
+                  ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)
+                  : Colors.transparent,
+              border: Border(
+                bottom: BorderSide(color: colorScheme.outlineVariant),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(widget.item.title, style: textTheme.titleMedium),
-                    const SizedBox(height: 3),
-                    Text(
-                      widget.item.stage == null
-                          ? widget.item.kind
-                          : '${widget.item.kind} - ${widget.item.stage}',
-                      style: textTheme.bodyMedium,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 126,
+                    child: PersonaStatusPill(
+                      label: widget.item.status.name,
+                      icon: _statusIcon(widget.item.status),
+                      color: statusColor,
                     ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(widget.item.title, style: textTheme.titleMedium),
+                        const SizedBox(height: 3),
+                        Text(
+                          widget.item.stage == null
+                              ? widget.item.kind
+                              : '${widget.item.kind} - ${widget.item.stage}',
+                          style: textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  if (widget.item.kind == styleAnalysisWorkflowTaskKind) ...[
+                    _WorkflowDetailState(run: styleRun),
+                    const SizedBox(width: 14),
                   ],
-                ),
+                  Text(
+                    _formatRunTime(widget.item.updatedAt),
+                    style: textTheme.labelMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Icon(
+                    canOpenDetail
+                        ? Icons.chevron_right
+                        : Icons.radio_button_unchecked,
+                    size: 18,
+                    color: canOpenDetail
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant.withValues(alpha: 0.45),
+                  ),
+                ],
               ),
-              const SizedBox(width: 16),
-              Text(
-                _formatRunTime(widget.item.updatedAt),
-                style: textTheme.labelMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _WorkflowDetailState extends StatelessWidget {
+  const _WorkflowDetailState({required this.run});
+
+  final AsyncValue<StyleAnalysisRun?> run;
+
+  @override
+  Widget build(BuildContext context) {
+    return run.when(
+      data: (item) {
+        if (item == null) {
+          return const PersonaStatusPill(
+            label: '详情缺失',
+            icon: Icons.link_off_outlined,
+          );
+        }
+        return const PersonaStatusPill(
+          label: '打开详情',
+          icon: Icons.open_in_new_outlined,
+        );
+      },
+      loading: () => const PersonaStatusPill(label: '定位中', icon: Icons.sync),
+      error: (error, stackTrace) => PersonaStatusPill(
+        label: '详情错误',
+        icon: Icons.error_outline,
+        color: Theme.of(context).colorScheme.error,
       ),
     );
   }
