@@ -9,7 +9,6 @@ import '../theme/app_theme.dart';
 import '../theme/theme_mode_provider.dart';
 import 'animated_theme_toggler.dart';
 import 'glass_container.dart';
-import 'page_transitions.dart';
 
 const _collapsedSidebarWidth = 76.0;
 const _expandedSidebarWidth = 238.0;
@@ -81,9 +80,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                     ),
                   ),
                 ),
-                Expanded(
-                  child: FadeSlideTransition(child: widget.navigationShell),
-                ),
+                Expanded(child: widget.navigationShell),
               ],
             ),
           ),

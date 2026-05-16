@@ -105,6 +105,23 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: SizedBox.shrink()));
     await tester.pump();
   });
+
+  testWidgets('does not wrap top-level shell pages in extra switcher', (
+    tester,
+  ) async {
+    final router = _buildShellTestRouter();
+
+    await tester.pumpWidget(_ShellTestApp(router: router));
+    await tester.pump();
+
+    expect(
+      find.ancestor(
+        of: find.text('${AppRoute.projects.label} body'),
+        matching: find.byType(AnimatedSwitcher),
+      ),
+      findsNothing,
+    );
+  });
 }
 
 GoRouter _buildShellTestRouter() {

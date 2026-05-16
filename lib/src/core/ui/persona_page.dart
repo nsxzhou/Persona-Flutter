@@ -12,6 +12,7 @@ class PersonaPage extends StatelessWidget {
     required this.children,
     this.actions = const [],
     this.maxWidth = 1240,
+    this.animateChildren = false,
     super.key,
   });
 
@@ -21,6 +22,7 @@ class PersonaPage extends StatelessWidget {
   final List<Widget> actions;
   final List<Widget> children;
   final double maxWidth;
+  final bool animateChildren;
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +74,7 @@ class PersonaPage extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 28),
-                StaggeredList(children: children),
+                StaggeredList(animate: animateChildren, children: children),
               ],
             ),
           ),

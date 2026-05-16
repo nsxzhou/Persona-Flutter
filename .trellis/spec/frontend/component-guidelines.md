@@ -108,6 +108,8 @@ Keep Provider management widgets in `features/settings/presentation/` and bind t
 - The archived view is explicitly selected by the user; archived projects do not appear in the default view.
 - Project detail pages read `writingProjectProvider(projectId)` and handle loading, data, missing, and error states.
 - Dialog validation blocks empty project titles before saving.
+- Projects overview surfaces should expose user-facing writing-workspace state, not implementation details such as `SQLite` or "local status".
+- Empty Projects states should be lightweight content inside the list panel, not nested card surfaces inside another panel.
 
 ### 3. Validation & Error Matrix
 - Empty active list -> show a create-project empty state.
@@ -119,6 +121,7 @@ Keep Provider management widgets in `features/settings/presentation/` and bind t
 - Good: list rows show title, description, status, update time, and action menu.
 - Base: an active project can be created and opened into its detail dossier.
 - Bad: keep the old placeholder action tiles after real project data exists.
+- Bad: show database/storage implementation as a top-level status metric.
 
 ### 5. Wrong vs Correct
 #### Wrong

@@ -26,6 +26,9 @@ void main() {
     expect(find.text('尚未创建项目'), findsOneWidget);
     expect(find.text('新建项目'), findsWidgets);
     expect(find.text('活动'), findsWidgets);
+    expect(find.text('本地状态'), findsNothing);
+    expect(find.text('SQLite'), findsNothing);
+    expect(find.text('筛选'), findsNothing);
   });
 
   testWidgets(
@@ -66,6 +69,10 @@ void main() {
 
       expect(find.text('活动长篇'), findsNothing);
       expect(find.text('归档长篇'), findsOneWidget);
+      expect(find.text('1 个档案'), findsOneWidget);
+      expect(find.text('本地状态'), findsNothing);
+      expect(find.text('SQLite'), findsNothing);
+      expect(find.text('筛选'), findsNothing);
     },
   );
 

@@ -68,39 +68,12 @@ class _ProjectWorkspace extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeCount = selectedStatus == ProjectStatus.active
-        ? items.length
-        : null;
-
     return Column(
       children: [
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final summary = _WorkspaceSummary(
-              visibleCount: items.length,
-              activeCount: activeCount,
-              selectedStatus: selectedStatus,
-            );
-            final switcher = _ProjectStatusSwitcher(
-              selectedStatus: selectedStatus,
-              onChanged: onStatusChanged,
-            );
-
-            if (constraints.maxWidth < 840) {
-              return Column(
-                children: [summary, const SizedBox(height: 14), switcher],
-              );
-            }
-
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: summary),
-                const SizedBox(width: 18),
-                SizedBox(width: 300, child: switcher),
-              ],
-            );
-          },
+        _WorkspaceOverview(
+          visibleCount: items.length,
+          selectedStatus: selectedStatus,
+          onStatusChanged: onStatusChanged,
         ),
         const SizedBox(height: 18),
         _ProjectListPanel(items: items, selectedStatus: selectedStatus),
@@ -109,51 +82,110 @@ class _ProjectWorkspace extends StatelessWidget {
   }
 }
 
-class _WorkspaceSummary extends StatelessWidget {
-  const _WorkspaceSummary({
+class _WorkspaceOverview extends StatelessWidget {
+  const _WorkspaceOverview({
     required this.visibleCount,
-    required this.activeCount,
     required this.selectedStatus,
+    required this.onStatusChanged,
   });
 
   final int visibleCount;
-  final int? activeCount;
   final ProjectStatus selectedStatus;
+  final ValueChanged<ProjectStatus> onStatusChanged;
 
   @override
   Widget build(BuildContext context) {
-    final visibleLabel = selectedStatus == ProjectStatus.active
-        ? '活动项目'
-        : '归档项目';
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final isActive = selectedStatus == ProjectStatus.active;
 
-    return Row(
-      children: [
-        Expanded(
-          child: PersonaMetric(
-            label: visibleLabel,
-            value: '$visibleCount',
-            detail: selectedStatus == ProjectStatus.active
-                ? '正在推进的本地写作档案。'
-                : '已收起但仍保留的项目档案。',
-          ),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: PersonaMetric(
-            label: '项目档案',
-            value: activeCount == null ? '筛选' : '$activeCount',
-            detail: '打开详情页查看简介与后续工作台入口。',
-          ),
-        ),
-        const SizedBox(width: 14),
-        const Expanded(
-          child: PersonaMetric(
-            label: '本地状态',
-            value: 'SQLite',
-            detail: '项目记录只保存在本机数据库。',
-          ),
-        ),
-      ],
+    return PersonaPanel(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final summary = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: colorScheme.primary.withValues(alpha: 0.18),
+                  ),
+                ),
+                child: SizedBox(
+                  width: 42,
+                  height: 42,
+                  child: Icon(
+                    isActive
+                        ? Icons.folder_open_outlined
+                        : Icons.inventory_2_outlined,
+                    color: colorScheme.primary,
+                    size: 22,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          isActive ? '活动项目' : '归档项目',
+                          style: textTheme.titleLarge,
+                        ),
+                        PersonaStatusPill(
+                          label: '$visibleCount 个档案',
+                          icon: isActive
+                              ? Icons.edit_note_outlined
+                              : Icons.inventory_2_outlined,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      isActive
+                          ? '默认工作区只显示正在推进的本地写作档案。'
+                          : '归档项目会保留记录，但不会出现在默认工作区。',
+                      style: textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+
+          final switcher = _ProjectStatusSwitcher(
+            selectedStatus: selectedStatus,
+            onChanged: onStatusChanged,
+          );
+
+          if (constraints.maxWidth < 760) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                summary,
+                const SizedBox(height: 14),
+                Align(alignment: Alignment.centerLeft, child: switcher),
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: summary),
+              const SizedBox(width: 18),
+              switcher,
+            ],
+          );
+        },
+      ),
     );
   }
 }
@@ -169,41 +201,22 @@ class _ProjectStatusSwitcher extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return PersonaPanel(
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          PersonaSectionHeader(
-            title: '项目视图',
-            description: '主工作区默认只显示活动项目。',
-            trailing: Icon(
-              Icons.filter_list_outlined,
-              color: colorScheme.onSurfaceVariant,
-              size: 20,
-            ),
-          ),
-          const SizedBox(height: 12),
-          SegmentedButton<ProjectStatus>(
-            segments: const [
-              ButtonSegment(
-                value: ProjectStatus.active,
-                icon: Icon(Icons.edit_note_outlined),
-                label: Text('活动'),
-              ),
-              ButtonSegment(
-                value: ProjectStatus.archived,
-                icon: Icon(Icons.inventory_2_outlined),
-                label: Text('归档'),
-              ),
-            ],
-            selected: {selectedStatus},
-            onSelectionChanged: (selection) => onChanged(selection.single),
-          ),
-        ],
-      ),
+    return SegmentedButton<ProjectStatus>(
+      showSelectedIcon: true,
+      segments: const [
+        ButtonSegment(
+          value: ProjectStatus.active,
+          icon: Icon(Icons.edit_note_outlined),
+          label: Text('活动'),
+        ),
+        ButtonSegment(
+          value: ProjectStatus.archived,
+          icon: Icon(Icons.inventory_2_outlined),
+          label: Text('归档'),
+        ),
+      ],
+      selected: {selectedStatus},
+      onSelectionChanged: (selection) => onChanged(selection.single),
     );
   }
 }
@@ -222,7 +235,7 @@ class _ProjectListPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
             child: PersonaSectionHeader(
               title: selectedStatus == ProjectStatus.active ? '写作档案' : '归档档案',
               description: selectedStatus == ProjectStatus.active
@@ -232,12 +245,64 @@ class _ProjectListPanel extends StatelessWidget {
           ),
           const Divider(height: 1),
           if (items.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: _EmptyProjectsState(status: selectedStatus),
-            )
+            _EmptyProjectsState(status: selectedStatus)
           else
             for (final item in items) _ProjectRow(project: item),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyProjectsState extends StatelessWidget {
+  const _EmptyProjectsState({required this.status});
+
+  final ProjectStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final isArchived = status == ProjectStatus.archived;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 26, 20, 26),
+      child: Row(
+        children: [
+          Icon(
+            isArchived
+                ? Icons.inventory_2_outlined
+                : Icons.library_books_outlined,
+            color: colorScheme.primary,
+            size: 32,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isArchived ? '没有归档项目' : '尚未创建项目',
+                  style: textTheme.titleLarge,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  isArchived
+                      ? '归档后的项目会保留在这里，方便恢复或永久删除。'
+                      : '创建第一个本地写作档案后，可以进入项目详情维护简介和后续工作台入口。',
+                  style: textTheme.bodyMedium,
+                ),
+              ],
+            ),
+          ),
+          if (!isArchived) ...[
+            const SizedBox(width: 16),
+            OutlinedButton.icon(
+              onPressed: () => _showProjectDialog(context),
+              icon: const Icon(Icons.add),
+              label: const Text('新建项目'),
+            ),
+          ],
         ],
       ),
     );
@@ -436,34 +501,6 @@ class _ProjectRowActions extends ConsumerWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _EmptyProjectsState extends StatelessWidget {
-  const _EmptyProjectsState({required this.status});
-
-  final ProjectStatus status;
-
-  @override
-  Widget build(BuildContext context) {
-    if (status == ProjectStatus.archived) {
-      return const PersonaEmptyStateCard(
-        icon: Icons.inventory_2_outlined,
-        title: '没有归档项目',
-        description: '归档后的项目会保留在这里，方便恢复或永久删除。',
-      );
-    }
-
-    return PersonaEmptyStateCard(
-      icon: Icons.library_books_outlined,
-      title: '尚未创建项目',
-      description: '创建第一个本地写作档案后，可以进入项目详情维护简介和后续工作台入口。',
-      action: FilledButton.icon(
-        onPressed: () => _showProjectDialog(context),
-        icon: const Icon(Icons.add),
-        label: const Text('新建项目'),
-      ),
     );
   }
 }
