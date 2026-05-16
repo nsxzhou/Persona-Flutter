@@ -14,7 +14,6 @@ class DriftStyleLabRepository implements StyleLabRepository {
   final AppDatabase _database;
 
   static const _uuid = Uuid();
-  static const workflowTaskKind = 'style_lab_analysis';
 
   @override
   Stream<List<StyleSample>> watchSamples() {
@@ -105,6 +104,16 @@ class DriftStyleLabRepository implements StyleLabRepository {
   }
 
   @override
+  Stream<StyleAnalysisRun?> watchRunByWorkflowTask(String workflowTaskId) {
+    final query = _database.select(_database.styleAnalysisRunRecords)
+      ..where((run) => run.workflowTaskId.equals(workflowTaskId))
+      ..limit(1);
+    return query.watchSingleOrNull().map(
+      (row) => row == null ? null : _mapRun(row),
+    );
+  }
+
+  @override
   Future<StyleAnalysisRun?> findRun(String id) async {
     final query = _database.select(_database.styleAnalysisRunRecords)
       ..where((run) => run.id.equals(id))
@@ -128,7 +137,7 @@ class DriftStyleLabRepository implements StyleLabRepository {
           .insert(
             WorkflowTaskRecordsCompanion.insert(
               id: taskId,
-              kind: workflowTaskKind,
+              kind: styleAnalysisWorkflowTaskKind,
               status: WorkflowTaskStatus.pending.name,
               title: title,
               stage: const Value('queued'),

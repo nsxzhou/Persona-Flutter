@@ -54,6 +54,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       runId: state.pathParameters['runId']!,
                     ),
                   ),
+                  GoRoute(
+                    path: 'tasks/:runId',
+                    builder: (context, state) => StyleLabTaskDetailPage(
+                      runId: state.pathParameters['runId']!,
+                    ),
+                  ),
                 ],
               ),
             ],

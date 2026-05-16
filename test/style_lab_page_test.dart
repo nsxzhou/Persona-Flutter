@@ -122,8 +122,50 @@ void main() {
     expect(find.text('生成报告'), findsWidgets);
     expect(find.text('1/2 chunks'), findsWidgets);
     expect(find.text('失败'), findsWidgets);
-    expect(find.textContaining('分析失败。'), findsOneWidget);
     expect(find.text('模型返回为空。'), findsOneWidget);
+    expect(find.text('打开详情'), findsOneWidget);
+    expect(find.textContaining('分析失败。'), findsNothing);
+    final progressIndicator = tester.widget<LinearProgressIndicator>(
+      find.byType(LinearProgressIndicator).last,
+    );
+    expect(progressIndicator.value, 1);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('style lab failed detail shows static error progress', (
+    tester,
+  ) async {
+    final sample = _sample(id: 'sample-1', title: '雾线样本');
+    final failed = _run(
+      id: 'run-failed',
+      sampleId: sample.id,
+      status: StyleAnalysisStatus.failed,
+      errorMessage: '应用重启，任务已中断，可重跑。',
+      chunkCount: 5,
+      logs:
+          '[2026-05-16T11:00:00] 完成 chunk 1/5。\n'
+          '[2026-05-16T11:02:00] 完成 chunk 2/5。',
+    );
+
+    await tester.pumpWidget(
+      _StyleLabTestApp(
+        samples: [sample],
+        runs: [failed],
+        profiles: const [],
+        initialLocation: '/style-lab/tasks/${failed.id}',
+      ),
+    );
+    await _pumpStyleLab(tester);
+
+    await tester.tap(find.text('任务日志'));
+    await _pumpStyleLab(tester);
+
+    final progressIndicator = tester.widget<LinearProgressIndicator>(
+      find.byType(LinearProgressIndicator).last,
+    );
+    expect(progressIndicator.value, 1);
+    expect(find.text('失败'), findsOneWidget);
+    expect(find.text('应用重启，任务已中断，可重跑。'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -152,6 +194,7 @@ void main() {
     await tester.ensureVisible(find.text('雾线草稿').first);
     await tester.tap(find.text('雾线草稿').first);
     await _pumpStyleLab(tester);
+    expect(find.text('TASK DETAIL'), findsOneWidget);
     await tester.tap(find.text('任务日志'));
     await _pumpStyleLab(tester);
 
@@ -159,6 +202,12 @@ void main() {
     expect(find.text('2/2 chunks'), findsWidgets);
     expect(find.text('完整日志'), findsOneWidget);
     expect(find.textContaining('分析完成。'), findsOneWidget);
+    final logBlock = find.byKey(const ValueKey('style-lab-run-log-code-block'));
+    expect(logBlock, findsOneWidget);
+    final logBlockSize = tester.getSize(logBlock);
+    final tabViewSize = tester.getSize(find.byType(TabBarView));
+    expect(logBlockSize.width, closeTo(tabViewSize.width - 36, 0.1));
+    expect(logBlockSize.height, greaterThan(420));
     expect(tester.takeException(), isNull);
   });
 
@@ -214,7 +263,7 @@ void main() {
     await tester.tap(find.text('雾线草稿').first);
     await _pumpStyleLab(tester);
 
-    expect(find.text('待保存 Voice Profile 草稿'), findsOneWidget);
+    expect(find.text('TASK DETAIL'), findsOneWidget);
     expect(find.text('保存为 Profile'), findsOneWidget);
     expect(find.text('YAML 契约有效'), findsOneWidget);
     expect(find.text('源码'), findsOneWidget);
@@ -247,11 +296,13 @@ class _StyleLabTestApp extends StatelessWidget {
     required this.samples,
     required this.runs,
     required this.profiles,
+    this.initialLocation = '/style-lab',
   });
 
   final List<StyleSample> samples;
   final List<StyleAnalysisRun> runs;
   final List<StyleProfile> profiles;
+  final String initialLocation;
 
   @override
   Widget build(BuildContext context) {
@@ -292,7 +343,7 @@ class _StyleLabTestApp extends StatelessWidget {
           ),
         ),
       ],
-      child: MaterialApp.router(routerConfig: _router()),
+      child: MaterialApp.router(routerConfig: _router(initialLocation)),
     );
   }
 }
@@ -303,9 +354,9 @@ Future<void> _pumpStyleLab(WidgetTester tester) async {
   await tester.pump();
 }
 
-GoRouter _router() {
+GoRouter _router([String initialLocation = '/style-lab']) {
   return GoRouter(
-    initialLocation: '/style-lab',
+    initialLocation: initialLocation,
     routes: [
       GoRoute(
         path: '/style-lab',
@@ -321,6 +372,11 @@ GoRouter _router() {
             path: 'drafts/:runId',
             builder: (context, state) =>
                 StyleLabDraftDetailPage(runId: state.pathParameters['runId']!),
+          ),
+          GoRoute(
+            path: 'tasks/:runId',
+            builder: (context, state) =>
+                StyleLabTaskDetailPage(runId: state.pathParameters['runId']!),
           ),
         ],
       ),
@@ -475,6 +531,13 @@ class _FakeStyleLabRepository implements StyleLabRepository {
   Stream<StyleAnalysisRun?> watchRun(String id) {
     return Stream<StyleAnalysisRun?>.value(
       runs.where((run) => run.id == id).firstOrNull,
+    );
+  }
+
+  @override
+  Stream<StyleAnalysisRun?> watchRunByWorkflowTask(String workflowTaskId) {
+    return Stream<StyleAnalysisRun?>.value(
+      runs.where((run) => run.workflowTaskId == workflowTaskId).firstOrNull,
     );
   }
 

@@ -68,6 +68,16 @@ Stream<StyleAnalysisRun?> styleAnalysisRun(Ref ref, String id) {
 }
 
 @riverpod
+Stream<StyleAnalysisRun?> styleAnalysisRunByWorkflowTask(
+  Ref ref,
+  String workflowTaskId,
+) {
+  return ref
+      .watch(styleLabRepositoryProvider)
+      .watchRunByWorkflowTask(workflowTaskId);
+}
+
+@riverpod
 Stream<List<StyleProfile>> styleProfiles(Ref ref) {
   return ref.watch(styleLabRepositoryProvider).watchProfiles();
 }

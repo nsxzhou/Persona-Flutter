@@ -15,6 +15,8 @@ abstract interface class StyleLabRepository {
 
   Stream<StyleAnalysisRun?> watchRun(String id);
 
+  Stream<StyleAnalysisRun?> watchRunByWorkflowTask(String workflowTaskId);
+
   Future<StyleAnalysisRun?> findRun(String id);
 
   Future<StyleAnalysisRun> createRun(StyleAnalysisRunInput input);

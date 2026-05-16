@@ -97,7 +97,7 @@ void main() {
         database,
       ).watchRecentTasks().first;
       expect(tasks, hasLength(2));
-      expect(tasks.first.kind, DriftStyleLabRepository.workflowTaskKind);
+      expect(tasks.first.kind, styleAnalysisWorkflowTaskKind);
       expect(
         tasks.map((task) => task.status),
         contains(WorkflowTaskStatus.succeeded),

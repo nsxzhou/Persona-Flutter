@@ -172,7 +172,7 @@ class _StyleLabPageState extends ConsumerState<StyleLabPage> {
       case _StyleLibraryAssetKind.saved:
         context.go('/style-lab/profiles/${asset.id}');
       case _StyleLibraryAssetKind.draft:
-        context.go('/style-lab/drafts/${asset.id}');
+        context.go('/style-lab/tasks/${asset.id}');
     }
   }
 
@@ -257,6 +257,37 @@ class StyleLabDraftDetailPage extends ConsumerWidget {
       loading: () => const _StyleLabDetailLoading(),
       error: (error, stackTrace) =>
           _StyleLabMissingDetail(title: '无法读取草稿', description: '$error'),
+    );
+  }
+}
+
+class StyleLabTaskDetailPage extends ConsumerWidget {
+  const StyleLabTaskDetailPage({required this.runId, super.key});
+
+  final String runId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final run = ref.watch(styleAnalysisRunProvider(runId));
+    return run.when(
+      data: (item) {
+        if (item == null) {
+          return _StyleLabMissingDetail(
+            title: '任务不存在',
+            description: '这个风格分析任务可能已被删除。',
+          );
+        }
+        final sample = ref.watch(styleSampleProvider(item.sampleId));
+        return _StyleLabDetailScaffold(
+          eyebrow: 'Task Detail',
+          title: item.styleName,
+          subtitle: _taskDetailSubtitle(item),
+          child: _StyleLabTaskDetail(run: item, sample: sample),
+        );
+      },
+      loading: () => const _StyleLabDetailLoading(),
+      error: (error, stackTrace) =>
+          _StyleLabMissingDetail(title: '无法读取任务', description: '$error'),
     );
   }
 }
@@ -1063,106 +1094,155 @@ class _ActivityRunRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final logText = run.logs.trim();
+    final progress = _progressForRun(run);
+    final summary = _runActivitySummary(run);
+    final progressValue = _visibleProgressValue(run, progress);
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final compact = constraints.maxWidth < 640;
-                final title = Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      run.styleName,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      crossAxisAlignment: WrapCrossAlignment.center,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(6),
+        onTap: () => context.go('/style-lab/tasks/${run.id}'),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: colorScheme.outlineVariant),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final compact = constraints.maxWidth < 700;
+                    final title = Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        PersonaStatusPill(
-                          label: _statusLabel(run.status),
-                          icon: _statusIcon(run.status),
-                          color: _statusColor(colorScheme, run.status),
+                        Text(
+                          run.styleName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleMedium,
                         ),
-                        PersonaStatusPill(
-                          label: _stageLabel(run.stage),
-                          icon: Icons.timeline,
-                        ),
-                        PersonaStatusPill(
-                          label: _chunkProgressLabel(run),
-                          icon: Icons.grain,
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            PersonaStatusPill(
+                              label: _statusLabel(run.status),
+                              icon: _statusIcon(run.status),
+                              color: _statusColor(colorScheme, run.status),
+                            ),
+                            PersonaStatusPill(
+                              label: _stageLabel(run.stage),
+                              icon: Icons.timeline,
+                            ),
+                            PersonaStatusPill(
+                              label: _chunkProgressLabel(run),
+                              icon: Icons.grain,
+                            ),
+                          ],
                         ),
                       ],
+                    );
+                    final detailAction = OutlinedButton.icon(
+                      onPressed: () => context.go('/style-lab/tasks/${run.id}'),
+                      icon: const Icon(Icons.open_in_new_outlined),
+                      label: const Text('打开详情'),
+                    );
+                    final rerunAction = OutlinedButton.icon(
+                      onPressed: run.status == StyleAnalysisStatus.failed
+                          ? onRerun
+                          : null,
+                      icon: const Icon(Icons.replay_outlined),
+                      label: const Text('重跑'),
+                    );
+                    final deleteAction = IconButton.outlined(
+                      tooltip: '删除分析任务',
+                      onPressed: onDelete,
+                      icon: const Icon(Icons.delete_outline),
+                    );
+                    if (compact) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          title,
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [detailAction, rerunAction, deleteAction],
+                          ),
+                        ],
+                      );
+                    }
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: title),
+                        const SizedBox(width: 12),
+                        detailAction,
+                        const SizedBox(width: 8),
+                        rerunAction,
+                        const SizedBox(width: 8),
+                        deleteAction,
+                      ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(999),
+                        child: LinearProgressIndicator(
+                          value: progressValue,
+                          minHeight: 6,
+                          color: _statusColor(colorScheme, run.status),
+                          backgroundColor: colorScheme.outlineVariant
+                              .withValues(alpha: 0.55),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      progress.label,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
-                );
-                final action = OutlinedButton.icon(
-                  onPressed: run.status == StyleAnalysisStatus.failed
-                      ? onRerun
-                      : null,
-                  icon: const Icon(Icons.replay_outlined),
-                  label: const Text('重跑'),
-                );
-                final deleteAction = IconButton.outlined(
-                  tooltip: '删除分析任务',
-                  onPressed: onDelete,
-                  icon: const Icon(Icons.delete_outline),
-                );
-                if (compact) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      title,
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [action, deleteAction],
-                      ),
-                    ],
-                  );
-                }
-                return Row(
+                ),
+                const SizedBox(height: 10),
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(child: title),
-                    const SizedBox(width: 12),
-                    action,
+                    Icon(
+                      summary.icon,
+                      size: 16,
+                      color: summary.color ?? colorScheme.onSurfaceVariant,
+                    ),
                     const SizedBox(width: 8),
-                    deleteAction,
+                    Expanded(
+                      child: Text(
+                        summary.text,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: summary.color ?? colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
                   ],
-                );
-              },
+                ),
+              ],
             ),
-            const SizedBox(height: 14),
-            _RunProgressOverview(run: run),
-            if (run.errorMessage != null) ...[
-              const SizedBox(height: 12),
-              _InlineError(message: run.errorMessage!),
-            ],
-            const SizedBox(height: 12),
-            Text('运行日志', style: Theme.of(context).textTheme.labelMedium),
-            const SizedBox(height: 8),
-            _CodeBlock(
-              text: logText.isEmpty ? '暂无日志。' : logText,
-              minHeight: 96,
-              maxHeight: 180,
-              fontSize: 12,
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -1204,8 +1284,10 @@ class _StyleLabDetailScaffold extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.child,
+    this.eyebrow = 'Profile Detail',
   });
 
+  final String eyebrow;
   final String title;
   final String subtitle;
   final Widget child;
@@ -1213,7 +1295,7 @@ class _StyleLabDetailScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PersonaPage(
-      eyebrow: 'Profile Detail',
+      eyebrow: eyebrow,
       title: title,
       description: subtitle,
       maxWidth: 1180,
@@ -1404,6 +1486,7 @@ class _StyleLabDraftProfileDetailState
       primaryActionLabel: '保存为 Profile',
       primaryActionIcon: Icons.save_outlined,
       primaryActionEnabled: widget.run.status == StyleAnalysisStatus.succeeded,
+      deleteTooltip: '删除草稿',
       onPreviewChanged: (value) => setState(() => _previewProfile = value),
       onPrimaryAction: _saveProfile,
       onCopyProfile: _copyProfile,
@@ -1461,6 +1544,139 @@ class _StyleLabDraftProfileDetailState
   }
 }
 
+class _StyleLabTaskDetail extends ConsumerStatefulWidget {
+  const _StyleLabTaskDetail({required this.run, required this.sample});
+
+  final StyleAnalysisRun run;
+  final AsyncValue<StyleSample?> sample;
+
+  @override
+  ConsumerState<_StyleLabTaskDetail> createState() =>
+      _StyleLabTaskDetailState();
+}
+
+class _StyleLabTaskDetailState extends ConsumerState<_StyleLabTaskDetail> {
+  final _styleNameController = TextEditingController();
+  final _profileController = TextEditingController();
+  String? _documentKey;
+  bool _previewProfile = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncTask();
+  }
+
+  @override
+  void didUpdateWidget(covariant _StyleLabTaskDetail oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncTask();
+  }
+
+  @override
+  void dispose() {
+    _styleNameController.dispose();
+    _profileController.dispose();
+    super.dispose();
+  }
+
+  void _syncTask() {
+    final key =
+        '${widget.run.id}:${widget.run.voiceProfileMarkdown.hashCode}:${widget.run.profileId ?? ''}';
+    if (_documentKey == key) return;
+    _styleNameController.text = widget.run.styleName;
+    _profileController.text = widget.run.voiceProfileMarkdown ?? '';
+    _documentKey = key;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final profileId = widget.run.profileId;
+    final hasProfile = profileId != null;
+    final canSave =
+        widget.run.status == StyleAnalysisStatus.succeeded && !hasProfile;
+
+    return _ProfileDetailBody(
+      titleController: _styleNameController,
+      profileController: _profileController,
+      previewProfile: _previewProfile,
+      run: AsyncValue.data(widget.run),
+      sample: widget.sample,
+      reportMarkdown: widget.run.analysisReportMarkdown,
+      sourceTitle: null,
+      primaryActionLabel: hasProfile ? '打开 Profile' : '保存为 Profile',
+      primaryActionIcon: hasProfile
+          ? Icons.open_in_new_outlined
+          : Icons.save_outlined,
+      primaryActionEnabled: hasProfile || canSave,
+      deleteTooltip: '删除任务',
+      onPreviewChanged: (value) => setState(() => _previewProfile = value),
+      onPrimaryAction: hasProfile ? _openProfile : _saveProfile,
+      onCopyProfile: _copyProfile,
+      onDelete: _deleteTask,
+    );
+  }
+
+  Future<void> _saveProfile() async {
+    try {
+      final profile = await ref
+          .read(styleLabControllerProvider.notifier)
+          .saveProfile(
+            runId: widget.run.id,
+            styleName: _styleNameController.text,
+            profileMarkdown: _profileController.text,
+            projectId: widget.run.projectId,
+          );
+      if (!mounted) return;
+      _showSnack('风格档案已保存，可从当前任务打开。');
+      context.go('/style-lab/tasks/${widget.run.id}');
+      await ref.read(styleAnalysisRunProvider(widget.run.id).future);
+      if (!mounted) return;
+      _documentKey = null;
+      _styleNameController.text = profile.styleName;
+    } on Object catch (error) {
+      _showSnack('$error');
+    }
+  }
+
+  Future<void> _copyProfile() async {
+    await Clipboard.setData(ClipboardData(text: _profileController.text));
+    _showSnack('已复制 Voice Profile。');
+  }
+
+  Future<void> _deleteTask() async {
+    final confirmed = await _confirmDeleteStyleItem(
+      context: context,
+      title: '删除分析任务',
+      message: '确定删除「${widget.run.styleName}」吗？任务状态、日志和草稿会从本地数据库中移除。',
+    );
+    if (!mounted || !confirmed) return;
+    try {
+      await ref
+          .read(styleLabControllerProvider.notifier)
+          .deleteRun(widget.run.id);
+      if (!mounted) return;
+      _showSnack('分析任务已删除。');
+      context.go('/style-lab');
+    } on Object catch (error) {
+      _showSnack('$error');
+    }
+  }
+
+  void _openProfile() {
+    final profileId = widget.run.profileId;
+    if (profileId == null) return;
+    context.go('/style-lab/profiles/$profileId');
+  }
+
+  void _showSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
 class _ProfileDetailBody extends StatefulWidget {
   const _ProfileDetailBody({
     required this.titleController,
@@ -1477,6 +1693,7 @@ class _ProfileDetailBody extends StatefulWidget {
     required this.onDelete,
     this.sourceTitle,
     this.primaryActionEnabled = true,
+    this.deleteTooltip = '删除',
   });
 
   final TextEditingController titleController;
@@ -1489,6 +1706,7 @@ class _ProfileDetailBody extends StatefulWidget {
   final String primaryActionLabel;
   final IconData primaryActionIcon;
   final bool primaryActionEnabled;
+  final String deleteTooltip;
   final ValueChanged<bool> onPreviewChanged;
   final VoidCallback onPrimaryAction;
   final VoidCallback onCopyProfile;
@@ -1544,6 +1762,7 @@ class _ProfileDetailBodyState extends State<_ProfileDetailBody>
               primaryActionLabel: widget.primaryActionLabel,
               primaryActionIcon: widget.primaryActionIcon,
               primaryActionEnabled: widget.primaryActionEnabled,
+              deleteTooltip: widget.deleteTooltip,
               onPrimaryAction: widget.onPrimaryAction,
               onCopyProfile: widget.onCopyProfile,
               onDelete: widget.onDelete,
@@ -1592,6 +1811,7 @@ class _DetailHeader extends StatelessWidget {
     required this.primaryActionLabel,
     required this.primaryActionIcon,
     required this.primaryActionEnabled,
+    required this.deleteTooltip,
     required this.onPrimaryAction,
     required this.onCopyProfile,
     required this.onDelete,
@@ -1603,6 +1823,7 @@ class _DetailHeader extends StatelessWidget {
   final String primaryActionLabel;
   final IconData primaryActionIcon;
   final bool primaryActionEnabled;
+  final String deleteTooltip;
   final VoidCallback onPrimaryAction;
   final VoidCallback onCopyProfile;
   final VoidCallback onDelete;
@@ -1637,7 +1858,7 @@ class _DetailHeader extends StatelessWidget {
               icon: const Icon(Icons.copy_outlined),
             ),
             IconButton.outlined(
-              tooltip: '删除',
+              tooltip: deleteTooltip,
               onPressed: onDelete,
               icon: const Icon(Icons.delete_outline),
             ),
@@ -1815,33 +2036,36 @@ class _RunLogTab extends StatelessWidget {
             ),
           );
         }
-        return SingleChildScrollView(
+        return Padding(
           padding: const EdgeInsets.all(18),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  PersonaStatusPill(
-                    label: _statusLabel(item.status),
-                    icon: _statusIcon(item.status),
-                    color: _statusColor(
-                      Theme.of(context).colorScheme,
-                      item.status,
-                    ),
-                  ),
-                  if (item.stage != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
                     PersonaStatusPill(
-                      label: _stageLabel(item.stage),
-                      icon: Icons.timeline,
+                      label: _statusLabel(item.status),
+                      icon: _statusIcon(item.status),
+                      color: _statusColor(
+                        Theme.of(context).colorScheme,
+                        item.status,
+                      ),
                     ),
-                  PersonaStatusPill(
-                    label: _chunkProgressLabel(item),
-                    icon: Icons.grain,
-                  ),
-                ],
+                    if (item.stage != null)
+                      PersonaStatusPill(
+                        label: _stageLabel(item.stage),
+                        icon: Icons.timeline,
+                      ),
+                    PersonaStatusPill(
+                      label: _chunkProgressLabel(item),
+                      icon: Icons.grain,
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 14),
               _RunProgressOverview(run: item),
@@ -1852,7 +2076,13 @@ class _RunLogTab extends StatelessWidget {
               const SizedBox(height: 14),
               Text('完整日志', style: Theme.of(context).textTheme.labelMedium),
               const SizedBox(height: 8),
-              _CodeBlock(text: item.logs.trim().isEmpty ? '暂无日志。' : item.logs),
+              Expanded(
+                child: _CodeBlock(
+                  key: const ValueKey('style-lab-run-log-code-block'),
+                  text: item.logs.trim().isEmpty ? '暂无日志。' : item.logs,
+                  expand: true,
+                ),
+              ),
             ],
           ),
         );
@@ -1876,6 +2106,7 @@ class _RunProgressOverview extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final progress = _progressForRun(run);
     final statusColor = _statusColor(colorScheme, run.status);
+    final progressValue = _visibleProgressValue(run, progress);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1886,7 +2117,7 @@ class _RunProgressOverview extends StatelessWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(999),
                 child: LinearProgressIndicator(
-                  value: progress.value,
+                  value: progressValue,
                   minHeight: 7,
                   color: statusColor,
                   backgroundColor: colorScheme.outlineVariant.withValues(
@@ -2094,38 +2325,43 @@ class _StyleLabMissingDetail extends StatelessWidget {
 }
 
 class _CodeBlock extends StatelessWidget {
-  const _CodeBlock({
-    required this.text,
-    this.minHeight = 220,
-    this.maxHeight = 520,
-    this.fontSize = 12.5,
-  });
+  const _CodeBlock({required this.text, this.expand = false, super.key});
 
   final String text;
-  final double minHeight;
-  final double maxHeight;
-  final double fontSize;
+  final bool expand;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return DecoratedBox(
+    final content = DecoratedBox(
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.34),
         borderRadius: BorderRadius.circular(kPanelRadius),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: minHeight, maxHeight: maxHeight),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(12),
-          child: SelectableText(
-            text,
-            style: TextStyle(fontFamily: 'monospace', fontSize: fontSize),
-          ),
-        ),
-      ),
+      child: expand
+          ? SingleChildScrollView(
+              padding: const EdgeInsets.all(12),
+              child: SelectableText(
+                text,
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 12.5),
+              ),
+            )
+          : ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 220, maxHeight: 520),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(12),
+                child: SelectableText(
+                  text,
+                  style: const TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 12.5,
+                  ),
+                ),
+              ),
+            ),
     );
+    return SizedBox(width: double.infinity, child: content);
   }
 }
 
@@ -2215,6 +2451,18 @@ enum _StyleLibraryAssetKind { saved, draft }
 enum _StyleAssetMenuAction { delete }
 
 enum _StageStepState { waiting, active, done, failed }
+
+class _RunActivitySummary {
+  const _RunActivitySummary({
+    required this.text,
+    required this.icon,
+    this.color,
+  });
+
+  final String text;
+  final IconData icon;
+  final Color? color;
+}
 
 class _StyleAnalysisStep {
   const _StyleAnalysisStep({required this.stage, required this.label});
@@ -2344,6 +2592,13 @@ bool _isActivityRun(StyleAnalysisRun run) {
       (run.status == StyleAnalysisStatus.succeeded && run.profileId == null);
 }
 
+String _taskDetailSubtitle(StyleAnalysisRun run) {
+  final status = _statusLabel(run.status);
+  final stage = _stageLabel(run.stage);
+  final chunks = _chunkProgressLabel(run);
+  return '$status · $stage · $chunks · ${run.modelName}';
+}
+
 T? _findOrNull<T>(List<T> items, String? id, String Function(T item) getId) {
   if (id == null) {
     return null;
@@ -2421,6 +2676,51 @@ String _chunkProgressLabel(StyleAnalysisRun run) {
   return '$completed/$chunkCount chunks';
 }
 
+_RunActivitySummary _runActivitySummary(StyleAnalysisRun run) {
+  final error = run.errorMessage?.trim();
+  if (error != null && error.isNotEmpty) {
+    return _RunActivitySummary(
+      text: error,
+      icon: Icons.error_outline,
+      color: const Color(0xFFC93434),
+    );
+  }
+
+  final log = run.logs.trim();
+  if (log.isNotEmpty) {
+    final lines = log
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList(growable: false);
+    return _RunActivitySummary(
+      text: lines.isEmpty ? log : lines.last,
+      icon: Icons.notes_outlined,
+    );
+  }
+
+  return switch (run.status) {
+    StyleAnalysisStatus.pending => const _RunActivitySummary(
+      text: '任务已进入队列，等待开始分析。',
+      icon: Icons.schedule,
+    ),
+    StyleAnalysisStatus.running => const _RunActivitySummary(
+      text: '任务正在运行，打开详情可查看完整日志和阶段进度。',
+      icon: Icons.sync,
+    ),
+    StyleAnalysisStatus.succeeded => const _RunActivitySummary(
+      text: '任务已完成，打开详情可检查报告并保存为 Profile。',
+      icon: Icons.check_circle_outline,
+      color: Color(0xFF16825D),
+    ),
+    StyleAnalysisStatus.failed => const _RunActivitySummary(
+      text: '任务失败，打开详情可查看诊断信息。',
+      icon: Icons.error_outline,
+      color: Color(0xFFC93434),
+    ),
+  };
+}
+
 int? _completedChunkCount(StyleAnalysisRun run) {
   final chunkCount = run.chunkCount;
   if (chunkCount <= 0) {
@@ -2466,6 +2766,10 @@ _RunProgress _progressForRun(StyleAnalysisRun run) {
     ),
     StyleAnalysisStatus.running => _runningProgress(run),
   };
+}
+
+double? _visibleProgressValue(StyleAnalysisRun run, _RunProgress progress) {
+  return run.status == StyleAnalysisStatus.failed ? 1.0 : progress.value;
 }
 
 _RunProgress _runningProgress(StyleAnalysisRun run) {

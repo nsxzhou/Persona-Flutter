@@ -14,6 +14,8 @@ enum StyleAnalysisStage {
   persistingResult,
 }
 
+const styleAnalysisWorkflowTaskKind = 'style_lab_analysis';
+
 @freezed
 abstract class StyleAnalysisRun with _$StyleAnalysisRun {
   const factory StyleAnalysisRun({

@@ -487,6 +487,89 @@ final class StyleAnalysisRunFamily extends $Family
   String toString() => r'styleAnalysisRunProvider';
 }
 
+@ProviderFor(styleAnalysisRunByWorkflowTask)
+final styleAnalysisRunByWorkflowTaskProvider =
+    StyleAnalysisRunByWorkflowTaskFamily._();
+
+final class StyleAnalysisRunByWorkflowTaskProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<StyleAnalysisRun?>,
+          StyleAnalysisRun?,
+          Stream<StyleAnalysisRun?>
+        >
+    with
+        $FutureModifier<StyleAnalysisRun?>,
+        $StreamProvider<StyleAnalysisRun?> {
+  StyleAnalysisRunByWorkflowTaskProvider._({
+    required StyleAnalysisRunByWorkflowTaskFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'styleAnalysisRunByWorkflowTaskProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$styleAnalysisRunByWorkflowTaskHash();
+
+  @override
+  String toString() {
+    return r'styleAnalysisRunByWorkflowTaskProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<StyleAnalysisRun?> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<StyleAnalysisRun?> create(Ref ref) {
+    final argument = this.argument as String;
+    return styleAnalysisRunByWorkflowTask(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is StyleAnalysisRunByWorkflowTaskProvider &&
+        other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$styleAnalysisRunByWorkflowTaskHash() =>
+    r'4326964098763af8c58140af434ada72b54d4698';
+
+final class StyleAnalysisRunByWorkflowTaskFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<StyleAnalysisRun?>, String> {
+  StyleAnalysisRunByWorkflowTaskFamily._()
+    : super(
+        retry: null,
+        name: r'styleAnalysisRunByWorkflowTaskProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  StyleAnalysisRunByWorkflowTaskProvider call(String workflowTaskId) =>
+      StyleAnalysisRunByWorkflowTaskProvider._(
+        argument: workflowTaskId,
+        from: this,
+      );
+
+  @override
+  String toString() => r'styleAnalysisRunByWorkflowTaskProvider';
+}
+
 @ProviderFor(styleProfiles)
 final styleProfilesProvider = StyleProfilesProvider._();
 
