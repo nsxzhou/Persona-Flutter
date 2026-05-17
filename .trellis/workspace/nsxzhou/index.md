@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 10
-- **Last Active**: 2026-05-16
+- **Total Sessions**: 11
+- **Last Active**: 2026-05-17
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~347 | Active |
+| `journal-1.md` | ~380 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 11 | 2026-05-17 | Fix profile deletion residue | `53891fd` | `main` |
 | 10 | 2026-05-16 | Archive theme persistence task | `52a6c2c`, `e755ace` | `main` |
 | 9 | 2026-05-16 | Persist theme mode selection | `52a6c2c` | `main` |
 | 8 | 2026-05-16 | Project CRUD vertical slice | `4f3d4b1`, `87e32ab`, `2e8cd8a` | `main` |

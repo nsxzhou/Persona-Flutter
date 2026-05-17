@@ -345,3 +345,36 @@ Committed the remaining macOS shared_preferences plugin wiring, archived the the
 ### Next Steps
 
 - None - task complete
+
+
+## Session 11: Fix profile deletion residue
+
+**Date**: 2026-05-17
+**Task**: Fix profile deletion residue
+**Branch**: `main`
+
+### Summary
+
+Changed Plot Lab and Style Lab profile deletion to cascade through source runs and workflow tasks, updated repository tests, and documented the persistence contract.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `53891fd` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
