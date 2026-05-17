@@ -239,7 +239,6 @@ class DriftPlotLabRepository implements PlotLabRepository {
       throw StateError('Plot analysis run does not exist: $id');
     }
     final now = DateTime.now();
-    final taskStatus = _workflowStatus(status);
 
     await _database.transaction(() async {
       await (_database.update(
@@ -274,15 +273,12 @@ class DriftPlotLabRepository implements PlotLabRepository {
           updatedAt: Value(now),
         ),
       );
-      await (_database.update(
-        _database.workflowTaskRecords,
-      )..where((task) => task.id.equals(run.workflowTaskId))).write(
-        WorkflowTaskRecordsCompanion(
-          status: Value(taskStatus.name),
-          stage: Value(stage?.name),
-          errorMessage: Value(errorMessage),
-          updatedAt: Value(now),
-        ),
+      await _updateWorkflowTaskForRun(
+        workflowTaskId: run.workflowTaskId,
+        status: status,
+        stage: stage,
+        errorMessage: errorMessage,
+        updatedAt: now,
       );
     });
   }
@@ -314,15 +310,12 @@ class DriftPlotLabRepository implements PlotLabRepository {
             updatedAt: Value(now),
           ),
         );
-        await (_database.update(
-          _database.workflowTaskRecords,
-        )..where((task) => task.id.equals(run.workflowTaskId))).write(
-          WorkflowTaskRecordsCompanion(
-            status: Value(WorkflowTaskStatus.failed.name),
-            stage: const Value(null),
-            errorMessage: const Value(message),
-            updatedAt: Value(now),
-          ),
+        await _updateWorkflowTaskForRun(
+          workflowTaskId: run.workflowTaskId,
+          status: PlotAnalysisStatus.failed,
+          stage: null,
+          errorMessage: message,
+          updatedAt: now,
         );
       }
     });
@@ -539,6 +532,25 @@ class DriftPlotLabRepository implements PlotLabRepository {
       PlotAnalysisStatus.succeeded => WorkflowTaskStatus.succeeded,
       PlotAnalysisStatus.failed => WorkflowTaskStatus.failed,
     };
+  }
+
+  Future<void> _updateWorkflowTaskForRun({
+    required String workflowTaskId,
+    required PlotAnalysisStatus status,
+    required PlotAnalysisStage? stage,
+    required String? errorMessage,
+    required DateTime updatedAt,
+  }) {
+    return (_database.update(
+      _database.workflowTaskRecords,
+    )..where((task) => task.id.equals(workflowTaskId))).write(
+      WorkflowTaskRecordsCompanion(
+        status: Value(_workflowStatus(status).name),
+        stage: Value(stage?.name),
+        errorMessage: Value(errorMessage),
+        updatedAt: Value(updatedAt),
+      ),
+    );
   }
 
   String? _blankToNull(String? value) {

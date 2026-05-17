@@ -19,6 +19,31 @@ class PlotChunkSketchDocumentParser {
     'sample_coverage',
   ];
 
+  static const _listFields = [
+    'characters_present',
+    'scene_units',
+    'main_events',
+    'side_threads',
+    'payoff_points',
+    'tension_points',
+    'hooks',
+    'setup_payoff_links',
+    'sample_coverage',
+  ];
+
+  static const _stringFields = ['pacing_shift', 'time_marker'];
+
+  static const _allowedTimeMarkers = {'linear', 'flashback', 'unclear'};
+
+  static const _allowedSampleCoverage = {
+    'opening_seen',
+    'development_seen',
+    'climax_seen',
+    'ending_seen',
+    'partial_fragment',
+    'coverage_unclear',
+  };
+
   PlotChunkSketch parse({
     required String markdown,
     required int chunkIndex,
@@ -64,17 +89,14 @@ class PlotChunkSketchDocumentParser {
         }
       }
 
-      _expectList(fields, 'characters_present');
-      _expectList(fields, 'scene_units');
-      _expectList(fields, 'main_events');
-      _expectList(fields, 'side_threads');
-      _expectList(fields, 'payoff_points');
-      _expectList(fields, 'tension_points');
-      _expectList(fields, 'hooks');
-      _expectList(fields, 'setup_payoff_links');
-      _expectString(fields, 'pacing_shift');
-      _expectString(fields, 'time_marker');
-      _expectList(fields, 'sample_coverage');
+      for (final field in _listFields) {
+        _expectStringList(fields, field);
+      }
+      for (final field in _stringFields) {
+        _expectString(fields, field);
+      }
+      _expectEnumValue(fields, 'time_marker', _allowedTimeMarkers);
+      _expectEnumList(fields, 'sample_coverage', _allowedSampleCoverage);
       if (!body.startsWith('# Chunk Sketch')) {
         throw const PlotChunkSketchValidationException(
           'YAML 后的正文必须以 “# Chunk Sketch” 开头。',
@@ -101,9 +123,42 @@ class PlotChunkSketchDocumentParser {
     }
   }
 
-  void _expectList(Map<String, Object?> fields, String key) {
-    if (fields[key] is! YamlList && fields[key] is! List) {
+  void _expectStringList(Map<String, Object?> fields, String key) {
+    final value = fields[key];
+    if (value is! YamlList && value is! List) {
       throw PlotChunkSketchValidationException('YAML 字段 $key 必须是列表。');
+    }
+    final items = value as Iterable<Object?>;
+    for (final item in items) {
+      if (item is! String) {
+        throw PlotChunkSketchValidationException('YAML 字段 $key 的列表项必须是字符串。');
+      }
+    }
+  }
+
+  void _expectEnumValue(
+    Map<String, Object?> fields,
+    String key,
+    Set<String> allowed,
+  ) {
+    final value = fields[key] as String;
+    if (!allowed.contains(value)) {
+      throw PlotChunkSketchValidationException('YAML 字段 $key 的值无效：$value。');
+    }
+  }
+
+  void _expectEnumList(
+    Map<String, Object?> fields,
+    String key,
+    Set<String> allowed,
+  ) {
+    final value = fields[key];
+    final items = value as Iterable<Object?>;
+    for (final item in items) {
+      final text = item as String;
+      if (!allowed.contains(text)) {
+        throw PlotChunkSketchValidationException('YAML 字段 $key 包含无效值：$text。');
+      }
     }
   }
 

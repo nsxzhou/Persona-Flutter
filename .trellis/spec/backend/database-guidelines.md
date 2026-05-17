@@ -181,3 +181,46 @@ Expose status-filtered streams through `ProjectRepository.watchProjects(ProjectS
 Clear `profileId` on the source run during Profile deletion.
 #### Correct
 Delete the Profile row, source run row, and source workflow task row in one transaction.
+
+## Scenario: Analysis run and workflow task synchronization
+
+### 1. Scope / Trigger
+- Trigger: Style Lab, Plot Lab, or a future editor background job creates or updates a long-running analysis/task record.
+- This is a cross-layer persistence contract because `workflowTaskRecords` drives the Workflow Runs overview while feature run tables drive detail pages.
+
+### 2. Signatures
+- Read repository: `WorkflowTaskRepository.watchRecentTasks()`
+- Style run writer: `StyleLabRepository.createRun(...)` and `StyleLabRepository.updateRunState(...)`
+- Plot run writer: `PlotLabRepository.createRun(...)` and `PlotLabRepository.updateRunState(...)`
+- Drift table: `WorkflowTaskRecords`
+- Feature task mapping fields:
+  - Style: `styleAnalysisRunRecords.workflowTaskId`
+  - Plot: `plotAnalysisRunRecords.workflowTaskId`
+
+### 3. Contracts
+- `WorkflowTaskRepository` is read-only for task overview screens.
+- Feature repositories own creation and state updates for their run row and matching workflow task row.
+- Run state and workflow task state must be updated in the same Drift transaction.
+- `workflowTaskRecords` is a long-term overview table, not migration residue; do not remove it while Workflow Runs depends on it.
+- Do not add generic `upsertTask` or `updateTask` methods without a concrete writer use case that preserves the feature run mapping.
+
+### 4. Validation & Error Matrix
+- Missing feature run on update -> throw at the feature repository boundary.
+- Interrupted pending/running run after app restart -> mark both the feature run and workflow task as failed in the same transaction.
+- Missing workflow task id for a feature run -> treat as persistence corruption; do not silently create an unlinked replacement task.
+
+### 5. Good/Base/Bad Cases
+- Good: `DriftStyleLabRepository.updateRunState` updates `styleAnalysisRunRecords` and its `workflowTaskRecords` row inside one transaction.
+- Base: Workflow Runs reads `WorkflowTaskRepository.watchRecentTasks()` and opens a feature detail by `workflowTaskId`.
+- Bad: Update only the feature run row and leave Workflow Runs showing stale status.
+
+### 6. Tests Required
+- Repository tests must assert workflow task status follows run status changes.
+- Restart/interruption tests must assert both the run row and task row become failed.
+- Workflow Runs widget tests must confirm Style/Plot task detail navigation still works by `workflowTaskId`.
+
+### 7. Wrong vs Correct
+#### Wrong
+Expose a generic task writer and let UI or feature services update workflow tasks separately from analysis runs.
+#### Correct
+Keep `WorkflowTaskRepository` read-only and update run/task records together inside the owning feature repository.

@@ -17,6 +17,7 @@ Backend-like infrastructure belongs under `lib/src/core/` when it is shared by m
 ```text
 lib/src/
 ├── core/
+│   ├── analysis/        # Shared local analysis utilities for Style/Plot pipelines
 │   ├── database/        # AppDatabase, Drift table definitions, DB providers
 │   ├── llm/             # Shared LLM ports, prompt composition, adapters
 │   └── tasks/
@@ -34,6 +35,12 @@ lib/src/
 ## Module Organization
 
 Keep application services independent of Flutter widgets. Presentation code calls Riverpod providers or use-case services; it must not reach directly into Drift tables.
+
+Shared analysis utilities live in `lib/src/core/analysis/` when they are reused
+by more than one analysis lab. Examples include text chunking, input signal
+detection, and provider-error sanitization. Feature-specific prompt builders,
+document parsers, and domain-specific classification wrappers stay in the
+feature's `application/` directory.
 
 Shared task primitives live in `lib/src/core/tasks/`, as shown by:
 

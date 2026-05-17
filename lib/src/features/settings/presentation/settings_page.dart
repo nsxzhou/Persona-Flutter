@@ -114,7 +114,9 @@ class _ProviderList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dividerColor = Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5);
+    final dividerColor = Theme.of(
+      context,
+    ).colorScheme.outlineVariant.withValues(alpha: 0.5);
     return Column(
       children: [
         for (var i = 0; i < items.length; i++) ...[
@@ -155,7 +157,12 @@ class _ProviderRow extends ConsumerWidget {
                 builder: (context, constraints) {
                   final isNarrow = constraints.maxWidth < 700;
                   final info = _buildInfo(context, host, statusColor);
-                  final actions = _buildActions(context, ref, isBusy, statusColor);
+                  final actions = _buildActions(
+                    context,
+                    ref,
+                    isBusy,
+                    statusColor,
+                  );
 
                   if (isNarrow) {
                     return Column(
@@ -347,10 +354,7 @@ class _StatusDot extends StatelessWidget {
     return Container(
       width: 8,
       height: 8,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-      ),
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
 }

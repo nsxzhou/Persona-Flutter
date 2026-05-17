@@ -55,6 +55,7 @@ const _sketchRules = '''
 3. YAML 内部字符串和 Markdown 正文必须使用中文简体；字段名称必须严格使用指定的英文字段名，不得翻译。
 4. 若证据不足，宁可保留空数组或给出最小可支撑结论，也不要编造。
 5. YAML front matter 必须只包含指定字段，不得出现任何额外字段；YAML 后的正文必须从 `# Chunk Sketch` 开始。
+6. 最终回答必须直接从 `---` 开始，并以正文 bullet 结束；不要包裹 ```markdown 或 ```yaml 代码围栏。
 ''';
 
 const _plotReportTemplate = '''
@@ -181,38 +182,27 @@ YAML 后的 Markdown 正文要求：
 - 只写 2-4 条 bullet，压缩说明本 chunk 的证据摘要、推进机制、设伏兑现或证据不足项。
 - 正文不得引入 YAML 中没有证据支撑的新人物、新事件或新关系。
 
-输入判定：${jsonEncode(classification.toJson())}
-当前 chunk：${chunkIndex + 1}/$chunkCount（chunk_index=$chunkIndex, chunk_count=$chunkCount）
-
-输出形状示例（仅用于说明 YAML+MD 结构，不要照搬其中内容）：
+输出骨架示意（只用于说明字段顺序，不要照搬内容）：
 ---
-characters_present:
-  - 林凡
-  - 宗主
-scene_units:
-  - 宗门大比现场：林凡被宗主点名参加考核，局面从旁观转为被迫应战
-main_events:
-  - 林凡遭遇宗门考核
-side_threads:
-  - 同门观望形成压力
-payoff_points:
-  - 林凡当场展示能力
-tension_points:
-  - 宗门权威压迫
-hooks:
-  - 考核结果未公布
-setup_payoff_links:
-  - 前置轻视 -> 当场反击
-pacing_shift: 压迫转入反击
-time_marker: linear
+characters_present: []
+scene_units: []
+main_events: []
+side_threads: []
+payoff_points: []
+tension_points: []
+hooks: []
+setup_payoff_links: []
+pacing_shift: ""
+time_marker: unclear
 sample_coverage:
-  - development_seen
   - partial_fragment
 ---
 
 # Chunk Sketch
-- 宗门考核把主角从旁观者推入行动位，压力来自权威点名与同门围观。
-- 当前 chunk 可见压迫到反击的半兑现，但结局走向仍未覆盖。
+- 当前 chunk 的证据摘要。
+
+输入判定：${jsonEncode(classification.toJson())}
+当前 chunk：${chunkIndex + 1}/$chunkCount
 
 请仅输出符合上述要求的 YAML front matter + Markdown 正文，不要输出任何其他字符。
 
@@ -229,7 +219,7 @@ $chunk
     return '''
 $_sharedAnalysisRules
 
-你正在执行 Plot Lab 的样本骨架聚合阶段。请基于已按 `chunk_index` 升序排列的分块速写（sketches），压缩输出一份紧凑的样本情节骨架 Markdown，用于最终 2.5 分析报告提供上下文。
+你正在执行 Plot Lab 的样本骨架聚合阶段。请基于已按 `chunk_index` 升序排列的分块速写（sketches）或已按 `group_index` 升序排列的子骨架（sub-skeletons），压缩输出一份紧凑的样本情节骨架 Markdown，用于最终 2.5 分析报告提供上下文。
 整份骨架合计不得超过约 2500 tokens；章节、层级与顺序必须严格沿用下方输出模板。
 只分析上传样本，不得推断完整小说；未覆盖开篇、高潮或结尾时必须写入“证据不足项”。
 若证据不足，宁可在“证据不足项”中声明，不要凭空臆断；每一阶段、每一推进链条都必须能够在输入的 sketches 中找到对应证据。
@@ -245,6 +235,29 @@ $plotSkeletonTemplate
 
 分块速写列表（已按 chunk_index 升序排列）：
 ${jsonEncode(sketches)}
+''';
+  }
+
+  String buildSkeletonGroupPrompt({
+    required List<Map<String, Object?>> groupSketches,
+    required int groupIndex,
+    required int groupCount,
+    required PlotInputClassification classification,
+  }) {
+    return '''
+$_sharedAnalysisRules
+
+你正在执行 Plot Lab 的骨架分组归并阶段。当前是 group ${groupIndex + 1}/$groupCount。请仅基于传入的 group sketches 生成一份子骨架 Markdown。
+子骨架必须沿用最终骨架的章节结构，但只覆盖当前 group 的 chunk 范围；不得推断 group 外内容。
+所有 chunk 索引引用都必须来自传入 sketches；证据不足时写入“证据不足项”。
+
+输入判定：${jsonEncode(classification.toJson())}
+
+输出模板：
+$plotSkeletonTemplate
+
+本 group 分块速写列表：
+${jsonEncode(groupSketches)}
 ''';
   }
 

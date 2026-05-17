@@ -1,3 +1,5 @@
+import '../../../core/analysis/analysis_text_tools.dart';
+
 class StyleInputClassification {
   const StyleInputClassification({
     required this.textType,
@@ -21,40 +23,20 @@ class StyleInputClassification {
     required String text,
     required int chunkCount,
   }) {
-    final sampleText = text
-        .split('\n')
-        .map((line) => line.trim())
-        .where((line) => line.isNotEmpty)
-        .take(200)
-        .join('\n');
-    final hasTimestamps = RegExp(
-      r'(?:\[|\()\d{1,2}:\d{2}(?::\d{2})?(?:\]|\))|^\d{1,2}:\d{2}',
-      multiLine: true,
-    ).hasMatch(sampleText);
-    final hasSpeakerLabels = RegExp(
-      r'^[A-Z][A-Za-z ]{0,20}[:：]|^[一-龥]{1,6}[:：]',
-      multiLine: true,
-    ).hasMatch(sampleText);
-    final hasNoiseMarkers = RegExp(
-      r'\[(?:pauses?|laughs?|inaudible|静默|笑|背景音)\]',
-      caseSensitive: false,
-    ).hasMatch(sampleText);
-
-    final textType = hasTimestamps
-        ? '口语字幕'
-        : hasSpeakerLabels
-        ? '混合文本'
-        : '章节正文';
-    final locationIndexing = hasTimestamps ? '时间戳' : '章节或段落位置';
+    final signals = detectAnalysisInputSignals(
+      text: text,
+      chunkCount: chunkCount,
+      sampleLineLimit: 200,
+    );
 
     return StyleInputClassification(
-      textType: textType,
-      hasTimestamps: hasTimestamps,
-      hasSpeakerLabels: hasSpeakerLabels,
-      hasNoiseMarkers: hasNoiseMarkers,
-      usesBatchProcessing: chunkCount > 1,
-      locationIndexing: locationIndexing,
-      noiseNotes: hasNoiseMarkers ? '检测到对话/语气/背景音标记。' : '未发现显著噪声。',
+      textType: signals.textType,
+      hasTimestamps: signals.hasTimestamps,
+      hasSpeakerLabels: signals.hasSpeakerLabels,
+      hasNoiseMarkers: signals.hasNoiseMarkers,
+      usesBatchProcessing: signals.usesBatchProcessing,
+      locationIndexing: signals.locationIndexing,
+      noiseNotes: signals.noiseNotes,
     );
   }
 

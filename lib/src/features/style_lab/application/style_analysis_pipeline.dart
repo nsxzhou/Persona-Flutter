@@ -1,3 +1,4 @@
+import '../../../core/analysis/analysis_text_tools.dart';
 import '../../../core/llm/application/markdown_completion_service.dart';
 import '../../settings/domain/provider_config.dart';
 import '../domain/style_analysis_run.dart';
@@ -22,8 +23,6 @@ class StyleAnalysisPipeline {
   final MarkdownCompletionService _completionService;
   final StyleLabPromptBuilder _promptBuilder;
   final VoiceProfileFrontMatterParser _frontMatterParser;
-
-  static const chunkSize = 12000;
 
   Future<void> run({
     required String runId,
@@ -74,7 +73,7 @@ class StyleAnalysisPipeline {
         message: '阶段: 准备输入。准备样本文本。',
         startedAt: DateTime.now(),
       );
-      final chunks = splitIntoChunks(sample.content);
+      final chunks = splitAnalysisTextIntoChunks(sample.content);
       if (chunks.isEmpty) {
         throw StateError('样本文本没有可分析的有效内容。');
       }
@@ -171,65 +170,15 @@ class StyleAnalysisPipeline {
         StyleAnalysisStatus.failed,
         null,
         message: '分析失败。',
-        errorMessage: _sanitizeError(error, provider),
+        errorMessage: sanitizeAnalysisError(error, provider),
         completedAt: DateTime.now(),
       );
       rethrow;
     }
   }
 
-  List<String> splitIntoChunks(String text) {
-    final normalized = text.trim();
-    if (normalized.isEmpty) {
-      return const [];
-    }
-    if (normalized.length <= chunkSize) {
-      return [normalized];
-    }
-
-    final paragraphs = normalized.split(RegExp(r'\n{2,}'));
-    final chunks = <String>[];
-    final buffer = StringBuffer();
-    for (final paragraph in paragraphs) {
-      if (buffer.isNotEmpty &&
-          buffer.length + paragraph.length + 2 > chunkSize) {
-        chunks.add(buffer.toString().trim());
-        buffer.clear();
-      }
-      if (paragraph.length > chunkSize) {
-        var start = 0;
-        while (start < paragraph.length) {
-          final end = (start + chunkSize).clamp(0, paragraph.length);
-          chunks.add(paragraph.substring(start, end).trim());
-          start = end;
-        }
-        continue;
-      }
-      if (buffer.isNotEmpty) {
-        buffer.write('\n\n');
-      }
-      buffer.write(paragraph);
-    }
-    if (buffer.isNotEmpty) {
-      chunks.add(buffer.toString().trim());
-    }
-    return chunks.where((chunk) => chunk.isNotEmpty).toList(growable: false);
-  }
-
   void _appendLog(StringBuffer buffer, String message) {
     final timestamp = DateTime.now().toIso8601String();
     buffer.writeln('[$timestamp] $message');
-  }
-
-  String _sanitizeError(Object error, ProviderConfig provider) {
-    var message = error.toString();
-    final apiKey = provider.apiKey.trim();
-    if (apiKey.isNotEmpty) {
-      message = message.replaceAll(apiKey, '[REDACTED]');
-    }
-    if (message.length <= 220) {
-      return message;
-    }
-    return '${message.substring(0, 217)}...';
   }
 }

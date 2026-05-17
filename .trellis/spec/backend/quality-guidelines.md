@@ -130,3 +130,49 @@ Enable `com.apple.security.network.client` for outbound Provider connectivity.
 Import `ChatOpenAI` in a feature page and stream directly into widget state.
 #### Correct
 Feature code depends on `LlmInvocationService` / `LlmClient`; only `core/llm/data` imports LangChain.dart.
+
+## Scenario: Analysis artifact YAML+MD output contract
+
+### 1. Scope / Trigger
+- Trigger: Any Style Lab, Plot Lab, or future analysis feature prompts an LLM to generate a reusable analysis artifact that is saved, parsed, or shown as a profile/engine document.
+- This is an application-layer contract because prompt builders, document parsers, persisted markdown fields, detail pages, and tests must agree on the same output shape.
+
+### 2. Signatures
+- Style artifact: `StyleLabPromptBuilder.buildVoiceProfilePrompt(...)` -> `VoiceProfileFrontMatterParser.parse(...)`
+- Plot sketch artifact: `PlotLabPromptBuilder.buildSketchPrompt(...)` -> `PlotChunkSketchDocumentParser.parse(...)`
+- Plot engine artifact: `PlotLabPromptBuilder.buildStoryEnginePrompt(...)` -> `StoryEngineNormalizer.normalize(...)`
+- Required document shape:
+  - YAML front matter starts at the first character with `---`
+  - YAML front matter ends with a closing `---`
+  - Markdown body starts with the required H1 for that artifact
+
+### 3. Contracts
+- Reusable LLM artifacts remain `YAML front matter + Markdown body` (`YAML+MD`), not JSON-only.
+- Prompt builders must explicitly tell the model to output only the front matter and Markdown body, with no preface, explanation, conclusion, or code fence.
+- Parsers/normalizers must accept the `YAML+MD` document shape and reject malformed required contracts instead of silently coercing missing structure.
+- Feature pipelines may convert parsed YAML fields into domain objects for downstream aggregation, but the LLM-facing and persisted artifact format remains `YAML+MD`.
+- Plain reports and intermediate summaries that are not reusable artifacts may remain Markdown-only.
+
+### 4. Validation & Error Matrix
+- Output does not start with `---` when YAML is required -> validation error.
+- Missing closing front matter delimiter -> validation error.
+- Required YAML field missing or unknown field present where the parser has a whitelist -> validation error.
+- YAML enum/list type does not match the parser contract -> validation error.
+- Markdown body missing the required H1, such as `# Chunk Sketch`, `# Voice Profile`, or `# Plot Writing Guide` -> validation error.
+- Model wraps the document in a Markdown code fence -> strip only when the owning pipeline has an explicit cleanup step, then validate the resulting `YAML+MD`.
+
+### 5. Good/Base/Bad Cases
+- Good: Plot sketch prompt asks for YAML front matter plus `# Chunk Sketch`, then `PlotChunkSketchDocumentParser` validates fields before converting to `PlotChunkSketch`.
+- Base: Style Voice Profile and Plot Story Engine are saved as editable `YAML+MD` documents after parser/normalizer validation.
+- Bad: Change a reusable artifact prompt to JSON-only and bypass the existing Markdown detail/editing surfaces.
+
+### 6. Tests Required
+- Parser tests for valid `YAML+MD`, missing fields, extra fields, invalid enum/list values, missing body H1, and code-fence cleanup when supported.
+- Pipeline tests confirming Plot sketches still become structured inputs for skeleton/report/story-engine generation.
+- UI/widget tests should keep validating that saved artifacts are shown as `YAML+MD` where the page exposes source editing or validation state.
+
+### 7. Wrong vs Correct
+#### Wrong
+Ask the model to return JSON for a saved analysis artifact and store that JSON directly in the profile markdown field.
+#### Correct
+Ask the model to return `YAML front matter + Markdown body`, validate the contract, and only then derive structured objects for internal pipeline steps.

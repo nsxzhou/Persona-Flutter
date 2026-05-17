@@ -149,12 +149,14 @@ void main() {
     );
 
     expect(sketchPrompt, contains('YAML front matter'));
-    expect(sketchPrompt, contains('chunk_index'));
+    expect(sketchPrompt, contains('characters_present'));
     expect(sketchPrompt, contains('# Chunk Sketch'));
     expect(sketchPrompt, contains('sample_coverage'));
     expect(sketchPrompt, contains('不得推断完整小说'));
+    expect(sketchPrompt, contains('不要包裹 ```markdown'));
     expect(skeletonPrompt, contains('# 全书骨架'));
     expect(skeletonPrompt, contains('证据不足项'));
+    expect(skeletonPrompt, contains('sub-skeletons'));
     expect(reportPrompt, contains('## 2.5.1 主线剧情分析'));
     expect(reportPrompt, contains('当前样本未覆盖'));
     expect(storyPrompt, contains('# Plot Writing Guide'));
@@ -182,6 +184,95 @@ void main() {
       expect(sketch.bodyMarkdown, startsWith('# Chunk Sketch'));
     },
   );
+
+  test('plot chunk sketch parser rejects malformed YAML contracts', () {
+    const parser = PlotChunkSketchDocumentParser();
+
+    expect(
+      () => parser.parse(
+        markdown: _sketchDocument(extraYaml: 'extra_field: nope\n'),
+        chunkIndex: 0,
+        chunkCount: 1,
+      ),
+      throwsA(
+        isA<PlotChunkSketchValidationException>().having(
+          (error) => error.message,
+          'message',
+          contains('未允许字段'),
+        ),
+      ),
+    );
+    expect(
+      () => parser.parse(
+        markdown: _sketchDocument(omitHooks: true),
+        chunkIndex: 0,
+        chunkCount: 1,
+      ),
+      throwsA(
+        isA<PlotChunkSketchValidationException>().having(
+          (error) => error.message,
+          'message',
+          contains('缺少必填字段：hooks'),
+        ),
+      ),
+    );
+    expect(
+      () => parser.parse(
+        markdown: _sketchDocument(timeMarker: 'sideways'),
+        chunkIndex: 0,
+        chunkCount: 1,
+      ),
+      throwsA(
+        isA<PlotChunkSketchValidationException>().having(
+          (error) => error.message,
+          'message',
+          contains('time_marker 的值无效'),
+        ),
+      ),
+    );
+    expect(
+      () => parser.parse(
+        markdown: _sketchDocument(sampleCoverage: 'unknown_seen'),
+        chunkIndex: 0,
+        chunkCount: 1,
+      ),
+      throwsA(
+        isA<PlotChunkSketchValidationException>().having(
+          (error) => error.message,
+          'message',
+          contains('sample_coverage 包含无效值'),
+        ),
+      ),
+    );
+    expect(
+      () => parser.parse(
+        markdown: _sketchDocument(charactersValue: '  - 主角\n  - 123\n'),
+        chunkIndex: 0,
+        chunkCount: 1,
+      ),
+      throwsA(
+        isA<PlotChunkSketchValidationException>().having(
+          (error) => error.message,
+          'message',
+          contains('列表项必须是字符串'),
+        ),
+      ),
+    );
+    expect(
+      () => parser.parse(
+        markdown: _sketchDocument(bodyHeading: '# Not Chunk Sketch'),
+        chunkIndex: 0,
+        chunkCount: 1,
+      ),
+      throwsA(
+        isA<PlotChunkSketchValidationException>().having(
+          (error) => error.message,
+          'message',
+          contains('# Chunk Sketch'),
+        ),
+      ),
+    );
+  });
 
   test('story engine normalizer keeps only allowed sections', () {
     const normalizer = StoryEngineNormalizer();
@@ -288,6 +379,101 @@ intensity: 0.7
   );
 
   test(
+    'plot analysis pipeline strips markdown fences around sketch output',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final (provider, repository) = await _plotLabTestContext(database);
+      final sample = await repository.saveSample(
+        const PlotSampleInput(
+          sourceType: PlotSampleSourceType.txt,
+          title: '样本',
+          content: '第一段。',
+        ),
+      );
+      final run = await repository.createRun(
+        PlotAnalysisRunInput(
+          sampleId: sample.id,
+          providerId: provider.id,
+          modelName: provider.defaultModel,
+          plotName: '裂缝骨架',
+          characterCount: sample.characterCount,
+        ),
+      );
+      final pipeline = PlotAnalysisPipeline(
+        repository: repository,
+        completionService: MarkdownCompletionService(
+          invocation: LlmInvocationService(
+            client: _QueuedLlmClient([
+              '```markdown\n${_sketchDocument()}\n```',
+              '# 全书骨架\n## 主线推进链\n@chunk0',
+              '# 执行摘要\n压力推进。',
+              _validStoryEngine,
+            ]),
+          ),
+        ),
+      );
+
+      await pipeline.run(runId: run.id, provider: provider);
+
+      final updated = await repository.findRun(run.id);
+      expect(updated!.status, PlotAnalysisStatus.succeeded);
+      expect(updated.plotSkeletonMarkdown, contains('全书骨架'));
+    },
+  );
+
+  test(
+    'plot analysis pipeline uses hierarchical skeleton reduce for large sketch payloads',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final (provider, repository) = await _plotLabTestContext(database);
+      final oversizedParagraph = '压力推进。' * 2000;
+      final sample = await repository.saveSample(
+        PlotSampleInput(
+          sourceType: PlotSampleSourceType.txt,
+          title: '大样本',
+          content: '$oversizedParagraph\n\n$oversizedParagraph',
+        ),
+      );
+      final run = await repository.createRun(
+        PlotAnalysisRunInput(
+          sampleId: sample.id,
+          providerId: provider.id,
+          modelName: provider.defaultModel,
+          plotName: '大样本骨架',
+          characterCount: sample.characterCount,
+        ),
+      );
+      final verboseSketch = _sketchDocument(
+        sceneValue: '  - ${'长场景描述' * 30000}\n',
+      );
+      final client = _QueuedLlmClient([
+        verboseSketch,
+        verboseSketch,
+        '# 子骨架\n## 主线推进链\n@chunk0',
+        '# 全书骨架\n## 主线推进链\n@chunk0 -> @chunk1',
+        '# 执行摘要\n压力推进。',
+        _validStoryEngine,
+      ]);
+      final pipeline = PlotAnalysisPipeline(
+        repository: repository,
+        completionService: MarkdownCompletionService(
+          invocation: LlmInvocationService(client: client),
+        ),
+      );
+
+      await pipeline.run(runId: run.id, provider: provider);
+
+      final updated = await repository.findRun(run.id);
+      expect(updated!.status, PlotAnalysisStatus.succeeded);
+      expect(updated.chunkCount, 2);
+      expect(updated.plotSkeletonMarkdown, contains('@chunk0 -> @chunk1'));
+      expect(client.invocationCount, 6);
+    },
+  );
+
+  test(
     'plot analysis pipeline rejects invalid sketch YAML front matter',
     () async {
       final database = AppDatabase(NativeDatabase.memory());
@@ -348,12 +534,20 @@ Future<(ProviderConfig, DriftPlotLabRepository)> _plotLabTestContext(
   return (provider, DriftPlotLabRepository(database));
 }
 
-String _sketchDocument() {
+String _sketchDocument({
+  String extraYaml = '',
+  bool omitHooks = false,
+  String timeMarker = 'linear',
+  String sampleCoverage = 'development_seen',
+  String charactersValue = '  - 主角\n',
+  String sceneValue = '  - 场景：主角被压力推入行动\n',
+  String bodyHeading = '# Chunk Sketch',
+}) {
   return '''---
 characters_present:
-  - 主角
+$charactersValue
 scene_units:
-  - 场景：主角被压力推入行动
+$sceneValue
 main_events:
   - 主角遭遇压力
 side_threads: []
@@ -361,17 +555,17 @@ payoff_points:
   - 小反击
 tension_points:
   - 压力升级
-hooks:
+${omitHooks ? '' : '''hooks:
   - 局面未解
-setup_payoff_links:
+'''}setup_payoff_links:
   - 压力铺垫 -> 小反击
 pacing_shift: 压迫转入行动
-time_marker: linear
+time_marker: $timeMarker
 sample_coverage:
-  - development_seen
----
+  - $sampleCoverage
+$extraYaml---
 
-# Chunk Sketch
+$bodyHeading
 - 主角遭遇压力后进入行动位，当前 chunk 形成压迫到小反击的半兑现。
 ''';
 }
@@ -422,12 +616,14 @@ class _QueuedLlmClient implements LlmClient {
   _QueuedLlmClient(this._responses);
 
   final List<String> _responses;
+  int invocationCount = 0;
 
   @override
   Stream<LlmStreamEvent> streamChat({
     required ProviderConfig provider,
     required LlmRequest request,
   }) async* {
+    invocationCount += 1;
     if (_responses.isEmpty) {
       yield const LlmStreamDone();
       return;

@@ -23,43 +23,6 @@ class DriftWorkflowTaskRepository implements WorkflowTaskRepository {
     );
   }
 
-  @override
-  Future<void> upsertTask(WorkflowTask task) {
-    return _database
-        .into(_database.workflowTaskRecords)
-        .insertOnConflictUpdate(
-          WorkflowTaskRecordsCompanion(
-            id: Value(task.id),
-            kind: Value(task.kind),
-            status: Value(task.status.name),
-            title: Value(task.title),
-            stage: Value(task.stage),
-            errorMessage: Value(task.errorMessage),
-            createdAt: Value(task.createdAt),
-            updatedAt: Value(task.updatedAt),
-          ),
-        );
-  }
-
-  @override
-  Future<void> updateTask({
-    required String id,
-    required WorkflowTaskStatus status,
-    String? stage,
-    String? errorMessage,
-  }) {
-    return (_database.update(
-      _database.workflowTaskRecords,
-    )..where((task) => task.id.equals(id))).write(
-      WorkflowTaskRecordsCompanion(
-        status: Value(status.name),
-        stage: Value(stage),
-        errorMessage: Value(errorMessage),
-        updatedAt: Value(DateTime.now()),
-      ),
-    );
-  }
-
   WorkflowTask _mapRecord(WorkflowTaskRecord row) {
     return WorkflowTask(
       id: row.id,
