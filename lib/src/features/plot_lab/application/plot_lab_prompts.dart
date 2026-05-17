@@ -211,6 +211,31 @@ $chunk
 ''';
   }
 
+  String buildSketchRepairPrompt({
+    required String invalidSketchMarkdown,
+    required String parseError,
+  }) {
+    return '''
+你正在修复 Plot Lab 分块速写阶段的模型输出格式。上一轮输出没有通过 YAML+MD 校验。
+
+修复目标：
+1. 只修复格式，不得新增、删除或扩写事实内容。
+2. 最终输出必须直接从 `---` 开始，并包含一个 YAML front matter 结束分隔符 `---`。
+3. YAML front matter 必须只包含这些字段，顺序也按此排列：characters_present、scene_units、main_events、side_threads、payoff_points、tension_points、hooks、setup_payoff_links、pacing_shift、time_marker、sample_coverage。
+4. 列表字段必须是 YAML 列表；没有内容时写 `[]`。
+5. `time_marker` 只能是 `linear`、`flashback`、`unclear`；不确定时写 `unclear`。
+6. `sample_coverage` 只能包含 `opening_seen`、`development_seen`、`climax_seen`、`ending_seen`、`partial_fragment`、`coverage_unclear`；不确定时写 `coverage_unclear`。
+7. YAML 后的 Markdown 正文必须从 `# Chunk Sketch` 开始。
+8. 不要输出解释、前言、结语或代码围栏。
+
+校验错误：
+$parseError
+
+待修复输出：
+$invalidSketchMarkdown
+''';
+  }
+
   String buildSkeletonPrompt({
     required List<Map<String, Object?>> sketches,
     required PlotInputClassification classification,

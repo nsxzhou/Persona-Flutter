@@ -180,6 +180,17 @@ void main() {
       expect(prompt, contains(section));
     }
     expect(prompt, contains('Voice Profile 必须去样本化'));
+    expect(
+      builder.buildVoiceProfileRepairPrompt(
+        invalidProfileMarkdown: 'missing closing delimiter',
+        parseError: 'YAML front matter 缺少结束分隔符。',
+      ),
+      allOf(
+        contains('只修复格式'),
+        contains('YAML front matter 结束分隔符'),
+        contains('# Voice Profile'),
+      ),
+    );
   });
 
   test('style analysis pipeline runs simplified chunk workflow', () async {
@@ -291,6 +302,58 @@ void main() {
   );
 
   test(
+    'style analysis pipeline repairs voice profile missing YAML delimiter',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final (provider, repository) = await _styleLabTestContext(database);
+      final sample = await repository.saveSample(
+        const StyleSampleInput(
+          sourceType: StyleSampleSourceType.txt,
+          title: '样本',
+          content: '第一段。\n\n第二段。',
+        ),
+      );
+      final run = await repository.createRun(
+        StyleAnalysisRunInput(
+          sampleId: sample.id,
+          providerId: provider.id,
+          modelName: provider.defaultModel,
+          styleName: '冷雨风格',
+          characterCount: sample.characterCount,
+        ),
+      );
+      final client = _QueuedLlmClient([
+        '# 执行摘要\nchunk',
+        '# 执行摘要\nreport',
+        _validProfile.replaceFirst('\n---\n\n# Voice Profile', ''),
+        _validProfile,
+      ]);
+      final pipeline = StyleAnalysisPipeline(
+        repository: repository,
+        workflowTaskRepository: DriftWorkflowTaskRepository(database),
+        completionService: MarkdownCompletionService(
+          invocation: LlmInvocationService(client: client),
+        ),
+      );
+
+      await pipeline.run(runId: run.id, provider: provider);
+
+      final updated = await repository.findRun(run.id);
+      expect(updated!.status, StyleAnalysisStatus.succeeded);
+      expect(updated.voiceProfileMarkdown, startsWith('---'));
+      expect(updated.voiceProfileMarkdown, contains('# Voice Profile'));
+      expect(client.invocationCount, 4);
+      final trace = await DriftWorkflowTaskRepository(
+        database,
+      ).watchPromptTrace(run.workflowTaskId).first;
+      expect(trace, isNotNull);
+      expect(trace!.traceMarkdown, contains('calls: 4'));
+      expect(trace.traceMarkdown, contains('repair_voice_profile'));
+    },
+  );
+
+  test(
     'style analysis pipeline rejects invalid voice profile markdown',
     () async {
       final database = AppDatabase(NativeDatabase.memory());
@@ -321,6 +384,7 @@ void main() {
               '# 执行摘要\nchunk',
               '# 执行摘要\nreport',
               '# Voice Profile\n缺 YAML。',
+              '# Voice Profile\n仍然缺 YAML。',
             ]),
           ),
         ),
@@ -340,7 +404,8 @@ void main() {
         database,
       ).watchPromptTrace(run.workflowTaskId).first;
       expect(trace, isNotNull);
-      expect(trace!.traceMarkdown, contains('calls: 3'));
+      expect(trace!.traceMarkdown, contains('calls: 4'));
+      expect(trace.traceMarkdown, contains('repair_voice_profile'));
     },
   );
 }

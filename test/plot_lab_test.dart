@@ -154,6 +154,17 @@ void main() {
     expect(sketchPrompt, contains('sample_coverage'));
     expect(sketchPrompt, contains('不得推断完整小说'));
     expect(sketchPrompt, contains('不要包裹 ```markdown'));
+    expect(
+      builder.buildSketchRepairPrompt(
+        invalidSketchMarkdown: 'missing closing delimiter',
+        parseError: 'YAML front matter 缺少结束分隔符。',
+      ),
+      allOf(
+        contains('只修复格式'),
+        contains('YAML front matter 结束分隔符'),
+        contains('# Chunk Sketch'),
+      ),
+    );
     expect(skeletonPrompt, contains('# 全书骨架'));
     expect(skeletonPrompt, contains('证据不足项'));
     expect(skeletonPrompt, contains('sub-skeletons'));
@@ -430,6 +441,58 @@ intensity: 0.7
       final updated = await repository.findRun(run.id);
       expect(updated!.status, PlotAnalysisStatus.succeeded);
       expect(updated.plotSkeletonMarkdown, contains('全书骨架'));
+    },
+  );
+
+  test(
+    'plot analysis pipeline repairs sketch output missing YAML delimiter',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final (provider, repository) = await _plotLabTestContext(database);
+      final sample = await repository.saveSample(
+        const PlotSampleInput(
+          sourceType: PlotSampleSourceType.txt,
+          title: '样本',
+          content: '第一段。',
+        ),
+      );
+      final run = await repository.createRun(
+        PlotAnalysisRunInput(
+          sampleId: sample.id,
+          providerId: provider.id,
+          modelName: provider.defaultModel,
+          plotName: '裂缝骨架',
+          characterCount: sample.characterCount,
+        ),
+      );
+      final client = _QueuedLlmClient([
+        _sketchDocument().replaceFirst('\n---\n\n# Chunk Sketch', ''),
+        _sketchDocument(),
+        '# 全书骨架\n## 主线推进链\n@chunk0',
+        '# 执行摘要\n压力推进。',
+        _validStoryEngine,
+      ]);
+      final pipeline = PlotAnalysisPipeline(
+        repository: repository,
+        workflowTaskRepository: DriftWorkflowTaskRepository(database),
+        completionService: MarkdownCompletionService(
+          invocation: LlmInvocationService(client: client),
+        ),
+      );
+
+      await pipeline.run(runId: run.id, provider: provider);
+
+      final updated = await repository.findRun(run.id);
+      expect(updated!.status, PlotAnalysisStatus.succeeded);
+      expect(updated.plotSkeletonMarkdown, contains('全书骨架'));
+      expect(client.invocationCount, 5);
+      final trace = await DriftWorkflowTaskRepository(
+        database,
+      ).watchPromptTrace(run.workflowTaskId).first;
+      expect(trace, isNotNull);
+      expect(trace!.traceMarkdown, contains('calls: 5'));
+      expect(trace.traceMarkdown, contains('repair_sketch_chunk_1'));
     },
   );
 

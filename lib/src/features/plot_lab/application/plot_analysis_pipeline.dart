@@ -130,7 +130,13 @@ class PlotAnalysisPipeline {
           temperature: 0.25,
           promptTrace: traceRecorder.config(label: 'sketch_chunk_${index + 1}'),
         );
-        final sketch = _parseSketch(raw, index, chunks.length);
+        final sketch = await _parseSketch(
+          raw: raw,
+          chunkIndex: index,
+          chunkCount: chunks.length,
+          provider: provider,
+          traceRecorder: traceRecorder,
+        );
         sketches.add(sketch);
         await transition(
           PlotAnalysisStatus.running,
@@ -209,16 +215,62 @@ class PlotAnalysisPipeline {
     }
   }
 
-  PlotChunkSketch _parseSketch(String raw, int chunkIndex, int chunkCount) {
+  Future<PlotChunkSketch> _parseSketch({
+    required String raw,
+    required int chunkIndex,
+    required int chunkCount,
+    required ProviderConfig provider,
+    required PromptTraceRecorder traceRecorder,
+  }) async {
+    final normalized = _stripMarkdownFence(raw);
     try {
       return _sketchDocumentParser.parse(
-        markdown: _stripMarkdownFence(raw),
+        markdown: normalized,
         chunkIndex: chunkIndex,
         chunkCount: chunkCount,
       );
     } on Object catch (error) {
+      return _repairAndParseSketch(
+        invalidSketchMarkdown: normalized,
+        parseError: error,
+        chunkIndex: chunkIndex,
+        chunkCount: chunkCount,
+        provider: provider,
+        traceRecorder: traceRecorder,
+      );
+    }
+  }
+
+  Future<PlotChunkSketch> _repairAndParseSketch({
+    required String invalidSketchMarkdown,
+    required Object parseError,
+    required int chunkIndex,
+    required int chunkCount,
+    required ProviderConfig provider,
+    required PromptTraceRecorder traceRecorder,
+  }) async {
+    try {
+      final repaired = await _completionService.completeMarkdown(
+        provider: provider,
+        prompt: _promptBuilder.buildSketchRepairPrompt(
+          invalidSketchMarkdown: invalidSketchMarkdown,
+          parseError: parseError.toString(),
+        ),
+        temperature: 0,
+        maxAttempts: 1,
+        promptTrace: traceRecorder.config(
+          label: 'repair_sketch_chunk_${chunkIndex + 1}',
+        ),
+      );
+      return _sketchDocumentParser.parse(
+        markdown: _stripMarkdownFence(repaired),
+        chunkIndex: chunkIndex,
+        chunkCount: chunkCount,
+      );
+    } on Object catch (repairError) {
       throw FormatException(
-        'Sketch chunk $chunkIndex produced invalid YAML+MD: $error',
+        'Sketch chunk ${chunkIndex + 1} produced invalid YAML+MD: '
+        '$parseError; repair failed: $repairError',
       );
     }
   }

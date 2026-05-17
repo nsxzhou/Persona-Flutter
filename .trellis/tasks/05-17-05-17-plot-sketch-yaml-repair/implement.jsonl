@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Owns the Analysis artifact YAML+MD output contract and testing expectations."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Defines application error handling expectations for async workflows."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Guides reuse before adding helpers or constants."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Guides format-contract changes across prompt, parser, persistence, and UI."}

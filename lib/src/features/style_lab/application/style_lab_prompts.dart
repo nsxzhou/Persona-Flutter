@@ -225,4 +225,29 @@ $_voiceProfileTemplate
 $reportMarkdown
 ''';
   }
+
+  String buildVoiceProfileRepairPrompt({
+    required String invalidProfileMarkdown,
+    required String parseError,
+  }) {
+    return '''
+你正在修复 Style Lab 的 Voice Profile 输出格式。上一轮输出没有通过 YAML+MD 校验。
+
+修复目标：
+1. 只修复格式，不得新增、删除或扩写事实内容。
+2. 最终输出必须直接从 `---` 开始，并包含一个 YAML front matter 结束分隔符 `---`。
+3. YAML front matter 必须只包含这些字段，顺序也按此排列：name、tags、voice_summary、tone、pacing、diction、syntax、do、avoid、intensity。
+4. `name`、`voice_summary`、`tone`、`pacing`、`diction`、`syntax` 必须是字符串。
+5. `tags`、`do`、`avoid` 必须是 YAML 列表；没有内容时写 `[]`。
+6. `intensity` 必须是数字；不确定时写 `0.5`。
+7. YAML 后的 Markdown 正文必须从 `# Voice Profile` 开始。
+8. 不要输出解释、前言、结语或代码围栏。
+
+校验错误：
+$parseError
+
+待修复输出：
+$invalidProfileMarkdown
+''';
+  }
 }

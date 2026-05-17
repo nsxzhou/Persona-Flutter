@@ -173,7 +173,11 @@ class StyleAnalysisPipeline {
         temperature: 0.35,
         promptTrace: traceRecorder.config(label: 'build_voice_profile'),
       );
-      _frontMatterParser.parse(profile);
+      final normalizedProfile = await _validateOrRepairVoiceProfile(
+        profile,
+        provider: provider,
+        traceRecorder: traceRecorder,
+      );
 
       await transition(
         StyleAnalysisStatus.running,
@@ -185,7 +189,7 @@ class StyleAnalysisPipeline {
         null,
         message: '分析完成。',
         analysisReportMarkdown: report,
-        voiceProfileMarkdown: profile,
+        voiceProfileMarkdown: normalizedProfile,
         completedAt: DateTime.now(),
       );
     } on Object catch (error) {
@@ -197,6 +201,50 @@ class StyleAnalysisPipeline {
         completedAt: DateTime.now(),
       );
       rethrow;
+    }
+  }
+
+  Future<String> _validateOrRepairVoiceProfile(
+    String profile, {
+    required ProviderConfig provider,
+    required PromptTraceRecorder traceRecorder,
+  }) async {
+    try {
+      _frontMatterParser.parse(profile);
+      return profile;
+    } on Object catch (error) {
+      return _repairAndValidateVoiceProfile(
+        invalidProfileMarkdown: profile,
+        parseError: error,
+        provider: provider,
+        traceRecorder: traceRecorder,
+      );
+    }
+  }
+
+  Future<String> _repairAndValidateVoiceProfile({
+    required String invalidProfileMarkdown,
+    required Object parseError,
+    required ProviderConfig provider,
+    required PromptTraceRecorder traceRecorder,
+  }) async {
+    try {
+      final repaired = await _completionService.completeMarkdown(
+        provider: provider,
+        prompt: _promptBuilder.buildVoiceProfileRepairPrompt(
+          invalidProfileMarkdown: invalidProfileMarkdown,
+          parseError: parseError.toString(),
+        ),
+        temperature: 0,
+        maxAttempts: 1,
+        promptTrace: traceRecorder.config(label: 'repair_voice_profile'),
+      );
+      _frontMatterParser.parse(repaired);
+      return repaired;
+    } on Object catch (repairError) {
+      throw VoiceProfileValidationException(
+        '$parseError; repair failed: $repairError',
+      );
     }
   }
 

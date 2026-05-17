@@ -150,6 +150,7 @@ Feature code depends on `LlmInvocationService` / `LlmClient`; only `core/llm/dat
 - Reusable LLM artifacts remain `YAML front matter + Markdown body` (`YAML+MD`), not JSON-only.
 - Prompt builders must explicitly tell the model to output only the front matter and Markdown body, with no preface, explanation, conclusion, or code fence.
 - Parsers/normalizers must accept the `YAML+MD` document shape and reject malformed required contracts instead of silently coercing missing structure.
+- If an LLM artifact needs repair, do it in the owning pipeline with a separate repair prompt and prompt-trace label; keep the parser strict so malformed persisted artifacts cannot pass silently.
 - Feature pipelines may convert parsed YAML fields into domain objects for downstream aggregation, but the LLM-facing and persisted artifact format remains `YAML+MD`.
 - Plain reports and intermediate summaries that are not reusable artifacts may remain Markdown-only.
 
@@ -160,6 +161,7 @@ Feature code depends on `LlmInvocationService` / `LlmClient`; only `core/llm/dat
 - YAML enum/list type does not match the parser contract -> validation error.
 - Markdown body missing the required H1, such as `# Chunk Sketch`, `# Voice Profile`, or `# Plot Writing Guide` -> validation error.
 - Model wraps the document in a Markdown code fence -> strip only when the owning pipeline has an explicit cleanup step, then validate the resulting `YAML+MD`.
+- First model output violates the contract but contains recoverable draft content -> run one constrained repair call, then validate the repaired `YAML+MD`; if repair fails, surface the original validation context plus repair error.
 
 ### 5. Good/Base/Bad Cases
 - Good: Plot sketch prompt asks for YAML front matter plus `# Chunk Sketch`, then `PlotChunkSketchDocumentParser` validates fields before converting to `PlotChunkSketch`.
@@ -169,6 +171,7 @@ Feature code depends on `LlmInvocationService` / `LlmClient`; only `core/llm/dat
 ### 6. Tests Required
 - Parser tests for valid `YAML+MD`, missing fields, extra fields, invalid enum/list values, missing body H1, and code-fence cleanup when supported.
 - Pipeline tests confirming Plot sketches still become structured inputs for skeleton/report/story-engine generation.
+- Pipeline tests for any repair pass, including the malformed input, repaired output, and prompt trace label.
 - UI/widget tests should keep validating that saved artifacts are shown as `YAML+MD` where the page exposes source editing or validation state.
 
 ### 7. Wrong vs Correct
