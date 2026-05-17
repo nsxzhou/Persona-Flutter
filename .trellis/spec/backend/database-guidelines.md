@@ -277,3 +277,49 @@ Keep `WorkflowTaskRepository` read-only and update run/task records together ins
 Append full prompts to task logs or feature run `logs`, where they can mix with lifecycle messages and bypass redaction.
 #### Correct
 Use `PromptTraceRecorder` and `WorkflowTaskRepository.upsertPromptTrace` so prompt diagnostics are explicit, redacted, and queryable by workflow task id.
+
+## Scenario: Novel workshop persistence
+
+### 1. Scope / Trigger
+- Trigger: The Novel Workshop stores project-scoped long-form writing state under an existing `WritingProject`.
+- This is a persistence contract because Drift schema, domain models, workflow task state, accepted chapter boundaries, and future UI/LLM pipelines all depend on the same records.
+
+### 2. Signatures
+- Drift tables:
+  - `StoryBibleRecords`
+  - `ChapterPlanRecords`
+  - `ChapterDraftRunRecords`
+  - `AcceptedChapterRecords`
+  - `MemoryProjectionRecords`
+- Repository contract: `NovelWorkshopRepository`
+- Workflow kind: `chapterDraftWorkflowTaskKind = 'novel_chapter_draft'`
+
+### 3. Contracts
+- Do not create a separate novel-project table. Novel Workshop state belongs to `ProjectRecords` through `projectId`.
+- One project has at most one `StoryBible` and one `MemoryProjection`; both are upserted by `projectId`.
+- `ChapterPlanRecords` are unique by `(projectId, chapterIndex)` and are read in chapter-index order.
+- `ChapterDraftRunRecords` are candidate workflow runs only. They must not be treated as official manuscript text.
+- `AcceptedChapterRecords` are the official chapter boundary. One `chapterPlanId` has at most one accepted chapter; accepting again overwrites the same official row.
+- Creating or updating a chapter draft run must update the matching `WorkflowTaskRecords` row in the same transaction.
+- Project deletion must remove Novel Workshop child data, matching prompt traces, and matching workflow task rows in the same transaction.
+
+### 4. Validation & Error Matrix
+- Missing project -> throw before writing Novel Workshop state.
+- Non-positive chapter index -> throw before writing a chapter plan.
+- Duplicate `(projectId, chapterIndex)` -> let the SQLite uniqueness error surface.
+- Source run does not belong to accepted chapter plan -> throw before saving the accepted chapter.
+- `MemoryProjection.updatedFromChapterId` does not reference an accepted chapter in the same project -> throw before saving the projection.
+- Interrupted `pending` or `running` chapter draft runs after app restart -> mark both the run and workflow task as failed.
+
+### 5. Good/Base/Bad Cases
+- Good: save chapter plans, create a draft run, write prompt trace through the workflow task, accept one revised chapter, then update projection from the accepted chapter.
+- Base: manually edit Story Bible and Memory Projection Markdown without invoking an LLM.
+- Bad: update memory projection from draft or revised run text before the user accepts a chapter.
+- Bad: delete only the project row and leave chapter draft workflow tasks visible in Workflow Runs.
+
+### 6. Tests Required
+- Repository tests for round-tripping all five domain records.
+- Repository tests for singleton Story Bible / Memory Projection upsert behavior.
+- Repository tests for chapter plan ordering and uniqueness.
+- Repository tests proving chapter run state and workflow task state remain synchronized.
+- Repository tests proving accepted chapter overwrite semantics and project-delete cascade.
