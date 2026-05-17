@@ -378,3 +378,36 @@ Changed Plot Lab and Style Lab profile deletion to cascade through source runs a
 ### Next Steps
 
 - None - task complete
+
+
+## Session 12: Repair analysis YAML artifacts
+
+**Date**: 2026-05-17
+**Task**: Repair analysis YAML artifacts
+**Branch**: `main`
+
+### Summary
+
+Added constrained YAML+MD repair passes for Plot Lab sketches and Style Lab Voice Profiles, with regression tests and backend spec guidance.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8affdd5` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
