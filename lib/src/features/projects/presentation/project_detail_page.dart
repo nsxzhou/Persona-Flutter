@@ -3,6 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/ui/persona_page.dart';
+import '../../plot_lab/application/plot_lab_providers.dart';
+import '../../plot_lab/domain/plot_profile.dart';
+import '../../settings/application/provider_config_providers.dart';
+import '../../settings/domain/provider_config.dart';
+import '../../style_lab/application/style_lab_providers.dart';
+import '../../style_lab/domain/style_profile.dart';
 import '../application/project_providers.dart';
 import '../domain/writing_project.dart';
 
@@ -65,13 +71,17 @@ class ProjectDetailPage extends ConsumerWidget {
   }
 }
 
-class _ProjectDetailContent extends StatelessWidget {
+class _ProjectDetailContent extends ConsumerWidget {
   const _ProjectDetailContent({required this.project});
 
   final WritingProject project;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final providers = ref.watch(providerConfigsProvider);
+    final styleProfiles = ref.watch(styleProfilesProvider);
+    final plotProfiles = ref.watch(plotProfilesProvider);
+
     return PersonaPage(
       eyebrow: '项目档案',
       title: project.title,
@@ -88,7 +98,12 @@ class _ProjectDetailContent extends StatelessWidget {
       children: [
         LayoutBuilder(
           builder: (context, constraints) {
-            final dossier = _ProjectDossier(project: project);
+            final dossier = _ProjectDossier(
+              project: project,
+              providerLabel: _providerLabel(providers, project),
+              styleProfileLabel: _styleProfileLabel(styleProfiles, project),
+              plotProfileLabel: _plotProfileLabel(plotProfiles, project),
+            );
             const nextSteps = _ProjectWorkbenchPreview();
 
             if (constraints.maxWidth < 900) {
@@ -113,9 +128,17 @@ class _ProjectDetailContent extends StatelessWidget {
 }
 
 class _ProjectDossier extends StatelessWidget {
-  const _ProjectDossier({required this.project});
+  const _ProjectDossier({
+    required this.project,
+    required this.providerLabel,
+    required this.styleProfileLabel,
+    required this.plotProfileLabel,
+  });
 
   final WritingProject project;
+  final String providerLabel;
+  final String styleProfileLabel;
+  final String plotProfileLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -125,7 +148,7 @@ class _ProjectDossier extends StatelessWidget {
         children: [
           PersonaSectionHeader(
             title: '项目概要',
-            description: '当前版本只保存项目身份信息，后续章节和蓝图会接入这里。',
+            description: '项目身份、默认模型、分析档案挂载和基础写作参数。',
             trailing: PersonaStatusPill(
               label: project.status == ProjectStatus.active ? '活动' : '归档',
               icon: project.status == ProjectStatus.active
@@ -140,6 +163,43 @@ class _ProjectDossier extends StatelessWidget {
                 ? '未填写项目简介。'
                 : project.description,
           ),
+          const SizedBox(height: 14),
+          _DossierField(label: '默认 Provider / Model', value: providerLabel),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _DossierField(
+                  label: 'Style Profile',
+                  value: styleProfileLabel,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: _DossierField(
+                  label: 'Plot Profile',
+                  value: plotProfileLabel,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _DossierField(label: '语言', value: project.language),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: _DossierField(
+                  label: '目标长度',
+                  value: '${project.targetLength} 字',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _DossierField(label: '叙事视角', value: project.narrativePerspective),
           const SizedBox(height: 14),
           Row(
             children: [
@@ -231,6 +291,82 @@ class _ProjectWorkbenchPreview extends StatelessWidget {
       ),
     );
   }
+}
+
+String _providerLabel(
+  AsyncValue<List<ProviderConfig>> providers,
+  WritingProject project,
+) {
+  final providerId = project.defaultProviderId;
+  final modelName = project.defaultModelName;
+  if (providerId == null || providerId.trim().isEmpty) {
+    return '待补齐默认 Provider。';
+  }
+  if (modelName == null || modelName.trim().isEmpty) {
+    return '待补齐默认模型。';
+  }
+
+  return providers.when(
+    data: (items) {
+      final provider = _findById(items, providerId, (item) => item.id);
+      if (provider == null) {
+        return 'Provider 已失效 · $modelName';
+      }
+      final modelSuffix = provider.modelNames.contains(modelName)
+          ? modelName
+          : '$modelName（已失效）';
+      return '${provider.name} · $modelSuffix';
+    },
+    loading: () => '正在读取 Provider...',
+    error: (error, stackTrace) => 'Provider 状态读取失败：$error',
+  );
+}
+
+String _styleProfileLabel(
+  AsyncValue<List<StyleProfile>> profiles,
+  WritingProject project,
+) {
+  final profileId = project.styleProfileId;
+  if (profileId == null || profileId.trim().isEmpty) {
+    return '未挂载 Style Profile。';
+  }
+
+  return profiles.when(
+    data: (items) {
+      final profile = _findById(items, profileId, (item) => item.id);
+      return profile == null ? 'Style Profile 已失效。' : profile.styleName;
+    },
+    loading: () => '正在读取 Style Profile...',
+    error: (error, stackTrace) => 'Style Profile 状态读取失败：$error',
+  );
+}
+
+String _plotProfileLabel(
+  AsyncValue<List<PlotProfile>> profiles,
+  WritingProject project,
+) {
+  final profileId = project.plotProfileId;
+  if (profileId == null || profileId.trim().isEmpty) {
+    return '未挂载 Plot Profile。';
+  }
+
+  return profiles.when(
+    data: (items) {
+      final profile = _findById(items, profileId, (item) => item.id);
+      return profile == null ? 'Plot Profile 已失效。' : profile.plotName;
+    },
+    loading: () => '正在读取 Plot Profile...',
+    error: (error, stackTrace) => 'Plot Profile 状态读取失败：$error',
+  );
+}
+
+T? _findById<T>(List<T> items, String id, String Function(T item) getId) {
+  for (final item in items) {
+    if (getId(item) == id) {
+      return item;
+    }
+  }
+  return null;
 }
 
 String _formatProjectTime(DateTime value) {

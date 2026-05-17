@@ -8,6 +8,12 @@ import 'package:persona_flutter/src/features/projects/domain/project_repository.
 import 'package:persona_flutter/src/features/projects/domain/writing_project.dart';
 import 'package:persona_flutter/src/features/projects/presentation/project_detail_page.dart';
 import 'package:persona_flutter/src/features/projects/presentation/projects_page.dart';
+import 'package:persona_flutter/src/features/settings/application/provider_config_providers.dart';
+import 'package:persona_flutter/src/features/settings/domain/provider_config.dart';
+import 'package:persona_flutter/src/features/style_lab/application/style_lab_providers.dart';
+import 'package:persona_flutter/src/features/style_lab/domain/style_profile.dart';
+import 'package:persona_flutter/src/features/plot_lab/application/plot_lab_providers.dart';
+import 'package:persona_flutter/src/features/plot_lab/domain/plot_profile.dart';
 
 void main() {
   testWidgets('projects page shows empty active state with create entry', (
@@ -18,6 +24,15 @@ void main() {
         overrides: [
           writingProjectsProvider.overrideWith(
             (ref, status) => Stream<List<WritingProject>>.value(const []),
+          ),
+          providerConfigsProvider.overrideWith(
+            (ref) => Stream<List<ProviderConfig>>.value(const []),
+          ),
+          styleProfilesProvider.overrideWith(
+            (ref) => Stream<List<StyleProfile>>.value(const []),
+          ),
+          plotProfilesProvider.overrideWith(
+            (ref) => Stream<List<PlotProfile>>.value(const []),
           ),
         ],
         child: const MaterialApp(home: ProjectsPage()),
@@ -57,6 +72,15 @@ void main() {
                 if (status == ProjectStatus.archived) archived,
               ]),
             ),
+            providerConfigsProvider.overrideWith(
+              (ref) => Stream<List<ProviderConfig>>.value([_provider()]),
+            ),
+            styleProfilesProvider.overrideWith(
+              (ref) => Stream<List<StyleProfile>>.value(const []),
+            ),
+            plotProfilesProvider.overrideWith(
+              (ref) => Stream<List<PlotProfile>>.value(const []),
+            ),
           ],
           child: const MaterialApp(home: ProjectsPage()),
         ),
@@ -93,7 +117,18 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [projectRepositoryProvider.overrideWithValue(repository)],
+          overrides: [
+            projectRepositoryProvider.overrideWithValue(repository),
+            providerConfigsProvider.overrideWith(
+              (ref) => Stream<List<ProviderConfig>>.value([_provider()]),
+            ),
+            styleProfilesProvider.overrideWith(
+              (ref) => Stream<List<StyleProfile>>.value(const []),
+            ),
+            plotProfilesProvider.overrideWith(
+              (ref) => Stream<List<PlotProfile>>.value(const []),
+            ),
+          ],
           child: const MaterialApp(home: ProjectsPage()),
         ),
       );
@@ -127,6 +162,15 @@ void main() {
           writingProjectProvider.overrideWith(
             (ref, id) => Stream<WritingProject?>.value(project),
           ),
+          providerConfigsProvider.overrideWith(
+            (ref) => Stream<List<ProviderConfig>>.value([_provider()]),
+          ),
+          styleProfilesProvider.overrideWith(
+            (ref) => Stream<List<StyleProfile>>.value(const []),
+          ),
+          plotProfilesProvider.overrideWith(
+            (ref) => Stream<List<PlotProfile>>.value(const []),
+          ),
         ],
         child: const MaterialApp(
           home: ProjectDetailPage(projectId: 'project-1'),
@@ -139,7 +183,122 @@ void main() {
     expect(find.text('雾港纪事'), findsOneWidget);
     expect(find.text('潮湿港城里的长篇悬疑。'), findsWidgets);
     expect(find.text('项目概要'), findsOneWidget);
+    expect(find.text('OpenAI · gpt-4.1-mini'), findsOneWidget);
+    expect(find.text('未挂载 Style Profile。'), findsOneWidget);
+    expect(find.text('未挂载 Plot Profile。'), findsOneWidget);
+    expect(find.text('简体中文'), findsOneWidget);
+    expect(find.text('3000 字'), findsOneWidget);
     expect(find.text('后续工作台入口'), findsOneWidget);
+  });
+
+  testWidgets('project detail page renders invalid creative references', (
+    tester,
+  ) async {
+    final project = _project(
+      id: 'project-1',
+      title: '雾港纪事',
+      defaultProviderId: 'deleted-provider',
+      defaultModelName: 'deleted-model',
+      styleProfileId: 'deleted-style',
+      plotProfileId: 'deleted-plot',
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          writingProjectProvider.overrideWith(
+            (ref, id) => Stream<WritingProject?>.value(project),
+          ),
+          providerConfigsProvider.overrideWith(
+            (ref) => Stream<List<ProviderConfig>>.value(const []),
+          ),
+          styleProfilesProvider.overrideWith(
+            (ref) => Stream<List<StyleProfile>>.value(const []),
+          ),
+          plotProfilesProvider.overrideWith(
+            (ref) => Stream<List<PlotProfile>>.value(const []),
+          ),
+        ],
+        child: const MaterialApp(
+          home: ProjectDetailPage(projectId: 'project-1'),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Provider 已失效 · deleted-model'), findsOneWidget);
+    expect(find.text('Style Profile 已失效。'), findsOneWidget);
+    expect(find.text('Plot Profile 已失效。'), findsOneWidget);
+  });
+
+  testWidgets('project dialog renders creative configuration fields', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          writingProjectsProvider.overrideWith(
+            (ref, status) => Stream<List<WritingProject>>.value(const []),
+          ),
+          providerConfigsProvider.overrideWith(
+            (ref) => Stream<List<ProviderConfig>>.value([_provider()]),
+          ),
+          styleProfilesProvider.overrideWith(
+            (ref) => Stream<List<StyleProfile>>.value([_styleProfile()]),
+          ),
+          plotProfilesProvider.overrideWith(
+            (ref) => Stream<List<PlotProfile>>.value([_plotProfile()]),
+          ),
+        ],
+        child: const MaterialApp(home: ProjectsPage()),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('新建项目').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('创作配置'), findsOneWidget);
+    expect(find.text('写作参数'), findsOneWidget);
+    expect(find.text('默认 Provider'), findsOneWidget);
+    expect(find.text('默认模型'), findsOneWidget);
+    expect(find.text('Style Profile（可选）'), findsOneWidget);
+    expect(find.text('Plot Profile（可选）'), findsOneWidget);
+  });
+
+  testWidgets('project dialog blocks save without provider configuration', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          writingProjectsProvider.overrideWith(
+            (ref, status) => Stream<List<WritingProject>>.value(const []),
+          ),
+          providerConfigsProvider.overrideWith(
+            (ref) => Stream<List<ProviderConfig>>.value(const []),
+          ),
+          styleProfilesProvider.overrideWith(
+            (ref) => Stream<List<StyleProfile>>.value(const []),
+          ),
+          plotProfilesProvider.overrideWith(
+            (ref) => Stream<List<PlotProfile>>.value(const []),
+          ),
+        ],
+        child: const MaterialApp(home: ProjectsPage()),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('新建项目').first);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('请先在 Settings 配置 Provider'), findsWidgets);
+    final saveButton = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, '保存').last,
+    );
+    expect(saveButton.onPressed, isNull);
   });
 
   testWidgets('project detail page handles missing project', (tester) async {
@@ -168,12 +327,65 @@ WritingProject _project({
   required String title,
   String description = '项目简介',
   ProjectStatus status = ProjectStatus.active,
+  String? defaultProviderId = 'provider-1',
+  String? defaultModelName = 'gpt-4.1-mini',
+  String? styleProfileId,
+  String? plotProfileId,
 }) {
   return WritingProject(
     id: id,
     title: title,
     description: description,
     status: status,
+    defaultProviderId: defaultProviderId,
+    defaultModelName: defaultModelName,
+    styleProfileId: styleProfileId,
+    plotProfileId: plotProfileId,
+    createdAt: DateTime(2026, 5, 16, 9),
+    updatedAt: DateTime(2026, 5, 16, 10),
+  );
+}
+
+ProviderConfig _provider() {
+  return ProviderConfig(
+    id: 'provider-1',
+    name: 'OpenAI',
+    baseUrl: 'https://api.example.com/v1',
+    apiKey: 'sk-test',
+    defaultModel: 'gpt-4.1-mini',
+    modelNames: const ['gpt-4.1-mini', 'gpt-4.1'],
+    systemPrompt: '',
+    isEnabled: true,
+    testStatus: ProviderTestStatus.untested,
+    createdAt: DateTime(2026, 5, 16, 9),
+    updatedAt: DateTime(2026, 5, 16, 10),
+  );
+}
+
+StyleProfile _styleProfile() {
+  return StyleProfile(
+    id: 'style-profile-1',
+    sourceRunId: 'style-run-1',
+    providerId: 'provider-1',
+    modelName: 'gpt-4.1-mini',
+    styleName: '冷峻悬疑风格',
+    profileMarkdown: '# Voice Profile',
+    analysisReportMarkdown: '# Report',
+    createdAt: DateTime(2026, 5, 16, 9),
+    updatedAt: DateTime(2026, 5, 16, 10),
+  );
+}
+
+PlotProfile _plotProfile() {
+  return PlotProfile(
+    id: 'plot-profile-1',
+    sourceRunId: 'plot-run-1',
+    providerId: 'provider-1',
+    modelName: 'gpt-4.1-mini',
+    plotName: '港城悬疑引擎',
+    storyEngineMarkdown: '# Plot Writing Guide',
+    analysisReportMarkdown: '# Report',
+    plotSkeletonMarkdown: '# Skeleton',
     createdAt: DateTime(2026, 5, 16, 9),
     updatedAt: DateTime(2026, 5, 16, 10),
   );
@@ -228,6 +440,13 @@ class _MutableProjectRepository implements ProjectRepository {
       title: input.title,
       description: input.description,
       status: input.status,
+      defaultProviderId: input.defaultProviderId,
+      defaultModelName: input.defaultModelName,
+      styleProfileId: input.styleProfileId,
+      plotProfileId: input.plotProfileId,
+      language: input.language,
+      targetLength: input.targetLength,
+      narrativePerspective: input.narrativePerspective,
       createdAt: existingIndex == -1 ? now : _projects[existingIndex].createdAt,
       updatedAt: now,
     );

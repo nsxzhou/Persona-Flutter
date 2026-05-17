@@ -2002,6 +2002,87 @@ class $ProjectRecordsTable extends ProjectRecords
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _defaultProviderIdMeta = const VerificationMeta(
+    'defaultProviderId',
+  );
+  @override
+  late final GeneratedColumn<String> defaultProviderId =
+      GeneratedColumn<String>(
+        'default_provider_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _defaultModelNameMeta = const VerificationMeta(
+    'defaultModelName',
+  );
+  @override
+  late final GeneratedColumn<String> defaultModelName = GeneratedColumn<String>(
+    'default_model_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _styleProfileIdMeta = const VerificationMeta(
+    'styleProfileId',
+  );
+  @override
+  late final GeneratedColumn<String> styleProfileId = GeneratedColumn<String>(
+    'style_profile_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _plotProfileIdMeta = const VerificationMeta(
+    'plotProfileId',
+  );
+  @override
+  late final GeneratedColumn<String> plotProfileId = GeneratedColumn<String>(
+    'plot_profile_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _languageMeta = const VerificationMeta(
+    'language',
+  );
+  @override
+  late final GeneratedColumn<String> language = GeneratedColumn<String>(
+    'language',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('简体中文'),
+  );
+  static const VerificationMeta _targetLengthMeta = const VerificationMeta(
+    'targetLength',
+  );
+  @override
+  late final GeneratedColumn<int> targetLength = GeneratedColumn<int>(
+    'target_length',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(3000),
+  );
+  static const VerificationMeta _narrativePerspectiveMeta =
+      const VerificationMeta('narrativePerspective');
+  @override
+  late final GeneratedColumn<String> narrativePerspective =
+      GeneratedColumn<String>(
+        'narrative_perspective',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('第三人称有限视角'),
+      );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -2030,6 +2111,13 @@ class $ProjectRecordsTable extends ProjectRecords
     title,
     description,
     status,
+    defaultProviderId,
+    defaultModelName,
+    styleProfileId,
+    plotProfileId,
+    language,
+    targetLength,
+    narrativePerspective,
     createdAt,
     updatedAt,
   ];
@@ -2075,6 +2163,66 @@ class $ProjectRecordsTable extends ProjectRecords
     } else if (isInserting) {
       context.missing(_statusMeta);
     }
+    if (data.containsKey('default_provider_id')) {
+      context.handle(
+        _defaultProviderIdMeta,
+        defaultProviderId.isAcceptableOrUnknown(
+          data['default_provider_id']!,
+          _defaultProviderIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('default_model_name')) {
+      context.handle(
+        _defaultModelNameMeta,
+        defaultModelName.isAcceptableOrUnknown(
+          data['default_model_name']!,
+          _defaultModelNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('style_profile_id')) {
+      context.handle(
+        _styleProfileIdMeta,
+        styleProfileId.isAcceptableOrUnknown(
+          data['style_profile_id']!,
+          _styleProfileIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('plot_profile_id')) {
+      context.handle(
+        _plotProfileIdMeta,
+        plotProfileId.isAcceptableOrUnknown(
+          data['plot_profile_id']!,
+          _plotProfileIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('language')) {
+      context.handle(
+        _languageMeta,
+        language.isAcceptableOrUnknown(data['language']!, _languageMeta),
+      );
+    }
+    if (data.containsKey('target_length')) {
+      context.handle(
+        _targetLengthMeta,
+        targetLength.isAcceptableOrUnknown(
+          data['target_length']!,
+          _targetLengthMeta,
+        ),
+      );
+    }
+    if (data.containsKey('narrative_perspective')) {
+      context.handle(
+        _narrativePerspectiveMeta,
+        narrativePerspective.isAcceptableOrUnknown(
+          data['narrative_perspective']!,
+          _narrativePerspectiveMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -2116,6 +2264,34 @@ class $ProjectRecordsTable extends ProjectRecords
         DriftSqlType.string,
         data['${effectivePrefix}status'],
       )!,
+      defaultProviderId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}default_provider_id'],
+      ),
+      defaultModelName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}default_model_name'],
+      ),
+      styleProfileId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}style_profile_id'],
+      ),
+      plotProfileId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}plot_profile_id'],
+      ),
+      language: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}language'],
+      )!,
+      targetLength: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}target_length'],
+      )!,
+      narrativePerspective: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}narrative_perspective'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -2138,6 +2314,13 @@ class ProjectRecord extends DataClass implements Insertable<ProjectRecord> {
   final String title;
   final String description;
   final String status;
+  final String? defaultProviderId;
+  final String? defaultModelName;
+  final String? styleProfileId;
+  final String? plotProfileId;
+  final String language;
+  final int targetLength;
+  final String narrativePerspective;
   final DateTime createdAt;
   final DateTime updatedAt;
   const ProjectRecord({
@@ -2145,6 +2328,13 @@ class ProjectRecord extends DataClass implements Insertable<ProjectRecord> {
     required this.title,
     required this.description,
     required this.status,
+    this.defaultProviderId,
+    this.defaultModelName,
+    this.styleProfileId,
+    this.plotProfileId,
+    required this.language,
+    required this.targetLength,
+    required this.narrativePerspective,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -2155,6 +2345,21 @@ class ProjectRecord extends DataClass implements Insertable<ProjectRecord> {
     map['title'] = Variable<String>(title);
     map['description'] = Variable<String>(description);
     map['status'] = Variable<String>(status);
+    if (!nullToAbsent || defaultProviderId != null) {
+      map['default_provider_id'] = Variable<String>(defaultProviderId);
+    }
+    if (!nullToAbsent || defaultModelName != null) {
+      map['default_model_name'] = Variable<String>(defaultModelName);
+    }
+    if (!nullToAbsent || styleProfileId != null) {
+      map['style_profile_id'] = Variable<String>(styleProfileId);
+    }
+    if (!nullToAbsent || plotProfileId != null) {
+      map['plot_profile_id'] = Variable<String>(plotProfileId);
+    }
+    map['language'] = Variable<String>(language);
+    map['target_length'] = Variable<int>(targetLength);
+    map['narrative_perspective'] = Variable<String>(narrativePerspective);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -2166,6 +2371,21 @@ class ProjectRecord extends DataClass implements Insertable<ProjectRecord> {
       title: Value(title),
       description: Value(description),
       status: Value(status),
+      defaultProviderId: defaultProviderId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(defaultProviderId),
+      defaultModelName: defaultModelName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(defaultModelName),
+      styleProfileId: styleProfileId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(styleProfileId),
+      plotProfileId: plotProfileId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(plotProfileId),
+      language: Value(language),
+      targetLength: Value(targetLength),
+      narrativePerspective: Value(narrativePerspective),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -2181,6 +2401,17 @@ class ProjectRecord extends DataClass implements Insertable<ProjectRecord> {
       title: serializer.fromJson<String>(json['title']),
       description: serializer.fromJson<String>(json['description']),
       status: serializer.fromJson<String>(json['status']),
+      defaultProviderId: serializer.fromJson<String?>(
+        json['defaultProviderId'],
+      ),
+      defaultModelName: serializer.fromJson<String?>(json['defaultModelName']),
+      styleProfileId: serializer.fromJson<String?>(json['styleProfileId']),
+      plotProfileId: serializer.fromJson<String?>(json['plotProfileId']),
+      language: serializer.fromJson<String>(json['language']),
+      targetLength: serializer.fromJson<int>(json['targetLength']),
+      narrativePerspective: serializer.fromJson<String>(
+        json['narrativePerspective'],
+      ),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -2193,6 +2424,13 @@ class ProjectRecord extends DataClass implements Insertable<ProjectRecord> {
       'title': serializer.toJson<String>(title),
       'description': serializer.toJson<String>(description),
       'status': serializer.toJson<String>(status),
+      'defaultProviderId': serializer.toJson<String?>(defaultProviderId),
+      'defaultModelName': serializer.toJson<String?>(defaultModelName),
+      'styleProfileId': serializer.toJson<String?>(styleProfileId),
+      'plotProfileId': serializer.toJson<String?>(plotProfileId),
+      'language': serializer.toJson<String>(language),
+      'targetLength': serializer.toJson<int>(targetLength),
+      'narrativePerspective': serializer.toJson<String>(narrativePerspective),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -2203,6 +2441,13 @@ class ProjectRecord extends DataClass implements Insertable<ProjectRecord> {
     String? title,
     String? description,
     String? status,
+    Value<String?> defaultProviderId = const Value.absent(),
+    Value<String?> defaultModelName = const Value.absent(),
+    Value<String?> styleProfileId = const Value.absent(),
+    Value<String?> plotProfileId = const Value.absent(),
+    String? language,
+    int? targetLength,
+    String? narrativePerspective,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => ProjectRecord(
@@ -2210,6 +2455,21 @@ class ProjectRecord extends DataClass implements Insertable<ProjectRecord> {
     title: title ?? this.title,
     description: description ?? this.description,
     status: status ?? this.status,
+    defaultProviderId: defaultProviderId.present
+        ? defaultProviderId.value
+        : this.defaultProviderId,
+    defaultModelName: defaultModelName.present
+        ? defaultModelName.value
+        : this.defaultModelName,
+    styleProfileId: styleProfileId.present
+        ? styleProfileId.value
+        : this.styleProfileId,
+    plotProfileId: plotProfileId.present
+        ? plotProfileId.value
+        : this.plotProfileId,
+    language: language ?? this.language,
+    targetLength: targetLength ?? this.targetLength,
+    narrativePerspective: narrativePerspective ?? this.narrativePerspective,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -2221,6 +2481,25 @@ class ProjectRecord extends DataClass implements Insertable<ProjectRecord> {
           ? data.description.value
           : this.description,
       status: data.status.present ? data.status.value : this.status,
+      defaultProviderId: data.defaultProviderId.present
+          ? data.defaultProviderId.value
+          : this.defaultProviderId,
+      defaultModelName: data.defaultModelName.present
+          ? data.defaultModelName.value
+          : this.defaultModelName,
+      styleProfileId: data.styleProfileId.present
+          ? data.styleProfileId.value
+          : this.styleProfileId,
+      plotProfileId: data.plotProfileId.present
+          ? data.plotProfileId.value
+          : this.plotProfileId,
+      language: data.language.present ? data.language.value : this.language,
+      targetLength: data.targetLength.present
+          ? data.targetLength.value
+          : this.targetLength,
+      narrativePerspective: data.narrativePerspective.present
+          ? data.narrativePerspective.value
+          : this.narrativePerspective,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -2233,6 +2512,13 @@ class ProjectRecord extends DataClass implements Insertable<ProjectRecord> {
           ..write('title: $title, ')
           ..write('description: $description, ')
           ..write('status: $status, ')
+          ..write('defaultProviderId: $defaultProviderId, ')
+          ..write('defaultModelName: $defaultModelName, ')
+          ..write('styleProfileId: $styleProfileId, ')
+          ..write('plotProfileId: $plotProfileId, ')
+          ..write('language: $language, ')
+          ..write('targetLength: $targetLength, ')
+          ..write('narrativePerspective: $narrativePerspective, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -2240,8 +2526,21 @@ class ProjectRecord extends DataClass implements Insertable<ProjectRecord> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, title, description, status, createdAt, updatedAt);
+  int get hashCode => Object.hash(
+    id,
+    title,
+    description,
+    status,
+    defaultProviderId,
+    defaultModelName,
+    styleProfileId,
+    plotProfileId,
+    language,
+    targetLength,
+    narrativePerspective,
+    createdAt,
+    updatedAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2250,6 +2549,13 @@ class ProjectRecord extends DataClass implements Insertable<ProjectRecord> {
           other.title == this.title &&
           other.description == this.description &&
           other.status == this.status &&
+          other.defaultProviderId == this.defaultProviderId &&
+          other.defaultModelName == this.defaultModelName &&
+          other.styleProfileId == this.styleProfileId &&
+          other.plotProfileId == this.plotProfileId &&
+          other.language == this.language &&
+          other.targetLength == this.targetLength &&
+          other.narrativePerspective == this.narrativePerspective &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -2259,6 +2565,13 @@ class ProjectRecordsCompanion extends UpdateCompanion<ProjectRecord> {
   final Value<String> title;
   final Value<String> description;
   final Value<String> status;
+  final Value<String?> defaultProviderId;
+  final Value<String?> defaultModelName;
+  final Value<String?> styleProfileId;
+  final Value<String?> plotProfileId;
+  final Value<String> language;
+  final Value<int> targetLength;
+  final Value<String> narrativePerspective;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -2267,6 +2580,13 @@ class ProjectRecordsCompanion extends UpdateCompanion<ProjectRecord> {
     this.title = const Value.absent(),
     this.description = const Value.absent(),
     this.status = const Value.absent(),
+    this.defaultProviderId = const Value.absent(),
+    this.defaultModelName = const Value.absent(),
+    this.styleProfileId = const Value.absent(),
+    this.plotProfileId = const Value.absent(),
+    this.language = const Value.absent(),
+    this.targetLength = const Value.absent(),
+    this.narrativePerspective = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -2276,6 +2596,13 @@ class ProjectRecordsCompanion extends UpdateCompanion<ProjectRecord> {
     required String title,
     this.description = const Value.absent(),
     required String status,
+    this.defaultProviderId = const Value.absent(),
+    this.defaultModelName = const Value.absent(),
+    this.styleProfileId = const Value.absent(),
+    this.plotProfileId = const Value.absent(),
+    this.language = const Value.absent(),
+    this.targetLength = const Value.absent(),
+    this.narrativePerspective = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
@@ -2289,6 +2616,13 @@ class ProjectRecordsCompanion extends UpdateCompanion<ProjectRecord> {
     Expression<String>? title,
     Expression<String>? description,
     Expression<String>? status,
+    Expression<String>? defaultProviderId,
+    Expression<String>? defaultModelName,
+    Expression<String>? styleProfileId,
+    Expression<String>? plotProfileId,
+    Expression<String>? language,
+    Expression<int>? targetLength,
+    Expression<String>? narrativePerspective,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -2298,6 +2632,14 @@ class ProjectRecordsCompanion extends UpdateCompanion<ProjectRecord> {
       if (title != null) 'title': title,
       if (description != null) 'description': description,
       if (status != null) 'status': status,
+      if (defaultProviderId != null) 'default_provider_id': defaultProviderId,
+      if (defaultModelName != null) 'default_model_name': defaultModelName,
+      if (styleProfileId != null) 'style_profile_id': styleProfileId,
+      if (plotProfileId != null) 'plot_profile_id': plotProfileId,
+      if (language != null) 'language': language,
+      if (targetLength != null) 'target_length': targetLength,
+      if (narrativePerspective != null)
+        'narrative_perspective': narrativePerspective,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -2309,6 +2651,13 @@ class ProjectRecordsCompanion extends UpdateCompanion<ProjectRecord> {
     Value<String>? title,
     Value<String>? description,
     Value<String>? status,
+    Value<String?>? defaultProviderId,
+    Value<String?>? defaultModelName,
+    Value<String?>? styleProfileId,
+    Value<String?>? plotProfileId,
+    Value<String>? language,
+    Value<int>? targetLength,
+    Value<String>? narrativePerspective,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
@@ -2318,6 +2667,13 @@ class ProjectRecordsCompanion extends UpdateCompanion<ProjectRecord> {
       title: title ?? this.title,
       description: description ?? this.description,
       status: status ?? this.status,
+      defaultProviderId: defaultProviderId ?? this.defaultProviderId,
+      defaultModelName: defaultModelName ?? this.defaultModelName,
+      styleProfileId: styleProfileId ?? this.styleProfileId,
+      plotProfileId: plotProfileId ?? this.plotProfileId,
+      language: language ?? this.language,
+      targetLength: targetLength ?? this.targetLength,
+      narrativePerspective: narrativePerspective ?? this.narrativePerspective,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -2339,6 +2695,29 @@ class ProjectRecordsCompanion extends UpdateCompanion<ProjectRecord> {
     if (status.present) {
       map['status'] = Variable<String>(status.value);
     }
+    if (defaultProviderId.present) {
+      map['default_provider_id'] = Variable<String>(defaultProviderId.value);
+    }
+    if (defaultModelName.present) {
+      map['default_model_name'] = Variable<String>(defaultModelName.value);
+    }
+    if (styleProfileId.present) {
+      map['style_profile_id'] = Variable<String>(styleProfileId.value);
+    }
+    if (plotProfileId.present) {
+      map['plot_profile_id'] = Variable<String>(plotProfileId.value);
+    }
+    if (language.present) {
+      map['language'] = Variable<String>(language.value);
+    }
+    if (targetLength.present) {
+      map['target_length'] = Variable<int>(targetLength.value);
+    }
+    if (narrativePerspective.present) {
+      map['narrative_perspective'] = Variable<String>(
+        narrativePerspective.value,
+      );
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -2358,6 +2737,13 @@ class ProjectRecordsCompanion extends UpdateCompanion<ProjectRecord> {
           ..write('title: $title, ')
           ..write('description: $description, ')
           ..write('status: $status, ')
+          ..write('defaultProviderId: $defaultProviderId, ')
+          ..write('defaultModelName: $defaultModelName, ')
+          ..write('styleProfileId: $styleProfileId, ')
+          ..write('plotProfileId: $plotProfileId, ')
+          ..write('language: $language, ')
+          ..write('targetLength: $targetLength, ')
+          ..write('narrativePerspective: $narrativePerspective, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -10100,6 +10486,13 @@ typedef $$ProjectRecordsTableCreateCompanionBuilder =
       required String title,
       Value<String> description,
       required String status,
+      Value<String?> defaultProviderId,
+      Value<String?> defaultModelName,
+      Value<String?> styleProfileId,
+      Value<String?> plotProfileId,
+      Value<String> language,
+      Value<int> targetLength,
+      Value<String> narrativePerspective,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<int> rowid,
@@ -10110,6 +10503,13 @@ typedef $$ProjectRecordsTableUpdateCompanionBuilder =
       Value<String> title,
       Value<String> description,
       Value<String> status,
+      Value<String?> defaultProviderId,
+      Value<String?> defaultModelName,
+      Value<String?> styleProfileId,
+      Value<String?> plotProfileId,
+      Value<String> language,
+      Value<int> targetLength,
+      Value<String> narrativePerspective,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -10308,6 +10708,41 @@ class $$ProjectRecordsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get defaultProviderId => $composableBuilder(
+    column: $table.defaultProviderId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get defaultModelName => $composableBuilder(
+    column: $table.defaultModelName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get styleProfileId => $composableBuilder(
+    column: $table.styleProfileId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get plotProfileId => $composableBuilder(
+    column: $table.plotProfileId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get language => $composableBuilder(
+    column: $table.language,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get targetLength => $composableBuilder(
+    column: $table.targetLength,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get narrativePerspective => $composableBuilder(
+    column: $table.narrativePerspective,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
@@ -10500,6 +10935,41 @@ class $$ProjectRecordsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get defaultProviderId => $composableBuilder(
+    column: $table.defaultProviderId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get defaultModelName => $composableBuilder(
+    column: $table.defaultModelName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get styleProfileId => $composableBuilder(
+    column: $table.styleProfileId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get plotProfileId => $composableBuilder(
+    column: $table.plotProfileId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get language => $composableBuilder(
+    column: $table.language,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get targetLength => $composableBuilder(
+    column: $table.targetLength,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get narrativePerspective => $composableBuilder(
+    column: $table.narrativePerspective,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -10533,6 +11003,39 @@ class $$ProjectRecordsTableAnnotationComposer
 
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get defaultProviderId => $composableBuilder(
+    column: $table.defaultProviderId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get defaultModelName => $composableBuilder(
+    column: $table.defaultModelName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get styleProfileId => $composableBuilder(
+    column: $table.styleProfileId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get plotProfileId => $composableBuilder(
+    column: $table.plotProfileId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get language =>
+      $composableBuilder(column: $table.language, builder: (column) => column);
+
+  GeneratedColumn<int> get targetLength => $composableBuilder(
+    column: $table.targetLength,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get narrativePerspective => $composableBuilder(
+    column: $table.narrativePerspective,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -10739,6 +11242,13 @@ class $$ProjectRecordsTableTableManager
                 Value<String> title = const Value.absent(),
                 Value<String> description = const Value.absent(),
                 Value<String> status = const Value.absent(),
+                Value<String?> defaultProviderId = const Value.absent(),
+                Value<String?> defaultModelName = const Value.absent(),
+                Value<String?> styleProfileId = const Value.absent(),
+                Value<String?> plotProfileId = const Value.absent(),
+                Value<String> language = const Value.absent(),
+                Value<int> targetLength = const Value.absent(),
+                Value<String> narrativePerspective = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -10747,6 +11257,13 @@ class $$ProjectRecordsTableTableManager
                 title: title,
                 description: description,
                 status: status,
+                defaultProviderId: defaultProviderId,
+                defaultModelName: defaultModelName,
+                styleProfileId: styleProfileId,
+                plotProfileId: plotProfileId,
+                language: language,
+                targetLength: targetLength,
+                narrativePerspective: narrativePerspective,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -10757,6 +11274,13 @@ class $$ProjectRecordsTableTableManager
                 required String title,
                 Value<String> description = const Value.absent(),
                 required String status,
+                Value<String?> defaultProviderId = const Value.absent(),
+                Value<String?> defaultModelName = const Value.absent(),
+                Value<String?> styleProfileId = const Value.absent(),
+                Value<String?> plotProfileId = const Value.absent(),
+                Value<String> language = const Value.absent(),
+                Value<int> targetLength = const Value.absent(),
+                Value<String> narrativePerspective = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<int> rowid = const Value.absent(),
@@ -10765,6 +11289,13 @@ class $$ProjectRecordsTableTableManager
                 title: title,
                 description: description,
                 status: status,
+                defaultProviderId: defaultProviderId,
+                defaultModelName: defaultModelName,
+                styleProfileId: styleProfileId,
+                plotProfileId: plotProfileId,
+                language: language,
+                targetLength: targetLength,
+                narrativePerspective: narrativePerspective,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,

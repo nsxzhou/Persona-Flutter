@@ -66,6 +66,14 @@ class ProjectRecords extends Table {
   TextColumn get title => text()();
   TextColumn get description => text().withDefault(const Constant(''))();
   TextColumn get status => text()();
+  TextColumn get defaultProviderId => text().nullable()();
+  TextColumn get defaultModelName => text().nullable()();
+  TextColumn get styleProfileId => text().nullable()();
+  TextColumn get plotProfileId => text().nullable()();
+  TextColumn get language => text().withDefault(const Constant('简体中文'))();
+  IntColumn get targetLength => integer().withDefault(const Constant(3000))();
+  TextColumn get narrativePerspective =>
+      text().withDefault(const Constant('第三人称有限视角'))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
@@ -231,7 +239,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration {
@@ -284,6 +292,50 @@ class AppDatabase extends _$AppDatabase {
             plotProfileRecords,
             plotProfileRecords.projectId,
           );
+        }
+        if (from < 9) {
+          await migrator.addColumn(
+            projectRecords,
+            projectRecords.defaultProviderId,
+          );
+          await migrator.addColumn(
+            projectRecords,
+            projectRecords.defaultModelName,
+          );
+          await migrator.addColumn(
+            projectRecords,
+            projectRecords.styleProfileId,
+          );
+          await migrator.addColumn(
+            projectRecords,
+            projectRecords.plotProfileId,
+          );
+          await migrator.addColumn(projectRecords, projectRecords.language);
+          await migrator.addColumn(projectRecords, projectRecords.targetLength);
+          await migrator.addColumn(
+            projectRecords,
+            projectRecords.narrativePerspective,
+          );
+          await customStatement('''
+            UPDATE project_records
+            SET
+              default_provider_id = (
+                SELECT id
+                FROM provider_config_records
+                WHERE is_enabled = 1
+                ORDER BY created_at ASC
+                LIMIT 1
+              ),
+              default_model_name = (
+                SELECT default_model
+                FROM provider_config_records
+                WHERE is_enabled = 1
+                ORDER BY created_at ASC
+                LIMIT 1
+              )
+            WHERE default_provider_id IS NULL
+              AND default_model_name IS NULL
+          ''');
         }
       },
     );

@@ -5,6 +5,12 @@ import 'package:go_router/go_router.dart';
 import '../../../core/ui/glass_container.dart';
 import '../../../core/ui/persona_page.dart';
 import '../../../core/ui/skeleton_loader.dart';
+import '../../plot_lab/application/plot_lab_providers.dart';
+import '../../plot_lab/domain/plot_profile.dart';
+import '../../settings/application/provider_config_providers.dart';
+import '../../settings/domain/provider_config.dart';
+import '../../style_lab/application/style_lab_providers.dart';
+import '../../style_lab/domain/style_profile.dart';
 import '../application/project_providers.dart';
 import '../domain/writing_project.dart';
 
@@ -579,7 +585,14 @@ class _ProjectDialogState extends ConsumerState<_ProjectDialog> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
+  late final TextEditingController _languageController;
+  late final TextEditingController _targetLengthController;
+  late final TextEditingController _perspectiveController;
   late ProjectStatus _status;
+  String? _selectedProviderId;
+  String? _selectedModelName;
+  String? _selectedStyleProfileId;
+  String? _selectedPlotProfileId;
 
   @override
   void initState() {
@@ -589,19 +602,38 @@ class _ProjectDialogState extends ConsumerState<_ProjectDialog> {
     _descriptionController = TextEditingController(
       text: project?.description ?? '',
     );
+    _languageController = TextEditingController(
+      text: project?.language ?? defaultProjectLanguage,
+    );
+    _targetLengthController = TextEditingController(
+      text: (project?.targetLength ?? defaultProjectTargetLength).toString(),
+    );
+    _perspectiveController = TextEditingController(
+      text: project?.narrativePerspective ?? defaultProjectNarrativePerspective,
+    );
     _status = project?.status ?? ProjectStatus.active;
+    _selectedProviderId = project?.defaultProviderId;
+    _selectedModelName = project?.defaultModelName;
+    _selectedStyleProfileId = project?.styleProfileId;
+    _selectedPlotProfileId = project?.plotProfileId;
   }
 
   @override
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+    _languageController.dispose();
+    _targetLengthController.dispose();
+    _perspectiveController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(projectControllerProvider);
+    final providers = ref.watch(providerConfigsProvider);
+    final styleProfiles = ref.watch(styleProfilesProvider);
+    final plotProfiles = ref.watch(plotProfilesProvider);
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -613,6 +645,71 @@ class _ProjectDialogState extends ConsumerState<_ProjectDialog> {
       }
     });
 
+    Widget asyncBody() {
+      return providers.when(
+        data: (providerItems) => styleProfiles.when(
+          data: (styleItems) => plotProfiles.when(
+            data: (plotItems) {
+              _syncSelections(providerItems, styleItems, plotItems);
+              final selectedProvider = _findById(
+                providerItems,
+                _selectedProviderId,
+                (item) => item.id,
+              );
+              final selectedModelName = selectedProvider == null
+                  ? null
+                  : _selectedModelName;
+              final canSave = providerItems.isNotEmpty && !state.isLoading;
+
+              return _ProjectDialogForm(
+                formKey: _formKey,
+                titleController: _titleController,
+                descriptionController: _descriptionController,
+                languageController: _languageController,
+                targetLengthController: _targetLengthController,
+                perspectiveController: _perspectiveController,
+                status: _status,
+                providers: providerItems,
+                styleProfiles: styleItems,
+                plotProfiles: plotItems,
+                selectedProvider: selectedProvider,
+                selectedModelName: selectedModelName,
+                selectedStyleProfileId: _selectedStyleProfileId,
+                selectedPlotProfileId: _selectedPlotProfileId,
+                controllerBusy: state.isLoading,
+                canSave: canSave,
+                onStatusChanged: (status) => setState(() => _status = status),
+                onProviderChanged: (id) {
+                  setState(() {
+                    _selectedProviderId = id;
+                    _selectedModelName = _findById(
+                      providerItems,
+                      id,
+                      (item) => item.id,
+                    )?.defaultModel;
+                  });
+                },
+                onModelChanged: (modelName) =>
+                    setState(() => _selectedModelName = modelName),
+                onStyleProfileChanged: (id) =>
+                    setState(() => _selectedStyleProfileId = id),
+                onPlotProfileChanged: (id) =>
+                    setState(() => _selectedPlotProfileId = id),
+                onCancel: () => Navigator.of(context).pop(),
+                onSave: _save,
+              );
+            },
+            error: (error, stackTrace) => _ProjectDialogLoadError('$error'),
+            loading: () => const _ProjectDialogLoading(),
+          ),
+          error: (error, stackTrace) => _ProjectDialogLoadError('$error'),
+          loading: () => const _ProjectDialogLoading(),
+        ),
+        error: (error, stackTrace) => _ProjectDialogLoadError('$error'),
+        loading: () => const _ProjectDialogLoading(),
+      );
+    }
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -623,93 +720,69 @@ class _ProjectDialogState extends ConsumerState<_ProjectDialog> {
         ),
         const SizedBox(height: 6),
         Text(
-          '项目档案只保存最小身份信息，章节、正文和分析挂载将在后续工作台接入。',
+          '维护项目身份、默认模型、Profile 挂载和基础写作参数。',
           style: textTheme.bodyMedium?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 18),
-        Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _titleController,
-                decoration: const InputDecoration(
-                  labelText: '项目标题',
-                  hintText: '例如：雾港纪事',
-                ),
-                validator: _requiredValidator,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: '简介 / 一句话概念',
-                  hintText: '写下项目的核心设定、主线或创作目标。',
-                ),
-                minLines: 3,
-                maxLines: 5,
-              ),
-              const SizedBox(height: 14),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest.withValues(
-                    alpha: 0.28,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: colorScheme.outlineVariant),
-                ),
-                child: RadioGroup<ProjectStatus>(
-                  groupValue: _status,
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() => _status = value);
-                    }
-                  },
-                  child: Column(
-                    children: const [
-                      RadioListTile<ProjectStatus>(
-                        title: Text('活动项目'),
-                        subtitle: Text('显示在默认 Projects 工作区。'),
-                        value: ProjectStatus.active,
-                      ),
-                      RadioListTile<ProjectStatus>(
-                        title: Text('归档项目'),
-                        subtitle: Text('从默认工作区隐藏，但保留项目档案。'),
-                        value: ProjectStatus.archived,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 18),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            TextButton(
-              onPressed: state.isLoading
-                  ? null
-                  : () => Navigator.of(context).pop(),
-              child: const Text('取消'),
-            ),
-            const SizedBox(width: 8),
-            FilledButton(
-              onPressed: state.isLoading ? null : _save,
-              child: Text(state.isLoading ? '保存中' : '保存'),
-            ),
-          ],
-        ),
+        Flexible(child: asyncBody()),
       ],
     );
   }
 
+  void _syncSelections(
+    List<ProviderConfig> providers,
+    List<StyleProfile> styleProfiles,
+    List<PlotProfile> plotProfiles,
+  ) {
+    if (_selectedProviderId == null && providers.isNotEmpty) {
+      final enabled = providers.where((provider) => provider.isEnabled);
+      final provider = enabled.isEmpty ? providers.first : enabled.first;
+      _selectedProviderId = provider.id;
+      _selectedModelName = provider.defaultModel;
+    }
+    if (_selectedProviderId != null &&
+        !providers.any((provider) => provider.id == _selectedProviderId)) {
+      _selectedProviderId = providers.isEmpty ? null : providers.first.id;
+      _selectedModelName = providers.isEmpty
+          ? null
+          : providers.first.defaultModel;
+    }
+    final selectedProvider = _findById(
+      providers,
+      _selectedProviderId,
+      (item) => item.id,
+    );
+    if (selectedProvider != null &&
+        !selectedProvider.modelNames.contains(_selectedModelName)) {
+      _selectedModelName = selectedProvider.defaultModel;
+    }
+    if (_selectedStyleProfileId != null &&
+        !styleProfiles.any(
+          (profile) => profile.id == _selectedStyleProfileId,
+        )) {
+      _selectedStyleProfileId = null;
+    }
+    if (_selectedPlotProfileId != null &&
+        !plotProfiles.any((profile) => profile.id == _selectedPlotProfileId)) {
+      _selectedPlotProfileId = null;
+    }
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    final providerId = _selectedProviderId?.trim();
+    final modelName = _selectedModelName?.trim();
+    if (providerId == null ||
+        providerId.isEmpty ||
+        modelName == null ||
+        modelName.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请先选择 Provider 和模型。')));
       return;
     }
 
@@ -721,6 +794,14 @@ class _ProjectDialogState extends ConsumerState<_ProjectDialog> {
             title: _titleController.text,
             description: _descriptionController.text,
             status: _status,
+            defaultProviderId: providerId,
+            defaultModelName: modelName,
+            styleProfileId: _selectedStyleProfileId,
+            plotProfileId: _selectedPlotProfileId,
+            language: _languageController.text,
+            targetLength:
+                int.tryParse(_targetLengthController.text.trim()) ?? 0,
+            narrativePerspective: _perspectiveController.text,
           ),
         );
 
@@ -730,10 +811,399 @@ class _ProjectDialogState extends ConsumerState<_ProjectDialog> {
   }
 }
 
+class _ProjectDialogForm extends StatelessWidget {
+  const _ProjectDialogForm({
+    required this.formKey,
+    required this.titleController,
+    required this.descriptionController,
+    required this.languageController,
+    required this.targetLengthController,
+    required this.perspectiveController,
+    required this.status,
+    required this.providers,
+    required this.styleProfiles,
+    required this.plotProfiles,
+    required this.controllerBusy,
+    required this.canSave,
+    required this.onStatusChanged,
+    required this.onProviderChanged,
+    required this.onModelChanged,
+    required this.onStyleProfileChanged,
+    required this.onPlotProfileChanged,
+    required this.onCancel,
+    required this.onSave,
+    this.selectedProvider,
+    this.selectedModelName,
+    this.selectedStyleProfileId,
+    this.selectedPlotProfileId,
+  });
+
+  final GlobalKey<FormState> formKey;
+  final TextEditingController titleController;
+  final TextEditingController descriptionController;
+  final TextEditingController languageController;
+  final TextEditingController targetLengthController;
+  final TextEditingController perspectiveController;
+  final ProjectStatus status;
+  final List<ProviderConfig> providers;
+  final List<StyleProfile> styleProfiles;
+  final List<PlotProfile> plotProfiles;
+  final ProviderConfig? selectedProvider;
+  final String? selectedModelName;
+  final String? selectedStyleProfileId;
+  final String? selectedPlotProfileId;
+  final bool controllerBusy;
+  final bool canSave;
+  final ValueChanged<ProjectStatus> onStatusChanged;
+  final ValueChanged<String> onProviderChanged;
+  final ValueChanged<String> onModelChanged;
+  final ValueChanged<String?> onStyleProfileChanged;
+  final ValueChanged<String?> onPlotProfileChanged;
+  final VoidCallback onCancel;
+  final VoidCallback onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Form(
+      key: formKey,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextFormField(
+              controller: titleController,
+              decoration: const InputDecoration(
+                labelText: '项目标题',
+                hintText: '例如：雾港纪事',
+              ),
+              validator: _requiredValidator,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: descriptionController,
+              decoration: const InputDecoration(
+                labelText: '简介 / 一句话概念',
+                hintText: '写下项目的核心设定、主线或创作目标。',
+              ),
+              minLines: 3,
+              maxLines: 5,
+            ),
+            const SizedBox(height: 16),
+            _DialogSection(
+              title: '创作配置',
+              description: '选择项目默认调用的 Provider、模型和可复用分析档案。',
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: selectedProvider?.id,
+                  items: [
+                    for (final provider in providers)
+                      DropdownMenuItem(
+                        value: provider.id,
+                        child: Text(
+                          '${provider.name} · ${provider.defaultModel}${provider.isEnabled ? '' : '（停用）'}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                  onChanged: providers.isEmpty
+                      ? null
+                      : (value) {
+                          if (value != null) onProviderChanged(value);
+                        },
+                  decoration: const InputDecoration(
+                    labelText: '默认 Provider',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (_) =>
+                      providers.isEmpty ? '请先在 Settings 配置 Provider' : null,
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: selectedModelName,
+                  items: [
+                    for (final modelName
+                        in selectedProvider?.modelNames ?? const <String>[])
+                      DropdownMenuItem(
+                        value: modelName,
+                        child: Text(modelName, overflow: TextOverflow.ellipsis),
+                      ),
+                  ],
+                  onChanged: selectedProvider == null
+                      ? null
+                      : (value) {
+                          if (value != null) onModelChanged(value);
+                        },
+                  decoration: const InputDecoration(
+                    labelText: '默认模型',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: _requiredValidator,
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String?>(
+                  initialValue: selectedStyleProfileId,
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('不挂载 Style Profile'),
+                    ),
+                    for (final profile in styleProfiles)
+                      DropdownMenuItem<String?>(
+                        value: profile.id,
+                        child: Text(
+                          profile.styleName,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                  onChanged: onStyleProfileChanged,
+                  decoration: const InputDecoration(
+                    labelText: 'Style Profile（可选）',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String?>(
+                  initialValue: selectedPlotProfileId,
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('不挂载 Plot Profile'),
+                    ),
+                    for (final profile in plotProfiles)
+                      DropdownMenuItem<String?>(
+                        value: profile.id,
+                        child: Text(
+                          profile.plotName,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                  onChanged: onPlotProfileChanged,
+                  decoration: const InputDecoration(
+                    labelText: 'Plot Profile（可选）',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                if (providers.isEmpty) ...[
+                  const SizedBox(height: 12),
+                  _ProviderMissingNotice(colorScheme: colorScheme),
+                ],
+              ],
+            ),
+            const SizedBox(height: 16),
+            _DialogSection(
+              title: '写作参数',
+              description: '作为后续章节生成和编辑器的项目级默认值。',
+              children: [
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final language = TextFormField(
+                      controller: languageController,
+                      decoration: const InputDecoration(
+                        labelText: '语言',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: _requiredValidator,
+                    );
+                    final targetLength = TextFormField(
+                      controller: targetLengthController,
+                      decoration: const InputDecoration(
+                        labelText: '目标长度',
+                        suffixText: '字',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.number,
+                      validator: _positiveIntValidator,
+                    );
+
+                    if (constraints.maxWidth < 560) {
+                      return Column(
+                        children: [
+                          language,
+                          const SizedBox(height: 12),
+                          targetLength,
+                        ],
+                      );
+                    }
+                    return Row(
+                      children: [
+                        Expanded(child: language),
+                        const SizedBox(width: 12),
+                        Expanded(child: targetLength),
+                      ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: perspectiveController,
+                  decoration: const InputDecoration(
+                    labelText: '叙事视角',
+                    hintText: defaultProjectNarrativePerspective,
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: _requiredValidator,
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.28,
+                ),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: colorScheme.outlineVariant),
+              ),
+              child: RadioGroup<ProjectStatus>(
+                groupValue: status,
+                onChanged: (value) {
+                  if (value != null) {
+                    onStatusChanged(value);
+                  }
+                },
+                child: Column(
+                  children: const [
+                    RadioListTile<ProjectStatus>(
+                      title: Text('活动项目'),
+                      subtitle: Text('显示在默认 Projects 工作区。'),
+                      value: ProjectStatus.active,
+                    ),
+                    RadioListTile<ProjectStatus>(
+                      title: Text('归档项目'),
+                      subtitle: Text('从默认工作区隐藏，但保留项目档案。'),
+                      value: ProjectStatus.archived,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: controllerBusy ? null : onCancel,
+                  child: const Text('取消'),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: canSave ? onSave : null,
+                  child: Text(controllerBusy ? '保存中' : '保存'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DialogSection extends StatelessWidget {
+  const _DialogSection({
+    required this.title,
+    required this.description,
+    required this.children,
+  });
+
+  final String title;
+  final String description;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            PersonaSectionHeader(title: title, description: description),
+            const SizedBox(height: 14),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProviderMissingNotice extends StatelessWidget {
+  const _ProviderMissingNotice({required this.colorScheme});
+
+  final ColorScheme colorScheme;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.errorContainer.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorScheme.error.withValues(alpha: 0.28)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.error_outline, color: colorScheme.error, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '请先在 Settings 配置 Provider，项目需要默认 Provider 和模型才能保存。',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProjectDialogLoading extends StatelessWidget {
+  const _ProjectDialogLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      height: 180,
+      child: Center(child: CircularProgressIndicator()),
+    );
+  }
+}
+
+class _ProjectDialogLoadError extends StatelessWidget {
+  const _ProjectDialogLoadError(this.message);
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      '无法加载创作配置：$message',
+      style: TextStyle(color: Theme.of(context).colorScheme.error),
+    );
+  }
+}
+
 void _showProjectDialog(BuildContext context, {WritingProject? project}) {
   showGlassDialog<void>(
     context: context,
-    maxWidth: 620,
+    maxWidth: 680,
+    maxHeight: MediaQuery.sizeOf(context).height * 0.9,
     builder: (context) => _ProjectDialog(project: project),
   );
 }
@@ -795,6 +1265,26 @@ enum _ProjectMenuAction { edit, archive, restore, delete }
 String? _requiredValidator(String? value) {
   if (value == null || value.trim().isEmpty) {
     return '必填';
+  }
+  return null;
+}
+
+String? _positiveIntValidator(String? value) {
+  final parsed = int.tryParse(value?.trim() ?? '');
+  if (parsed == null || parsed <= 0) {
+    return '请输入大于 0 的整数';
+  }
+  return null;
+}
+
+T? _findById<T>(List<T> items, String? id, String Function(T item) getId) {
+  if (id == null) {
+    return null;
+  }
+  for (final item in items) {
+    if (getId(item) == id) {
+      return item;
+    }
   }
   return null;
 }
