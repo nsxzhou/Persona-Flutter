@@ -247,7 +247,7 @@ final class PlotAnalysisPipelineProvider
 }
 
 String _$plotAnalysisPipelineHash() =>
-    r'f150ad01136965e7e0ec999fe90ecd7838b8c537';
+    r'6dcb8ffa53a0aa23ea74d9fb6ed0a87a16e3ac69';
 
 @ProviderFor(plotSamples)
 final plotSamplesProvider = PlotSamplesProvider._();

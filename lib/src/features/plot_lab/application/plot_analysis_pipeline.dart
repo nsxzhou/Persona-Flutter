@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import '../../../core/analysis/analysis_text_tools.dart';
 import '../../../core/llm/application/markdown_completion_service.dart';
+import '../../../core/tasks/application/prompt_trace_recorder.dart';
+import '../../../core/tasks/application/workflow_task_repository.dart';
 import '../../settings/domain/provider_config.dart';
 import '../domain/plot_analysis_run.dart';
 import '../domain/plot_chunk_sketch.dart';
@@ -15,18 +17,21 @@ class PlotAnalysisPipeline {
   const PlotAnalysisPipeline({
     required PlotLabRepository repository,
     required MarkdownCompletionService completionService,
+    required WorkflowTaskRepository workflowTaskRepository,
     PlotLabPromptBuilder promptBuilder = const PlotLabPromptBuilder(),
     StoryEngineNormalizer storyEngineNormalizer = const StoryEngineNormalizer(),
     PlotChunkSketchDocumentParser sketchDocumentParser =
         const PlotChunkSketchDocumentParser(),
   }) : _repository = repository,
        _completionService = completionService,
+       _workflowTaskRepository = workflowTaskRepository,
        _promptBuilder = promptBuilder,
        _storyEngineNormalizer = storyEngineNormalizer,
        _sketchDocumentParser = sketchDocumentParser;
 
   final PlotLabRepository _repository;
   final MarkdownCompletionService _completionService;
+  final WorkflowTaskRepository _workflowTaskRepository;
   final PlotLabPromptBuilder _promptBuilder;
   final StoryEngineNormalizer _storyEngineNormalizer;
   final PlotChunkSketchDocumentParser _sketchDocumentParser;
@@ -47,6 +52,17 @@ class PlotAnalysisPipeline {
       throw StateError('Plot sample does not exist: ${run.sampleId}');
     }
 
+    var currentStage = run.stage;
+    final traceRecorder = PromptTraceRecorder(
+      repository: _workflowTaskRepository,
+      workflowTaskId: run.workflowTaskId,
+      workflowKind: plotAnalysisWorkflowTaskKind,
+      runId: run.id,
+      providerId: provider.id,
+      providerApiKey: provider.apiKey,
+      modelName: provider.defaultModel,
+      stageLabel: () => currentStage?.name,
+    );
     final log = StringBuffer(run.logs);
     Future<void> transition(
       PlotAnalysisStatus status,
@@ -60,6 +76,7 @@ class PlotAnalysisPipeline {
       DateTime? startedAt,
       DateTime? completedAt,
     }) async {
+      currentStage = stage;
       if (message != null && message.trim().isNotEmpty) {
         _appendLog(log, message);
       }
@@ -111,6 +128,7 @@ class PlotAnalysisPipeline {
             classification: classification,
           ),
           temperature: 0.25,
+          promptTrace: traceRecorder.config(label: 'sketch_chunk_${index + 1}'),
         );
         final sketch = _parseSketch(raw, index, chunks.length);
         sketches.add(sketch);
@@ -131,6 +149,7 @@ class PlotAnalysisPipeline {
         sketches: sketches,
         classification: classification,
         chunkCount: chunks.length,
+        traceRecorder: traceRecorder,
       );
 
       await transition(
@@ -145,6 +164,7 @@ class PlotAnalysisPipeline {
           plotSkeletonMarkdown: skeleton,
           classification: classification,
         ),
+        promptTrace: traceRecorder.config(label: 'build_report'),
       );
 
       await transition(
@@ -161,6 +181,7 @@ class PlotAnalysisPipeline {
           plotName: run.plotName,
         ),
         temperature: 0.35,
+        promptTrace: traceRecorder.config(label: 'build_story_engine'),
       );
       final storyEngine = _storyEngineNormalizer.normalize(storyEngineRaw);
       if (storyEngine.trim().isEmpty) {
@@ -207,6 +228,7 @@ class PlotAnalysisPipeline {
     required List<PlotChunkSketch> sketches,
     required PlotInputClassification classification,
     required int chunkCount,
+    required PromptTraceRecorder traceRecorder,
   }) async {
     final sketchPayload = sketches.map((item) => item.toJson()).toList();
     final roughTokens =
@@ -223,6 +245,7 @@ class PlotAnalysisPipeline {
           chunkCount: chunkCount,
         ),
         temperature: 0.35,
+        promptTrace: traceRecorder.config(label: 'build_skeleton'),
       );
     }
     return _buildSkeletonHierarchically(
@@ -230,6 +253,7 @@ class PlotAnalysisPipeline {
       sketchPayload: sketchPayload,
       classification: classification,
       chunkCount: chunkCount,
+      traceRecorder: traceRecorder,
     );
   }
 
@@ -238,6 +262,7 @@ class PlotAnalysisPipeline {
     required List<Map<String, Object?>> sketchPayload,
     required PlotInputClassification classification,
     required int chunkCount,
+    required PromptTraceRecorder traceRecorder,
   }) async {
     final groups = <List<Map<String, Object?>>>[];
     for (
@@ -263,6 +288,9 @@ class PlotAnalysisPipeline {
           classification: classification,
         ),
         temperature: 0.35,
+        promptTrace: traceRecorder.config(
+          label: 'build_skeleton_group_${index + 1}',
+        ),
       );
       subSkeletons.add({
         'group_index': index,
@@ -278,6 +306,7 @@ class PlotAnalysisPipeline {
         chunkCount: chunkCount,
       ),
       temperature: 0.35,
+      promptTrace: traceRecorder.config(label: 'build_skeleton'),
     );
   }
 

@@ -20,7 +20,8 @@ class LlmInvocationService {
     required String businessSystemPrompt,
     required List<LlmMessage> messages,
     double temperature = 0.7,
-  }) {
+    LlmPromptTraceConfig? promptTrace,
+  }) async* {
     final systemPrompt = _promptComposer.compose(
       businessSystemPrompt: businessSystemPrompt,
       providerSystemPrompt: provider.systemPrompt,
@@ -29,14 +30,99 @@ class LlmInvocationService {
       if (systemPrompt.trim().isNotEmpty) LlmMessage.system(systemPrompt),
       ...messages,
     ];
+    final startedAt = DateTime.now();
+    final output = StringBuffer();
 
-    return _client.streamChat(
-      provider: provider,
-      request: LlmRequest(
-        messages: requestMessages,
-        model: provider.defaultModel,
-        temperature: temperature,
-      ),
-    );
+    try {
+      await for (final event in _client.streamChat(
+        provider: provider,
+        request: LlmRequest(
+          messages: requestMessages,
+          model: provider.defaultModel,
+          temperature: temperature,
+        ),
+      )) {
+        if (event is LlmStreamDelta) {
+          output.write(event.text);
+        }
+        yield event;
+      }
+      await _recordTrace(
+        promptTrace,
+        LlmPromptTraceEvent(
+          label: promptTrace?.label ?? 'chat',
+          modelName: provider.defaultModel,
+          temperature: temperature,
+          messages: requestMessages,
+          startedAt: startedAt,
+          completedAt: DateTime.now(),
+          output: output.toString(),
+        ),
+      );
+    } on Object catch (error) {
+      await _recordTrace(
+        promptTrace,
+        LlmPromptTraceEvent(
+          label: promptTrace?.label ?? 'chat',
+          modelName: provider.defaultModel,
+          temperature: temperature,
+          messages: requestMessages,
+          startedAt: startedAt,
+          completedAt: DateTime.now(),
+          errorSummary: _truncateError(error.toString()),
+        ),
+      );
+      rethrow;
+    }
   }
+
+  Future<void> _recordTrace(
+    LlmPromptTraceConfig? config,
+    LlmPromptTraceEvent event,
+  ) async {
+    if (config == null) {
+      return;
+    }
+    try {
+      await config.onComplete(event);
+    } on Object {
+      // Prompt trace persistence is best-effort diagnostics.
+    }
+  }
+
+  String _truncateError(String message) {
+    if (message.length <= 220) {
+      return message;
+    }
+    return '${message.substring(0, 217)}...';
+  }
+}
+
+class LlmPromptTraceConfig {
+  const LlmPromptTraceConfig({required this.label, required this.onComplete});
+
+  final String label;
+  final Future<void> Function(LlmPromptTraceEvent event) onComplete;
+}
+
+class LlmPromptTraceEvent {
+  const LlmPromptTraceEvent({
+    required this.label,
+    required this.modelName,
+    required this.temperature,
+    required this.messages,
+    required this.startedAt,
+    required this.completedAt,
+    this.output,
+    this.errorSummary,
+  });
+
+  final String label;
+  final String modelName;
+  final double temperature;
+  final List<LlmMessage> messages;
+  final DateTime startedAt;
+  final DateTime completedAt;
+  final String? output;
+  final String? errorSummary;
 }

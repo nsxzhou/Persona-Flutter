@@ -206,6 +206,9 @@ class DriftStyleLabRepository implements StyleLabRepository {
       return;
     }
     await _database.transaction(() async {
+      await (_database.delete(_database.workflowPromptTraceRecords)
+            ..where((trace) => trace.workflowTaskId.equals(run.workflowTaskId)))
+          .go();
       await (_database.delete(
         _database.styleProfileRecords,
       )..where((profile) => profile.sourceRunId.equals(id))).go();
@@ -445,6 +448,10 @@ class DriftStyleLabRepository implements StyleLabRepository {
         _database.styleAnalysisRunRecords,
       )..where((row) => row.id.equals(existing.sourceRunId))).go();
       if (run != null) {
+        await (_database.delete(_database.workflowPromptTraceRecords)..where(
+              (trace) => trace.workflowTaskId.equals(run.workflowTaskId),
+            ))
+            .go();
         await (_database.delete(
           _database.workflowTaskRecords,
         )..where((task) => task.id.equals(run.workflowTaskId))).go();

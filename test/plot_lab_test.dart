@@ -359,6 +359,7 @@ intensity: 0.7
       ]);
       final pipeline = PlotAnalysisPipeline(
         repository: repository,
+        workflowTaskRepository: DriftWorkflowTaskRepository(database),
         completionService: MarkdownCompletionService(
           invocation: LlmInvocationService(client: client),
         ),
@@ -375,6 +376,15 @@ intensity: 0.7
       expect(updated.storyEngineMarkdown, contains('plot_summary'));
       expect(updated.storyEngineMarkdown, contains('# Plot Writing Guide'));
       expect(updated.storyEngineMarkdown, isNot(contains('# 无关说明')));
+      final trace = await DriftWorkflowTaskRepository(
+        database,
+      ).watchPromptTrace(run.workflowTaskId).first;
+      expect(trace, isNotNull);
+      expect(trace!.traceMarkdown, contains('calls: 4'));
+      expect(trace.traceMarkdown, contains('sketch_chunk_1'));
+      expect(trace.traceMarkdown, contains('build_skeleton'));
+      expect(trace.traceMarkdown, contains('build_report'));
+      expect(trace.traceMarkdown, contains('build_story_engine'));
     },
   );
 
@@ -402,6 +412,7 @@ intensity: 0.7
       );
       final pipeline = PlotAnalysisPipeline(
         repository: repository,
+        workflowTaskRepository: DriftWorkflowTaskRepository(database),
         completionService: MarkdownCompletionService(
           invocation: LlmInvocationService(
             client: _QueuedLlmClient([
@@ -458,6 +469,7 @@ intensity: 0.7
       ]);
       final pipeline = PlotAnalysisPipeline(
         repository: repository,
+        workflowTaskRepository: DriftWorkflowTaskRepository(database),
         completionService: MarkdownCompletionService(
           invocation: LlmInvocationService(client: client),
         ),
@@ -497,6 +509,7 @@ intensity: 0.7
       );
       final pipeline = PlotAnalysisPipeline(
         repository: repository,
+        workflowTaskRepository: DriftWorkflowTaskRepository(database),
         completionService: MarkdownCompletionService(
           invocation: LlmInvocationService(
             client: _QueuedLlmClient(['not yaml front matter']),

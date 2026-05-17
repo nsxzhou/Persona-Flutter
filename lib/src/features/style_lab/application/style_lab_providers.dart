@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/database/database_providers.dart';
 import '../../../core/llm/application/markdown_completion_service.dart';
+import '../../../core/tasks/application/workflow_task_providers.dart';
 import '../../settings/application/provider_config_providers.dart';
 import '../data/drift_style_lab_repository.dart';
 import '../domain/style_analysis_run.dart';
@@ -44,6 +45,7 @@ StyleAnalysisPipeline styleAnalysisPipeline(Ref ref) {
   return StyleAnalysisPipeline(
     repository: ref.watch(styleLabRepositoryProvider),
     completionService: ref.watch(markdownCompletionServiceProvider),
+    workflowTaskRepository: ref.watch(workflowTaskRepositoryProvider),
   );
 }
 

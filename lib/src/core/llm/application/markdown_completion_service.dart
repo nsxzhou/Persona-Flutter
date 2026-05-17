@@ -14,6 +14,7 @@ class MarkdownCompletionService {
     required String prompt,
     double temperature = 0.4,
     int maxAttempts = 3,
+    LlmPromptTraceConfig? promptTrace,
   }) async {
     Object? lastError;
     for (var attempt = 1; attempt <= maxAttempts; attempt += 1) {
@@ -24,6 +25,7 @@ class MarkdownCompletionService {
           businessSystemPrompt: '',
           messages: [LlmMessage.user(prompt)],
           temperature: temperature,
+          promptTrace: promptTrace,
         )) {
           if (event is LlmStreamDelta) {
             buffer.write(event.text);

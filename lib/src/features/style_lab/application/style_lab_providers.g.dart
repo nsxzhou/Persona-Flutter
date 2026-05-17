@@ -250,7 +250,7 @@ final class StyleAnalysisPipelineProvider
 }
 
 String _$styleAnalysisPipelineHash() =>
-    r'89421fe7c36076a2c2ec0ce5a22498ef5c95b363';
+    r'ab8926dfe350f6a0c787aab7451da8b77c025d13';
 
 @ProviderFor(styleSamples)
 final styleSamplesProvider = StyleSamplesProvider._();

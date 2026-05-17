@@ -218,6 +218,7 @@ void main() {
 
     final pipeline = StyleAnalysisPipeline(
       repository: repository,
+      workflowTaskRepository: DriftWorkflowTaskRepository(database),
       completionService: MarkdownCompletionService(
         invocation: LlmInvocationService(
           client: _QueuedLlmClient([
@@ -236,6 +237,14 @@ void main() {
     expect(updated.analysisReportMarkdown, contains('report'));
     expect(updated.voiceProfileMarkdown, startsWith('---\nname: "冷雨风格"'));
     expect(updated.voiceProfileMarkdown, contains('# Voice Profile'));
+    final trace = await DriftWorkflowTaskRepository(
+      database,
+    ).watchPromptTrace(run.workflowTaskId).first;
+    expect(trace, isNotNull);
+    expect(trace!.traceMarkdown, contains('calls: 3'));
+    expect(trace.traceMarkdown, contains('chunk_analysis_1'));
+    expect(trace.traceMarkdown, contains('build_report'));
+    expect(trace.traceMarkdown, contains('build_voice_profile'));
   });
 
   test(
@@ -263,6 +272,7 @@ void main() {
       final client = _QueuedLlmClient(const []);
       final pipeline = StyleAnalysisPipeline(
         repository: repository,
+        workflowTaskRepository: DriftWorkflowTaskRepository(database),
         completionService: MarkdownCompletionService(
           invocation: LlmInvocationService(client: client),
         ),
@@ -304,6 +314,7 @@ void main() {
       );
       final pipeline = StyleAnalysisPipeline(
         repository: repository,
+        workflowTaskRepository: DriftWorkflowTaskRepository(database),
         completionService: MarkdownCompletionService(
           invocation: LlmInvocationService(
             client: _QueuedLlmClient([
@@ -325,6 +336,11 @@ void main() {
       expect(updated.analysisReportMarkdown, contains('report'));
       expect(updated.voiceProfileMarkdown, isNull);
       expect(updated.errorMessage, contains('YAML front matter'));
+      final trace = await DriftWorkflowTaskRepository(
+        database,
+      ).watchPromptTrace(run.workflowTaskId).first;
+      expect(trace, isNotNull);
+      expect(trace!.traceMarkdown, contains('calls: 3'));
     },
   );
 }

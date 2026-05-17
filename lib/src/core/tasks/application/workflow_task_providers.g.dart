@@ -98,3 +98,156 @@ final class RecentWorkflowTasksProvider
 
 String _$recentWorkflowTasksHash() =>
     r'a71bf2f4be9fbc815ac2b4ae77f0bb3236d24a54';
+
+@ProviderFor(workflowTask)
+final workflowTaskProvider = WorkflowTaskFamily._();
+
+final class WorkflowTaskProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<WorkflowTask?>,
+          WorkflowTask?,
+          Stream<WorkflowTask?>
+        >
+    with $FutureModifier<WorkflowTask?>, $StreamProvider<WorkflowTask?> {
+  WorkflowTaskProvider._({
+    required WorkflowTaskFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'workflowTaskProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$workflowTaskHash();
+
+  @override
+  String toString() {
+    return r'workflowTaskProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<WorkflowTask?> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<WorkflowTask?> create(Ref ref) {
+    final argument = this.argument as String;
+    return workflowTask(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is WorkflowTaskProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$workflowTaskHash() => r'2facc32625f751a05fd24bf9da475f91d3320cd6';
+
+final class WorkflowTaskFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<WorkflowTask?>, String> {
+  WorkflowTaskFamily._()
+    : super(
+        retry: null,
+        name: r'workflowTaskProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  WorkflowTaskProvider call(String id) =>
+      WorkflowTaskProvider._(argument: id, from: this);
+
+  @override
+  String toString() => r'workflowTaskProvider';
+}
+
+@ProviderFor(workflowPromptTrace)
+final workflowPromptTraceProvider = WorkflowPromptTraceFamily._();
+
+final class WorkflowPromptTraceProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<WorkflowPromptTrace?>,
+          WorkflowPromptTrace?,
+          Stream<WorkflowPromptTrace?>
+        >
+    with
+        $FutureModifier<WorkflowPromptTrace?>,
+        $StreamProvider<WorkflowPromptTrace?> {
+  WorkflowPromptTraceProvider._({
+    required WorkflowPromptTraceFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'workflowPromptTraceProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$workflowPromptTraceHash();
+
+  @override
+  String toString() {
+    return r'workflowPromptTraceProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<WorkflowPromptTrace?> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<WorkflowPromptTrace?> create(Ref ref) {
+    final argument = this.argument as String;
+    return workflowPromptTrace(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is WorkflowPromptTraceProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$workflowPromptTraceHash() =>
+    r'b86ae2cdbca40565c60f68d332c22da2949bb4af';
+
+final class WorkflowPromptTraceFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<WorkflowPromptTrace?>, String> {
+  WorkflowPromptTraceFamily._()
+    : super(
+        retry: null,
+        name: r'workflowPromptTraceProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  WorkflowPromptTraceProvider call(String workflowTaskId) =>
+      WorkflowPromptTraceProvider._(argument: workflowTaskId, from: this);
+
+  @override
+  String toString() => r'workflowPromptTraceProvider';
+}

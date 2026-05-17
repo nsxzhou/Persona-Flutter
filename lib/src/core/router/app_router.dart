@@ -91,6 +91,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: AppRoute.workflowRuns.path,
                 builder: (context, state) => const WorkflowRunsPage(),
+                routes: [
+                  GoRoute(
+                    path: ':taskId',
+                    builder: (context, state) => WorkflowRunDetailPage(
+                      taskId: state.pathParameters['taskId']!,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

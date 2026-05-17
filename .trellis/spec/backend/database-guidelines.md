@@ -224,3 +224,56 @@ Delete the Profile row, source run row, and source workflow task row in one tran
 Expose a generic task writer and let UI or feature services update workflow tasks separately from analysis runs.
 #### Correct
 Keep `WorkflowTaskRepository` read-only and update run/task records together inside the owning feature repository.
+
+## Scenario: Workflow Prompt Trace storage
+
+### 1. Scope / Trigger
+- Trigger: Style Lab, Plot Lab, or a future long-running workflow calls an LLM and needs user-visible prompt diagnostics.
+- This is a cross-layer persistence contract because LLM invocation, workflow task records, feature run records, Drift storage, and Workflow Runs UI all depend on the same trace shape.
+
+### 2. Signatures
+- Drift table: `WorkflowPromptTraceRecords`
+- Domain model: `WorkflowPromptTrace`
+- Repository reads/writes:
+  - `WorkflowTaskRepository.watchPromptTrace(String workflowTaskId)`
+  - `WorkflowTaskRepository.upsertPromptTrace({required String workflowTaskId, required String traceMarkdown})`
+- LLM trace hook:
+  - `LlmInvocationService.streamChat(..., LlmPromptTraceConfig? promptTrace)`
+  - `MarkdownCompletionService.completeMarkdown(..., LlmPromptTraceConfig? promptTrace)`
+- Recorder: `PromptTraceRecorder.config(label: ...)`
+
+### 3. Contracts
+- One workflow task has at most one prompt trace row, keyed by `workflowTaskId`.
+- Trace content is persisted as a `YAML front matter + Markdown body` document, not JSON-only.
+- YAML front matter must include `format`, `version`, `workflow_task_id`, `workflow_kind`, `run_id`, `provider_id`, `model_name`, `calls`, `failed_calls`, `total_input_chars`, and `updated_at`.
+- The Markdown body must include `# Prompt Trace`, a call summary table, and one section per LLM call.
+- The LLM boundary records the actual messages after provider prompt composition.
+- The recorder stores full input messages, output excerpts only, and basic redaction for provider API keys plus common bearer / `sk-*` token shapes.
+- Prompt trace persistence is best-effort diagnostics. A trace write failure must not fail the LLM call or workflow.
+- Deleting a feature run or source profile must delete the matching prompt trace before deleting the workflow task row.
+
+### 4. Validation & Error Matrix
+- Missing prompt trace row -> Workflow Runs detail renders an empty trace state, not an error.
+- Trace write failure -> swallow at the trace boundary and preserve the main workflow result.
+- LLM call failure -> record a failed trace call with the sent messages and sanitized error summary, then rethrow the original call failure to the pipeline.
+- Provider API key in prompt/error/output -> replace before persistence.
+- Prompt content contains Markdown fences -> render fenced code blocks with a dynamically longer fence.
+
+### 5. Good/Base/Bad Cases
+- Good: a Plot Lab run records sketch, skeleton, report, and Story Engine calls as one upserted workflow trace document.
+- Base: a Style Lab run with one chunk records chunk analysis, report, and Voice Profile calls.
+- Bad: store prompt trace inside each feature run table, because future workflow kinds would need duplicate columns and UI wiring.
+- Bad: log prompt payloads with `print`/`debugPrint`; prompt trace belongs in the explicit local trace table only.
+
+### 6. Tests Required
+- Renderer tests for YAML front matter, dynamic fences, empty/failure calls, and long output excerpts.
+- LLM invocation tests proving traces capture composed messages and redact provider API keys.
+- Pipeline tests proving Style/Plot successful and failed runs write prompt trace rows.
+- Repository/delete tests proving trace rows are removed with deleted runs or source profiles.
+- Widget tests proving `/workflow-runs/:taskId` renders trace content, empty trace state, logs, and business detail navigation.
+
+### 7. Wrong vs Correct
+#### Wrong
+Append full prompts to task logs or feature run `logs`, where they can mix with lifecycle messages and bypass redaction.
+#### Correct
+Use `PromptTraceRecorder` and `WorkflowTaskRepository.upsertPromptTrace` so prompt diagnostics are explicit, redacted, and queryable by workflow task id.

@@ -515,6 +515,348 @@ class WorkflowTaskRecordsCompanion extends UpdateCompanion<WorkflowTaskRecord> {
   }
 }
 
+class $WorkflowPromptTraceRecordsTable extends WorkflowPromptTraceRecords
+    with
+        TableInfo<$WorkflowPromptTraceRecordsTable, WorkflowPromptTraceRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $WorkflowPromptTraceRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _workflowTaskIdMeta = const VerificationMeta(
+    'workflowTaskId',
+  );
+  @override
+  late final GeneratedColumn<String> workflowTaskId = GeneratedColumn<String>(
+    'workflow_task_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES workflow_task_records (id)',
+    ),
+  );
+  static const VerificationMeta _traceMarkdownMeta = const VerificationMeta(
+    'traceMarkdown',
+  );
+  @override
+  late final GeneratedColumn<String> traceMarkdown = GeneratedColumn<String>(
+    'trace_markdown',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    workflowTaskId,
+    traceMarkdown,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'workflow_prompt_trace_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<WorkflowPromptTraceRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('workflow_task_id')) {
+      context.handle(
+        _workflowTaskIdMeta,
+        workflowTaskId.isAcceptableOrUnknown(
+          data['workflow_task_id']!,
+          _workflowTaskIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_workflowTaskIdMeta);
+    }
+    if (data.containsKey('trace_markdown')) {
+      context.handle(
+        _traceMarkdownMeta,
+        traceMarkdown.isAcceptableOrUnknown(
+          data['trace_markdown']!,
+          _traceMarkdownMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_traceMarkdownMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {workflowTaskId};
+  @override
+  WorkflowPromptTraceRecord map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return WorkflowPromptTraceRecord(
+      workflowTaskId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}workflow_task_id'],
+      )!,
+      traceMarkdown: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}trace_markdown'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $WorkflowPromptTraceRecordsTable createAlias(String alias) {
+    return $WorkflowPromptTraceRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class WorkflowPromptTraceRecord extends DataClass
+    implements Insertable<WorkflowPromptTraceRecord> {
+  final String workflowTaskId;
+  final String traceMarkdown;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const WorkflowPromptTraceRecord({
+    required this.workflowTaskId,
+    required this.traceMarkdown,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['workflow_task_id'] = Variable<String>(workflowTaskId);
+    map['trace_markdown'] = Variable<String>(traceMarkdown);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  WorkflowPromptTraceRecordsCompanion toCompanion(bool nullToAbsent) {
+    return WorkflowPromptTraceRecordsCompanion(
+      workflowTaskId: Value(workflowTaskId),
+      traceMarkdown: Value(traceMarkdown),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory WorkflowPromptTraceRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return WorkflowPromptTraceRecord(
+      workflowTaskId: serializer.fromJson<String>(json['workflowTaskId']),
+      traceMarkdown: serializer.fromJson<String>(json['traceMarkdown']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'workflowTaskId': serializer.toJson<String>(workflowTaskId),
+      'traceMarkdown': serializer.toJson<String>(traceMarkdown),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  WorkflowPromptTraceRecord copyWith({
+    String? workflowTaskId,
+    String? traceMarkdown,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => WorkflowPromptTraceRecord(
+    workflowTaskId: workflowTaskId ?? this.workflowTaskId,
+    traceMarkdown: traceMarkdown ?? this.traceMarkdown,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  WorkflowPromptTraceRecord copyWithCompanion(
+    WorkflowPromptTraceRecordsCompanion data,
+  ) {
+    return WorkflowPromptTraceRecord(
+      workflowTaskId: data.workflowTaskId.present
+          ? data.workflowTaskId.value
+          : this.workflowTaskId,
+      traceMarkdown: data.traceMarkdown.present
+          ? data.traceMarkdown.value
+          : this.traceMarkdown,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WorkflowPromptTraceRecord(')
+          ..write('workflowTaskId: $workflowTaskId, ')
+          ..write('traceMarkdown: $traceMarkdown, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(workflowTaskId, traceMarkdown, createdAt, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is WorkflowPromptTraceRecord &&
+          other.workflowTaskId == this.workflowTaskId &&
+          other.traceMarkdown == this.traceMarkdown &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class WorkflowPromptTraceRecordsCompanion
+    extends UpdateCompanion<WorkflowPromptTraceRecord> {
+  final Value<String> workflowTaskId;
+  final Value<String> traceMarkdown;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const WorkflowPromptTraceRecordsCompanion({
+    this.workflowTaskId = const Value.absent(),
+    this.traceMarkdown = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  WorkflowPromptTraceRecordsCompanion.insert({
+    required String workflowTaskId,
+    required String traceMarkdown,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : workflowTaskId = Value(workflowTaskId),
+       traceMarkdown = Value(traceMarkdown),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<WorkflowPromptTraceRecord> custom({
+    Expression<String>? workflowTaskId,
+    Expression<String>? traceMarkdown,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (workflowTaskId != null) 'workflow_task_id': workflowTaskId,
+      if (traceMarkdown != null) 'trace_markdown': traceMarkdown,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  WorkflowPromptTraceRecordsCompanion copyWith({
+    Value<String>? workflowTaskId,
+    Value<String>? traceMarkdown,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return WorkflowPromptTraceRecordsCompanion(
+      workflowTaskId: workflowTaskId ?? this.workflowTaskId,
+      traceMarkdown: traceMarkdown ?? this.traceMarkdown,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (workflowTaskId.present) {
+      map['workflow_task_id'] = Variable<String>(workflowTaskId.value);
+    }
+    if (traceMarkdown.present) {
+      map['trace_markdown'] = Variable<String>(traceMarkdown.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WorkflowPromptTraceRecordsCompanion(')
+          ..write('workflowTaskId: $workflowTaskId, ')
+          ..write('traceMarkdown: $traceMarkdown, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $ProviderConfigRecordsTable extends ProviderConfigRecords
     with TableInfo<$ProviderConfigRecordsTable, ProviderConfigRecord> {
   @override
@@ -6988,6 +7330,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $WorkflowTaskRecordsTable workflowTaskRecords =
       $WorkflowTaskRecordsTable(this);
+  late final $WorkflowPromptTraceRecordsTable workflowPromptTraceRecords =
+      $WorkflowPromptTraceRecordsTable(this);
   late final $ProviderConfigRecordsTable providerConfigRecords =
       $ProviderConfigRecordsTable(this);
   late final $ProjectRecordsTable projectRecords = $ProjectRecordsTable(this);
@@ -7009,6 +7353,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     workflowTaskRecords,
+    workflowPromptTraceRecords,
     providerConfigRecords,
     projectRecords,
     styleSampleRecords,
@@ -7057,6 +7402,34 @@ final class $$WorkflowTaskRecordsTableReferences
     super.$_table,
     super.$_typedResult,
   );
+
+  static MultiTypedResultKey<
+    $WorkflowPromptTraceRecordsTable,
+    List<WorkflowPromptTraceRecord>
+  >
+  _workflowPromptTraceRecordsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.workflowPromptTraceRecords,
+        aliasName: $_aliasNameGenerator(
+          db.workflowTaskRecords.id,
+          db.workflowPromptTraceRecords.workflowTaskId,
+        ),
+      );
+
+  $$WorkflowPromptTraceRecordsTableProcessedTableManager
+  get workflowPromptTraceRecordsRefs {
+    final manager = $$WorkflowPromptTraceRecordsTableTableManager(
+      $_db,
+      $_db.workflowPromptTraceRecords,
+    ).filter((f) => f.workflowTaskId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _workflowPromptTraceRecordsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 
   static MultiTypedResultKey<
     $StyleAnalysisRunRecordsTable,
@@ -7163,6 +7536,33 @@ class $$WorkflowTaskRecordsTableFilterComposer
     column: $table.updatedAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> workflowPromptTraceRecordsRefs(
+    Expression<bool> Function($$WorkflowPromptTraceRecordsTableFilterComposer f)
+    f,
+  ) {
+    final $$WorkflowPromptTraceRecordsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.workflowPromptTraceRecords,
+          getReferencedColumn: (t) => t.workflowTaskId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$WorkflowPromptTraceRecordsTableFilterComposer(
+                $db: $db,
+                $table: $db.workflowPromptTraceRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 
   Expression<bool> styleAnalysisRunRecordsRefs(
     Expression<bool> Function($$StyleAnalysisRunRecordsTableFilterComposer f) f,
@@ -7302,6 +7702,35 @@ class $$WorkflowTaskRecordsTableAnnotationComposer
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
+  Expression<T> workflowPromptTraceRecordsRefs<T extends Object>(
+    Expression<T> Function(
+      $$WorkflowPromptTraceRecordsTableAnnotationComposer a,
+    )
+    f,
+  ) {
+    final $$WorkflowPromptTraceRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.workflowPromptTraceRecords,
+          getReferencedColumn: (t) => t.workflowTaskId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$WorkflowPromptTraceRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.workflowPromptTraceRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
   Expression<T> styleAnalysisRunRecordsRefs<T extends Object>(
     Expression<T> Function($$StyleAnalysisRunRecordsTableAnnotationComposer a)
     f,
@@ -7370,6 +7799,7 @@ class $$WorkflowTaskRecordsTableTableManager
           (WorkflowTaskRecord, $$WorkflowTaskRecordsTableReferences),
           WorkflowTaskRecord,
           PrefetchHooks Function({
+            bool workflowPromptTraceRecordsRefs,
             bool styleAnalysisRunRecordsRefs,
             bool plotAnalysisRunRecordsRefs,
           })
@@ -7447,18 +7877,42 @@ class $$WorkflowTaskRecordsTableTableManager
               .toList(),
           prefetchHooksCallback:
               ({
+                workflowPromptTraceRecordsRefs = false,
                 styleAnalysisRunRecordsRefs = false,
                 plotAnalysisRunRecordsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
+                    if (workflowPromptTraceRecordsRefs)
+                      db.workflowPromptTraceRecords,
                     if (styleAnalysisRunRecordsRefs) db.styleAnalysisRunRecords,
                     if (plotAnalysisRunRecordsRefs) db.plotAnalysisRunRecords,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
                     return [
+                      if (workflowPromptTraceRecordsRefs)
+                        await $_getPrefetchedData<
+                          WorkflowTaskRecord,
+                          $WorkflowTaskRecordsTable,
+                          WorkflowPromptTraceRecord
+                        >(
+                          currentTable: table,
+                          referencedTable: $$WorkflowTaskRecordsTableReferences
+                              ._workflowPromptTraceRecordsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$WorkflowTaskRecordsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).workflowPromptTraceRecordsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.workflowTaskId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                       if (styleAnalysisRunRecordsRefs)
                         await $_getPrefetchedData<
                           WorkflowTaskRecord,
@@ -7522,9 +7976,342 @@ typedef $$WorkflowTaskRecordsTableProcessedTableManager =
       (WorkflowTaskRecord, $$WorkflowTaskRecordsTableReferences),
       WorkflowTaskRecord,
       PrefetchHooks Function({
+        bool workflowPromptTraceRecordsRefs,
         bool styleAnalysisRunRecordsRefs,
         bool plotAnalysisRunRecordsRefs,
       })
+    >;
+typedef $$WorkflowPromptTraceRecordsTableCreateCompanionBuilder =
+    WorkflowPromptTraceRecordsCompanion Function({
+      required String workflowTaskId,
+      required String traceMarkdown,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$WorkflowPromptTraceRecordsTableUpdateCompanionBuilder =
+    WorkflowPromptTraceRecordsCompanion Function({
+      Value<String> workflowTaskId,
+      Value<String> traceMarkdown,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+final class $$WorkflowPromptTraceRecordsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $WorkflowPromptTraceRecordsTable,
+          WorkflowPromptTraceRecord
+        > {
+  $$WorkflowPromptTraceRecordsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $WorkflowTaskRecordsTable _workflowTaskIdTable(_$AppDatabase db) =>
+      db.workflowTaskRecords.createAlias(
+        $_aliasNameGenerator(
+          db.workflowPromptTraceRecords.workflowTaskId,
+          db.workflowTaskRecords.id,
+        ),
+      );
+
+  $$WorkflowTaskRecordsTableProcessedTableManager get workflowTaskId {
+    final $_column = $_itemColumn<String>('workflow_task_id')!;
+
+    final manager = $$WorkflowTaskRecordsTableTableManager(
+      $_db,
+      $_db.workflowTaskRecords,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_workflowTaskIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$WorkflowPromptTraceRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $WorkflowPromptTraceRecordsTable> {
+  $$WorkflowPromptTraceRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get traceMarkdown => $composableBuilder(
+    column: $table.traceMarkdown,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$WorkflowTaskRecordsTableFilterComposer get workflowTaskId {
+    final $$WorkflowTaskRecordsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.workflowTaskId,
+      referencedTable: $db.workflowTaskRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkflowTaskRecordsTableFilterComposer(
+            $db: $db,
+            $table: $db.workflowTaskRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$WorkflowPromptTraceRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $WorkflowPromptTraceRecordsTable> {
+  $$WorkflowPromptTraceRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get traceMarkdown => $composableBuilder(
+    column: $table.traceMarkdown,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$WorkflowTaskRecordsTableOrderingComposer get workflowTaskId {
+    final $$WorkflowTaskRecordsTableOrderingComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.workflowTaskId,
+          referencedTable: $db.workflowTaskRecords,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$WorkflowTaskRecordsTableOrderingComposer(
+                $db: $db,
+                $table: $db.workflowTaskRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$WorkflowPromptTraceRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $WorkflowPromptTraceRecordsTable> {
+  $$WorkflowPromptTraceRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get traceMarkdown => $composableBuilder(
+    column: $table.traceMarkdown,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$WorkflowTaskRecordsTableAnnotationComposer get workflowTaskId {
+    final $$WorkflowTaskRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.workflowTaskId,
+          referencedTable: $db.workflowTaskRecords,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$WorkflowTaskRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.workflowTaskRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$WorkflowPromptTraceRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $WorkflowPromptTraceRecordsTable,
+          WorkflowPromptTraceRecord,
+          $$WorkflowPromptTraceRecordsTableFilterComposer,
+          $$WorkflowPromptTraceRecordsTableOrderingComposer,
+          $$WorkflowPromptTraceRecordsTableAnnotationComposer,
+          $$WorkflowPromptTraceRecordsTableCreateCompanionBuilder,
+          $$WorkflowPromptTraceRecordsTableUpdateCompanionBuilder,
+          (
+            WorkflowPromptTraceRecord,
+            $$WorkflowPromptTraceRecordsTableReferences,
+          ),
+          WorkflowPromptTraceRecord,
+          PrefetchHooks Function({bool workflowTaskId})
+        > {
+  $$WorkflowPromptTraceRecordsTableTableManager(
+    _$AppDatabase db,
+    $WorkflowPromptTraceRecordsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WorkflowPromptTraceRecordsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$WorkflowPromptTraceRecordsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$WorkflowPromptTraceRecordsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> workflowTaskId = const Value.absent(),
+                Value<String> traceMarkdown = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => WorkflowPromptTraceRecordsCompanion(
+                workflowTaskId: workflowTaskId,
+                traceMarkdown: traceMarkdown,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String workflowTaskId,
+                required String traceMarkdown,
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => WorkflowPromptTraceRecordsCompanion.insert(
+                workflowTaskId: workflowTaskId,
+                traceMarkdown: traceMarkdown,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$WorkflowPromptTraceRecordsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({workflowTaskId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (workflowTaskId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.workflowTaskId,
+                                referencedTable:
+                                    $$WorkflowPromptTraceRecordsTableReferences
+                                        ._workflowTaskIdTable(db),
+                                referencedColumn:
+                                    $$WorkflowPromptTraceRecordsTableReferences
+                                        ._workflowTaskIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$WorkflowPromptTraceRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $WorkflowPromptTraceRecordsTable,
+      WorkflowPromptTraceRecord,
+      $$WorkflowPromptTraceRecordsTableFilterComposer,
+      $$WorkflowPromptTraceRecordsTableOrderingComposer,
+      $$WorkflowPromptTraceRecordsTableAnnotationComposer,
+      $$WorkflowPromptTraceRecordsTableCreateCompanionBuilder,
+      $$WorkflowPromptTraceRecordsTableUpdateCompanionBuilder,
+      (WorkflowPromptTraceRecord, $$WorkflowPromptTraceRecordsTableReferences),
+      WorkflowPromptTraceRecord,
+      PrefetchHooks Function({bool workflowTaskId})
     >;
 typedef $$ProviderConfigRecordsTableCreateCompanionBuilder =
     ProviderConfigRecordsCompanion Function({
@@ -13639,6 +14426,12 @@ class $AppDatabaseManager {
   $AppDatabaseManager(this._db);
   $$WorkflowTaskRecordsTableTableManager get workflowTaskRecords =>
       $$WorkflowTaskRecordsTableTableManager(_db, _db.workflowTaskRecords);
+  $$WorkflowPromptTraceRecordsTableTableManager
+  get workflowPromptTraceRecords =>
+      $$WorkflowPromptTraceRecordsTableTableManager(
+        _db,
+        _db.workflowPromptTraceRecords,
+      );
   $$ProviderConfigRecordsTableTableManager get providerConfigRecords =>
       $$ProviderConfigRecordsTableTableManager(_db, _db.providerConfigRecords);
   $$ProjectRecordsTableTableManager get projectRecords =>

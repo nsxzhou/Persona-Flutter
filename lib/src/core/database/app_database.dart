@@ -21,6 +21,17 @@ class WorkflowTaskRecords extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+class WorkflowPromptTraceRecords extends Table {
+  TextColumn get workflowTaskId =>
+      text().references(WorkflowTaskRecords, #id)();
+  TextColumn get traceMarkdown => text()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {workflowTaskId};
+}
+
 class ProviderConfigRecords extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
@@ -187,6 +198,7 @@ class PlotProfileRecords extends Table {
 @DriftDatabase(
   tables: [
     WorkflowTaskRecords,
+    WorkflowPromptTraceRecords,
     ProviderConfigRecords,
     ProjectRecords,
     StyleSampleRecords,
@@ -201,7 +213,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration {
@@ -229,6 +241,9 @@ class AppDatabase extends _$AppDatabase {
           await migrator.createTable(plotSampleRecords);
           await migrator.createTable(plotAnalysisRunRecords);
           await migrator.createTable(plotProfileRecords);
+        }
+        if (from < 7) {
+          await migrator.createTable(workflowPromptTraceRecords);
         }
       },
     );

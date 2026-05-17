@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/database/database_providers.dart';
 import '../../../core/llm/application/markdown_completion_service.dart';
+import '../../../core/tasks/application/workflow_task_providers.dart';
 import '../../settings/application/provider_config_providers.dart';
 import '../data/drift_plot_lab_repository.dart';
 import '../domain/plot_analysis_run.dart';
@@ -44,6 +45,7 @@ PlotAnalysisPipeline plotAnalysisPipeline(Ref ref) {
   return PlotAnalysisPipeline(
     repository: ref.watch(plotLabRepositoryProvider),
     completionService: ref.watch(plotMarkdownCompletionServiceProvider),
+    workflowTaskRepository: ref.watch(workflowTaskRepositoryProvider),
     storyEngineNormalizer: ref.watch(storyEngineNormalizerProvider),
   );
 }
