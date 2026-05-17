@@ -131,29 +131,31 @@ Import `ChatOpenAI` in a feature page and stream directly into widget state.
 #### Correct
 Feature code depends on `LlmInvocationService` / `LlmClient`; only `core/llm/data` imports LangChain.dart.
 
-## Scenario: Analysis artifact YAML+MD output contract
+## Scenario: LLM artifact document output contract
 
 ### 1. Scope / Trigger
-- Trigger: Any Style Lab, Plot Lab, or future analysis feature prompts an LLM to generate a reusable analysis artifact that is saved, parsed, or shown as a profile/engine document.
-- This is an application-layer contract because prompt builders, document parsers, persisted markdown fields, detail pages, and tests must agree on the same output shape.
+- Trigger: Any Style Lab, Plot Lab, Novel Workshop, or future feature prompts an LLM to generate a saved artifact, reusable profile/engine, structured domain proposal, review report, or user-editable document.
+- This is an application-layer contract because prompt builders, document parsers, persisted text fields, detail pages, and tests must agree on each artifact's declared output shape.
 
 ### 2. Signatures
 - Style artifact: `StyleLabPromptBuilder.buildVoiceProfilePrompt(...)` -> `VoiceProfileFrontMatterParser.parse(...)`
 - Plot sketch artifact: `PlotLabPromptBuilder.buildSketchPrompt(...)` -> `PlotChunkSketchDocumentParser.parse(...)`
 - Plot engine artifact: `PlotLabPromptBuilder.buildStoryEnginePrompt(...)` -> `StoryEngineNormalizer.normalize(...)`
-- Required document shape:
-  - YAML front matter starts at the first character with `---`
-  - YAML front matter ends with a closing `---`
-  - Markdown body starts with the required H1 for that artifact
+- Novel structured artifact: Novel Workshop prompt builder -> owning YAML/YAML+MD parser -> `NovelWorkshopRepository` domain inputs.
+- Allowed document shapes:
+  - YAML-only: the entire model output is a YAML mapping or list that matches the artifact schema.
+  - Markdown-only: the entire model output is Markdown and contains no machine-required structured fields.
+  - YAML+MD: YAML front matter starts at the first character with `---`, ends with a closing `---`, and the Markdown body starts with the required H1 for that artifact.
 
 ### 3. Contracts
-- Reusable LLM artifacts remain `YAML front matter + Markdown body` (`YAML+MD`), not JSON-only.
-- Prompt builders must explicitly tell the model to output only the front matter and Markdown body, with no preface, explanation, conclusion, or code fence.
-- Parsers/normalizers must accept the `YAML+MD` document shape and reject malformed required contracts instead of silently coercing missing structure.
+- LLM artifact outputs may be YAML-only, Markdown-only, or YAML+MD. Pick one shape per artifact and document that shape in the prompt, parser, tests, and UI copy.
+- Saved or user-editable artifacts must not be JSON-only. JSON may be used as internal prompt input or in-memory pipeline payload, but it must not become the LLM-facing editable artifact format.
+- Prompt builders must explicitly tell the model to output only the declared document shape, with no preface, explanation, conclusion, or code fence.
+- Artifacts that feed structured domain models must include a YAML schema, whether YAML-only or YAML+MD. The owning parser/normalizer converts YAML fields into domain input objects before repository writes.
+- Parsers/normalizers must reject malformed required contracts instead of silently coercing missing structure. Markdown section extraction is acceptable only for Markdown-only artifacts whose sections are not authoritative structured fields.
 - If an LLM artifact needs repair, do it in the owning pipeline with a separate repair prompt and prompt-trace label; keep the parser strict so malformed persisted artifacts cannot pass silently.
-- Feature pipelines may convert parsed YAML fields into domain objects for downstream aggregation, but the LLM-facing and persisted artifact format remains `YAML+MD`.
-- Plain reports and intermediate summaries that are not reusable artifacts may remain Markdown-only.
-- Preview surfaces for reusable `YAML+MD` artifacts should render the Markdown body, not the YAML front matter; source/edit modes still expose the full document.
+- Plain reports, drafts, revisions, and intermediate summaries that are not structured domain inputs may remain Markdown-only.
+- Preview surfaces for YAML+MD artifacts should render the Markdown body, not the YAML front matter; source/edit modes still expose the full document. YAML-only artifacts should render as structured source unless the feature provides a derived preview.
 
 ### 4. Validation & Error Matrix
 - Output does not start with `---` when YAML is required -> validation error.
@@ -161,23 +163,28 @@ Feature code depends on `LlmInvocationService` / `LlmClient`; only `core/llm/dat
 - Required YAML field missing or unknown field present where the parser has a whitelist -> validation error.
 - YAML enum/list type does not match the parser contract -> validation error.
 - Markdown body missing the required H1, such as `# Chunk Sketch`, `# Voice Profile`, or `# Plot Writing Guide` -> validation error.
-- Model wraps the document in a Markdown code fence -> strip only when the owning pipeline has an explicit cleanup step, then validate the resulting `YAML+MD`.
-- First model output violates the contract but contains recoverable draft content -> run one constrained repair call, then validate the repaired `YAML+MD`; if repair fails, surface the original validation context plus repair error.
+- Markdown-only artifact is configured as a structured domain input -> validation/design error; add YAML schema or keep it as a non-authoritative report.
+- Model wraps the document in a Markdown code fence -> strip only when the owning pipeline has an explicit cleanup step, then validate the resulting declared shape.
+- First model output violates the contract but contains recoverable draft content -> run one constrained repair call, then validate the repaired document; if repair fails, surface the original validation context plus repair error.
 
 ### 5. Good/Base/Bad Cases
 - Good: Plot sketch prompt asks for YAML front matter plus `# Chunk Sketch`, then `PlotChunkSketchDocumentParser` validates fields before converting to `PlotChunkSketch`.
 - Base: Style Voice Profile and Plot Story Engine are saved as editable `YAML+MD` documents after parser/normalizer validation.
-- Bad: Change a reusable artifact prompt to JSON-only and bypass the existing Markdown detail/editing surfaces.
+- Base: A chapter draft prompt returns Markdown-only because manuscript prose is the artifact and there are no machine-required structured fields.
+- Good: A Novel Workshop continuity extraction prompt returns YAML-only or YAML+MD with `entities`, `relations`, `canonical_events`, and `facts`, then a strict parser converts those fields into repository input objects.
+- Bad: Ask the model for a structured domain proposal in Markdown headings only, then write missing sections as empty strings.
+- Bad: Change a saved reusable artifact prompt to JSON-only and bypass the existing document editing surfaces.
 
 ### 6. Tests Required
-- Parser tests for valid `YAML+MD`, missing fields, extra fields, invalid enum/list values, missing body H1, and code-fence cleanup when supported.
+- Parser tests for each declared shape: valid YAML-only/YAML+MD/Markdown-only, missing fields, extra fields, invalid enum/list values, missing body H1 when required, and code-fence cleanup when supported.
 - Pipeline tests confirming Plot sketches still become structured inputs for skeleton/report/story-engine generation.
+- Pipeline tests confirming Novel Workshop structured YAML artifacts become domain inputs without writing malformed or partial records.
 - Pipeline tests for any repair pass, including the malformed input, repaired output, and prompt trace label.
-- UI/widget tests should keep validating that saved artifacts are shown as `YAML+MD` where the page exposes source editing or validation state.
-- UI/widget tests should validate that preview mode strips YAML front matter and renders only the artifact body.
+- UI/widget tests should keep validating that saved artifacts are shown in their declared source format where the page exposes source editing or validation state.
+- UI/widget tests should validate that YAML+MD preview mode strips YAML front matter and renders only the artifact body.
 
 ### 7. Wrong vs Correct
 #### Wrong
 Ask the model to return JSON for a saved analysis artifact and store that JSON directly in the profile markdown field.
 #### Correct
-Ask the model to return `YAML front matter + Markdown body`, validate the contract, and only then derive structured objects for internal pipeline steps.
+Ask the model to return YAML-only, Markdown-only, or YAML+MD according to the artifact's declared contract. If the artifact feeds domain models, validate YAML fields first and only then derive structured objects for repository writes.

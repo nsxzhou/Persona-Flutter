@@ -32,7 +32,7 @@ const storyEngineSectionHeaders = [
 const _sharedAnalysisRules = '''
 你必须遵守以下规则：
 1. 只分析上传样本中有证据支撑的内容，不得编造不存在的事件链、人物关系、道德转折或推进机制。
-2. 输出必须是 Markdown；若当前步骤要求 YAML front matter，YAML 后的正文也必须是 Markdown。
+2. 只输出当前步骤要求的文档；若当前步骤要求 YAML front matter，YAML 后的正文也必须是 Markdown。
 3. 如果证据不足，必须在对应章节明确写出“当前样本中证据有限”。
 4. 区分叙事出现顺序与可推断的真实时序；若无法确定，必须明确标注“时序不确定”。
 5. 标题层级、章节顺序必须严格遵守要求，不要缺节，不要重排。

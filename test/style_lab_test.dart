@@ -174,6 +174,8 @@ void main() {
     expect(chunkPrompt, contains('has_speaker_labels'));
     expect(mergePrompt, contains('多说话人差异不抹平'));
     expect(reportPrompt, contains('是否多说话人'));
+    expect(prompt, contains('只输出当前步骤要求的文档'));
+    expect(prompt, isNot(contains('只输出 Markdown，不要输出解释前言')));
     expect(prompt, contains('YAML front matter'));
     expect(prompt, contains('voice_summary'));
     for (final section in styleAnalysisSections) {

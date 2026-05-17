@@ -155,6 +155,8 @@ void main() {
       plotName: '宗门夺位',
     );
 
+    expect(skeletonPrompt, contains('只输出当前步骤要求的文档'));
+    expect(storyPrompt, contains('只输出当前步骤要求的文档'));
     expect(sketchPrompt, contains('YAML front matter'));
     expect(sketchPrompt, contains('characters_present'));
     expect(sketchPrompt, contains('# Chunk Sketch'));

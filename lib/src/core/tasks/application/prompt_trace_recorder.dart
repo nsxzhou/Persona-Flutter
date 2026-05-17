@@ -28,12 +28,16 @@ class PromptTraceRecorder {
   final String? Function() stageLabel;
 
   final List<PromptTraceCall> _calls = [];
+  var _initialized = false;
+  String? _existingTraceMarkdown;
+  var _callIndexOffset = 0;
 
   LlmPromptTraceConfig config({required String label}) {
     return LlmPromptTraceConfig(label: label, onComplete: record);
   }
 
   Future<void> record(LlmPromptTraceEvent event) async {
+    await _ensureInitialized();
     final completedAt = event.completedAt;
     final sanitizedMessages = event.messages
         .map(
@@ -50,7 +54,7 @@ class PromptTraceRecorder {
 
     _calls.add(
       PromptTraceCall(
-        index: _calls.length + 1,
+        index: _callIndexOffset + _calls.length + 1,
         stage: stageLabel(),
         label: event.label,
         modelName: event.modelName,
@@ -68,17 +72,46 @@ class PromptTraceRecorder {
     );
 
     try {
+      final traceMarkdown = _existingTraceMarkdown == null
+          ? renderPromptTraceMarkdown(
+              workflowTaskId: workflowTaskId,
+              workflowKind: workflowKind,
+              runId: runId,
+              providerId: providerId,
+              modelName: modelName,
+              calls: _calls,
+            )
+          : appendPromptTraceMarkdown(
+              existingTraceMarkdown: _existingTraceMarkdown!,
+              workflowTaskId: workflowTaskId,
+              workflowKind: workflowKind,
+              runId: runId,
+              providerId: providerId,
+              modelName: modelName,
+              calls: _calls,
+            );
       await repository.upsertPromptTrace(
         workflowTaskId: workflowTaskId,
-        traceMarkdown: renderPromptTraceMarkdown(
-          workflowTaskId: workflowTaskId,
-          workflowKind: workflowKind,
-          runId: runId,
-          providerId: providerId,
-          modelName: modelName,
-          calls: _calls,
-        ),
+        traceMarkdown: traceMarkdown,
       );
+    } on Object {
+      // Prompt traces are audit artifacts; tracing must not fail the workflow.
+    }
+  }
+
+  Future<void> _ensureInitialized() async {
+    if (_initialized) return;
+    _initialized = true;
+    try {
+      final existing = await repository.watchPromptTrace(workflowTaskId).first;
+      final markdown = existing?.traceMarkdown;
+      if (markdown == null ||
+          !markdown.contains('format: $promptTraceFormat') ||
+          !_hasCallSections(markdown)) {
+        return;
+      }
+      _existingTraceMarkdown = markdown;
+      _callIndexOffset = _existingCallCount(markdown);
     } on Object {
       // Prompt traces are audit artifacts; tracing must not fail the workflow.
     }
@@ -149,6 +182,85 @@ String buildPromptTraceOutputExcerpt(String output) {
   return '$head\n\n...[omitted $omitted chars]...\n\n$tail';
 }
 
+String appendPromptTraceMarkdown({
+  required String existingTraceMarkdown,
+  required String workflowTaskId,
+  required String workflowKind,
+  required String runId,
+  required String providerId,
+  required String modelName,
+  required List<PromptTraceCall> calls,
+}) {
+  if (calls.isEmpty || !_hasCallSections(existingTraceMarkdown)) {
+    return renderPromptTraceMarkdown(
+      workflowTaskId: workflowTaskId,
+      workflowKind: workflowKind,
+      runId: runId,
+      providerId: providerId,
+      modelName: modelName,
+      calls: calls,
+    );
+  }
+
+  final existingCallCount = _existingCallCount(existingTraceMarkdown);
+  final existingFailedCalls = _existingTraceInt(
+    existingTraceMarkdown,
+    'failed_calls',
+  );
+  final existingInputChars = _existingTraceInt(
+    existingTraceMarkdown,
+    'total_input_chars',
+  );
+  final totalInputChars =
+      existingInputChars +
+      calls.fold(0, (sum, call) => sum + call.totalInputChars);
+  final failedCalls =
+      existingFailedCalls + calls.where((call) => call.failed).length;
+  final updatedAt = DateTime.now().toUtc().toIso8601String();
+  final summaryRows = [
+    ..._extractCallSummaryRows(existingTraceMarkdown),
+    ...calls.map(_renderSummaryRow),
+  ];
+  final existingCallSections = _extractCallSections(existingTraceMarkdown);
+  final appendedCallSections = calls.expand(_renderCall).join('\n').trimRight();
+  final lines = <String>[
+    '---',
+    'format: $promptTraceFormat',
+    'version: $promptTraceVersion',
+    'workflow_task_id: ${_yamlQuote(workflowTaskId)}',
+    'workflow_kind: ${_yamlQuote(workflowKind)}',
+    'run_id: ${_yamlQuote(runId)}',
+    'provider_id: ${_yamlQuote(providerId)}',
+    'model_name: ${_yamlQuote(modelName)}',
+    'calls: ${existingCallCount + calls.length}',
+    'failed_calls: $failedCalls',
+    'total_input_chars: $totalInputChars',
+    'updated_at: ${_yamlQuote(updatedAt)}',
+    '---',
+    '',
+    '# Prompt Trace',
+    '',
+    '| Field | Value |',
+    '| --- | --- |',
+    '| Workflow task ID | `${_escapeTable(workflowTaskId)}` |',
+    '| Workflow kind | `${_escapeTable(workflowKind)}` |',
+    '| Run ID | `${_escapeTable(runId)}` |',
+    '| Calls | ${existingCallCount + calls.length} |',
+    '| Failed calls | $failedCalls |',
+    '| Total input chars | $totalInputChars |',
+    '',
+    '## Call summary',
+    '',
+    '| # | Stage | Label | Model | Temperature | Input chars | Output chars | Failed | Error |',
+    '| --- | --- | --- | --- | ---: | ---: | ---: | --- | --- |',
+    ...summaryRows,
+    '',
+    existingCallSections,
+    if (appendedCallSections.isNotEmpty) appendedCallSections,
+  ];
+  return '${lines.join('\n').trimRight()}\n';
+}
+
 String renderPromptTraceMarkdown({
   required String workflowTaskId,
   required String workflowKind,
@@ -203,18 +315,7 @@ String renderPromptTraceMarkdown({
     '| --- | --- | --- | --- | ---: | ---: | ---: | --- | --- |',
   ]);
   for (final call in calls) {
-    lines.add(
-      '| '
-      '${call.index} | '
-      '${_escapeTable(call.stage ?? '-')} | '
-      '${_escapeTable(call.label)} | '
-      '${_escapeTable(call.modelName)} | '
-      '${call.temperature} | '
-      '${call.totalInputChars} | '
-      '${call.outputCharCount ?? '-'} | '
-      '${call.failed ? 'yes' : 'no'} | '
-      '${_escapeTable(call.errorSummary ?? '-')} |',
-    );
+    lines.add(_renderSummaryRow(call));
   }
   lines.add('');
 
@@ -273,6 +374,19 @@ List<String> _renderCall(PromptTraceCall call) {
   return lines;
 }
 
+String _renderSummaryRow(PromptTraceCall call) {
+  return '| '
+      '${call.index} | '
+      '${_escapeTable(call.stage ?? '-')} | '
+      '${_escapeTable(call.label)} | '
+      '${_escapeTable(call.modelName)} | '
+      '${call.temperature} | '
+      '${call.totalInputChars} | '
+      '${call.outputCharCount ?? '-'} | '
+      '${call.failed ? 'yes' : 'no'} | '
+      '${_escapeTable(call.errorSummary ?? '-')} |';
+}
+
 String _roleLabel(LlmMessageRole role) {
   return switch (role) {
     LlmMessageRole.system => 'System',
@@ -299,4 +413,57 @@ String _yamlQuote(String value) {
 
 String _escapeTable(String value) {
   return value.replaceAll('|', r'\|').replaceAll('\n', '<br>');
+}
+
+bool _hasCallSections(String markdown) {
+  return RegExp(r'^## Call \d+ - ', multiLine: true).hasMatch(markdown);
+}
+
+int _existingCallCount(String markdown) {
+  final fromFrontMatter = _existingTraceInt(markdown, 'calls');
+  if (fromFrontMatter > 0) return fromFrontMatter;
+  return RegExp(
+    r'^## Call \d+ - ',
+    multiLine: true,
+  ).allMatches(markdown).length;
+}
+
+int _existingTraceInt(String markdown, String field) {
+  final match = RegExp(
+    '^$field:\\s*(\\d+)',
+    multiLine: true,
+  ).firstMatch(markdown);
+  if (match == null) return 0;
+  return int.tryParse(match.group(1) ?? '') ?? 0;
+}
+
+List<String> _extractCallSummaryRows(String markdown) {
+  final lines = markdown.split('\n');
+  final summaryIndex = lines.indexOf('## Call summary');
+  if (summaryIndex < 0) return const [];
+  final rows = <String>[];
+  var inRows = false;
+  for (final line in lines.skip(summaryIndex + 1)) {
+    if (line.trim().isEmpty) {
+      if (inRows) break;
+      continue;
+    }
+    if (!line.startsWith('|')) continue;
+    if (line.contains('---')) {
+      inRows = true;
+      continue;
+    }
+    if (!inRows || line.contains('Stage') && line.contains('Label')) continue;
+    rows.add(line);
+  }
+  return rows;
+}
+
+String _extractCallSections(String markdown) {
+  final match = RegExp(
+    r'^## Call \d+ - ',
+    multiLine: true,
+  ).firstMatch(markdown);
+  if (match == null) return '';
+  return markdown.substring(match.start).trimRight();
 }
