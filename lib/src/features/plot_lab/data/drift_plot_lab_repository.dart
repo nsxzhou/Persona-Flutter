@@ -456,18 +456,19 @@ class DriftPlotLabRepository implements PlotLabRepository {
     if (existing == null) {
       return;
     }
+    final run = await findRun(existing.sourceRunId);
     await _database.transaction(() async {
-      await (_database.update(
-        _database.plotAnalysisRunRecords,
-      )..where((run) => run.profileId.equals(id))).write(
-        PlotAnalysisRunRecordsCompanion(
-          profileId: const Value(null),
-          updatedAt: Value(DateTime.now()),
-        ),
-      );
       await (_database.delete(
         _database.plotProfileRecords,
       )..where((profile) => profile.id.equals(id))).go();
+      await (_database.delete(
+        _database.plotAnalysisRunRecords,
+      )..where((row) => row.id.equals(existing.sourceRunId))).go();
+      if (run != null) {
+        await (_database.delete(
+          _database.workflowTaskRecords,
+        )..where((task) => task.id.equals(run.workflowTaskId))).go();
+      }
     });
   }
 

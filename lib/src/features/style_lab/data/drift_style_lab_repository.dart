@@ -443,18 +443,19 @@ class DriftStyleLabRepository implements StyleLabRepository {
     if (existing == null) {
       return;
     }
+    final run = await findRun(existing.sourceRunId);
     await _database.transaction(() async {
-      await (_database.update(
-        _database.styleAnalysisRunRecords,
-      )..where((run) => run.profileId.equals(id))).write(
-        StyleAnalysisRunRecordsCompanion(
-          profileId: const Value(null),
-          updatedAt: Value(DateTime.now()),
-        ),
-      );
       await (_database.delete(
         _database.styleProfileRecords,
       )..where((profile) => profile.id.equals(id))).go();
+      await (_database.delete(
+        _database.styleAnalysisRunRecords,
+      )..where((row) => row.id.equals(existing.sourceRunId))).go();
+      if (run != null) {
+        await (_database.delete(
+          _database.workflowTaskRecords,
+        )..where((task) => task.id.equals(run.workflowTaskId))).go();
+      }
     });
   }
 

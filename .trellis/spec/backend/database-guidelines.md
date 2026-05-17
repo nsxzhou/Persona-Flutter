@@ -141,3 +141,43 @@ Store API Key only in SQLite, mask it in UI, and sanitize any test failure messa
 Render all projects in one list and let the UI infer hidden/archived behavior ad hoc.
 #### Correct
 Expose status-filtered streams through `ProjectRepository.watchProjects(ProjectStatus status)` and bind the Projects view to the selected status.
+
+## Scenario: Lab profile deletion cascade
+
+### 1. Scope / Trigger
+- Trigger: Plot Lab or Style Lab deletes a saved Profile that was created from an analysis run.
+- This is a persistence contract because the Profile list combines profile rows and draft-like run rows.
+
+### 2. Signatures
+- `PlotLabRepository.deleteProfile(String id)`
+- `StyleLabRepository.deleteProfile(String id)`
+- Affected records:
+  - Profile row: `plotProfileRecords` / `styleProfileRecords`
+  - Source run row: `plotAnalysisRunRecords` / `styleAnalysisRunRecords`
+  - Source workflow task row: `workflowTaskRecords`
+
+### 3. Contracts
+- Deleting a saved Profile is a hard delete of the Profile and its source analysis run.
+- The source run's workflow task must also be deleted in the same transaction.
+- Do not clear `run.profileId` to restore the source run as a draft. The library builders treat succeeded runs with `profileId == null` and generated markdown as draft assets, so clearing the field makes a deleted Profile reappear as a draft.
+- Deleting an unknown Profile id is a no-op.
+
+### 4. Validation & Error Matrix
+- Missing Profile row -> return without error.
+- Missing source run row -> delete the Profile row and skip workflow task deletion.
+- Transaction failure -> let the repository exception propagate through the Riverpod command provider.
+
+### 5. Good/Base/Bad Cases
+- Good: delete saved Profile, source run, and workflow task together so the asset disappears from library streams after one action.
+- Base: deleting a standalone draft or task still uses `deleteRun(id)`.
+- Bad: delete Profile and update the source run to `profileId = null`, because that resurrects the source run as a draft.
+
+### 6. Tests Required
+- Repository tests for Plot Lab and Style Lab must assert `findProfile(id) == null`, `findRun(sourceRunId) == null`, and workflow task count decreases.
+- Widget tests may cover the list disappearance when deletion UI behavior changes.
+
+### 7. Wrong vs Correct
+#### Wrong
+Clear `profileId` on the source run during Profile deletion.
+#### Correct
+Delete the Profile row, source run row, and source workflow task row in one transaction.

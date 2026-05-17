@@ -109,10 +109,12 @@ void main() {
 
       await repository.deleteProfile(profile.id);
       expect(await repository.findProfile(profile.id), isNull);
-      expect((await repository.findRun(run.id))!.profileId, isNull);
-
-      await repository.deleteRun(run.id);
       expect(await repository.findRun(run.id), isNull);
+      expect(
+        await DriftWorkflowTaskRepository(database).watchRecentTasks().first,
+        hasLength(1),
+      );
+
       await repository.deleteRun(rerun.id);
       expect(
         await DriftWorkflowTaskRepository(database).watchRecentTasks().first,
