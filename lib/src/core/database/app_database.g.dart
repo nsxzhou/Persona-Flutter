@@ -1584,6 +1584,379 @@ class ProviderConfigRecordsCompanion
   }
 }
 
+class $ProviderModelRecordsTable extends ProviderModelRecords
+    with TableInfo<$ProviderModelRecordsTable, ProviderModelRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ProviderModelRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _providerIdMeta = const VerificationMeta(
+    'providerId',
+  );
+  @override
+  late final GeneratedColumn<String> providerId = GeneratedColumn<String>(
+    'provider_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES provider_config_records (id)',
+    ),
+  );
+  static const VerificationMeta _modelNameMeta = const VerificationMeta(
+    'modelName',
+  );
+  @override
+  late final GeneratedColumn<String> modelName = GeneratedColumn<String>(
+    'model_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    providerId,
+    modelName,
+    sortOrder,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'provider_model_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ProviderModelRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('provider_id')) {
+      context.handle(
+        _providerIdMeta,
+        providerId.isAcceptableOrUnknown(data['provider_id']!, _providerIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_providerIdMeta);
+    }
+    if (data.containsKey('model_name')) {
+      context.handle(
+        _modelNameMeta,
+        modelName.isAcceptableOrUnknown(data['model_name']!, _modelNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_modelNameMeta);
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {providerId, modelName};
+  @override
+  ProviderModelRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ProviderModelRecord(
+      providerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}provider_id'],
+      )!,
+      modelName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model_name'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ProviderModelRecordsTable createAlias(String alias) {
+    return $ProviderModelRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class ProviderModelRecord extends DataClass
+    implements Insertable<ProviderModelRecord> {
+  final String providerId;
+  final String modelName;
+  final int sortOrder;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const ProviderModelRecord({
+    required this.providerId,
+    required this.modelName,
+    required this.sortOrder,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['provider_id'] = Variable<String>(providerId);
+    map['model_name'] = Variable<String>(modelName);
+    map['sort_order'] = Variable<int>(sortOrder);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  ProviderModelRecordsCompanion toCompanion(bool nullToAbsent) {
+    return ProviderModelRecordsCompanion(
+      providerId: Value(providerId),
+      modelName: Value(modelName),
+      sortOrder: Value(sortOrder),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory ProviderModelRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ProviderModelRecord(
+      providerId: serializer.fromJson<String>(json['providerId']),
+      modelName: serializer.fromJson<String>(json['modelName']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'providerId': serializer.toJson<String>(providerId),
+      'modelName': serializer.toJson<String>(modelName),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  ProviderModelRecord copyWith({
+    String? providerId,
+    String? modelName,
+    int? sortOrder,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => ProviderModelRecord(
+    providerId: providerId ?? this.providerId,
+    modelName: modelName ?? this.modelName,
+    sortOrder: sortOrder ?? this.sortOrder,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  ProviderModelRecord copyWithCompanion(ProviderModelRecordsCompanion data) {
+    return ProviderModelRecord(
+      providerId: data.providerId.present
+          ? data.providerId.value
+          : this.providerId,
+      modelName: data.modelName.present ? data.modelName.value : this.modelName,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProviderModelRecord(')
+          ..write('providerId: $providerId, ')
+          ..write('modelName: $modelName, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(providerId, modelName, sortOrder, createdAt, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ProviderModelRecord &&
+          other.providerId == this.providerId &&
+          other.modelName == this.modelName &&
+          other.sortOrder == this.sortOrder &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class ProviderModelRecordsCompanion
+    extends UpdateCompanion<ProviderModelRecord> {
+  final Value<String> providerId;
+  final Value<String> modelName;
+  final Value<int> sortOrder;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const ProviderModelRecordsCompanion({
+    this.providerId = const Value.absent(),
+    this.modelName = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ProviderModelRecordsCompanion.insert({
+    required String providerId,
+    required String modelName,
+    this.sortOrder = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : providerId = Value(providerId),
+       modelName = Value(modelName),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<ProviderModelRecord> custom({
+    Expression<String>? providerId,
+    Expression<String>? modelName,
+    Expression<int>? sortOrder,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (providerId != null) 'provider_id': providerId,
+      if (modelName != null) 'model_name': modelName,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ProviderModelRecordsCompanion copyWith({
+    Value<String>? providerId,
+    Value<String>? modelName,
+    Value<int>? sortOrder,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return ProviderModelRecordsCompanion(
+      providerId: providerId ?? this.providerId,
+      modelName: modelName ?? this.modelName,
+      sortOrder: sortOrder ?? this.sortOrder,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (providerId.present) {
+      map['provider_id'] = Variable<String>(providerId.value);
+    }
+    if (modelName.present) {
+      map['model_name'] = Variable<String>(modelName.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProviderModelRecordsCompanion(')
+          ..write('providerId: $providerId, ')
+          ..write('modelName: $modelName, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $ProjectRecordsTable extends ProjectRecords
     with TableInfo<$ProjectRecordsTable, ProjectRecord> {
   @override
@@ -4760,6 +5133,20 @@ class $PlotSampleRecordsTable extends PlotSampleRecords
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _projectIdMeta = const VerificationMeta(
+    'projectId',
+  );
+  @override
+  late final GeneratedColumn<String> projectId = GeneratedColumn<String>(
+    'project_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES project_records (id)',
+    ),
+  );
   static const VerificationMeta _sourceFilenameMeta = const VerificationMeta(
     'sourceFilename',
   );
@@ -4833,6 +5220,7 @@ class $PlotSampleRecordsTable extends PlotSampleRecords
     title,
     content,
     characterCount,
+    projectId,
     sourceFilename,
     epubBookTitle,
     epubAuthor,
@@ -4891,6 +5279,12 @@ class $PlotSampleRecordsTable extends PlotSampleRecords
       );
     } else if (isInserting) {
       context.missing(_characterCountMeta);
+    }
+    if (data.containsKey('project_id')) {
+      context.handle(
+        _projectIdMeta,
+        projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
+      );
     }
     if (data.containsKey('source_filename')) {
       context.handle(
@@ -4970,6 +5364,10 @@ class $PlotSampleRecordsTable extends PlotSampleRecords
         DriftSqlType.int,
         data['${effectivePrefix}character_count'],
       )!,
+      projectId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}project_id'],
+      ),
       sourceFilename: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}source_filename'],
@@ -5010,6 +5408,7 @@ class PlotSampleRecord extends DataClass
   final String title;
   final String content;
   final int characterCount;
+  final String? projectId;
   final String? sourceFilename;
   final String? epubBookTitle;
   final String? epubAuthor;
@@ -5022,6 +5421,7 @@ class PlotSampleRecord extends DataClass
     required this.title,
     required this.content,
     required this.characterCount,
+    this.projectId,
     this.sourceFilename,
     this.epubBookTitle,
     this.epubAuthor,
@@ -5037,6 +5437,9 @@ class PlotSampleRecord extends DataClass
     map['title'] = Variable<String>(title);
     map['content'] = Variable<String>(content);
     map['character_count'] = Variable<int>(characterCount);
+    if (!nullToAbsent || projectId != null) {
+      map['project_id'] = Variable<String>(projectId);
+    }
     if (!nullToAbsent || sourceFilename != null) {
       map['source_filename'] = Variable<String>(sourceFilename);
     }
@@ -5061,6 +5464,9 @@ class PlotSampleRecord extends DataClass
       title: Value(title),
       content: Value(content),
       characterCount: Value(characterCount),
+      projectId: projectId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(projectId),
       sourceFilename: sourceFilename == null && nullToAbsent
           ? const Value.absent()
           : Value(sourceFilename),
@@ -5089,6 +5495,7 @@ class PlotSampleRecord extends DataClass
       title: serializer.fromJson<String>(json['title']),
       content: serializer.fromJson<String>(json['content']),
       characterCount: serializer.fromJson<int>(json['characterCount']),
+      projectId: serializer.fromJson<String?>(json['projectId']),
       sourceFilename: serializer.fromJson<String?>(json['sourceFilename']),
       epubBookTitle: serializer.fromJson<String?>(json['epubBookTitle']),
       epubAuthor: serializer.fromJson<String?>(json['epubAuthor']),
@@ -5106,6 +5513,7 @@ class PlotSampleRecord extends DataClass
       'title': serializer.toJson<String>(title),
       'content': serializer.toJson<String>(content),
       'characterCount': serializer.toJson<int>(characterCount),
+      'projectId': serializer.toJson<String?>(projectId),
       'sourceFilename': serializer.toJson<String?>(sourceFilename),
       'epubBookTitle': serializer.toJson<String?>(epubBookTitle),
       'epubAuthor': serializer.toJson<String?>(epubAuthor),
@@ -5121,6 +5529,7 @@ class PlotSampleRecord extends DataClass
     String? title,
     String? content,
     int? characterCount,
+    Value<String?> projectId = const Value.absent(),
     Value<String?> sourceFilename = const Value.absent(),
     Value<String?> epubBookTitle = const Value.absent(),
     Value<String?> epubAuthor = const Value.absent(),
@@ -5133,6 +5542,7 @@ class PlotSampleRecord extends DataClass
     title: title ?? this.title,
     content: content ?? this.content,
     characterCount: characterCount ?? this.characterCount,
+    projectId: projectId.present ? projectId.value : this.projectId,
     sourceFilename: sourceFilename.present
         ? sourceFilename.value
         : this.sourceFilename,
@@ -5157,6 +5567,7 @@ class PlotSampleRecord extends DataClass
       characterCount: data.characterCount.present
           ? data.characterCount.value
           : this.characterCount,
+      projectId: data.projectId.present ? data.projectId.value : this.projectId,
       sourceFilename: data.sourceFilename.present
           ? data.sourceFilename.value
           : this.sourceFilename,
@@ -5182,6 +5593,7 @@ class PlotSampleRecord extends DataClass
           ..write('title: $title, ')
           ..write('content: $content, ')
           ..write('characterCount: $characterCount, ')
+          ..write('projectId: $projectId, ')
           ..write('sourceFilename: $sourceFilename, ')
           ..write('epubBookTitle: $epubBookTitle, ')
           ..write('epubAuthor: $epubAuthor, ')
@@ -5199,6 +5611,7 @@ class PlotSampleRecord extends DataClass
     title,
     content,
     characterCount,
+    projectId,
     sourceFilename,
     epubBookTitle,
     epubAuthor,
@@ -5215,6 +5628,7 @@ class PlotSampleRecord extends DataClass
           other.title == this.title &&
           other.content == this.content &&
           other.characterCount == this.characterCount &&
+          other.projectId == this.projectId &&
           other.sourceFilename == this.sourceFilename &&
           other.epubBookTitle == this.epubBookTitle &&
           other.epubAuthor == this.epubAuthor &&
@@ -5229,6 +5643,7 @@ class PlotSampleRecordsCompanion extends UpdateCompanion<PlotSampleRecord> {
   final Value<String> title;
   final Value<String> content;
   final Value<int> characterCount;
+  final Value<String?> projectId;
   final Value<String?> sourceFilename;
   final Value<String?> epubBookTitle;
   final Value<String?> epubAuthor;
@@ -5242,6 +5657,7 @@ class PlotSampleRecordsCompanion extends UpdateCompanion<PlotSampleRecord> {
     this.title = const Value.absent(),
     this.content = const Value.absent(),
     this.characterCount = const Value.absent(),
+    this.projectId = const Value.absent(),
     this.sourceFilename = const Value.absent(),
     this.epubBookTitle = const Value.absent(),
     this.epubAuthor = const Value.absent(),
@@ -5256,6 +5672,7 @@ class PlotSampleRecordsCompanion extends UpdateCompanion<PlotSampleRecord> {
     required String title,
     required String content,
     required int characterCount,
+    this.projectId = const Value.absent(),
     this.sourceFilename = const Value.absent(),
     this.epubBookTitle = const Value.absent(),
     this.epubAuthor = const Value.absent(),
@@ -5276,6 +5693,7 @@ class PlotSampleRecordsCompanion extends UpdateCompanion<PlotSampleRecord> {
     Expression<String>? title,
     Expression<String>? content,
     Expression<int>? characterCount,
+    Expression<String>? projectId,
     Expression<String>? sourceFilename,
     Expression<String>? epubBookTitle,
     Expression<String>? epubAuthor,
@@ -5290,6 +5708,7 @@ class PlotSampleRecordsCompanion extends UpdateCompanion<PlotSampleRecord> {
       if (title != null) 'title': title,
       if (content != null) 'content': content,
       if (characterCount != null) 'character_count': characterCount,
+      if (projectId != null) 'project_id': projectId,
       if (sourceFilename != null) 'source_filename': sourceFilename,
       if (epubBookTitle != null) 'epub_book_title': epubBookTitle,
       if (epubAuthor != null) 'epub_author': epubAuthor,
@@ -5306,6 +5725,7 @@ class PlotSampleRecordsCompanion extends UpdateCompanion<PlotSampleRecord> {
     Value<String>? title,
     Value<String>? content,
     Value<int>? characterCount,
+    Value<String?>? projectId,
     Value<String?>? sourceFilename,
     Value<String?>? epubBookTitle,
     Value<String?>? epubAuthor,
@@ -5320,6 +5740,7 @@ class PlotSampleRecordsCompanion extends UpdateCompanion<PlotSampleRecord> {
       title: title ?? this.title,
       content: content ?? this.content,
       characterCount: characterCount ?? this.characterCount,
+      projectId: projectId ?? this.projectId,
       sourceFilename: sourceFilename ?? this.sourceFilename,
       epubBookTitle: epubBookTitle ?? this.epubBookTitle,
       epubAuthor: epubAuthor ?? this.epubAuthor,
@@ -5347,6 +5768,9 @@ class PlotSampleRecordsCompanion extends UpdateCompanion<PlotSampleRecord> {
     }
     if (characterCount.present) {
       map['character_count'] = Variable<int>(characterCount.value);
+    }
+    if (projectId.present) {
+      map['project_id'] = Variable<String>(projectId.value);
     }
     if (sourceFilename.present) {
       map['source_filename'] = Variable<String>(sourceFilename.value);
@@ -5380,6 +5804,7 @@ class PlotSampleRecordsCompanion extends UpdateCompanion<PlotSampleRecord> {
           ..write('title: $title, ')
           ..write('content: $content, ')
           ..write('characterCount: $characterCount, ')
+          ..write('projectId: $projectId, ')
           ..write('sourceFilename: $sourceFilename, ')
           ..write('epubBookTitle: $epubBookTitle, ')
           ..write('epubAuthor: $epubAuthor, ')
@@ -5470,6 +5895,20 @@ class $PlotAnalysisRunRecordsTable extends PlotAnalysisRunRecords
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
+  );
+  static const VerificationMeta _projectIdMeta = const VerificationMeta(
+    'projectId',
+  );
+  @override
+  late final GeneratedColumn<String> projectId = GeneratedColumn<String>(
+    'project_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES project_records (id)',
+    ),
   );
   static const VerificationMeta _statusMeta = const VerificationMeta('status');
   @override
@@ -5629,6 +6068,7 @@ class $PlotAnalysisRunRecordsTable extends PlotAnalysisRunRecords
     providerId,
     modelName,
     plotName,
+    projectId,
     status,
     stage,
     errorMessage,
@@ -5703,6 +6143,12 @@ class $PlotAnalysisRunRecordsTable extends PlotAnalysisRunRecords
       );
     } else if (isInserting) {
       context.missing(_plotNameMeta);
+    }
+    if (data.containsKey('project_id')) {
+      context.handle(
+        _projectIdMeta,
+        projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
+      );
     }
     if (data.containsKey('status')) {
       context.handle(
@@ -5847,6 +6293,10 @@ class $PlotAnalysisRunRecordsTable extends PlotAnalysisRunRecords
         DriftSqlType.string,
         data['${effectivePrefix}plot_name'],
       )!,
+      projectId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}project_id'],
+      ),
       status: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}status'],
@@ -5920,6 +6370,7 @@ class PlotAnalysisRunRecord extends DataClass
   final String providerId;
   final String modelName;
   final String plotName;
+  final String? projectId;
   final String status;
   final String? stage;
   final String? errorMessage;
@@ -5941,6 +6392,7 @@ class PlotAnalysisRunRecord extends DataClass
     required this.providerId,
     required this.modelName,
     required this.plotName,
+    this.projectId,
     required this.status,
     this.stage,
     this.errorMessage,
@@ -5965,6 +6417,9 @@ class PlotAnalysisRunRecord extends DataClass
     map['provider_id'] = Variable<String>(providerId);
     map['model_name'] = Variable<String>(modelName);
     map['plot_name'] = Variable<String>(plotName);
+    if (!nullToAbsent || projectId != null) {
+      map['project_id'] = Variable<String>(projectId);
+    }
     map['status'] = Variable<String>(status);
     if (!nullToAbsent || stage != null) {
       map['stage'] = Variable<String>(stage);
@@ -6008,6 +6463,9 @@ class PlotAnalysisRunRecord extends DataClass
       providerId: Value(providerId),
       modelName: Value(modelName),
       plotName: Value(plotName),
+      projectId: projectId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(projectId),
       status: Value(status),
       stage: stage == null && nullToAbsent
           ? const Value.absent()
@@ -6053,6 +6511,7 @@ class PlotAnalysisRunRecord extends DataClass
       providerId: serializer.fromJson<String>(json['providerId']),
       modelName: serializer.fromJson<String>(json['modelName']),
       plotName: serializer.fromJson<String>(json['plotName']),
+      projectId: serializer.fromJson<String?>(json['projectId']),
       status: serializer.fromJson<String>(json['status']),
       stage: serializer.fromJson<String?>(json['stage']),
       errorMessage: serializer.fromJson<String?>(json['errorMessage']),
@@ -6085,6 +6544,7 @@ class PlotAnalysisRunRecord extends DataClass
       'providerId': serializer.toJson<String>(providerId),
       'modelName': serializer.toJson<String>(modelName),
       'plotName': serializer.toJson<String>(plotName),
+      'projectId': serializer.toJson<String?>(projectId),
       'status': serializer.toJson<String>(status),
       'stage': serializer.toJson<String?>(stage),
       'errorMessage': serializer.toJson<String?>(errorMessage),
@@ -6111,6 +6571,7 @@ class PlotAnalysisRunRecord extends DataClass
     String? providerId,
     String? modelName,
     String? plotName,
+    Value<String?> projectId = const Value.absent(),
     String? status,
     Value<String?> stage = const Value.absent(),
     Value<String?> errorMessage = const Value.absent(),
@@ -6132,6 +6593,7 @@ class PlotAnalysisRunRecord extends DataClass
     providerId: providerId ?? this.providerId,
     modelName: modelName ?? this.modelName,
     plotName: plotName ?? this.plotName,
+    projectId: projectId.present ? projectId.value : this.projectId,
     status: status ?? this.status,
     stage: stage.present ? stage.value : this.stage,
     errorMessage: errorMessage.present ? errorMessage.value : this.errorMessage,
@@ -6167,6 +6629,7 @@ class PlotAnalysisRunRecord extends DataClass
           : this.providerId,
       modelName: data.modelName.present ? data.modelName.value : this.modelName,
       plotName: data.plotName.present ? data.plotName.value : this.plotName,
+      projectId: data.projectId.present ? data.projectId.value : this.projectId,
       status: data.status.present ? data.status.value : this.status,
       stage: data.stage.present ? data.stage.value : this.stage,
       errorMessage: data.errorMessage.present
@@ -6207,6 +6670,7 @@ class PlotAnalysisRunRecord extends DataClass
           ..write('providerId: $providerId, ')
           ..write('modelName: $modelName, ')
           ..write('plotName: $plotName, ')
+          ..write('projectId: $projectId, ')
           ..write('status: $status, ')
           ..write('stage: $stage, ')
           ..write('errorMessage: $errorMessage, ')
@@ -6226,13 +6690,14 @@ class PlotAnalysisRunRecord extends DataClass
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     workflowTaskId,
     sampleId,
     providerId,
     modelName,
     plotName,
+    projectId,
     status,
     stage,
     errorMessage,
@@ -6247,7 +6712,7 @@ class PlotAnalysisRunRecord extends DataClass
     updatedAt,
     startedAt,
     completedAt,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -6258,6 +6723,7 @@ class PlotAnalysisRunRecord extends DataClass
           other.providerId == this.providerId &&
           other.modelName == this.modelName &&
           other.plotName == this.plotName &&
+          other.projectId == this.projectId &&
           other.status == this.status &&
           other.stage == this.stage &&
           other.errorMessage == this.errorMessage &&
@@ -6282,6 +6748,7 @@ class PlotAnalysisRunRecordsCompanion
   final Value<String> providerId;
   final Value<String> modelName;
   final Value<String> plotName;
+  final Value<String?> projectId;
   final Value<String> status;
   final Value<String?> stage;
   final Value<String?> errorMessage;
@@ -6304,6 +6771,7 @@ class PlotAnalysisRunRecordsCompanion
     this.providerId = const Value.absent(),
     this.modelName = const Value.absent(),
     this.plotName = const Value.absent(),
+    this.projectId = const Value.absent(),
     this.status = const Value.absent(),
     this.stage = const Value.absent(),
     this.errorMessage = const Value.absent(),
@@ -6327,6 +6795,7 @@ class PlotAnalysisRunRecordsCompanion
     required String providerId,
     required String modelName,
     required String plotName,
+    this.projectId = const Value.absent(),
     required String status,
     this.stage = const Value.absent(),
     this.errorMessage = const Value.absent(),
@@ -6359,6 +6828,7 @@ class PlotAnalysisRunRecordsCompanion
     Expression<String>? providerId,
     Expression<String>? modelName,
     Expression<String>? plotName,
+    Expression<String>? projectId,
     Expression<String>? status,
     Expression<String>? stage,
     Expression<String>? errorMessage,
@@ -6382,6 +6852,7 @@ class PlotAnalysisRunRecordsCompanion
       if (providerId != null) 'provider_id': providerId,
       if (modelName != null) 'model_name': modelName,
       if (plotName != null) 'plot_name': plotName,
+      if (projectId != null) 'project_id': projectId,
       if (status != null) 'status': status,
       if (stage != null) 'stage': stage,
       if (errorMessage != null) 'error_message': errorMessage,
@@ -6410,6 +6881,7 @@ class PlotAnalysisRunRecordsCompanion
     Value<String>? providerId,
     Value<String>? modelName,
     Value<String>? plotName,
+    Value<String?>? projectId,
     Value<String>? status,
     Value<String?>? stage,
     Value<String?>? errorMessage,
@@ -6433,6 +6905,7 @@ class PlotAnalysisRunRecordsCompanion
       providerId: providerId ?? this.providerId,
       modelName: modelName ?? this.modelName,
       plotName: plotName ?? this.plotName,
+      projectId: projectId ?? this.projectId,
       status: status ?? this.status,
       stage: stage ?? this.stage,
       errorMessage: errorMessage ?? this.errorMessage,
@@ -6472,6 +6945,9 @@ class PlotAnalysisRunRecordsCompanion
     }
     if (plotName.present) {
       map['plot_name'] = Variable<String>(plotName.value);
+    }
+    if (projectId.present) {
+      map['project_id'] = Variable<String>(projectId.value);
     }
     if (status.present) {
       map['status'] = Variable<String>(status.value);
@@ -6536,6 +7012,7 @@ class PlotAnalysisRunRecordsCompanion
           ..write('providerId: $providerId, ')
           ..write('modelName: $modelName, ')
           ..write('plotName: $plotName, ')
+          ..write('projectId: $projectId, ')
           ..write('status: $status, ')
           ..write('stage: $stage, ')
           ..write('errorMessage: $errorMessage, ')
@@ -6654,6 +7131,20 @@ class $PlotProfileRecordsTable extends PlotProfileRecords
         type: DriftSqlType.string,
         requiredDuringInsert: true,
       );
+  static const VerificationMeta _projectIdMeta = const VerificationMeta(
+    'projectId',
+  );
+  @override
+  late final GeneratedColumn<String> projectId = GeneratedColumn<String>(
+    'project_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES project_records (id)',
+    ),
+  );
   static const VerificationMeta _sourceSampleIdMeta = const VerificationMeta(
     'sourceSampleId',
   );
@@ -6711,6 +7202,7 @@ class $PlotProfileRecordsTable extends PlotProfileRecords
     storyEngineMarkdown,
     analysisReportMarkdown,
     plotSkeletonMarkdown,
+    projectId,
     sourceSampleId,
     sourceTitle,
     createdAt,
@@ -6801,6 +7293,12 @@ class $PlotProfileRecordsTable extends PlotProfileRecords
     } else if (isInserting) {
       context.missing(_plotSkeletonMarkdownMeta);
     }
+    if (data.containsKey('project_id')) {
+      context.handle(
+        _projectIdMeta,
+        projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
+      );
+    }
     if (data.containsKey('source_sample_id')) {
       context.handle(
         _sourceSampleIdMeta,
@@ -6876,6 +7374,10 @@ class $PlotProfileRecordsTable extends PlotProfileRecords
         DriftSqlType.string,
         data['${effectivePrefix}plot_skeleton_markdown'],
       )!,
+      projectId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}project_id'],
+      ),
       sourceSampleId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}source_sample_id'],
@@ -6911,6 +7413,7 @@ class PlotProfileRecord extends DataClass
   final String storyEngineMarkdown;
   final String analysisReportMarkdown;
   final String plotSkeletonMarkdown;
+  final String? projectId;
   final String? sourceSampleId;
   final String? sourceTitle;
   final DateTime createdAt;
@@ -6924,6 +7427,7 @@ class PlotProfileRecord extends DataClass
     required this.storyEngineMarkdown,
     required this.analysisReportMarkdown,
     required this.plotSkeletonMarkdown,
+    this.projectId,
     this.sourceSampleId,
     this.sourceTitle,
     required this.createdAt,
@@ -6940,6 +7444,9 @@ class PlotProfileRecord extends DataClass
     map['story_engine_markdown'] = Variable<String>(storyEngineMarkdown);
     map['analysis_report_markdown'] = Variable<String>(analysisReportMarkdown);
     map['plot_skeleton_markdown'] = Variable<String>(plotSkeletonMarkdown);
+    if (!nullToAbsent || projectId != null) {
+      map['project_id'] = Variable<String>(projectId);
+    }
     if (!nullToAbsent || sourceSampleId != null) {
       map['source_sample_id'] = Variable<String>(sourceSampleId);
     }
@@ -6961,6 +7468,9 @@ class PlotProfileRecord extends DataClass
       storyEngineMarkdown: Value(storyEngineMarkdown),
       analysisReportMarkdown: Value(analysisReportMarkdown),
       plotSkeletonMarkdown: Value(plotSkeletonMarkdown),
+      projectId: projectId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(projectId),
       sourceSampleId: sourceSampleId == null && nullToAbsent
           ? const Value.absent()
           : Value(sourceSampleId),
@@ -6992,6 +7502,7 @@ class PlotProfileRecord extends DataClass
       plotSkeletonMarkdown: serializer.fromJson<String>(
         json['plotSkeletonMarkdown'],
       ),
+      projectId: serializer.fromJson<String?>(json['projectId']),
       sourceSampleId: serializer.fromJson<String?>(json['sourceSampleId']),
       sourceTitle: serializer.fromJson<String?>(json['sourceTitle']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -7012,6 +7523,7 @@ class PlotProfileRecord extends DataClass
         analysisReportMarkdown,
       ),
       'plotSkeletonMarkdown': serializer.toJson<String>(plotSkeletonMarkdown),
+      'projectId': serializer.toJson<String?>(projectId),
       'sourceSampleId': serializer.toJson<String?>(sourceSampleId),
       'sourceTitle': serializer.toJson<String?>(sourceTitle),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -7028,6 +7540,7 @@ class PlotProfileRecord extends DataClass
     String? storyEngineMarkdown,
     String? analysisReportMarkdown,
     String? plotSkeletonMarkdown,
+    Value<String?> projectId = const Value.absent(),
     Value<String?> sourceSampleId = const Value.absent(),
     Value<String?> sourceTitle = const Value.absent(),
     DateTime? createdAt,
@@ -7042,6 +7555,7 @@ class PlotProfileRecord extends DataClass
     analysisReportMarkdown:
         analysisReportMarkdown ?? this.analysisReportMarkdown,
     plotSkeletonMarkdown: plotSkeletonMarkdown ?? this.plotSkeletonMarkdown,
+    projectId: projectId.present ? projectId.value : this.projectId,
     sourceSampleId: sourceSampleId.present
         ? sourceSampleId.value
         : this.sourceSampleId,
@@ -7069,6 +7583,7 @@ class PlotProfileRecord extends DataClass
       plotSkeletonMarkdown: data.plotSkeletonMarkdown.present
           ? data.plotSkeletonMarkdown.value
           : this.plotSkeletonMarkdown,
+      projectId: data.projectId.present ? data.projectId.value : this.projectId,
       sourceSampleId: data.sourceSampleId.present
           ? data.sourceSampleId.value
           : this.sourceSampleId,
@@ -7091,6 +7606,7 @@ class PlotProfileRecord extends DataClass
           ..write('storyEngineMarkdown: $storyEngineMarkdown, ')
           ..write('analysisReportMarkdown: $analysisReportMarkdown, ')
           ..write('plotSkeletonMarkdown: $plotSkeletonMarkdown, ')
+          ..write('projectId: $projectId, ')
           ..write('sourceSampleId: $sourceSampleId, ')
           ..write('sourceTitle: $sourceTitle, ')
           ..write('createdAt: $createdAt, ')
@@ -7109,6 +7625,7 @@ class PlotProfileRecord extends DataClass
     storyEngineMarkdown,
     analysisReportMarkdown,
     plotSkeletonMarkdown,
+    projectId,
     sourceSampleId,
     sourceTitle,
     createdAt,
@@ -7126,6 +7643,7 @@ class PlotProfileRecord extends DataClass
           other.storyEngineMarkdown == this.storyEngineMarkdown &&
           other.analysisReportMarkdown == this.analysisReportMarkdown &&
           other.plotSkeletonMarkdown == this.plotSkeletonMarkdown &&
+          other.projectId == this.projectId &&
           other.sourceSampleId == this.sourceSampleId &&
           other.sourceTitle == this.sourceTitle &&
           other.createdAt == this.createdAt &&
@@ -7141,6 +7659,7 @@ class PlotProfileRecordsCompanion extends UpdateCompanion<PlotProfileRecord> {
   final Value<String> storyEngineMarkdown;
   final Value<String> analysisReportMarkdown;
   final Value<String> plotSkeletonMarkdown;
+  final Value<String?> projectId;
   final Value<String?> sourceSampleId;
   final Value<String?> sourceTitle;
   final Value<DateTime> createdAt;
@@ -7155,6 +7674,7 @@ class PlotProfileRecordsCompanion extends UpdateCompanion<PlotProfileRecord> {
     this.storyEngineMarkdown = const Value.absent(),
     this.analysisReportMarkdown = const Value.absent(),
     this.plotSkeletonMarkdown = const Value.absent(),
+    this.projectId = const Value.absent(),
     this.sourceSampleId = const Value.absent(),
     this.sourceTitle = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -7170,6 +7690,7 @@ class PlotProfileRecordsCompanion extends UpdateCompanion<PlotProfileRecord> {
     required String storyEngineMarkdown,
     required String analysisReportMarkdown,
     required String plotSkeletonMarkdown,
+    this.projectId = const Value.absent(),
     this.sourceSampleId = const Value.absent(),
     this.sourceTitle = const Value.absent(),
     required DateTime createdAt,
@@ -7194,6 +7715,7 @@ class PlotProfileRecordsCompanion extends UpdateCompanion<PlotProfileRecord> {
     Expression<String>? storyEngineMarkdown,
     Expression<String>? analysisReportMarkdown,
     Expression<String>? plotSkeletonMarkdown,
+    Expression<String>? projectId,
     Expression<String>? sourceSampleId,
     Expression<String>? sourceTitle,
     Expression<DateTime>? createdAt,
@@ -7212,6 +7734,7 @@ class PlotProfileRecordsCompanion extends UpdateCompanion<PlotProfileRecord> {
         'analysis_report_markdown': analysisReportMarkdown,
       if (plotSkeletonMarkdown != null)
         'plot_skeleton_markdown': plotSkeletonMarkdown,
+      if (projectId != null) 'project_id': projectId,
       if (sourceSampleId != null) 'source_sample_id': sourceSampleId,
       if (sourceTitle != null) 'source_title': sourceTitle,
       if (createdAt != null) 'created_at': createdAt,
@@ -7229,6 +7752,7 @@ class PlotProfileRecordsCompanion extends UpdateCompanion<PlotProfileRecord> {
     Value<String>? storyEngineMarkdown,
     Value<String>? analysisReportMarkdown,
     Value<String>? plotSkeletonMarkdown,
+    Value<String?>? projectId,
     Value<String?>? sourceSampleId,
     Value<String?>? sourceTitle,
     Value<DateTime>? createdAt,
@@ -7245,6 +7769,7 @@ class PlotProfileRecordsCompanion extends UpdateCompanion<PlotProfileRecord> {
       analysisReportMarkdown:
           analysisReportMarkdown ?? this.analysisReportMarkdown,
       plotSkeletonMarkdown: plotSkeletonMarkdown ?? this.plotSkeletonMarkdown,
+      projectId: projectId ?? this.projectId,
       sourceSampleId: sourceSampleId ?? this.sourceSampleId,
       sourceTitle: sourceTitle ?? this.sourceTitle,
       createdAt: createdAt ?? this.createdAt,
@@ -7286,6 +7811,9 @@ class PlotProfileRecordsCompanion extends UpdateCompanion<PlotProfileRecord> {
         plotSkeletonMarkdown.value,
       );
     }
+    if (projectId.present) {
+      map['project_id'] = Variable<String>(projectId.value);
+    }
     if (sourceSampleId.present) {
       map['source_sample_id'] = Variable<String>(sourceSampleId.value);
     }
@@ -7315,6 +7843,7 @@ class PlotProfileRecordsCompanion extends UpdateCompanion<PlotProfileRecord> {
           ..write('storyEngineMarkdown: $storyEngineMarkdown, ')
           ..write('analysisReportMarkdown: $analysisReportMarkdown, ')
           ..write('plotSkeletonMarkdown: $plotSkeletonMarkdown, ')
+          ..write('projectId: $projectId, ')
           ..write('sourceSampleId: $sourceSampleId, ')
           ..write('sourceTitle: $sourceTitle, ')
           ..write('createdAt: $createdAt, ')
@@ -7334,6 +7863,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $WorkflowPromptTraceRecordsTable(this);
   late final $ProviderConfigRecordsTable providerConfigRecords =
       $ProviderConfigRecordsTable(this);
+  late final $ProviderModelRecordsTable providerModelRecords =
+      $ProviderModelRecordsTable(this);
   late final $ProjectRecordsTable projectRecords = $ProjectRecordsTable(this);
   late final $StyleSampleRecordsTable styleSampleRecords =
       $StyleSampleRecordsTable(this);
@@ -7355,6 +7886,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     workflowTaskRecords,
     workflowPromptTraceRecords,
     providerConfigRecords,
+    providerModelRecords,
     projectRecords,
     styleSampleRecords,
     styleAnalysisRunRecords,
@@ -8360,6 +8892,34 @@ final class $$ProviderConfigRecordsTableReferences
   );
 
   static MultiTypedResultKey<
+    $ProviderModelRecordsTable,
+    List<ProviderModelRecord>
+  >
+  _providerModelRecordsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.providerModelRecords,
+        aliasName: $_aliasNameGenerator(
+          db.providerConfigRecords.id,
+          db.providerModelRecords.providerId,
+        ),
+      );
+
+  $$ProviderModelRecordsTableProcessedTableManager
+  get providerModelRecordsRefs {
+    final manager = $$ProviderModelRecordsTableTableManager(
+      $_db,
+      $_db.providerModelRecords,
+    ).filter((f) => f.providerId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _providerModelRecordsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
     $StyleAnalysisRunRecordsTable,
     List<StyleAnalysisRunRecord>
   >
@@ -8535,6 +9095,31 @@ class $$ProviderConfigRecordsTableFilterComposer
     column: $table.updatedAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> providerModelRecordsRefs(
+    Expression<bool> Function($$ProviderModelRecordsTableFilterComposer f) f,
+  ) {
+    final $$ProviderModelRecordsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.providerModelRecords,
+      getReferencedColumn: (t) => t.providerId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProviderModelRecordsTableFilterComposer(
+            $db: $db,
+            $table: $db.providerModelRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 
   Expression<bool> styleAnalysisRunRecordsRefs(
     Expression<bool> Function($$StyleAnalysisRunRecordsTableFilterComposer f) f,
@@ -8764,6 +9349,32 @@ class $$ProviderConfigRecordsTableAnnotationComposer
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
+  Expression<T> providerModelRecordsRefs<T extends Object>(
+    Expression<T> Function($$ProviderModelRecordsTableAnnotationComposer a) f,
+  ) {
+    final $$ProviderModelRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.providerModelRecords,
+          getReferencedColumn: (t) => t.providerId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ProviderModelRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.providerModelRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
   Expression<T> styleAnalysisRunRecordsRefs<T extends Object>(
     Expression<T> Function($$StyleAnalysisRunRecordsTableAnnotationComposer a)
     f,
@@ -8884,6 +9495,7 @@ class $$ProviderConfigRecordsTableTableManager
           (ProviderConfigRecord, $$ProviderConfigRecordsTableReferences),
           ProviderConfigRecord,
           PrefetchHooks Function({
+            bool providerModelRecordsRefs,
             bool styleAnalysisRunRecordsRefs,
             bool styleProfileRecordsRefs,
             bool plotAnalysisRunRecordsRefs,
@@ -8982,6 +9594,7 @@ class $$ProviderConfigRecordsTableTableManager
               .toList(),
           prefetchHooksCallback:
               ({
+                providerModelRecordsRefs = false,
                 styleAnalysisRunRecordsRefs = false,
                 styleProfileRecordsRefs = false,
                 plotAnalysisRunRecordsRefs = false,
@@ -8990,6 +9603,7 @@ class $$ProviderConfigRecordsTableTableManager
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
+                    if (providerModelRecordsRefs) db.providerModelRecords,
                     if (styleAnalysisRunRecordsRefs) db.styleAnalysisRunRecords,
                     if (styleProfileRecordsRefs) db.styleProfileRecords,
                     if (plotAnalysisRunRecordsRefs) db.plotAnalysisRunRecords,
@@ -8998,6 +9612,28 @@ class $$ProviderConfigRecordsTableTableManager
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
                     return [
+                      if (providerModelRecordsRefs)
+                        await $_getPrefetchedData<
+                          ProviderConfigRecord,
+                          $ProviderConfigRecordsTable,
+                          ProviderModelRecord
+                        >(
+                          currentTable: table,
+                          referencedTable:
+                              $$ProviderConfigRecordsTableReferences
+                                  ._providerModelRecordsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ProviderConfigRecordsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).providerModelRecordsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.providerId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                       if (styleAnalysisRunRecordsRefs)
                         await $_getPrefetchedData<
                           ProviderConfigRecord,
@@ -9107,11 +9743,356 @@ typedef $$ProviderConfigRecordsTableProcessedTableManager =
       (ProviderConfigRecord, $$ProviderConfigRecordsTableReferences),
       ProviderConfigRecord,
       PrefetchHooks Function({
+        bool providerModelRecordsRefs,
         bool styleAnalysisRunRecordsRefs,
         bool styleProfileRecordsRefs,
         bool plotAnalysisRunRecordsRefs,
         bool plotProfileRecordsRefs,
       })
+    >;
+typedef $$ProviderModelRecordsTableCreateCompanionBuilder =
+    ProviderModelRecordsCompanion Function({
+      required String providerId,
+      required String modelName,
+      Value<int> sortOrder,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$ProviderModelRecordsTableUpdateCompanionBuilder =
+    ProviderModelRecordsCompanion Function({
+      Value<String> providerId,
+      Value<String> modelName,
+      Value<int> sortOrder,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+final class $$ProviderModelRecordsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $ProviderModelRecordsTable,
+          ProviderModelRecord
+        > {
+  $$ProviderModelRecordsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $ProviderConfigRecordsTable _providerIdTable(_$AppDatabase db) =>
+      db.providerConfigRecords.createAlias(
+        $_aliasNameGenerator(
+          db.providerModelRecords.providerId,
+          db.providerConfigRecords.id,
+        ),
+      );
+
+  $$ProviderConfigRecordsTableProcessedTableManager get providerId {
+    final $_column = $_itemColumn<String>('provider_id')!;
+
+    final manager = $$ProviderConfigRecordsTableTableManager(
+      $_db,
+      $_db.providerConfigRecords,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_providerIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$ProviderModelRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $ProviderModelRecordsTable> {
+  $$ProviderModelRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get modelName => $composableBuilder(
+    column: $table.modelName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ProviderConfigRecordsTableFilterComposer get providerId {
+    final $$ProviderConfigRecordsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.providerId,
+          referencedTable: $db.providerConfigRecords,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ProviderConfigRecordsTableFilterComposer(
+                $db: $db,
+                $table: $db.providerConfigRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$ProviderModelRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ProviderModelRecordsTable> {
+  $$ProviderModelRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get modelName => $composableBuilder(
+    column: $table.modelName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ProviderConfigRecordsTableOrderingComposer get providerId {
+    final $$ProviderConfigRecordsTableOrderingComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.providerId,
+          referencedTable: $db.providerConfigRecords,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ProviderConfigRecordsTableOrderingComposer(
+                $db: $db,
+                $table: $db.providerConfigRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$ProviderModelRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ProviderModelRecordsTable> {
+  $$ProviderModelRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get modelName =>
+      $composableBuilder(column: $table.modelName, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$ProviderConfigRecordsTableAnnotationComposer get providerId {
+    final $$ProviderConfigRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.providerId,
+          referencedTable: $db.providerConfigRecords,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ProviderConfigRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.providerConfigRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$ProviderModelRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ProviderModelRecordsTable,
+          ProviderModelRecord,
+          $$ProviderModelRecordsTableFilterComposer,
+          $$ProviderModelRecordsTableOrderingComposer,
+          $$ProviderModelRecordsTableAnnotationComposer,
+          $$ProviderModelRecordsTableCreateCompanionBuilder,
+          $$ProviderModelRecordsTableUpdateCompanionBuilder,
+          (ProviderModelRecord, $$ProviderModelRecordsTableReferences),
+          ProviderModelRecord,
+          PrefetchHooks Function({bool providerId})
+        > {
+  $$ProviderModelRecordsTableTableManager(
+    _$AppDatabase db,
+    $ProviderModelRecordsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ProviderModelRecordsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ProviderModelRecordsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$ProviderModelRecordsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> providerId = const Value.absent(),
+                Value<String> modelName = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ProviderModelRecordsCompanion(
+                providerId: providerId,
+                modelName: modelName,
+                sortOrder: sortOrder,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String providerId,
+                required String modelName,
+                Value<int> sortOrder = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => ProviderModelRecordsCompanion.insert(
+                providerId: providerId,
+                modelName: modelName,
+                sortOrder: sortOrder,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ProviderModelRecordsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({providerId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (providerId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.providerId,
+                                referencedTable:
+                                    $$ProviderModelRecordsTableReferences
+                                        ._providerIdTable(db),
+                                referencedColumn:
+                                    $$ProviderModelRecordsTableReferences
+                                        ._providerIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$ProviderModelRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ProviderModelRecordsTable,
+      ProviderModelRecord,
+      $$ProviderModelRecordsTableFilterComposer,
+      $$ProviderModelRecordsTableOrderingComposer,
+      $$ProviderModelRecordsTableAnnotationComposer,
+      $$ProviderModelRecordsTableCreateCompanionBuilder,
+      $$ProviderModelRecordsTableUpdateCompanionBuilder,
+      (ProviderModelRecord, $$ProviderModelRecordsTableReferences),
+      ProviderModelRecord,
+      PrefetchHooks Function({bool providerId})
     >;
 typedef $$ProjectRecordsTableCreateCompanionBuilder =
     ProjectRecordsCompanion Function({
@@ -9215,6 +10196,82 @@ final class $$ProjectRecordsTableReferences
 
     final cache = $_typedResult.readTableOrNull(
       _styleProfileRecordsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$PlotSampleRecordsTable, List<PlotSampleRecord>>
+  _plotSampleRecordsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.plotSampleRecords,
+        aliasName: $_aliasNameGenerator(
+          db.projectRecords.id,
+          db.plotSampleRecords.projectId,
+        ),
+      );
+
+  $$PlotSampleRecordsTableProcessedTableManager get plotSampleRecordsRefs {
+    final manager = $$PlotSampleRecordsTableTableManager(
+      $_db,
+      $_db.plotSampleRecords,
+    ).filter((f) => f.projectId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _plotSampleRecordsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $PlotAnalysisRunRecordsTable,
+    List<PlotAnalysisRunRecord>
+  >
+  _plotAnalysisRunRecordsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.plotAnalysisRunRecords,
+        aliasName: $_aliasNameGenerator(
+          db.projectRecords.id,
+          db.plotAnalysisRunRecords.projectId,
+        ),
+      );
+
+  $$PlotAnalysisRunRecordsTableProcessedTableManager
+  get plotAnalysisRunRecordsRefs {
+    final manager = $$PlotAnalysisRunRecordsTableTableManager(
+      $_db,
+      $_db.plotAnalysisRunRecords,
+    ).filter((f) => f.projectId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _plotAnalysisRunRecordsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$PlotProfileRecordsTable, List<PlotProfileRecord>>
+  _plotProfileRecordsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.plotProfileRecords,
+        aliasName: $_aliasNameGenerator(
+          db.projectRecords.id,
+          db.plotProfileRecords.projectId,
+        ),
+      );
+
+  $$PlotProfileRecordsTableProcessedTableManager get plotProfileRecordsRefs {
+    final manager = $$PlotProfileRecordsTableTableManager(
+      $_db,
+      $_db.plotProfileRecords,
+    ).filter((f) => f.projectId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _plotProfileRecordsRefsTable($_db),
     );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
@@ -9328,6 +10385,82 @@ class $$ProjectRecordsTableFilterComposer
           }) => $$StyleProfileRecordsTableFilterComposer(
             $db: $db,
             $table: $db.styleProfileRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> plotSampleRecordsRefs(
+    Expression<bool> Function($$PlotSampleRecordsTableFilterComposer f) f,
+  ) {
+    final $$PlotSampleRecordsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.plotSampleRecords,
+      getReferencedColumn: (t) => t.projectId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PlotSampleRecordsTableFilterComposer(
+            $db: $db,
+            $table: $db.plotSampleRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> plotAnalysisRunRecordsRefs(
+    Expression<bool> Function($$PlotAnalysisRunRecordsTableFilterComposer f) f,
+  ) {
+    final $$PlotAnalysisRunRecordsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.plotAnalysisRunRecords,
+          getReferencedColumn: (t) => t.projectId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PlotAnalysisRunRecordsTableFilterComposer(
+                $db: $db,
+                $table: $db.plotAnalysisRunRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<bool> plotProfileRecordsRefs(
+    Expression<bool> Function($$PlotProfileRecordsTableFilterComposer f) f,
+  ) {
+    final $$PlotProfileRecordsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.plotProfileRecords,
+      getReferencedColumn: (t) => t.projectId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PlotProfileRecordsTableFilterComposer(
+            $db: $db,
+            $table: $db.plotProfileRecords,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -9485,6 +10618,84 @@ class $$ProjectRecordsTableAnnotationComposer
         );
     return f(composer);
   }
+
+  Expression<T> plotSampleRecordsRefs<T extends Object>(
+    Expression<T> Function($$PlotSampleRecordsTableAnnotationComposer a) f,
+  ) {
+    final $$PlotSampleRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.plotSampleRecords,
+          getReferencedColumn: (t) => t.projectId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PlotSampleRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.plotSampleRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<T> plotAnalysisRunRecordsRefs<T extends Object>(
+    Expression<T> Function($$PlotAnalysisRunRecordsTableAnnotationComposer a) f,
+  ) {
+    final $$PlotAnalysisRunRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.plotAnalysisRunRecords,
+          getReferencedColumn: (t) => t.projectId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PlotAnalysisRunRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.plotAnalysisRunRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<T> plotProfileRecordsRefs<T extends Object>(
+    Expression<T> Function($$PlotProfileRecordsTableAnnotationComposer a) f,
+  ) {
+    final $$PlotProfileRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.plotProfileRecords,
+          getReferencedColumn: (t) => t.projectId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PlotProfileRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.plotProfileRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$ProjectRecordsTableTableManager
@@ -9504,6 +10715,9 @@ class $$ProjectRecordsTableTableManager
             bool styleSampleRecordsRefs,
             bool styleAnalysisRunRecordsRefs,
             bool styleProfileRecordsRefs,
+            bool plotSampleRecordsRefs,
+            bool plotAnalysisRunRecordsRefs,
+            bool plotProfileRecordsRefs,
           })
         > {
   $$ProjectRecordsTableTableManager(
@@ -9568,6 +10782,9 @@ class $$ProjectRecordsTableTableManager
                 styleSampleRecordsRefs = false,
                 styleAnalysisRunRecordsRefs = false,
                 styleProfileRecordsRefs = false,
+                plotSampleRecordsRefs = false,
+                plotAnalysisRunRecordsRefs = false,
+                plotProfileRecordsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -9575,6 +10792,9 @@ class $$ProjectRecordsTableTableManager
                     if (styleSampleRecordsRefs) db.styleSampleRecords,
                     if (styleAnalysisRunRecordsRefs) db.styleAnalysisRunRecords,
                     if (styleProfileRecordsRefs) db.styleProfileRecords,
+                    if (plotSampleRecordsRefs) db.plotSampleRecords,
+                    if (plotAnalysisRunRecordsRefs) db.plotAnalysisRunRecords,
+                    if (plotProfileRecordsRefs) db.plotProfileRecords,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -9642,6 +10862,69 @@ class $$ProjectRecordsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (plotSampleRecordsRefs)
+                        await $_getPrefetchedData<
+                          ProjectRecord,
+                          $ProjectRecordsTable,
+                          PlotSampleRecord
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ProjectRecordsTableReferences
+                              ._plotSampleRecordsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ProjectRecordsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).plotSampleRecordsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.projectId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (plotAnalysisRunRecordsRefs)
+                        await $_getPrefetchedData<
+                          ProjectRecord,
+                          $ProjectRecordsTable,
+                          PlotAnalysisRunRecord
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ProjectRecordsTableReferences
+                              ._plotAnalysisRunRecordsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ProjectRecordsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).plotAnalysisRunRecordsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.projectId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (plotProfileRecordsRefs)
+                        await $_getPrefetchedData<
+                          ProjectRecord,
+                          $ProjectRecordsTable,
+                          PlotProfileRecord
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ProjectRecordsTableReferences
+                              ._plotProfileRecordsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ProjectRecordsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).plotProfileRecordsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.projectId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -9666,6 +10949,9 @@ typedef $$ProjectRecordsTableProcessedTableManager =
         bool styleSampleRecordsRefs,
         bool styleAnalysisRunRecordsRefs,
         bool styleProfileRecordsRefs,
+        bool plotSampleRecordsRefs,
+        bool plotAnalysisRunRecordsRefs,
+        bool plotProfileRecordsRefs,
       })
     >;
 typedef $$StyleSampleRecordsTableCreateCompanionBuilder =
@@ -12227,6 +13513,7 @@ typedef $$PlotSampleRecordsTableCreateCompanionBuilder =
       required String title,
       required String content,
       required int characterCount,
+      Value<String?> projectId,
       Value<String?> sourceFilename,
       Value<String?> epubBookTitle,
       Value<String?> epubAuthor,
@@ -12242,6 +13529,7 @@ typedef $$PlotSampleRecordsTableUpdateCompanionBuilder =
       Value<String> title,
       Value<String> content,
       Value<int> characterCount,
+      Value<String?> projectId,
       Value<String?> sourceFilename,
       Value<String?> epubBookTitle,
       Value<String?> epubAuthor,
@@ -12263,6 +13551,28 @@ final class $$PlotSampleRecordsTableReferences
     super.$_table,
     super.$_typedResult,
   );
+
+  static $ProjectRecordsTable _projectIdTable(_$AppDatabase db) =>
+      db.projectRecords.createAlias(
+        $_aliasNameGenerator(
+          db.plotSampleRecords.projectId,
+          db.projectRecords.id,
+        ),
+      );
+
+  $$ProjectRecordsTableProcessedTableManager? get projectId {
+    final $_column = $_itemColumn<String>('project_id');
+    if ($_column == null) return null;
+    final manager = $$ProjectRecordsTableTableManager(
+      $_db,
+      $_db.projectRecords,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_projectIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
 
   static MultiTypedResultKey<
     $PlotAnalysisRunRecordsTable,
@@ -12381,6 +13691,29 @@ class $$PlotSampleRecordsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  $$ProjectRecordsTableFilterComposer get projectId {
+    final $$ProjectRecordsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.projectId,
+      referencedTable: $db.projectRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProjectRecordsTableFilterComposer(
+            $db: $db,
+            $table: $db.projectRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
   Expression<bool> plotAnalysisRunRecordsRefs(
     Expression<bool> Function($$PlotAnalysisRunRecordsTableFilterComposer f) f,
   ) {
@@ -12496,6 +13829,29 @@ class $$PlotSampleRecordsTableOrderingComposer
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  $$ProjectRecordsTableOrderingComposer get projectId {
+    final $$ProjectRecordsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.projectId,
+      referencedTable: $db.projectRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProjectRecordsTableOrderingComposer(
+            $db: $db,
+            $table: $db.projectRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$PlotSampleRecordsTableAnnotationComposer
@@ -12551,6 +13907,29 @@ class $$PlotSampleRecordsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$ProjectRecordsTableAnnotationComposer get projectId {
+    final $$ProjectRecordsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.projectId,
+      referencedTable: $db.projectRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProjectRecordsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.projectRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   Expression<T> plotAnalysisRunRecordsRefs<T extends Object>(
     Expression<T> Function($$PlotAnalysisRunRecordsTableAnnotationComposer a) f,
@@ -12619,6 +13998,7 @@ class $$PlotSampleRecordsTableTableManager
           (PlotSampleRecord, $$PlotSampleRecordsTableReferences),
           PlotSampleRecord,
           PrefetchHooks Function({
+            bool projectId,
             bool plotAnalysisRunRecordsRefs,
             bool plotProfileRecordsRefs,
           })
@@ -12646,6 +14026,7 @@ class $$PlotSampleRecordsTableTableManager
                 Value<String> title = const Value.absent(),
                 Value<String> content = const Value.absent(),
                 Value<int> characterCount = const Value.absent(),
+                Value<String?> projectId = const Value.absent(),
                 Value<String?> sourceFilename = const Value.absent(),
                 Value<String?> epubBookTitle = const Value.absent(),
                 Value<String?> epubAuthor = const Value.absent(),
@@ -12659,6 +14040,7 @@ class $$PlotSampleRecordsTableTableManager
                 title: title,
                 content: content,
                 characterCount: characterCount,
+                projectId: projectId,
                 sourceFilename: sourceFilename,
                 epubBookTitle: epubBookTitle,
                 epubAuthor: epubAuthor,
@@ -12674,6 +14056,7 @@ class $$PlotSampleRecordsTableTableManager
                 required String title,
                 required String content,
                 required int characterCount,
+                Value<String?> projectId = const Value.absent(),
                 Value<String?> sourceFilename = const Value.absent(),
                 Value<String?> epubBookTitle = const Value.absent(),
                 Value<String?> epubAuthor = const Value.absent(),
@@ -12687,6 +14070,7 @@ class $$PlotSampleRecordsTableTableManager
                 title: title,
                 content: content,
                 characterCount: characterCount,
+                projectId: projectId,
                 sourceFilename: sourceFilename,
                 epubBookTitle: epubBookTitle,
                 epubAuthor: epubAuthor,
@@ -12705,6 +14089,7 @@ class $$PlotSampleRecordsTableTableManager
               .toList(),
           prefetchHooksCallback:
               ({
+                projectId = false,
                 plotAnalysisRunRecordsRefs = false,
                 plotProfileRecordsRefs = false,
               }) {
@@ -12714,7 +14099,40 @@ class $$PlotSampleRecordsTableTableManager
                     if (plotAnalysisRunRecordsRefs) db.plotAnalysisRunRecords,
                     if (plotProfileRecordsRefs) db.plotProfileRecords,
                   ],
-                  addJoins: null,
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (projectId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.projectId,
+                                    referencedTable:
+                                        $$PlotSampleRecordsTableReferences
+                                            ._projectIdTable(db),
+                                    referencedColumn:
+                                        $$PlotSampleRecordsTableReferences
+                                            ._projectIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
                   getPrefetchedDataCallback: (items) async {
                     return [
                       if (plotAnalysisRunRecordsRefs)
@@ -12780,6 +14198,7 @@ typedef $$PlotSampleRecordsTableProcessedTableManager =
       (PlotSampleRecord, $$PlotSampleRecordsTableReferences),
       PlotSampleRecord,
       PrefetchHooks Function({
+        bool projectId,
         bool plotAnalysisRunRecordsRefs,
         bool plotProfileRecordsRefs,
       })
@@ -12792,6 +14211,7 @@ typedef $$PlotAnalysisRunRecordsTableCreateCompanionBuilder =
       required String providerId,
       required String modelName,
       required String plotName,
+      Value<String?> projectId,
       required String status,
       Value<String?> stage,
       Value<String?> errorMessage,
@@ -12816,6 +14236,7 @@ typedef $$PlotAnalysisRunRecordsTableUpdateCompanionBuilder =
       Value<String> providerId,
       Value<String> modelName,
       Value<String> plotName,
+      Value<String?> projectId,
       Value<String> status,
       Value<String?> stage,
       Value<String?> errorMessage,
@@ -12906,6 +14327,28 @@ final class $$PlotAnalysisRunRecordsTableReferences
       $_db.providerConfigRecords,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_providerIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $ProjectRecordsTable _projectIdTable(_$AppDatabase db) =>
+      db.projectRecords.createAlias(
+        $_aliasNameGenerator(
+          db.plotAnalysisRunRecords.projectId,
+          db.projectRecords.id,
+        ),
+      );
+
+  $$ProjectRecordsTableProcessedTableManager? get projectId {
+    final $_column = $_itemColumn<String>('project_id');
+    if ($_column == null) return null;
+    final manager = $$ProjectRecordsTableTableManager(
+      $_db,
+      $_db.projectRecords,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_projectIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -13101,6 +14544,29 @@ class $$PlotAnalysisRunRecordsTableFilterComposer
     return composer;
   }
 
+  $$ProjectRecordsTableFilterComposer get projectId {
+    final $$ProjectRecordsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.projectId,
+      referencedTable: $db.projectRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProjectRecordsTableFilterComposer(
+            $db: $db,
+            $table: $db.projectRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
   Expression<bool> plotProfileRecordsRefs(
     Expression<bool> Function($$PlotProfileRecordsTableFilterComposer f) f,
   ) {
@@ -13291,6 +14757,29 @@ class $$PlotAnalysisRunRecordsTableOrderingComposer
         );
     return composer;
   }
+
+  $$ProjectRecordsTableOrderingComposer get projectId {
+    final $$ProjectRecordsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.projectId,
+      referencedTable: $db.projectRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProjectRecordsTableOrderingComposer(
+            $db: $db,
+            $table: $db.projectRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$PlotAnalysisRunRecordsTableAnnotationComposer
@@ -13439,6 +14928,29 @@ class $$PlotAnalysisRunRecordsTableAnnotationComposer
     return composer;
   }
 
+  $$ProjectRecordsTableAnnotationComposer get projectId {
+    final $$ProjectRecordsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.projectId,
+      referencedTable: $db.projectRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProjectRecordsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.projectRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
   Expression<T> plotProfileRecordsRefs<T extends Object>(
     Expression<T> Function($$PlotProfileRecordsTableAnnotationComposer a) f,
   ) {
@@ -13483,6 +14995,7 @@ class $$PlotAnalysisRunRecordsTableTableManager
             bool workflowTaskId,
             bool sampleId,
             bool providerId,
+            bool projectId,
             bool plotProfileRecordsRefs,
           })
         > {
@@ -13516,6 +15029,7 @@ class $$PlotAnalysisRunRecordsTableTableManager
                 Value<String> providerId = const Value.absent(),
                 Value<String> modelName = const Value.absent(),
                 Value<String> plotName = const Value.absent(),
+                Value<String?> projectId = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<String?> stage = const Value.absent(),
                 Value<String?> errorMessage = const Value.absent(),
@@ -13538,6 +15052,7 @@ class $$PlotAnalysisRunRecordsTableTableManager
                 providerId: providerId,
                 modelName: modelName,
                 plotName: plotName,
+                projectId: projectId,
                 status: status,
                 stage: stage,
                 errorMessage: errorMessage,
@@ -13562,6 +15077,7 @@ class $$PlotAnalysisRunRecordsTableTableManager
                 required String providerId,
                 required String modelName,
                 required String plotName,
+                Value<String?> projectId = const Value.absent(),
                 required String status,
                 Value<String?> stage = const Value.absent(),
                 Value<String?> errorMessage = const Value.absent(),
@@ -13584,6 +15100,7 @@ class $$PlotAnalysisRunRecordsTableTableManager
                 providerId: providerId,
                 modelName: modelName,
                 plotName: plotName,
+                projectId: projectId,
                 status: status,
                 stage: stage,
                 errorMessage: errorMessage,
@@ -13613,6 +15130,7 @@ class $$PlotAnalysisRunRecordsTableTableManager
                 workflowTaskId = false,
                 sampleId = false,
                 providerId = false,
+                projectId = false,
                 plotProfileRecordsRefs = false,
               }) {
                 return PrefetchHooks(
@@ -13681,6 +15199,21 @@ class $$PlotAnalysisRunRecordsTableTableManager
                                   )
                                   as T;
                         }
+                        if (projectId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.projectId,
+                                    referencedTable:
+                                        $$PlotAnalysisRunRecordsTableReferences
+                                            ._projectIdTable(db),
+                                    referencedColumn:
+                                        $$PlotAnalysisRunRecordsTableReferences
+                                            ._projectIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
 
                         return state;
                       },
@@ -13732,6 +15265,7 @@ typedef $$PlotAnalysisRunRecordsTableProcessedTableManager =
         bool workflowTaskId,
         bool sampleId,
         bool providerId,
+        bool projectId,
         bool plotProfileRecordsRefs,
       })
     >;
@@ -13745,6 +15279,7 @@ typedef $$PlotProfileRecordsTableCreateCompanionBuilder =
       required String storyEngineMarkdown,
       required String analysisReportMarkdown,
       required String plotSkeletonMarkdown,
+      Value<String?> projectId,
       Value<String?> sourceSampleId,
       Value<String?> sourceTitle,
       required DateTime createdAt,
@@ -13761,6 +15296,7 @@ typedef $$PlotProfileRecordsTableUpdateCompanionBuilder =
       Value<String> storyEngineMarkdown,
       Value<String> analysisReportMarkdown,
       Value<String> plotSkeletonMarkdown,
+      Value<String?> projectId,
       Value<String?> sourceSampleId,
       Value<String?> sourceTitle,
       Value<DateTime> createdAt,
@@ -13819,6 +15355,28 @@ final class $$PlotProfileRecordsTableReferences
       $_db.providerConfigRecords,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_providerIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $ProjectRecordsTable _projectIdTable(_$AppDatabase db) =>
+      db.projectRecords.createAlias(
+        $_aliasNameGenerator(
+          db.plotProfileRecords.projectId,
+          db.projectRecords.id,
+        ),
+      );
+
+  $$ProjectRecordsTableProcessedTableManager? get projectId {
+    final $_column = $_itemColumn<String>('project_id');
+    if ($_column == null) return null;
+    final manager = $$ProjectRecordsTableTableManager(
+      $_db,
+      $_db.projectRecords,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_projectIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -13950,6 +15508,29 @@ class $$PlotProfileRecordsTableFilterComposer
     return composer;
   }
 
+  $$ProjectRecordsTableFilterComposer get projectId {
+    final $$ProjectRecordsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.projectId,
+      referencedTable: $db.projectRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProjectRecordsTableFilterComposer(
+            $db: $db,
+            $table: $db.projectRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
   $$PlotSampleRecordsTableFilterComposer get sourceSampleId {
     final $$PlotSampleRecordsTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -14076,6 +15657,29 @@ class $$PlotProfileRecordsTableOrderingComposer
     return composer;
   }
 
+  $$ProjectRecordsTableOrderingComposer get projectId {
+    final $$ProjectRecordsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.projectId,
+      referencedTable: $db.projectRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProjectRecordsTableOrderingComposer(
+            $db: $db,
+            $table: $db.projectRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
   $$PlotSampleRecordsTableOrderingComposer get sourceSampleId {
     final $$PlotSampleRecordsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -14192,6 +15796,29 @@ class $$PlotProfileRecordsTableAnnotationComposer
     return composer;
   }
 
+  $$ProjectRecordsTableAnnotationComposer get projectId {
+    final $$ProjectRecordsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.projectId,
+      referencedTable: $db.projectRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProjectRecordsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.projectRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
   $$PlotSampleRecordsTableAnnotationComposer get sourceSampleId {
     final $$PlotSampleRecordsTableAnnotationComposer composer =
         $composerBuilder(
@@ -14233,6 +15860,7 @@ class $$PlotProfileRecordsTableTableManager
           PrefetchHooks Function({
             bool sourceRunId,
             bool providerId,
+            bool projectId,
             bool sourceSampleId,
           })
         > {
@@ -14262,6 +15890,7 @@ class $$PlotProfileRecordsTableTableManager
                 Value<String> storyEngineMarkdown = const Value.absent(),
                 Value<String> analysisReportMarkdown = const Value.absent(),
                 Value<String> plotSkeletonMarkdown = const Value.absent(),
+                Value<String?> projectId = const Value.absent(),
                 Value<String?> sourceSampleId = const Value.absent(),
                 Value<String?> sourceTitle = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -14276,6 +15905,7 @@ class $$PlotProfileRecordsTableTableManager
                 storyEngineMarkdown: storyEngineMarkdown,
                 analysisReportMarkdown: analysisReportMarkdown,
                 plotSkeletonMarkdown: plotSkeletonMarkdown,
+                projectId: projectId,
                 sourceSampleId: sourceSampleId,
                 sourceTitle: sourceTitle,
                 createdAt: createdAt,
@@ -14292,6 +15922,7 @@ class $$PlotProfileRecordsTableTableManager
                 required String storyEngineMarkdown,
                 required String analysisReportMarkdown,
                 required String plotSkeletonMarkdown,
+                Value<String?> projectId = const Value.absent(),
                 Value<String?> sourceSampleId = const Value.absent(),
                 Value<String?> sourceTitle = const Value.absent(),
                 required DateTime createdAt,
@@ -14306,6 +15937,7 @@ class $$PlotProfileRecordsTableTableManager
                 storyEngineMarkdown: storyEngineMarkdown,
                 analysisReportMarkdown: analysisReportMarkdown,
                 plotSkeletonMarkdown: plotSkeletonMarkdown,
+                projectId: projectId,
                 sourceSampleId: sourceSampleId,
                 sourceTitle: sourceTitle,
                 createdAt: createdAt,
@@ -14324,6 +15956,7 @@ class $$PlotProfileRecordsTableTableManager
               ({
                 sourceRunId = false,
                 providerId = false,
+                projectId = false,
                 sourceSampleId = false,
               }) {
                 return PrefetchHooks(
@@ -14375,6 +16008,21 @@ class $$PlotProfileRecordsTableTableManager
                                   )
                                   as T;
                         }
+                        if (projectId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.projectId,
+                                    referencedTable:
+                                        $$PlotProfileRecordsTableReferences
+                                            ._projectIdTable(db),
+                                    referencedColumn:
+                                        $$PlotProfileRecordsTableReferences
+                                            ._projectIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
                         if (sourceSampleId) {
                           state =
                               state.withJoin(
@@ -14417,6 +16065,7 @@ typedef $$PlotProfileRecordsTableProcessedTableManager =
       PrefetchHooks Function({
         bool sourceRunId,
         bool providerId,
+        bool projectId,
         bool sourceSampleId,
       })
     >;
@@ -14434,6 +16083,8 @@ class $AppDatabaseManager {
       );
   $$ProviderConfigRecordsTableTableManager get providerConfigRecords =>
       $$ProviderConfigRecordsTableTableManager(_db, _db.providerConfigRecords);
+  $$ProviderModelRecordsTableTableManager get providerModelRecords =>
+      $$ProviderModelRecordsTableTableManager(_db, _db.providerModelRecords);
   $$ProjectRecordsTableTableManager get projectRecords =>
       $$ProjectRecordsTableTableManager(_db, _db.projectRecords);
   $$StyleSampleRecordsTableTableManager get styleSampleRecords =>

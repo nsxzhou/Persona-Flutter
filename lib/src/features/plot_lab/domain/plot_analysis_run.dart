@@ -24,6 +24,7 @@ abstract class PlotAnalysisRun with _$PlotAnalysisRun {
     required String providerId,
     required String modelName,
     required String plotName,
+    String? projectId,
     required PlotAnalysisStatus status,
     PlotAnalysisStage? stage,
     String? errorMessage,
@@ -50,6 +51,7 @@ class PlotAnalysisRunInput {
     required this.providerId,
     required this.modelName,
     required this.plotName,
+    this.projectId,
     required this.characterCount,
   });
 
@@ -57,5 +59,6 @@ class PlotAnalysisRunInput {
   final String providerId;
   final String modelName;
   final String plotName;
+  final String? projectId;
   final int characterCount;
 }

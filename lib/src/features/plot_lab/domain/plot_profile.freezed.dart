@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$PlotProfile {
 
- String get id; String get sourceRunId; String get providerId; String get modelName; String get plotName; String get storyEngineMarkdown; String get analysisReportMarkdown; String get plotSkeletonMarkdown; String? get sourceSampleId; String? get sourceTitle; DateTime get createdAt; DateTime get updatedAt;
+ String get id; String get sourceRunId; String get providerId; String get modelName; String get plotName; String get storyEngineMarkdown; String get analysisReportMarkdown; String get plotSkeletonMarkdown; String? get projectId; String? get sourceSampleId; String? get sourceTitle; DateTime get createdAt; DateTime get updatedAt;
 /// Create a copy of PlotProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $PlotProfileCopyWith<PlotProfile> get copyWith => _$PlotProfileCopyWithImpl<Plot
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlotProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.sourceRunId, sourceRunId) || other.sourceRunId == sourceRunId)&&(identical(other.providerId, providerId) || other.providerId == providerId)&&(identical(other.modelName, modelName) || other.modelName == modelName)&&(identical(other.plotName, plotName) || other.plotName == plotName)&&(identical(other.storyEngineMarkdown, storyEngineMarkdown) || other.storyEngineMarkdown == storyEngineMarkdown)&&(identical(other.analysisReportMarkdown, analysisReportMarkdown) || other.analysisReportMarkdown == analysisReportMarkdown)&&(identical(other.plotSkeletonMarkdown, plotSkeletonMarkdown) || other.plotSkeletonMarkdown == plotSkeletonMarkdown)&&(identical(other.sourceSampleId, sourceSampleId) || other.sourceSampleId == sourceSampleId)&&(identical(other.sourceTitle, sourceTitle) || other.sourceTitle == sourceTitle)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlotProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.sourceRunId, sourceRunId) || other.sourceRunId == sourceRunId)&&(identical(other.providerId, providerId) || other.providerId == providerId)&&(identical(other.modelName, modelName) || other.modelName == modelName)&&(identical(other.plotName, plotName) || other.plotName == plotName)&&(identical(other.storyEngineMarkdown, storyEngineMarkdown) || other.storyEngineMarkdown == storyEngineMarkdown)&&(identical(other.analysisReportMarkdown, analysisReportMarkdown) || other.analysisReportMarkdown == analysisReportMarkdown)&&(identical(other.plotSkeletonMarkdown, plotSkeletonMarkdown) || other.plotSkeletonMarkdown == plotSkeletonMarkdown)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.sourceSampleId, sourceSampleId) || other.sourceSampleId == sourceSampleId)&&(identical(other.sourceTitle, sourceTitle) || other.sourceTitle == sourceTitle)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,sourceRunId,providerId,modelName,plotName,storyEngineMarkdown,analysisReportMarkdown,plotSkeletonMarkdown,sourceSampleId,sourceTitle,createdAt,updatedAt);
+int get hashCode => Object.hash(runtimeType,id,sourceRunId,providerId,modelName,plotName,storyEngineMarkdown,analysisReportMarkdown,plotSkeletonMarkdown,projectId,sourceSampleId,sourceTitle,createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'PlotProfile(id: $id, sourceRunId: $sourceRunId, providerId: $providerId, modelName: $modelName, plotName: $plotName, storyEngineMarkdown: $storyEngineMarkdown, analysisReportMarkdown: $analysisReportMarkdown, plotSkeletonMarkdown: $plotSkeletonMarkdown, sourceSampleId: $sourceSampleId, sourceTitle: $sourceTitle, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'PlotProfile(id: $id, sourceRunId: $sourceRunId, providerId: $providerId, modelName: $modelName, plotName: $plotName, storyEngineMarkdown: $storyEngineMarkdown, analysisReportMarkdown: $analysisReportMarkdown, plotSkeletonMarkdown: $plotSkeletonMarkdown, projectId: $projectId, sourceSampleId: $sourceSampleId, sourceTitle: $sourceTitle, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $PlotProfileCopyWith<$Res>  {
   factory $PlotProfileCopyWith(PlotProfile value, $Res Function(PlotProfile) _then) = _$PlotProfileCopyWithImpl;
 @useResult
 $Res call({
- String id, String sourceRunId, String providerId, String modelName, String plotName, String storyEngineMarkdown, String analysisReportMarkdown, String plotSkeletonMarkdown, String? sourceSampleId, String? sourceTitle, DateTime createdAt, DateTime updatedAt
+ String id, String sourceRunId, String providerId, String modelName, String plotName, String storyEngineMarkdown, String analysisReportMarkdown, String plotSkeletonMarkdown, String? projectId, String? sourceSampleId, String? sourceTitle, DateTime createdAt, DateTime updatedAt
 });
 
 
@@ -65,7 +65,7 @@ class _$PlotProfileCopyWithImpl<$Res>
 
 /// Create a copy of PlotProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? sourceRunId = null,Object? providerId = null,Object? modelName = null,Object? plotName = null,Object? storyEngineMarkdown = null,Object? analysisReportMarkdown = null,Object? plotSkeletonMarkdown = null,Object? sourceSampleId = freezed,Object? sourceTitle = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? sourceRunId = null,Object? providerId = null,Object? modelName = null,Object? plotName = null,Object? storyEngineMarkdown = null,Object? analysisReportMarkdown = null,Object? plotSkeletonMarkdown = null,Object? projectId = freezed,Object? sourceSampleId = freezed,Object? sourceTitle = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,sourceRunId: null == sourceRunId ? _self.sourceRunId : sourceRunId // ignore: cast_nullable_to_non_nullable
@@ -75,7 +75,8 @@ as String,plotName: null == plotName ? _self.plotName : plotName // ignore: cast
 as String,storyEngineMarkdown: null == storyEngineMarkdown ? _self.storyEngineMarkdown : storyEngineMarkdown // ignore: cast_nullable_to_non_nullable
 as String,analysisReportMarkdown: null == analysisReportMarkdown ? _self.analysisReportMarkdown : analysisReportMarkdown // ignore: cast_nullable_to_non_nullable
 as String,plotSkeletonMarkdown: null == plotSkeletonMarkdown ? _self.plotSkeletonMarkdown : plotSkeletonMarkdown // ignore: cast_nullable_to_non_nullable
-as String,sourceSampleId: freezed == sourceSampleId ? _self.sourceSampleId : sourceSampleId // ignore: cast_nullable_to_non_nullable
+as String,projectId: freezed == projectId ? _self.projectId : projectId // ignore: cast_nullable_to_non_nullable
+as String?,sourceSampleId: freezed == sourceSampleId ? _self.sourceSampleId : sourceSampleId // ignore: cast_nullable_to_non_nullable
 as String?,sourceTitle: freezed == sourceTitle ? _self.sourceTitle : sourceTitle // ignore: cast_nullable_to_non_nullable
 as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
@@ -164,10 +165,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String sourceRunId,  String providerId,  String modelName,  String plotName,  String storyEngineMarkdown,  String analysisReportMarkdown,  String plotSkeletonMarkdown,  String? sourceSampleId,  String? sourceTitle,  DateTime createdAt,  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String sourceRunId,  String providerId,  String modelName,  String plotName,  String storyEngineMarkdown,  String analysisReportMarkdown,  String plotSkeletonMarkdown,  String? projectId,  String? sourceSampleId,  String? sourceTitle,  DateTime createdAt,  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PlotProfile() when $default != null:
-return $default(_that.id,_that.sourceRunId,_that.providerId,_that.modelName,_that.plotName,_that.storyEngineMarkdown,_that.analysisReportMarkdown,_that.plotSkeletonMarkdown,_that.sourceSampleId,_that.sourceTitle,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.sourceRunId,_that.providerId,_that.modelName,_that.plotName,_that.storyEngineMarkdown,_that.analysisReportMarkdown,_that.plotSkeletonMarkdown,_that.projectId,_that.sourceSampleId,_that.sourceTitle,_that.createdAt,_that.updatedAt);case _:
   return orElse();
 
 }
@@ -185,10 +186,10 @@ return $default(_that.id,_that.sourceRunId,_that.providerId,_that.modelName,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String sourceRunId,  String providerId,  String modelName,  String plotName,  String storyEngineMarkdown,  String analysisReportMarkdown,  String plotSkeletonMarkdown,  String? sourceSampleId,  String? sourceTitle,  DateTime createdAt,  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String sourceRunId,  String providerId,  String modelName,  String plotName,  String storyEngineMarkdown,  String analysisReportMarkdown,  String plotSkeletonMarkdown,  String? projectId,  String? sourceSampleId,  String? sourceTitle,  DateTime createdAt,  DateTime updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _PlotProfile():
-return $default(_that.id,_that.sourceRunId,_that.providerId,_that.modelName,_that.plotName,_that.storyEngineMarkdown,_that.analysisReportMarkdown,_that.plotSkeletonMarkdown,_that.sourceSampleId,_that.sourceTitle,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.sourceRunId,_that.providerId,_that.modelName,_that.plotName,_that.storyEngineMarkdown,_that.analysisReportMarkdown,_that.plotSkeletonMarkdown,_that.projectId,_that.sourceSampleId,_that.sourceTitle,_that.createdAt,_that.updatedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -205,10 +206,10 @@ return $default(_that.id,_that.sourceRunId,_that.providerId,_that.modelName,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String sourceRunId,  String providerId,  String modelName,  String plotName,  String storyEngineMarkdown,  String analysisReportMarkdown,  String plotSkeletonMarkdown,  String? sourceSampleId,  String? sourceTitle,  DateTime createdAt,  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String sourceRunId,  String providerId,  String modelName,  String plotName,  String storyEngineMarkdown,  String analysisReportMarkdown,  String plotSkeletonMarkdown,  String? projectId,  String? sourceSampleId,  String? sourceTitle,  DateTime createdAt,  DateTime updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _PlotProfile() when $default != null:
-return $default(_that.id,_that.sourceRunId,_that.providerId,_that.modelName,_that.plotName,_that.storyEngineMarkdown,_that.analysisReportMarkdown,_that.plotSkeletonMarkdown,_that.sourceSampleId,_that.sourceTitle,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.sourceRunId,_that.providerId,_that.modelName,_that.plotName,_that.storyEngineMarkdown,_that.analysisReportMarkdown,_that.plotSkeletonMarkdown,_that.projectId,_that.sourceSampleId,_that.sourceTitle,_that.createdAt,_that.updatedAt);case _:
   return null;
 
 }
@@ -220,7 +221,7 @@ return $default(_that.id,_that.sourceRunId,_that.providerId,_that.modelName,_tha
 @JsonSerializable()
 
 class _PlotProfile implements PlotProfile {
-  const _PlotProfile({required this.id, required this.sourceRunId, required this.providerId, required this.modelName, required this.plotName, required this.storyEngineMarkdown, required this.analysisReportMarkdown, required this.plotSkeletonMarkdown, this.sourceSampleId, this.sourceTitle, required this.createdAt, required this.updatedAt});
+  const _PlotProfile({required this.id, required this.sourceRunId, required this.providerId, required this.modelName, required this.plotName, required this.storyEngineMarkdown, required this.analysisReportMarkdown, required this.plotSkeletonMarkdown, this.projectId, this.sourceSampleId, this.sourceTitle, required this.createdAt, required this.updatedAt});
   factory _PlotProfile.fromJson(Map<String, dynamic> json) => _$PlotProfileFromJson(json);
 
 @override final  String id;
@@ -231,6 +232,7 @@ class _PlotProfile implements PlotProfile {
 @override final  String storyEngineMarkdown;
 @override final  String analysisReportMarkdown;
 @override final  String plotSkeletonMarkdown;
+@override final  String? projectId;
 @override final  String? sourceSampleId;
 @override final  String? sourceTitle;
 @override final  DateTime createdAt;
@@ -249,16 +251,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlotProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.sourceRunId, sourceRunId) || other.sourceRunId == sourceRunId)&&(identical(other.providerId, providerId) || other.providerId == providerId)&&(identical(other.modelName, modelName) || other.modelName == modelName)&&(identical(other.plotName, plotName) || other.plotName == plotName)&&(identical(other.storyEngineMarkdown, storyEngineMarkdown) || other.storyEngineMarkdown == storyEngineMarkdown)&&(identical(other.analysisReportMarkdown, analysisReportMarkdown) || other.analysisReportMarkdown == analysisReportMarkdown)&&(identical(other.plotSkeletonMarkdown, plotSkeletonMarkdown) || other.plotSkeletonMarkdown == plotSkeletonMarkdown)&&(identical(other.sourceSampleId, sourceSampleId) || other.sourceSampleId == sourceSampleId)&&(identical(other.sourceTitle, sourceTitle) || other.sourceTitle == sourceTitle)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlotProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.sourceRunId, sourceRunId) || other.sourceRunId == sourceRunId)&&(identical(other.providerId, providerId) || other.providerId == providerId)&&(identical(other.modelName, modelName) || other.modelName == modelName)&&(identical(other.plotName, plotName) || other.plotName == plotName)&&(identical(other.storyEngineMarkdown, storyEngineMarkdown) || other.storyEngineMarkdown == storyEngineMarkdown)&&(identical(other.analysisReportMarkdown, analysisReportMarkdown) || other.analysisReportMarkdown == analysisReportMarkdown)&&(identical(other.plotSkeletonMarkdown, plotSkeletonMarkdown) || other.plotSkeletonMarkdown == plotSkeletonMarkdown)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.sourceSampleId, sourceSampleId) || other.sourceSampleId == sourceSampleId)&&(identical(other.sourceTitle, sourceTitle) || other.sourceTitle == sourceTitle)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,sourceRunId,providerId,modelName,plotName,storyEngineMarkdown,analysisReportMarkdown,plotSkeletonMarkdown,sourceSampleId,sourceTitle,createdAt,updatedAt);
+int get hashCode => Object.hash(runtimeType,id,sourceRunId,providerId,modelName,plotName,storyEngineMarkdown,analysisReportMarkdown,plotSkeletonMarkdown,projectId,sourceSampleId,sourceTitle,createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'PlotProfile(id: $id, sourceRunId: $sourceRunId, providerId: $providerId, modelName: $modelName, plotName: $plotName, storyEngineMarkdown: $storyEngineMarkdown, analysisReportMarkdown: $analysisReportMarkdown, plotSkeletonMarkdown: $plotSkeletonMarkdown, sourceSampleId: $sourceSampleId, sourceTitle: $sourceTitle, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'PlotProfile(id: $id, sourceRunId: $sourceRunId, providerId: $providerId, modelName: $modelName, plotName: $plotName, storyEngineMarkdown: $storyEngineMarkdown, analysisReportMarkdown: $analysisReportMarkdown, plotSkeletonMarkdown: $plotSkeletonMarkdown, projectId: $projectId, sourceSampleId: $sourceSampleId, sourceTitle: $sourceTitle, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -269,7 +271,7 @@ abstract mixin class _$PlotProfileCopyWith<$Res> implements $PlotProfileCopyWith
   factory _$PlotProfileCopyWith(_PlotProfile value, $Res Function(_PlotProfile) _then) = __$PlotProfileCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String sourceRunId, String providerId, String modelName, String plotName, String storyEngineMarkdown, String analysisReportMarkdown, String plotSkeletonMarkdown, String? sourceSampleId, String? sourceTitle, DateTime createdAt, DateTime updatedAt
+ String id, String sourceRunId, String providerId, String modelName, String plotName, String storyEngineMarkdown, String analysisReportMarkdown, String plotSkeletonMarkdown, String? projectId, String? sourceSampleId, String? sourceTitle, DateTime createdAt, DateTime updatedAt
 });
 
 
@@ -286,7 +288,7 @@ class __$PlotProfileCopyWithImpl<$Res>
 
 /// Create a copy of PlotProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? sourceRunId = null,Object? providerId = null,Object? modelName = null,Object? plotName = null,Object? storyEngineMarkdown = null,Object? analysisReportMarkdown = null,Object? plotSkeletonMarkdown = null,Object? sourceSampleId = freezed,Object? sourceTitle = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? sourceRunId = null,Object? providerId = null,Object? modelName = null,Object? plotName = null,Object? storyEngineMarkdown = null,Object? analysisReportMarkdown = null,Object? plotSkeletonMarkdown = null,Object? projectId = freezed,Object? sourceSampleId = freezed,Object? sourceTitle = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_PlotProfile(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,sourceRunId: null == sourceRunId ? _self.sourceRunId : sourceRunId // ignore: cast_nullable_to_non_nullable
@@ -296,7 +298,8 @@ as String,plotName: null == plotName ? _self.plotName : plotName // ignore: cast
 as String,storyEngineMarkdown: null == storyEngineMarkdown ? _self.storyEngineMarkdown : storyEngineMarkdown // ignore: cast_nullable_to_non_nullable
 as String,analysisReportMarkdown: null == analysisReportMarkdown ? _self.analysisReportMarkdown : analysisReportMarkdown // ignore: cast_nullable_to_non_nullable
 as String,plotSkeletonMarkdown: null == plotSkeletonMarkdown ? _self.plotSkeletonMarkdown : plotSkeletonMarkdown // ignore: cast_nullable_to_non_nullable
-as String,sourceSampleId: freezed == sourceSampleId ? _self.sourceSampleId : sourceSampleId // ignore: cast_nullable_to_non_nullable
+as String,projectId: freezed == projectId ? _self.projectId : projectId // ignore: cast_nullable_to_non_nullable
+as String?,sourceSampleId: freezed == sourceSampleId ? _self.sourceSampleId : sourceSampleId // ignore: cast_nullable_to_non_nullable
 as String?,sourceTitle: freezed == sourceTitle ? _self.sourceTitle : sourceTitle // ignore: cast_nullable_to_non_nullable
 as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable

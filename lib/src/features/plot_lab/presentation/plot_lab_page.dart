@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/persona_page.dart';
+import '../../projects/application/project_providers.dart';
+import '../../projects/domain/writing_project.dart';
 import '../../settings/application/provider_config_providers.dart';
 import '../../settings/domain/provider_config.dart';
 import '../application/plot_lab_providers.dart';
@@ -366,6 +368,8 @@ class _CreatePlotProfileDialogState
     extends ConsumerState<_CreatePlotProfileDialog> {
   String? _selectedSampleId;
   String? _selectedProviderId;
+  String? _selectedModelName;
+  String? _selectedProjectId;
   final _plotNameController = TextEditingController();
 
   @override
@@ -378,6 +382,7 @@ class _CreatePlotProfileDialogState
   Widget build(BuildContext context) {
     final samples = ref.watch(plotSamplesProvider);
     final providers = ref.watch(providerConfigsProvider);
+    final projects = ref.watch(writingProjectsProvider(ProjectStatus.active));
     final controller = ref.watch(plotLabControllerProvider);
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
@@ -387,43 +392,75 @@ class _CreatePlotProfileDialogState
           padding: const EdgeInsets.all(22),
           child: samples.when(
             data: (sampleItems) => providers.when(
-              data: (providerItems) {
-                _syncDefaults(sampleItems, providerItems);
-                final selectedSample = _findOrNull(
-                  sampleItems,
-                  _selectedSampleId,
-                  (item) => item.id,
-                );
-                final selectedProvider = _findOrNull(
-                  providerItems,
-                  _selectedProviderId,
-                  (item) => item.id,
-                );
-                return _CreatePlotProfileForm(
-                  samples: sampleItems,
-                  providers: providerItems,
-                  selectedSample: selectedSample,
-                  selectedProvider: selectedProvider,
-                  plotNameController: _plotNameController,
-                  controllerBusy: controller.isLoading,
-                  onImportSample: _importSample,
-                  onSampleSelected: (id) => setState(() {
-                    _selectedSampleId = id;
-                    _plotNameController.text =
-                        _findOrNull(
-                          sampleItems,
-                          id,
-                          (item) => item.id,
-                        )?.title ??
-                        '';
-                  }),
-                  onProviderSelected: (id) =>
-                      setState(() => _selectedProviderId = id),
-                  onRun: selectedSample == null || selectedProvider == null
-                      ? null
-                      : () => _createRun(selectedSample, selectedProvider),
-                );
-              },
+              data: (providerItems) => projects.when(
+                data: (projectItems) {
+                  _syncDefaults(sampleItems, providerItems, projectItems);
+                  final selectedSample = _findOrNull(
+                    sampleItems,
+                    _selectedSampleId,
+                    (item) => item.id,
+                  );
+                  final selectedProvider = _findOrNull(
+                    providerItems,
+                    _selectedProviderId,
+                    (item) => item.id,
+                  );
+                  final selectedModelName =
+                      _selectedModelName ?? selectedProvider?.defaultModel;
+                  final selectedProject = _findOrNull(
+                    projectItems,
+                    _selectedProjectId,
+                    (item) => item.id,
+                  );
+                  return _CreatePlotProfileForm(
+                    samples: sampleItems,
+                    providers: providerItems,
+                    projects: projectItems,
+                    selectedSample: selectedSample,
+                    selectedProvider: selectedProvider,
+                    selectedModelName: selectedModelName,
+                    selectedProject: selectedProject,
+                    plotNameController: _plotNameController,
+                    controllerBusy: controller.isLoading,
+                    onImportSample: _importSample,
+                    onSampleSelected: (id) => setState(() {
+                      _selectedSampleId = id;
+                      _plotNameController.text =
+                          _findOrNull(
+                            sampleItems,
+                            id,
+                            (item) => item.id,
+                          )?.title ??
+                          '';
+                    }),
+                    onProviderSelected: (id) => setState(() {
+                      _selectedProviderId = id;
+                      final provider = _findOrNull(
+                        providerItems,
+                        id,
+                        (item) => item.id,
+                      );
+                      _selectedModelName = provider?.defaultModel;
+                    }),
+                    onModelSelected: (modelName) =>
+                        setState(() => _selectedModelName = modelName),
+                    onProjectSelected: (id) =>
+                        setState(() => _selectedProjectId = id),
+                    onRun: selectedSample == null || selectedProvider == null
+                        ? null
+                        : () => _createRun(
+                            selectedSample,
+                            selectedProvider,
+                            selectedModelName ?? selectedProvider.defaultModel,
+                          ),
+                  );
+                },
+                loading: () => const SizedBox(
+                  height: 260,
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (error, stackTrace) => _InlineError(message: '$error'),
+              ),
               loading: () => const SizedBox(
                 height: 260,
                 child: Center(child: CircularProgressIndicator()),
@@ -441,7 +478,11 @@ class _CreatePlotProfileDialogState
     );
   }
 
-  void _syncDefaults(List<PlotSample> samples, List<ProviderConfig> providers) {
+  void _syncDefaults(
+    List<PlotSample> samples,
+    List<ProviderConfig> providers,
+    List<WritingProject> projects,
+  ) {
     if (_selectedSampleId == null && samples.isNotEmpty) {
       _selectedSampleId = samples.first.id;
       _plotNameController.text = samples.first.title;
@@ -450,6 +491,8 @@ class _CreatePlotProfileDialogState
       final enabled = providers.where((provider) => provider.isEnabled);
       _selectedProviderId =
           (enabled.isEmpty ? providers.first : enabled.first).id;
+      _selectedModelName =
+          (enabled.isEmpty ? providers.first : enabled.first).defaultModel;
     }
     if (_selectedSampleId != null &&
         !samples.any((sample) => sample.id == _selectedSampleId)) {
@@ -458,6 +501,22 @@ class _CreatePlotProfileDialogState
     if (_selectedProviderId != null &&
         !providers.any((provider) => provider.id == _selectedProviderId)) {
       _selectedProviderId = providers.isEmpty ? null : providers.first.id;
+      _selectedModelName = providers.isEmpty
+          ? null
+          : providers.first.defaultModel;
+    }
+    final selectedProvider = _findOrNull(
+      providers,
+      _selectedProviderId,
+      (item) => item.id,
+    );
+    if (selectedProvider != null &&
+        !selectedProvider.modelNames.contains(_selectedModelName)) {
+      _selectedModelName = selectedProvider.defaultModel;
+    }
+    if (_selectedProjectId != null &&
+        !projects.any((project) => project.id == _selectedProjectId)) {
+      _selectedProjectId = null;
     }
   }
 
@@ -475,7 +534,7 @@ class _CreatePlotProfileDialogState
       }
       final saved = await ref
           .read(plotLabControllerProvider.notifier)
-          .importFile(path);
+          .importFile(path, projectId: _selectedProjectId);
       if (!mounted) return;
       setState(() {
         _selectedSampleId = saved.id;
@@ -487,14 +546,20 @@ class _CreatePlotProfileDialogState
     }
   }
 
-  Future<void> _createRun(PlotSample sample, ProviderConfig provider) async {
+  Future<void> _createRun(
+    PlotSample sample,
+    ProviderConfig provider,
+    String modelName,
+  ) async {
     try {
       final run = await ref
           .read(plotLabControllerProvider.notifier)
           .createAndRun(
             sampleId: sample.id,
             providerId: provider.id,
+            modelName: modelName,
             plotName: _plotNameController.text,
+            projectId: _selectedProjectId,
           );
       if (!mounted) return;
       _showSnack('分析任务已创建：${run.plotName}。');
@@ -516,25 +581,35 @@ class _CreatePlotProfileForm extends StatelessWidget {
   const _CreatePlotProfileForm({
     required this.samples,
     required this.providers,
+    required this.projects,
     required this.plotNameController,
     required this.controllerBusy,
     required this.onImportSample,
     required this.onSampleSelected,
     required this.onProviderSelected,
+    required this.onModelSelected,
+    required this.onProjectSelected,
     this.selectedSample,
     this.selectedProvider,
+    this.selectedModelName,
+    this.selectedProject,
     this.onRun,
   });
 
   final List<PlotSample> samples;
   final List<ProviderConfig> providers;
+  final List<WritingProject> projects;
   final PlotSample? selectedSample;
   final ProviderConfig? selectedProvider;
+  final String? selectedModelName;
+  final WritingProject? selectedProject;
   final TextEditingController plotNameController;
   final bool controllerBusy;
   final VoidCallback onImportSample;
   final ValueChanged<String> onSampleSelected;
   final ValueChanged<String> onProviderSelected;
+  final ValueChanged<String> onModelSelected;
+  final ValueChanged<String?> onProjectSelected;
   final VoidCallback? onRun;
 
   @override
@@ -616,7 +691,48 @@ class _CreatePlotProfileForm extends StatelessWidget {
                     if (value != null) onProviderSelected(value);
                   },
             decoration: const InputDecoration(
-              labelText: 'Provider / Model',
+              labelText: 'Provider',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue: selectedModelName,
+            items: [
+              for (final modelName
+                  in selectedProvider?.modelNames ?? const <String>[])
+                DropdownMenuItem(
+                  value: modelName,
+                  child: Text(modelName, overflow: TextOverflow.ellipsis),
+                ),
+            ],
+            onChanged: selectedProvider == null
+                ? null
+                : (value) {
+                    if (value != null) onModelSelected(value);
+                  },
+            decoration: const InputDecoration(
+              labelText: 'Model',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String?>(
+            initialValue: selectedProject?.id,
+            items: [
+              const DropdownMenuItem<String?>(
+                value: null,
+                child: Text('不绑定项目'),
+              ),
+              for (final project in projects)
+                DropdownMenuItem<String?>(
+                  value: project.id,
+                  child: Text(project.title, overflow: TextOverflow.ellipsis),
+                ),
+            ],
+            onChanged: onProjectSelected,
+            decoration: const InputDecoration(
+              labelText: '项目（可选）',
               border: OutlineInputBorder(),
             ),
           ),
@@ -1264,6 +1380,7 @@ class _SavedPlotProfileDetailState
             id: widget.profile.id,
             plotName: _plotNameController.text,
             storyEngineMarkdown: _storyEngineController.text,
+            projectId: widget.profile.projectId,
           );
       _showSnack('剧情档案已更新。');
     } on Object catch (error) {
@@ -1384,6 +1501,7 @@ class _PlotTaskDetailState extends ConsumerState<_PlotTaskDetail> {
             runId: widget.run.id,
             plotName: _plotNameController.text,
             storyEngineMarkdown: _storyEngineController.text,
+            projectId: widget.run.projectId,
           );
       if (!mounted) return;
       _showSnack('剧情档案已保存。');
@@ -1724,6 +1842,7 @@ class _MarkdownPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final previewMarkdown = _storyEnginePreviewMarkdown(markdown);
     return DecoratedBox(
       decoration: BoxDecoration(
         border: Border.all(color: colorScheme.outlineVariant),
@@ -1731,7 +1850,7 @@ class _MarkdownPreview extends StatelessWidget {
       ),
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(14),
-        child: MarkdownBody(data: markdown.trim().isEmpty ? '暂无内容。' : markdown),
+        child: MarkdownBody(data: previewMarkdown),
       ),
     );
   }
@@ -2343,6 +2462,31 @@ bool _isActivityRun(PlotAnalysisRun run) {
       run.status == PlotAnalysisStatus.running ||
       run.status == PlotAnalysisStatus.failed ||
       (run.status == PlotAnalysisStatus.succeeded && run.profileId == null);
+}
+
+String _storyEnginePreviewMarkdown(String markdown) {
+  if (markdown.trim().isEmpty) {
+    return '暂无内容。';
+  }
+  try {
+    return const StoryEngineNormalizer().parse(markdown).bodyMarkdown;
+  } on Object {
+    final stripped = _stripFrontMatter(markdown).trim();
+    return stripped.isEmpty ? '暂无内容。' : stripped;
+  }
+}
+
+String _stripFrontMatter(String markdown) {
+  final normalized = markdown.trimLeft();
+  if (!normalized.startsWith('---\n')) {
+    return markdown;
+  }
+  final end = normalized.indexOf('\n---', 4);
+  if (end < 0) {
+    return markdown;
+  }
+  final bodyStart = normalized.indexOf('\n', end + 4);
+  return bodyStart < 0 ? '' : normalized.substring(bodyStart);
 }
 
 String _taskDetailSubtitle(PlotAnalysisRun run) {

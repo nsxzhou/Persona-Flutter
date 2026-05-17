@@ -14,6 +14,7 @@ abstract class PlotProfile with _$PlotProfile {
     required String storyEngineMarkdown,
     required String analysisReportMarkdown,
     required String plotSkeletonMarkdown,
+    String? projectId,
     String? sourceSampleId,
     String? sourceTitle,
     required DateTime createdAt,
@@ -29,19 +30,23 @@ class PlotProfileInput {
     required this.runId,
     required this.plotName,
     required this.storyEngineMarkdown,
+    this.projectId,
   });
 
   final String runId;
   final String plotName;
   final String storyEngineMarkdown;
+  final String? projectId;
 }
 
 class PlotProfileUpdateInput {
   const PlotProfileUpdateInput({
     required this.plotName,
     required this.storyEngineMarkdown,
+    this.projectId,
   });
 
   final String plotName;
   final String storyEngineMarkdown;
+  final String? projectId;
 }

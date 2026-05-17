@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$PlotSample {
 
- String get id; PlotSampleSourceType get sourceType; String get title; String get content; int get characterCount; String? get sourceFilename; String? get epubBookTitle; String? get epubAuthor; int? get epubChapterCount; DateTime get createdAt; DateTime get updatedAt;
+ String get id; PlotSampleSourceType get sourceType; String get title; String get content; int get characterCount; String? get projectId; String? get sourceFilename; String? get epubBookTitle; String? get epubAuthor; int? get epubChapterCount; DateTime get createdAt; DateTime get updatedAt;
 /// Create a copy of PlotSample
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $PlotSampleCopyWith<PlotSample> get copyWith => _$PlotSampleCopyWithImpl<PlotSam
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlotSample&&(identical(other.id, id) || other.id == id)&&(identical(other.sourceType, sourceType) || other.sourceType == sourceType)&&(identical(other.title, title) || other.title == title)&&(identical(other.content, content) || other.content == content)&&(identical(other.characterCount, characterCount) || other.characterCount == characterCount)&&(identical(other.sourceFilename, sourceFilename) || other.sourceFilename == sourceFilename)&&(identical(other.epubBookTitle, epubBookTitle) || other.epubBookTitle == epubBookTitle)&&(identical(other.epubAuthor, epubAuthor) || other.epubAuthor == epubAuthor)&&(identical(other.epubChapterCount, epubChapterCount) || other.epubChapterCount == epubChapterCount)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlotSample&&(identical(other.id, id) || other.id == id)&&(identical(other.sourceType, sourceType) || other.sourceType == sourceType)&&(identical(other.title, title) || other.title == title)&&(identical(other.content, content) || other.content == content)&&(identical(other.characterCount, characterCount) || other.characterCount == characterCount)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.sourceFilename, sourceFilename) || other.sourceFilename == sourceFilename)&&(identical(other.epubBookTitle, epubBookTitle) || other.epubBookTitle == epubBookTitle)&&(identical(other.epubAuthor, epubAuthor) || other.epubAuthor == epubAuthor)&&(identical(other.epubChapterCount, epubChapterCount) || other.epubChapterCount == epubChapterCount)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,sourceType,title,content,characterCount,sourceFilename,epubBookTitle,epubAuthor,epubChapterCount,createdAt,updatedAt);
+int get hashCode => Object.hash(runtimeType,id,sourceType,title,content,characterCount,projectId,sourceFilename,epubBookTitle,epubAuthor,epubChapterCount,createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'PlotSample(id: $id, sourceType: $sourceType, title: $title, content: $content, characterCount: $characterCount, sourceFilename: $sourceFilename, epubBookTitle: $epubBookTitle, epubAuthor: $epubAuthor, epubChapterCount: $epubChapterCount, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'PlotSample(id: $id, sourceType: $sourceType, title: $title, content: $content, characterCount: $characterCount, projectId: $projectId, sourceFilename: $sourceFilename, epubBookTitle: $epubBookTitle, epubAuthor: $epubAuthor, epubChapterCount: $epubChapterCount, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $PlotSampleCopyWith<$Res>  {
   factory $PlotSampleCopyWith(PlotSample value, $Res Function(PlotSample) _then) = _$PlotSampleCopyWithImpl;
 @useResult
 $Res call({
- String id, PlotSampleSourceType sourceType, String title, String content, int characterCount, String? sourceFilename, String? epubBookTitle, String? epubAuthor, int? epubChapterCount, DateTime createdAt, DateTime updatedAt
+ String id, PlotSampleSourceType sourceType, String title, String content, int characterCount, String? projectId, String? sourceFilename, String? epubBookTitle, String? epubAuthor, int? epubChapterCount, DateTime createdAt, DateTime updatedAt
 });
 
 
@@ -65,14 +65,15 @@ class _$PlotSampleCopyWithImpl<$Res>
 
 /// Create a copy of PlotSample
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? sourceType = null,Object? title = null,Object? content = null,Object? characterCount = null,Object? sourceFilename = freezed,Object? epubBookTitle = freezed,Object? epubAuthor = freezed,Object? epubChapterCount = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? sourceType = null,Object? title = null,Object? content = null,Object? characterCount = null,Object? projectId = freezed,Object? sourceFilename = freezed,Object? epubBookTitle = freezed,Object? epubAuthor = freezed,Object? epubChapterCount = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,sourceType: null == sourceType ? _self.sourceType : sourceType // ignore: cast_nullable_to_non_nullable
 as PlotSampleSourceType,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,content: null == content ? _self.content : content // ignore: cast_nullable_to_non_nullable
 as String,characterCount: null == characterCount ? _self.characterCount : characterCount // ignore: cast_nullable_to_non_nullable
-as int,sourceFilename: freezed == sourceFilename ? _self.sourceFilename : sourceFilename // ignore: cast_nullable_to_non_nullable
+as int,projectId: freezed == projectId ? _self.projectId : projectId // ignore: cast_nullable_to_non_nullable
+as String?,sourceFilename: freezed == sourceFilename ? _self.sourceFilename : sourceFilename // ignore: cast_nullable_to_non_nullable
 as String?,epubBookTitle: freezed == epubBookTitle ? _self.epubBookTitle : epubBookTitle // ignore: cast_nullable_to_non_nullable
 as String?,epubAuthor: freezed == epubAuthor ? _self.epubAuthor : epubAuthor // ignore: cast_nullable_to_non_nullable
 as String?,epubChapterCount: freezed == epubChapterCount ? _self.epubChapterCount : epubChapterCount // ignore: cast_nullable_to_non_nullable
@@ -163,10 +164,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  PlotSampleSourceType sourceType,  String title,  String content,  int characterCount,  String? sourceFilename,  String? epubBookTitle,  String? epubAuthor,  int? epubChapterCount,  DateTime createdAt,  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  PlotSampleSourceType sourceType,  String title,  String content,  int characterCount,  String? projectId,  String? sourceFilename,  String? epubBookTitle,  String? epubAuthor,  int? epubChapterCount,  DateTime createdAt,  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PlotSample() when $default != null:
-return $default(_that.id,_that.sourceType,_that.title,_that.content,_that.characterCount,_that.sourceFilename,_that.epubBookTitle,_that.epubAuthor,_that.epubChapterCount,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.sourceType,_that.title,_that.content,_that.characterCount,_that.projectId,_that.sourceFilename,_that.epubBookTitle,_that.epubAuthor,_that.epubChapterCount,_that.createdAt,_that.updatedAt);case _:
   return orElse();
 
 }
@@ -184,10 +185,10 @@ return $default(_that.id,_that.sourceType,_that.title,_that.content,_that.charac
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  PlotSampleSourceType sourceType,  String title,  String content,  int characterCount,  String? sourceFilename,  String? epubBookTitle,  String? epubAuthor,  int? epubChapterCount,  DateTime createdAt,  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  PlotSampleSourceType sourceType,  String title,  String content,  int characterCount,  String? projectId,  String? sourceFilename,  String? epubBookTitle,  String? epubAuthor,  int? epubChapterCount,  DateTime createdAt,  DateTime updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _PlotSample():
-return $default(_that.id,_that.sourceType,_that.title,_that.content,_that.characterCount,_that.sourceFilename,_that.epubBookTitle,_that.epubAuthor,_that.epubChapterCount,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.sourceType,_that.title,_that.content,_that.characterCount,_that.projectId,_that.sourceFilename,_that.epubBookTitle,_that.epubAuthor,_that.epubChapterCount,_that.createdAt,_that.updatedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -204,10 +205,10 @@ return $default(_that.id,_that.sourceType,_that.title,_that.content,_that.charac
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  PlotSampleSourceType sourceType,  String title,  String content,  int characterCount,  String? sourceFilename,  String? epubBookTitle,  String? epubAuthor,  int? epubChapterCount,  DateTime createdAt,  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  PlotSampleSourceType sourceType,  String title,  String content,  int characterCount,  String? projectId,  String? sourceFilename,  String? epubBookTitle,  String? epubAuthor,  int? epubChapterCount,  DateTime createdAt,  DateTime updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _PlotSample() when $default != null:
-return $default(_that.id,_that.sourceType,_that.title,_that.content,_that.characterCount,_that.sourceFilename,_that.epubBookTitle,_that.epubAuthor,_that.epubChapterCount,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.sourceType,_that.title,_that.content,_that.characterCount,_that.projectId,_that.sourceFilename,_that.epubBookTitle,_that.epubAuthor,_that.epubChapterCount,_that.createdAt,_that.updatedAt);case _:
   return null;
 
 }
@@ -219,7 +220,7 @@ return $default(_that.id,_that.sourceType,_that.title,_that.content,_that.charac
 @JsonSerializable()
 
 class _PlotSample implements PlotSample {
-  const _PlotSample({required this.id, required this.sourceType, required this.title, required this.content, required this.characterCount, this.sourceFilename, this.epubBookTitle, this.epubAuthor, this.epubChapterCount, required this.createdAt, required this.updatedAt});
+  const _PlotSample({required this.id, required this.sourceType, required this.title, required this.content, required this.characterCount, this.projectId, this.sourceFilename, this.epubBookTitle, this.epubAuthor, this.epubChapterCount, required this.createdAt, required this.updatedAt});
   factory _PlotSample.fromJson(Map<String, dynamic> json) => _$PlotSampleFromJson(json);
 
 @override final  String id;
@@ -227,6 +228,7 @@ class _PlotSample implements PlotSample {
 @override final  String title;
 @override final  String content;
 @override final  int characterCount;
+@override final  String? projectId;
 @override final  String? sourceFilename;
 @override final  String? epubBookTitle;
 @override final  String? epubAuthor;
@@ -247,16 +249,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlotSample&&(identical(other.id, id) || other.id == id)&&(identical(other.sourceType, sourceType) || other.sourceType == sourceType)&&(identical(other.title, title) || other.title == title)&&(identical(other.content, content) || other.content == content)&&(identical(other.characterCount, characterCount) || other.characterCount == characterCount)&&(identical(other.sourceFilename, sourceFilename) || other.sourceFilename == sourceFilename)&&(identical(other.epubBookTitle, epubBookTitle) || other.epubBookTitle == epubBookTitle)&&(identical(other.epubAuthor, epubAuthor) || other.epubAuthor == epubAuthor)&&(identical(other.epubChapterCount, epubChapterCount) || other.epubChapterCount == epubChapterCount)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlotSample&&(identical(other.id, id) || other.id == id)&&(identical(other.sourceType, sourceType) || other.sourceType == sourceType)&&(identical(other.title, title) || other.title == title)&&(identical(other.content, content) || other.content == content)&&(identical(other.characterCount, characterCount) || other.characterCount == characterCount)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.sourceFilename, sourceFilename) || other.sourceFilename == sourceFilename)&&(identical(other.epubBookTitle, epubBookTitle) || other.epubBookTitle == epubBookTitle)&&(identical(other.epubAuthor, epubAuthor) || other.epubAuthor == epubAuthor)&&(identical(other.epubChapterCount, epubChapterCount) || other.epubChapterCount == epubChapterCount)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,sourceType,title,content,characterCount,sourceFilename,epubBookTitle,epubAuthor,epubChapterCount,createdAt,updatedAt);
+int get hashCode => Object.hash(runtimeType,id,sourceType,title,content,characterCount,projectId,sourceFilename,epubBookTitle,epubAuthor,epubChapterCount,createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'PlotSample(id: $id, sourceType: $sourceType, title: $title, content: $content, characterCount: $characterCount, sourceFilename: $sourceFilename, epubBookTitle: $epubBookTitle, epubAuthor: $epubAuthor, epubChapterCount: $epubChapterCount, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'PlotSample(id: $id, sourceType: $sourceType, title: $title, content: $content, characterCount: $characterCount, projectId: $projectId, sourceFilename: $sourceFilename, epubBookTitle: $epubBookTitle, epubAuthor: $epubAuthor, epubChapterCount: $epubChapterCount, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -267,7 +269,7 @@ abstract mixin class _$PlotSampleCopyWith<$Res> implements $PlotSampleCopyWith<$
   factory _$PlotSampleCopyWith(_PlotSample value, $Res Function(_PlotSample) _then) = __$PlotSampleCopyWithImpl;
 @override @useResult
 $Res call({
- String id, PlotSampleSourceType sourceType, String title, String content, int characterCount, String? sourceFilename, String? epubBookTitle, String? epubAuthor, int? epubChapterCount, DateTime createdAt, DateTime updatedAt
+ String id, PlotSampleSourceType sourceType, String title, String content, int characterCount, String? projectId, String? sourceFilename, String? epubBookTitle, String? epubAuthor, int? epubChapterCount, DateTime createdAt, DateTime updatedAt
 });
 
 
@@ -284,14 +286,15 @@ class __$PlotSampleCopyWithImpl<$Res>
 
 /// Create a copy of PlotSample
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? sourceType = null,Object? title = null,Object? content = null,Object? characterCount = null,Object? sourceFilename = freezed,Object? epubBookTitle = freezed,Object? epubAuthor = freezed,Object? epubChapterCount = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? sourceType = null,Object? title = null,Object? content = null,Object? characterCount = null,Object? projectId = freezed,Object? sourceFilename = freezed,Object? epubBookTitle = freezed,Object? epubAuthor = freezed,Object? epubChapterCount = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_PlotSample(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,sourceType: null == sourceType ? _self.sourceType : sourceType // ignore: cast_nullable_to_non_nullable
 as PlotSampleSourceType,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,content: null == content ? _self.content : content // ignore: cast_nullable_to_non_nullable
 as String,characterCount: null == characterCount ? _self.characterCount : characterCount // ignore: cast_nullable_to_non_nullable
-as int,sourceFilename: freezed == sourceFilename ? _self.sourceFilename : sourceFilename // ignore: cast_nullable_to_non_nullable
+as int,projectId: freezed == projectId ? _self.projectId : projectId // ignore: cast_nullable_to_non_nullable
+as String?,sourceFilename: freezed == sourceFilename ? _self.sourceFilename : sourceFilename // ignore: cast_nullable_to_non_nullable
 as String?,epubBookTitle: freezed == epubBookTitle ? _self.epubBookTitle : epubBookTitle // ignore: cast_nullable_to_non_nullable
 as String?,epubAuthor: freezed == epubAuthor ? _self.epubAuthor : epubAuthor // ignore: cast_nullable_to_non_nullable
 as String?,epubChapterCount: freezed == epubChapterCount ? _self.epubChapterCount : epubChapterCount // ignore: cast_nullable_to_non_nullable

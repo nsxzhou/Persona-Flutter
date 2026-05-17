@@ -50,7 +50,7 @@ class StyleAnalysisPipeline {
       runId: run.id,
       providerId: provider.id,
       providerApiKey: provider.apiKey,
-      modelName: provider.defaultModel,
+      modelName: run.modelName,
       stageLabel: () => currentStage?.name,
     );
     final log = StringBuffer(run.logs);
@@ -116,6 +116,7 @@ class StyleAnalysisPipeline {
         final analysis = await _completionService.completeMarkdown(
           provider: provider,
           prompt: prompt,
+          modelName: run.modelName,
           promptTrace: traceRecorder.config(
             label: 'chunk_analysis_${index + 1}',
           ),
@@ -141,6 +142,7 @@ class StyleAnalysisPipeline {
                 chunkAnalyses: chunkAnalyses,
                 classification: classification,
               ),
+              modelName: run.modelName,
               promptTrace: traceRecorder.config(label: 'merge_chunks'),
             );
 
@@ -155,6 +157,7 @@ class StyleAnalysisPipeline {
           mergedAnalysisMarkdown: merged,
           classification: classification,
         ),
+        modelName: run.modelName,
         promptTrace: traceRecorder.config(label: 'build_report'),
       );
 
@@ -171,6 +174,7 @@ class StyleAnalysisPipeline {
           styleName: run.styleName,
         ),
         temperature: 0.35,
+        modelName: run.modelName,
         promptTrace: traceRecorder.config(label: 'build_voice_profile'),
       );
       final normalizedProfile = await _validateOrRepairVoiceProfile(
@@ -237,6 +241,7 @@ class StyleAnalysisPipeline {
         ),
         temperature: 0,
         maxAttempts: 1,
+        modelName: traceRecorder.modelName,
         promptTrace: traceRecorder.config(label: 'repair_voice_profile'),
       );
       _frontMatterParser.parse(repaired);

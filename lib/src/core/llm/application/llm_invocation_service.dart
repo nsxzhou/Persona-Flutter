@@ -20,8 +20,12 @@ class LlmInvocationService {
     required String businessSystemPrompt,
     required List<LlmMessage> messages,
     double temperature = 0.7,
+    String? modelName,
     LlmPromptTraceConfig? promptTrace,
   }) async* {
+    final resolvedModelName = modelName?.trim().isNotEmpty == true
+        ? modelName!.trim()
+        : provider.defaultModel;
     final systemPrompt = _promptComposer.compose(
       businessSystemPrompt: businessSystemPrompt,
       providerSystemPrompt: provider.systemPrompt,
@@ -38,7 +42,7 @@ class LlmInvocationService {
         provider: provider,
         request: LlmRequest(
           messages: requestMessages,
-          model: provider.defaultModel,
+          model: resolvedModelName,
           temperature: temperature,
         ),
       )) {
@@ -51,7 +55,7 @@ class LlmInvocationService {
         promptTrace,
         LlmPromptTraceEvent(
           label: promptTrace?.label ?? 'chat',
-          modelName: provider.defaultModel,
+          modelName: resolvedModelName,
           temperature: temperature,
           messages: requestMessages,
           startedAt: startedAt,
@@ -64,7 +68,7 @@ class LlmInvocationService {
         promptTrace,
         LlmPromptTraceEvent(
           label: promptTrace?.label ?? 'chat',
-          modelName: provider.defaultModel,
+          modelName: resolvedModelName,
           temperature: temperature,
           messages: requestMessages,
           startedAt: startedAt,

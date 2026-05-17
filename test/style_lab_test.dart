@@ -180,6 +180,8 @@ void main() {
       expect(prompt, contains(section));
     }
     expect(prompt, contains('Voice Profile 必须去样本化'));
+    expect(prompt, contains('YAML front matter 和 Markdown 正文都不得保留样本人物名'));
+    expect(prompt, contains('具体角色名'));
     expect(
       builder.buildVoiceProfileRepairPrompt(
         invalidProfileMarkdown: 'missing closing delimiter',
@@ -221,23 +223,22 @@ void main() {
       StyleAnalysisRunInput(
         sampleId: sample.id,
         providerId: provider.id,
-        modelName: provider.defaultModel,
+        modelName: 'deepseek-reasoner',
         styleName: '冷雨风格',
         characterCount: sample.characterCount,
       ),
     );
+    final client = _QueuedLlmClient([
+      '# 执行摘要\nchunk',
+      '# 执行摘要\nreport',
+      _validProfile,
+    ]);
 
     final pipeline = StyleAnalysisPipeline(
       repository: repository,
       workflowTaskRepository: DriftWorkflowTaskRepository(database),
       completionService: MarkdownCompletionService(
-        invocation: LlmInvocationService(
-          client: _QueuedLlmClient([
-            '# 执行摘要\nchunk',
-            '# 执行摘要\nreport',
-            _validProfile,
-          ]),
-        ),
+        invocation: LlmInvocationService(client: client),
       ),
     );
 
@@ -256,6 +257,12 @@ void main() {
     expect(trace.traceMarkdown, contains('chunk_analysis_1'));
     expect(trace.traceMarkdown, contains('build_report'));
     expect(trace.traceMarkdown, contains('build_voice_profile'));
+    expect(client.modelNames, [
+      'deepseek-reasoner',
+      'deepseek-reasoner',
+      'deepseek-reasoner',
+    ]);
+    expect(trace.traceMarkdown, contains('model_name: "deepseek-reasoner"'));
   });
 
   test(
@@ -350,6 +357,63 @@ void main() {
       expect(trace, isNotNull);
       expect(trace!.traceMarkdown, contains('calls: 4'));
       expect(trace.traceMarkdown, contains('repair_voice_profile'));
+    },
+  );
+
+  test(
+    'style analysis pipeline does not reject common wording in voice profile',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final (provider, repository) = await _styleLabTestContext(database);
+      final sample = await repository.saveSample(
+        const StyleSampleInput(
+          sourceType: StyleSampleSourceType.txt,
+          title: '口语样本',
+          content: '知不知我们除非什么一个你知不知不是。',
+        ),
+      );
+      final run = await repository.createRun(
+        StyleAnalysisRunInput(
+          sampleId: sample.id,
+          providerId: provider.id,
+          modelName: provider.defaultModel,
+          styleName: '冷雨风格',
+          characterCount: sample.characterCount,
+        ),
+      );
+      final profileWithCommonWords = _validProfile.replaceFirst(
+        '短句推进。',
+        '知不知、我们、除非、什么、一个、你知、不知、不是都可以作为口语节奏证据。',
+      );
+      final client = _QueuedLlmClient([
+        '# 执行摘要\nchunk',
+        '# 执行摘要\nreport',
+        profileWithCommonWords,
+      ]);
+      final pipeline = StyleAnalysisPipeline(
+        repository: repository,
+        workflowTaskRepository: DriftWorkflowTaskRepository(database),
+        completionService: MarkdownCompletionService(
+          invocation: LlmInvocationService(client: client),
+        ),
+      );
+
+      await pipeline.run(runId: run.id, provider: provider);
+
+      final updated = await repository.findRun(run.id);
+      expect(updated!.status, StyleAnalysisStatus.succeeded);
+      expect(updated.voiceProfileMarkdown, contains('知不知、我们、除非'));
+      expect(client.invocationCount, 3);
+      final trace = await DriftWorkflowTaskRepository(
+        database,
+      ).watchPromptTrace(run.workflowTaskId).first;
+      expect(trace, isNotNull);
+      expect(trace!.traceMarkdown, contains('calls: 3'));
+      expect(
+        trace.traceMarkdown,
+        isNot(contains('repair_voice_profile_desample')),
+      );
     },
   );
 
@@ -452,6 +516,7 @@ class _QueuedLlmClient implements LlmClient {
 
   final List<String> _responses;
   var invocationCount = 0;
+  final modelNames = <String>[];
 
   @override
   Stream<LlmStreamEvent> streamChat({
@@ -459,6 +524,7 @@ class _QueuedLlmClient implements LlmClient {
     required LlmRequest request,
   }) async* {
     invocationCount += 1;
+    modelNames.add(request.model);
     if (_responses.isEmpty) {
       yield const LlmStreamDone();
       return;

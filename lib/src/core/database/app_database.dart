@@ -50,6 +50,17 @@ class ProviderConfigRecords extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+class ProviderModelRecords extends Table {
+  TextColumn get providerId => text().references(ProviderConfigRecords, #id)();
+  TextColumn get modelName => text()();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {providerId, modelName};
+}
+
 class ProjectRecords extends Table {
   TextColumn get id => text()();
   TextColumn get title => text()();
@@ -137,6 +148,8 @@ class PlotSampleRecords extends Table {
   TextColumn get title => text()();
   TextColumn get content => text()();
   IntColumn get characterCount => integer()();
+  TextColumn get projectId =>
+      text().nullable().references(ProjectRecords, #id)();
   TextColumn get sourceFilename => text().nullable()();
   TextColumn get epubBookTitle => text().nullable()();
   TextColumn get epubAuthor => text().nullable()();
@@ -156,6 +169,8 @@ class PlotAnalysisRunRecords extends Table {
   TextColumn get providerId => text().references(ProviderConfigRecords, #id)();
   TextColumn get modelName => text()();
   TextColumn get plotName => text()();
+  TextColumn get projectId =>
+      text().nullable().references(ProjectRecords, #id)();
   TextColumn get status => text()();
   TextColumn get stage => text().nullable()();
   TextColumn get errorMessage => text().nullable()();
@@ -185,6 +200,8 @@ class PlotProfileRecords extends Table {
   TextColumn get storyEngineMarkdown => text()();
   TextColumn get analysisReportMarkdown => text()();
   TextColumn get plotSkeletonMarkdown => text()();
+  TextColumn get projectId =>
+      text().nullable().references(ProjectRecords, #id)();
   TextColumn get sourceSampleId =>
       text().nullable().references(PlotSampleRecords, #id)();
   TextColumn get sourceTitle => text().nullable()();
@@ -200,6 +217,7 @@ class PlotProfileRecords extends Table {
     WorkflowTaskRecords,
     WorkflowPromptTraceRecords,
     ProviderConfigRecords,
+    ProviderModelRecords,
     ProjectRecords,
     StyleSampleRecords,
     StyleAnalysisRunRecords,
@@ -213,7 +231,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration {
@@ -244,6 +262,28 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 7) {
           await migrator.createTable(workflowPromptTraceRecords);
+        }
+        if (from < 8) {
+          await migrator.createTable(providerModelRecords);
+          await customStatement('''
+            INSERT INTO provider_model_records
+              (provider_id, model_name, sort_order, created_at, updated_at)
+            SELECT id, default_model, 0, created_at, updated_at
+            FROM provider_config_records
+            WHERE TRIM(default_model) <> ''
+          ''');
+          await migrator.addColumn(
+            plotSampleRecords,
+            plotSampleRecords.projectId,
+          );
+          await migrator.addColumn(
+            plotAnalysisRunRecords,
+            plotAnalysisRunRecords.projectId,
+          );
+          await migrator.addColumn(
+            plotProfileRecords,
+            plotProfileRecords.projectId,
+          );
         }
       },
     );

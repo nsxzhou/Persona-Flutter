@@ -13,6 +13,7 @@ abstract class PlotSample with _$PlotSample {
     required String title,
     required String content,
     required int characterCount,
+    String? projectId,
     String? sourceFilename,
     String? epubBookTitle,
     String? epubAuthor,
@@ -30,6 +31,7 @@ class PlotSampleInput {
     required this.sourceType,
     required this.title,
     required this.content,
+    this.projectId,
     this.sourceFilename,
     this.epubBookTitle,
     this.epubAuthor,
@@ -39,6 +41,7 @@ class PlotSampleInput {
   final PlotSampleSourceType sourceType;
   final String title;
   final String content;
+  final String? projectId;
   final String? sourceFilename;
   final String? epubBookTitle;
   final String? epubAuthor;

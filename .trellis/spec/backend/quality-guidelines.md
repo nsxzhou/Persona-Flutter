@@ -153,6 +153,7 @@ Feature code depends on `LlmInvocationService` / `LlmClient`; only `core/llm/dat
 - If an LLM artifact needs repair, do it in the owning pipeline with a separate repair prompt and prompt-trace label; keep the parser strict so malformed persisted artifacts cannot pass silently.
 - Feature pipelines may convert parsed YAML fields into domain objects for downstream aggregation, but the LLM-facing and persisted artifact format remains `YAML+MD`.
 - Plain reports and intermediate summaries that are not reusable artifacts may remain Markdown-only.
+- Preview surfaces for reusable `YAML+MD` artifacts should render the Markdown body, not the YAML front matter; source/edit modes still expose the full document.
 
 ### 4. Validation & Error Matrix
 - Output does not start with `---` when YAML is required -> validation error.
@@ -173,6 +174,7 @@ Feature code depends on `LlmInvocationService` / `LlmClient`; only `core/llm/dat
 - Pipeline tests confirming Plot sketches still become structured inputs for skeleton/report/story-engine generation.
 - Pipeline tests for any repair pass, including the malformed input, repaired output, and prompt trace label.
 - UI/widget tests should keep validating that saved artifacts are shown as `YAML+MD` where the page exposes source editing or validation state.
+- UI/widget tests should validate that preview mode strips YAML front matter and renders only the artifact body.
 
 ### 7. Wrong vs Correct
 #### Wrong

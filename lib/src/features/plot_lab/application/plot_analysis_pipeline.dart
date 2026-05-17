@@ -60,7 +60,7 @@ class PlotAnalysisPipeline {
       runId: run.id,
       providerId: provider.id,
       providerApiKey: provider.apiKey,
-      modelName: provider.defaultModel,
+      modelName: run.modelName,
       stageLabel: () => currentStage?.name,
     );
     final log = StringBuffer(run.logs);
@@ -121,6 +121,7 @@ class PlotAnalysisPipeline {
       for (var index = 0; index < chunks.length; index += 1) {
         final raw = await _completionService.completeMarkdown(
           provider: provider,
+          modelName: run.modelName,
           prompt: _promptBuilder.buildSketchPrompt(
             chunk: chunks[index],
             chunkIndex: index,
@@ -152,6 +153,7 @@ class PlotAnalysisPipeline {
       );
       final skeleton = await _buildSkeleton(
         provider: provider,
+        modelName: run.modelName,
         sketches: sketches,
         classification: classification,
         chunkCount: chunks.length,
@@ -170,6 +172,7 @@ class PlotAnalysisPipeline {
           plotSkeletonMarkdown: skeleton,
           classification: classification,
         ),
+        modelName: run.modelName,
         promptTrace: traceRecorder.config(label: 'build_report'),
       );
 
@@ -187,6 +190,7 @@ class PlotAnalysisPipeline {
           plotName: run.plotName,
         ),
         temperature: 0.35,
+        modelName: run.modelName,
         promptTrace: traceRecorder.config(label: 'build_story_engine'),
       );
       final storyEngine = _storyEngineNormalizer.normalize(storyEngineRaw);
@@ -258,6 +262,7 @@ class PlotAnalysisPipeline {
         ),
         temperature: 0,
         maxAttempts: 1,
+        modelName: traceRecorder.modelName,
         promptTrace: traceRecorder.config(
           label: 'repair_sketch_chunk_${chunkIndex + 1}',
         ),
@@ -277,6 +282,7 @@ class PlotAnalysisPipeline {
 
   Future<String> _buildSkeleton({
     required ProviderConfig provider,
+    required String modelName,
     required List<PlotChunkSketch> sketches,
     required PlotInputClassification classification,
     required int chunkCount,
@@ -297,11 +303,13 @@ class PlotAnalysisPipeline {
           chunkCount: chunkCount,
         ),
         temperature: 0.35,
+        modelName: modelName,
         promptTrace: traceRecorder.config(label: 'build_skeleton'),
       );
     }
     return _buildSkeletonHierarchically(
       provider: provider,
+      modelName: modelName,
       sketchPayload: sketchPayload,
       classification: classification,
       chunkCount: chunkCount,
@@ -311,6 +319,7 @@ class PlotAnalysisPipeline {
 
   Future<String> _buildSkeletonHierarchically({
     required ProviderConfig provider,
+    required String modelName,
     required List<Map<String, Object?>> sketchPayload,
     required PlotInputClassification classification,
     required int chunkCount,
@@ -340,6 +349,7 @@ class PlotAnalysisPipeline {
           classification: classification,
         ),
         temperature: 0.35,
+        modelName: modelName,
         promptTrace: traceRecorder.config(
           label: 'build_skeleton_group_${index + 1}',
         ),
@@ -358,6 +368,7 @@ class PlotAnalysisPipeline {
         chunkCount: chunkCount,
       ),
       temperature: 0.35,
+      modelName: modelName,
       promptTrace: traceRecorder.config(label: 'build_skeleton'),
     );
   }

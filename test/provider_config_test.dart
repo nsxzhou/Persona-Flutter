@@ -60,6 +60,7 @@ void main() {
       baseUrl: 'https://api.example.com/v1',
       apiKey: 'sk-test',
       defaultModel: 'gpt-4.1-mini',
+      modelNames: ['gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-mini', ' '],
       systemPrompt: 'Provider house rules',
       isEnabled: true,
     );
@@ -71,6 +72,7 @@ void main() {
     expect(saved.baseUrl, input.baseUrl);
     expect(saved.apiKey, input.apiKey);
     expect(saved.defaultModel, input.defaultModel);
+    expect(saved.modelNames, ['gpt-4.1-mini', 'gpt-4.1']);
     expect(saved.systemPrompt, input.systemPrompt);
     expect(saved.testStatus, ProviderTestStatus.untested);
 
@@ -92,6 +94,21 @@ void main() {
     expect(updated, isNotNull);
     expect(updated!.testStatus, ProviderTestStatus.succeeded);
     expect(updated.lastTestMessage, 'ok');
+
+    await repository.saveProvider(
+      id: saved.id,
+      input: const ProviderConfigInput(
+        name: 'OpenAI',
+        baseUrl: 'https://api.example.com/v1',
+        apiKey: 'sk-test',
+        defaultModel: 'gpt-4.1-nano',
+        modelNames: ['gpt-4.1-mini'],
+        systemPrompt: '',
+        isEnabled: true,
+      ),
+    );
+    final modelUpdated = await repository.findProvider(saved.id);
+    expect(modelUpdated!.modelNames, ['gpt-4.1-nano', 'gpt-4.1-mini']);
 
     await repository.deleteProvider(saved.id);
     expect(await repository.findProvider(saved.id), isNull);
@@ -161,6 +178,41 @@ void main() {
       LlmMessageRole.system,
       LlmMessageRole.user,
     ]);
+  });
+
+  test('llm invocation service can override provider default model', () async {
+    final provider = ProviderConfig(
+      id: 'provider-1',
+      name: 'OpenAI',
+      baseUrl: 'https://api.example.com/v1',
+      apiKey: 'sk-test',
+      defaultModel: 'gpt-4.1-mini',
+      modelNames: const ['gpt-4.1-mini', 'gpt-4.1'],
+      systemPrompt: '',
+      isEnabled: true,
+      testStatus: ProviderTestStatus.untested,
+      createdAt: DateTime.utc(2026),
+      updatedAt: DateTime.utc(2026),
+    );
+    final client = _CapturingLlmClient();
+    final service = LlmInvocationService(client: client);
+    LlmPromptTraceEvent? traceEvent;
+
+    await service
+        .streamChat(
+          provider: provider,
+          businessSystemPrompt: '',
+          messages: const [LlmMessage.user('hi')],
+          modelName: 'gpt-4.1',
+          promptTrace: LlmPromptTraceConfig(
+            label: 'test',
+            onComplete: (event) async => traceEvent = event,
+          ),
+        )
+        .drain<void>();
+
+    expect(client.capturedRequest?.model, 'gpt-4.1');
+    expect(traceEvent?.modelName, 'gpt-4.1');
   });
 
   test(

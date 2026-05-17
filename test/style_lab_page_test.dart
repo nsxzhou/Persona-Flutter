@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:persona_flutter/src/features/projects/application/project_providers.dart';
+import 'package:persona_flutter/src/features/projects/domain/writing_project.dart';
 import 'package:persona_flutter/src/features/settings/application/provider_config_providers.dart';
 import 'package:persona_flutter/src/features/settings/domain/provider_config.dart';
 import 'package:persona_flutter/src/features/style_lab/application/style_lab_providers.dart';
@@ -334,6 +336,9 @@ class _StyleLabTestApp extends StatelessWidget {
         ),
         providerConfigsProvider.overrideWith(
           (ref) => Stream<List<ProviderConfig>>.value([_provider()]),
+        ),
+        writingProjectsProvider.overrideWith(
+          (ref, status) => Stream<List<WritingProject>>.value(const []),
         ),
         styleLabRepositoryProvider.overrideWithValue(
           _FakeStyleLabRepository(

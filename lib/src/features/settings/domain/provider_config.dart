@@ -13,6 +13,7 @@ abstract class ProviderConfig with _$ProviderConfig {
     required String baseUrl,
     required String apiKey,
     required String defaultModel,
+    @Default(<String>[]) List<String> modelNames,
     @Default('') String systemPrompt,
     required bool isEnabled,
     required ProviderTestStatus testStatus,
@@ -32,6 +33,7 @@ class ProviderConfigInput {
     required this.baseUrl,
     required this.apiKey,
     required this.defaultModel,
+    this.modelNames = const <String>[],
     required this.systemPrompt,
     required this.isEnabled,
   });
@@ -40,6 +42,7 @@ class ProviderConfigInput {
   final String baseUrl;
   final String apiKey;
   final String defaultModel;
+  final List<String> modelNames;
   final String systemPrompt;
   final bool isEnabled;
 }

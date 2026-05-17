@@ -34,10 +34,12 @@ void main() {
           sourceType: PlotSampleSourceType.txt,
           title: '裂缝样本',
           content: '第一章 开端\n\n他被迫做出选择。',
+          projectId: 'project-1',
           sourceFilename: 'sample.txt',
         ),
       );
       expect(sample.characterCount, greaterThan(0));
+      expect(sample.projectId, 'project-1');
 
       final run = await repository.createRun(
         PlotAnalysisRunInput(
@@ -45,9 +47,11 @@ void main() {
           providerId: provider.id,
           modelName: provider.defaultModel,
           plotName: '裂缝骨架',
+          projectId: sample.projectId,
           characterCount: sample.characterCount,
         ),
       );
+      expect(run.projectId, 'project-1');
 
       await repository.updateRunState(
         id: run.id,
@@ -70,6 +74,7 @@ void main() {
       expect(profile.storyEngineMarkdown, contains('# Plot Writing Guide'));
       expect(profile.analysisReportMarkdown, contains('压力推进'));
       expect(profile.plotSkeletonMarkdown, contains('全书骨架'));
+      expect(profile.projectId, 'project-1');
 
       final updated = await repository.updateProfile(
         id: profile.id,
@@ -77,11 +82,13 @@ void main() {
           plotName: '裂缝骨架 v2',
           storyEngineMarkdown:
               '# Plot Writing Guide\n\n## Core Plot Formula\n- 新规则\n\n## Anti-Drift Rules\n- 不漂移',
+          projectId: 'project-2',
         ),
       );
       expect(updated.plotName, '裂缝骨架 v2');
       expect(updated.storyEngineMarkdown, contains('新规则'));
       expect(updated.analysisReportMarkdown, profile.analysisReportMarkdown);
+      expect(updated.projectId, 'project-2');
 
       final rerun = await repository.createRunFromExisting(run.id);
       expect(rerun.id, isNot(run.id));
@@ -357,7 +364,7 @@ intensity: 0.7
         PlotAnalysisRunInput(
           sampleId: sample.id,
           providerId: provider.id,
-          modelName: provider.defaultModel,
+          modelName: 'deepseek-reasoner',
           plotName: '裂缝骨架',
           characterCount: sample.characterCount,
         ),
@@ -396,6 +403,13 @@ intensity: 0.7
       expect(trace.traceMarkdown, contains('build_skeleton'));
       expect(trace.traceMarkdown, contains('build_report'));
       expect(trace.traceMarkdown, contains('build_story_engine'));
+      expect(client.modelNames, [
+        'deepseek-reasoner',
+        'deepseek-reasoner',
+        'deepseek-reasoner',
+        'deepseek-reasoner',
+      ]);
+      expect(trace.traceMarkdown, contains('model_name: "deepseek-reasoner"'));
     },
   );
 
@@ -693,6 +707,7 @@ class _QueuedLlmClient implements LlmClient {
 
   final List<String> _responses;
   int invocationCount = 0;
+  final modelNames = <String>[];
 
   @override
   Stream<LlmStreamEvent> streamChat({
@@ -700,6 +715,7 @@ class _QueuedLlmClient implements LlmClient {
     required LlmRequest request,
   }) async* {
     invocationCount += 1;
+    modelNames.add(request.model);
     if (_responses.isEmpty) {
       yield const LlmStreamDone();
       return;

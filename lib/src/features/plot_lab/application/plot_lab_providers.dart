@@ -97,11 +97,24 @@ class PlotLabController extends _$PlotLabController {
     await ref.read(plotLabRepositoryProvider).markInterruptedRunsFailed();
   }
 
-  Future<PlotSample> importFile(String path) async {
+  Future<PlotSample> importFile(String path, {String? projectId}) async {
     state = const AsyncLoading();
     final result = await AsyncValue.guard(() async {
       final input = await ref.read(plotSampleImporterProvider).importFile(path);
-      return ref.read(plotLabRepositoryProvider).saveSample(input);
+      return ref
+          .read(plotLabRepositoryProvider)
+          .saveSample(
+            PlotSampleInput(
+              sourceType: input.sourceType,
+              title: input.title,
+              content: input.content,
+              projectId: projectId ?? input.projectId,
+              sourceFilename: input.sourceFilename,
+              epubBookTitle: input.epubBookTitle,
+              epubAuthor: input.epubAuthor,
+              epubChapterCount: input.epubChapterCount,
+            ),
+          );
     });
     state = result.whenData((_) {});
     return result.requireValue;
@@ -110,7 +123,9 @@ class PlotLabController extends _$PlotLabController {
   Future<PlotAnalysisRun> createAndRun({
     required String sampleId,
     required String providerId,
+    required String modelName,
     required String plotName,
+    String? projectId,
   }) async {
     state = const AsyncLoading();
     final result = await AsyncValue.guard(() async {
@@ -132,8 +147,11 @@ class PlotLabController extends _$PlotLabController {
         PlotAnalysisRunInput(
           sampleId: sample.id,
           providerId: provider.id,
-          modelName: provider.defaultModel,
+          modelName: modelName.trim().isEmpty
+              ? provider.defaultModel
+              : modelName.trim(),
           plotName: plotName.trim().isEmpty ? sample.title : plotName.trim(),
+          projectId: projectId ?? sample.projectId,
           characterCount: sample.characterCount,
         ),
       );
@@ -187,6 +205,7 @@ class PlotLabController extends _$PlotLabController {
     required String runId,
     required String plotName,
     required String storyEngineMarkdown,
+    String? projectId,
   }) async {
     state = const AsyncLoading();
     final result = await AsyncValue.guard(() async {
@@ -203,6 +222,7 @@ class PlotLabController extends _$PlotLabController {
               runId: runId,
               plotName: plotName,
               storyEngineMarkdown: normalized,
+              projectId: projectId,
             ),
           );
     });
@@ -214,6 +234,7 @@ class PlotLabController extends _$PlotLabController {
     required String id,
     required String plotName,
     required String storyEngineMarkdown,
+    String? projectId,
   }) async {
     state = const AsyncLoading();
     final result = await AsyncValue.guard(() async {
@@ -230,6 +251,7 @@ class PlotLabController extends _$PlotLabController {
             input: PlotProfileUpdateInput(
               plotName: plotName,
               storyEngineMarkdown: normalized,
+              projectId: projectId,
             ),
           );
     });

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:persona_flutter/src/features/projects/application/project_providers.dart';
+import 'package:persona_flutter/src/features/projects/domain/writing_project.dart';
 import 'package:persona_flutter/src/features/plot_lab/application/plot_lab_providers.dart';
 import 'package:persona_flutter/src/features/plot_lab/domain/plot_analysis_run.dart';
 import 'package:persona_flutter/src/features/plot_lab/domain/plot_lab_repository.dart';
@@ -100,6 +102,13 @@ void main() {
     expect(find.text('保存为 Profile'), findsOneWidget);
     expect(find.text('YAML+MD 有效'), findsOneWidget);
     expect(find.text('全书骨架'), findsWidgets);
+    await tester.tap(find.text('预览'));
+    await _pumpPlotLab(tester);
+
+    expect(find.text('Plot Writing Guide'), findsOneWidget);
+    expect(find.textContaining('plot_summary'), findsNothing);
+    expect(find.textContaining('intensity'), findsNothing);
+
     await tester.tap(find.text('任务日志'));
     await _pumpPlotLab(tester);
 
@@ -187,6 +196,9 @@ class _PlotLabTestApp extends StatelessWidget {
         ),
         providerConfigsProvider.overrideWith(
           (ref) => Stream<List<ProviderConfig>>.value([_provider()]),
+        ),
+        writingProjectsProvider.overrideWith(
+          (ref, status) => Stream<List<WritingProject>>.value(const []),
         ),
         plotLabRepositoryProvider.overrideWithValue(
           _FakePlotLabRepository(

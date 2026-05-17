@@ -65,6 +65,7 @@ class DriftPlotLabRepository implements PlotLabRepository {
             title: title,
             content: normalizedContent,
             characterCount: normalizedContent.runes.length,
+            projectId: Value(_blankToNull(input.projectId)),
             sourceFilename: Value(_blankToNull(input.sourceFilename)),
             epubBookTitle: Value(_blankToNull(input.epubBookTitle)),
             epubAuthor: Value(_blankToNull(input.epubAuthor)),
@@ -158,6 +159,7 @@ class DriftPlotLabRepository implements PlotLabRepository {
               providerId: input.providerId,
               modelName: input.modelName.trim(),
               plotName: plotName,
+              projectId: Value(_blankToNull(input.projectId)),
               status: PlotAnalysisStatus.pending.name,
               stage: const Value(null),
               errorMessage: const Value(null),
@@ -195,6 +197,7 @@ class DriftPlotLabRepository implements PlotLabRepository {
         providerId: existing.providerId,
         modelName: existing.modelName,
         plotName: existing.plotName,
+        projectId: existing.projectId,
         characterCount: existing.characterCount,
       ),
     );
@@ -394,6 +397,7 @@ class DriftPlotLabRepository implements PlotLabRepository {
               storyEngineMarkdown: Value(input.storyEngineMarkdown.trim()),
               analysisReportMarkdown: Value(run.analysisReportMarkdown!),
               plotSkeletonMarkdown: Value(run.plotSkeletonMarkdown!),
+              projectId: Value(_blankToNull(input.projectId ?? run.projectId)),
               sourceSampleId: Value(run.sampleId),
               sourceTitle: Value(sample?.title),
               createdAt: Value(existing?.createdAt ?? now),
@@ -436,6 +440,7 @@ class DriftPlotLabRepository implements PlotLabRepository {
       PlotProfileRecordsCompanion(
         plotName: Value(input.plotName.trim()),
         storyEngineMarkdown: Value(storyEngine),
+        projectId: Value(_blankToNull(input.projectId)),
         updatedAt: Value(DateTime.now()),
       ),
     );
@@ -479,6 +484,7 @@ class DriftPlotLabRepository implements PlotLabRepository {
       title: row.title,
       content: row.content,
       characterCount: row.characterCount,
+      projectId: row.projectId,
       sourceFilename: row.sourceFilename,
       epubBookTitle: row.epubBookTitle,
       epubAuthor: row.epubAuthor,
@@ -496,6 +502,7 @@ class DriftPlotLabRepository implements PlotLabRepository {
       providerId: row.providerId,
       modelName: row.modelName,
       plotName: row.plotName,
+      projectId: row.projectId,
       status: PlotAnalysisStatus.values.byName(row.status),
       stage: row.stage == null
           ? null
@@ -525,6 +532,7 @@ class DriftPlotLabRepository implements PlotLabRepository {
       storyEngineMarkdown: row.storyEngineMarkdown,
       analysisReportMarkdown: row.analysisReportMarkdown,
       plotSkeletonMarkdown: row.plotSkeletonMarkdown,
+      projectId: row.projectId,
       sourceSampleId: row.sourceSampleId,
       sourceTitle: row.sourceTitle,
       createdAt: row.createdAt,

@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$PlotAnalysisRun {
 
- String get id; String get workflowTaskId; String get sampleId; String get providerId; String get modelName; String get plotName; PlotAnalysisStatus get status; PlotAnalysisStage? get stage; String? get errorMessage; String get logs; String? get analysisReportMarkdown; String? get plotSkeletonMarkdown; String? get storyEngineMarkdown; String? get profileId; int get chunkCount; int get characterCount; DateTime get createdAt; DateTime get updatedAt; DateTime? get startedAt; DateTime? get completedAt;
+ String get id; String get workflowTaskId; String get sampleId; String get providerId; String get modelName; String get plotName; String? get projectId; PlotAnalysisStatus get status; PlotAnalysisStage? get stage; String? get errorMessage; String get logs; String? get analysisReportMarkdown; String? get plotSkeletonMarkdown; String? get storyEngineMarkdown; String? get profileId; int get chunkCount; int get characterCount; DateTime get createdAt; DateTime get updatedAt; DateTime? get startedAt; DateTime? get completedAt;
 /// Create a copy of PlotAnalysisRun
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $PlotAnalysisRunCopyWith<PlotAnalysisRun> get copyWith => _$PlotAnalysisRunCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlotAnalysisRun&&(identical(other.id, id) || other.id == id)&&(identical(other.workflowTaskId, workflowTaskId) || other.workflowTaskId == workflowTaskId)&&(identical(other.sampleId, sampleId) || other.sampleId == sampleId)&&(identical(other.providerId, providerId) || other.providerId == providerId)&&(identical(other.modelName, modelName) || other.modelName == modelName)&&(identical(other.plotName, plotName) || other.plotName == plotName)&&(identical(other.status, status) || other.status == status)&&(identical(other.stage, stage) || other.stage == stage)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.logs, logs) || other.logs == logs)&&(identical(other.analysisReportMarkdown, analysisReportMarkdown) || other.analysisReportMarkdown == analysisReportMarkdown)&&(identical(other.plotSkeletonMarkdown, plotSkeletonMarkdown) || other.plotSkeletonMarkdown == plotSkeletonMarkdown)&&(identical(other.storyEngineMarkdown, storyEngineMarkdown) || other.storyEngineMarkdown == storyEngineMarkdown)&&(identical(other.profileId, profileId) || other.profileId == profileId)&&(identical(other.chunkCount, chunkCount) || other.chunkCount == chunkCount)&&(identical(other.characterCount, characterCount) || other.characterCount == characterCount)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.startedAt, startedAt) || other.startedAt == startedAt)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlotAnalysisRun&&(identical(other.id, id) || other.id == id)&&(identical(other.workflowTaskId, workflowTaskId) || other.workflowTaskId == workflowTaskId)&&(identical(other.sampleId, sampleId) || other.sampleId == sampleId)&&(identical(other.providerId, providerId) || other.providerId == providerId)&&(identical(other.modelName, modelName) || other.modelName == modelName)&&(identical(other.plotName, plotName) || other.plotName == plotName)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.status, status) || other.status == status)&&(identical(other.stage, stage) || other.stage == stage)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.logs, logs) || other.logs == logs)&&(identical(other.analysisReportMarkdown, analysisReportMarkdown) || other.analysisReportMarkdown == analysisReportMarkdown)&&(identical(other.plotSkeletonMarkdown, plotSkeletonMarkdown) || other.plotSkeletonMarkdown == plotSkeletonMarkdown)&&(identical(other.storyEngineMarkdown, storyEngineMarkdown) || other.storyEngineMarkdown == storyEngineMarkdown)&&(identical(other.profileId, profileId) || other.profileId == profileId)&&(identical(other.chunkCount, chunkCount) || other.chunkCount == chunkCount)&&(identical(other.characterCount, characterCount) || other.characterCount == characterCount)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.startedAt, startedAt) || other.startedAt == startedAt)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,workflowTaskId,sampleId,providerId,modelName,plotName,status,stage,errorMessage,logs,analysisReportMarkdown,plotSkeletonMarkdown,storyEngineMarkdown,profileId,chunkCount,characterCount,createdAt,updatedAt,startedAt,completedAt]);
+int get hashCode => Object.hashAll([runtimeType,id,workflowTaskId,sampleId,providerId,modelName,plotName,projectId,status,stage,errorMessage,logs,analysisReportMarkdown,plotSkeletonMarkdown,storyEngineMarkdown,profileId,chunkCount,characterCount,createdAt,updatedAt,startedAt,completedAt]);
 
 @override
 String toString() {
-  return 'PlotAnalysisRun(id: $id, workflowTaskId: $workflowTaskId, sampleId: $sampleId, providerId: $providerId, modelName: $modelName, plotName: $plotName, status: $status, stage: $stage, errorMessage: $errorMessage, logs: $logs, analysisReportMarkdown: $analysisReportMarkdown, plotSkeletonMarkdown: $plotSkeletonMarkdown, storyEngineMarkdown: $storyEngineMarkdown, profileId: $profileId, chunkCount: $chunkCount, characterCount: $characterCount, createdAt: $createdAt, updatedAt: $updatedAt, startedAt: $startedAt, completedAt: $completedAt)';
+  return 'PlotAnalysisRun(id: $id, workflowTaskId: $workflowTaskId, sampleId: $sampleId, providerId: $providerId, modelName: $modelName, plotName: $plotName, projectId: $projectId, status: $status, stage: $stage, errorMessage: $errorMessage, logs: $logs, analysisReportMarkdown: $analysisReportMarkdown, plotSkeletonMarkdown: $plotSkeletonMarkdown, storyEngineMarkdown: $storyEngineMarkdown, profileId: $profileId, chunkCount: $chunkCount, characterCount: $characterCount, createdAt: $createdAt, updatedAt: $updatedAt, startedAt: $startedAt, completedAt: $completedAt)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $PlotAnalysisRunCopyWith<$Res>  {
   factory $PlotAnalysisRunCopyWith(PlotAnalysisRun value, $Res Function(PlotAnalysisRun) _then) = _$PlotAnalysisRunCopyWithImpl;
 @useResult
 $Res call({
- String id, String workflowTaskId, String sampleId, String providerId, String modelName, String plotName, PlotAnalysisStatus status, PlotAnalysisStage? stage, String? errorMessage, String logs, String? analysisReportMarkdown, String? plotSkeletonMarkdown, String? storyEngineMarkdown, String? profileId, int chunkCount, int characterCount, DateTime createdAt, DateTime updatedAt, DateTime? startedAt, DateTime? completedAt
+ String id, String workflowTaskId, String sampleId, String providerId, String modelName, String plotName, String? projectId, PlotAnalysisStatus status, PlotAnalysisStage? stage, String? errorMessage, String logs, String? analysisReportMarkdown, String? plotSkeletonMarkdown, String? storyEngineMarkdown, String? profileId, int chunkCount, int characterCount, DateTime createdAt, DateTime updatedAt, DateTime? startedAt, DateTime? completedAt
 });
 
 
@@ -65,7 +65,7 @@ class _$PlotAnalysisRunCopyWithImpl<$Res>
 
 /// Create a copy of PlotAnalysisRun
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? workflowTaskId = null,Object? sampleId = null,Object? providerId = null,Object? modelName = null,Object? plotName = null,Object? status = null,Object? stage = freezed,Object? errorMessage = freezed,Object? logs = null,Object? analysisReportMarkdown = freezed,Object? plotSkeletonMarkdown = freezed,Object? storyEngineMarkdown = freezed,Object? profileId = freezed,Object? chunkCount = null,Object? characterCount = null,Object? createdAt = null,Object? updatedAt = null,Object? startedAt = freezed,Object? completedAt = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? workflowTaskId = null,Object? sampleId = null,Object? providerId = null,Object? modelName = null,Object? plotName = null,Object? projectId = freezed,Object? status = null,Object? stage = freezed,Object? errorMessage = freezed,Object? logs = null,Object? analysisReportMarkdown = freezed,Object? plotSkeletonMarkdown = freezed,Object? storyEngineMarkdown = freezed,Object? profileId = freezed,Object? chunkCount = null,Object? characterCount = null,Object? createdAt = null,Object? updatedAt = null,Object? startedAt = freezed,Object? completedAt = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,workflowTaskId: null == workflowTaskId ? _self.workflowTaskId : workflowTaskId // ignore: cast_nullable_to_non_nullable
@@ -73,7 +73,8 @@ as String,sampleId: null == sampleId ? _self.sampleId : sampleId // ignore: cast
 as String,providerId: null == providerId ? _self.providerId : providerId // ignore: cast_nullable_to_non_nullable
 as String,modelName: null == modelName ? _self.modelName : modelName // ignore: cast_nullable_to_non_nullable
 as String,plotName: null == plotName ? _self.plotName : plotName // ignore: cast_nullable_to_non_nullable
-as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as String,projectId: freezed == projectId ? _self.projectId : projectId // ignore: cast_nullable_to_non_nullable
+as String?,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as PlotAnalysisStatus,stage: freezed == stage ? _self.stage : stage // ignore: cast_nullable_to_non_nullable
 as PlotAnalysisStage?,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
 as String?,logs: null == logs ? _self.logs : logs // ignore: cast_nullable_to_non_nullable
@@ -172,10 +173,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String workflowTaskId,  String sampleId,  String providerId,  String modelName,  String plotName,  PlotAnalysisStatus status,  PlotAnalysisStage? stage,  String? errorMessage,  String logs,  String? analysisReportMarkdown,  String? plotSkeletonMarkdown,  String? storyEngineMarkdown,  String? profileId,  int chunkCount,  int characterCount,  DateTime createdAt,  DateTime updatedAt,  DateTime? startedAt,  DateTime? completedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String workflowTaskId,  String sampleId,  String providerId,  String modelName,  String plotName,  String? projectId,  PlotAnalysisStatus status,  PlotAnalysisStage? stage,  String? errorMessage,  String logs,  String? analysisReportMarkdown,  String? plotSkeletonMarkdown,  String? storyEngineMarkdown,  String? profileId,  int chunkCount,  int characterCount,  DateTime createdAt,  DateTime updatedAt,  DateTime? startedAt,  DateTime? completedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PlotAnalysisRun() when $default != null:
-return $default(_that.id,_that.workflowTaskId,_that.sampleId,_that.providerId,_that.modelName,_that.plotName,_that.status,_that.stage,_that.errorMessage,_that.logs,_that.analysisReportMarkdown,_that.plotSkeletonMarkdown,_that.storyEngineMarkdown,_that.profileId,_that.chunkCount,_that.characterCount,_that.createdAt,_that.updatedAt,_that.startedAt,_that.completedAt);case _:
+return $default(_that.id,_that.workflowTaskId,_that.sampleId,_that.providerId,_that.modelName,_that.plotName,_that.projectId,_that.status,_that.stage,_that.errorMessage,_that.logs,_that.analysisReportMarkdown,_that.plotSkeletonMarkdown,_that.storyEngineMarkdown,_that.profileId,_that.chunkCount,_that.characterCount,_that.createdAt,_that.updatedAt,_that.startedAt,_that.completedAt);case _:
   return orElse();
 
 }
@@ -193,10 +194,10 @@ return $default(_that.id,_that.workflowTaskId,_that.sampleId,_that.providerId,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String workflowTaskId,  String sampleId,  String providerId,  String modelName,  String plotName,  PlotAnalysisStatus status,  PlotAnalysisStage? stage,  String? errorMessage,  String logs,  String? analysisReportMarkdown,  String? plotSkeletonMarkdown,  String? storyEngineMarkdown,  String? profileId,  int chunkCount,  int characterCount,  DateTime createdAt,  DateTime updatedAt,  DateTime? startedAt,  DateTime? completedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String workflowTaskId,  String sampleId,  String providerId,  String modelName,  String plotName,  String? projectId,  PlotAnalysisStatus status,  PlotAnalysisStage? stage,  String? errorMessage,  String logs,  String? analysisReportMarkdown,  String? plotSkeletonMarkdown,  String? storyEngineMarkdown,  String? profileId,  int chunkCount,  int characterCount,  DateTime createdAt,  DateTime updatedAt,  DateTime? startedAt,  DateTime? completedAt)  $default,) {final _that = this;
 switch (_that) {
 case _PlotAnalysisRun():
-return $default(_that.id,_that.workflowTaskId,_that.sampleId,_that.providerId,_that.modelName,_that.plotName,_that.status,_that.stage,_that.errorMessage,_that.logs,_that.analysisReportMarkdown,_that.plotSkeletonMarkdown,_that.storyEngineMarkdown,_that.profileId,_that.chunkCount,_that.characterCount,_that.createdAt,_that.updatedAt,_that.startedAt,_that.completedAt);case _:
+return $default(_that.id,_that.workflowTaskId,_that.sampleId,_that.providerId,_that.modelName,_that.plotName,_that.projectId,_that.status,_that.stage,_that.errorMessage,_that.logs,_that.analysisReportMarkdown,_that.plotSkeletonMarkdown,_that.storyEngineMarkdown,_that.profileId,_that.chunkCount,_that.characterCount,_that.createdAt,_that.updatedAt,_that.startedAt,_that.completedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -213,10 +214,10 @@ return $default(_that.id,_that.workflowTaskId,_that.sampleId,_that.providerId,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String workflowTaskId,  String sampleId,  String providerId,  String modelName,  String plotName,  PlotAnalysisStatus status,  PlotAnalysisStage? stage,  String? errorMessage,  String logs,  String? analysisReportMarkdown,  String? plotSkeletonMarkdown,  String? storyEngineMarkdown,  String? profileId,  int chunkCount,  int characterCount,  DateTime createdAt,  DateTime updatedAt,  DateTime? startedAt,  DateTime? completedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String workflowTaskId,  String sampleId,  String providerId,  String modelName,  String plotName,  String? projectId,  PlotAnalysisStatus status,  PlotAnalysisStage? stage,  String? errorMessage,  String logs,  String? analysisReportMarkdown,  String? plotSkeletonMarkdown,  String? storyEngineMarkdown,  String? profileId,  int chunkCount,  int characterCount,  DateTime createdAt,  DateTime updatedAt,  DateTime? startedAt,  DateTime? completedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _PlotAnalysisRun() when $default != null:
-return $default(_that.id,_that.workflowTaskId,_that.sampleId,_that.providerId,_that.modelName,_that.plotName,_that.status,_that.stage,_that.errorMessage,_that.logs,_that.analysisReportMarkdown,_that.plotSkeletonMarkdown,_that.storyEngineMarkdown,_that.profileId,_that.chunkCount,_that.characterCount,_that.createdAt,_that.updatedAt,_that.startedAt,_that.completedAt);case _:
+return $default(_that.id,_that.workflowTaskId,_that.sampleId,_that.providerId,_that.modelName,_that.plotName,_that.projectId,_that.status,_that.stage,_that.errorMessage,_that.logs,_that.analysisReportMarkdown,_that.plotSkeletonMarkdown,_that.storyEngineMarkdown,_that.profileId,_that.chunkCount,_that.characterCount,_that.createdAt,_that.updatedAt,_that.startedAt,_that.completedAt);case _:
   return null;
 
 }
@@ -228,7 +229,7 @@ return $default(_that.id,_that.workflowTaskId,_that.sampleId,_that.providerId,_t
 @JsonSerializable()
 
 class _PlotAnalysisRun implements PlotAnalysisRun {
-  const _PlotAnalysisRun({required this.id, required this.workflowTaskId, required this.sampleId, required this.providerId, required this.modelName, required this.plotName, required this.status, this.stage, this.errorMessage, this.logs = '', this.analysisReportMarkdown, this.plotSkeletonMarkdown, this.storyEngineMarkdown, this.profileId, required this.chunkCount, required this.characterCount, required this.createdAt, required this.updatedAt, this.startedAt, this.completedAt});
+  const _PlotAnalysisRun({required this.id, required this.workflowTaskId, required this.sampleId, required this.providerId, required this.modelName, required this.plotName, this.projectId, required this.status, this.stage, this.errorMessage, this.logs = '', this.analysisReportMarkdown, this.plotSkeletonMarkdown, this.storyEngineMarkdown, this.profileId, required this.chunkCount, required this.characterCount, required this.createdAt, required this.updatedAt, this.startedAt, this.completedAt});
   factory _PlotAnalysisRun.fromJson(Map<String, dynamic> json) => _$PlotAnalysisRunFromJson(json);
 
 @override final  String id;
@@ -237,6 +238,7 @@ class _PlotAnalysisRun implements PlotAnalysisRun {
 @override final  String providerId;
 @override final  String modelName;
 @override final  String plotName;
+@override final  String? projectId;
 @override final  PlotAnalysisStatus status;
 @override final  PlotAnalysisStage? stage;
 @override final  String? errorMessage;
@@ -265,16 +267,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlotAnalysisRun&&(identical(other.id, id) || other.id == id)&&(identical(other.workflowTaskId, workflowTaskId) || other.workflowTaskId == workflowTaskId)&&(identical(other.sampleId, sampleId) || other.sampleId == sampleId)&&(identical(other.providerId, providerId) || other.providerId == providerId)&&(identical(other.modelName, modelName) || other.modelName == modelName)&&(identical(other.plotName, plotName) || other.plotName == plotName)&&(identical(other.status, status) || other.status == status)&&(identical(other.stage, stage) || other.stage == stage)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.logs, logs) || other.logs == logs)&&(identical(other.analysisReportMarkdown, analysisReportMarkdown) || other.analysisReportMarkdown == analysisReportMarkdown)&&(identical(other.plotSkeletonMarkdown, plotSkeletonMarkdown) || other.plotSkeletonMarkdown == plotSkeletonMarkdown)&&(identical(other.storyEngineMarkdown, storyEngineMarkdown) || other.storyEngineMarkdown == storyEngineMarkdown)&&(identical(other.profileId, profileId) || other.profileId == profileId)&&(identical(other.chunkCount, chunkCount) || other.chunkCount == chunkCount)&&(identical(other.characterCount, characterCount) || other.characterCount == characterCount)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.startedAt, startedAt) || other.startedAt == startedAt)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlotAnalysisRun&&(identical(other.id, id) || other.id == id)&&(identical(other.workflowTaskId, workflowTaskId) || other.workflowTaskId == workflowTaskId)&&(identical(other.sampleId, sampleId) || other.sampleId == sampleId)&&(identical(other.providerId, providerId) || other.providerId == providerId)&&(identical(other.modelName, modelName) || other.modelName == modelName)&&(identical(other.plotName, plotName) || other.plotName == plotName)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.status, status) || other.status == status)&&(identical(other.stage, stage) || other.stage == stage)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.logs, logs) || other.logs == logs)&&(identical(other.analysisReportMarkdown, analysisReportMarkdown) || other.analysisReportMarkdown == analysisReportMarkdown)&&(identical(other.plotSkeletonMarkdown, plotSkeletonMarkdown) || other.plotSkeletonMarkdown == plotSkeletonMarkdown)&&(identical(other.storyEngineMarkdown, storyEngineMarkdown) || other.storyEngineMarkdown == storyEngineMarkdown)&&(identical(other.profileId, profileId) || other.profileId == profileId)&&(identical(other.chunkCount, chunkCount) || other.chunkCount == chunkCount)&&(identical(other.characterCount, characterCount) || other.characterCount == characterCount)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.startedAt, startedAt) || other.startedAt == startedAt)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,workflowTaskId,sampleId,providerId,modelName,plotName,status,stage,errorMessage,logs,analysisReportMarkdown,plotSkeletonMarkdown,storyEngineMarkdown,profileId,chunkCount,characterCount,createdAt,updatedAt,startedAt,completedAt]);
+int get hashCode => Object.hashAll([runtimeType,id,workflowTaskId,sampleId,providerId,modelName,plotName,projectId,status,stage,errorMessage,logs,analysisReportMarkdown,plotSkeletonMarkdown,storyEngineMarkdown,profileId,chunkCount,characterCount,createdAt,updatedAt,startedAt,completedAt]);
 
 @override
 String toString() {
-  return 'PlotAnalysisRun(id: $id, workflowTaskId: $workflowTaskId, sampleId: $sampleId, providerId: $providerId, modelName: $modelName, plotName: $plotName, status: $status, stage: $stage, errorMessage: $errorMessage, logs: $logs, analysisReportMarkdown: $analysisReportMarkdown, plotSkeletonMarkdown: $plotSkeletonMarkdown, storyEngineMarkdown: $storyEngineMarkdown, profileId: $profileId, chunkCount: $chunkCount, characterCount: $characterCount, createdAt: $createdAt, updatedAt: $updatedAt, startedAt: $startedAt, completedAt: $completedAt)';
+  return 'PlotAnalysisRun(id: $id, workflowTaskId: $workflowTaskId, sampleId: $sampleId, providerId: $providerId, modelName: $modelName, plotName: $plotName, projectId: $projectId, status: $status, stage: $stage, errorMessage: $errorMessage, logs: $logs, analysisReportMarkdown: $analysisReportMarkdown, plotSkeletonMarkdown: $plotSkeletonMarkdown, storyEngineMarkdown: $storyEngineMarkdown, profileId: $profileId, chunkCount: $chunkCount, characterCount: $characterCount, createdAt: $createdAt, updatedAt: $updatedAt, startedAt: $startedAt, completedAt: $completedAt)';
 }
 
 
@@ -285,7 +287,7 @@ abstract mixin class _$PlotAnalysisRunCopyWith<$Res> implements $PlotAnalysisRun
   factory _$PlotAnalysisRunCopyWith(_PlotAnalysisRun value, $Res Function(_PlotAnalysisRun) _then) = __$PlotAnalysisRunCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String workflowTaskId, String sampleId, String providerId, String modelName, String plotName, PlotAnalysisStatus status, PlotAnalysisStage? stage, String? errorMessage, String logs, String? analysisReportMarkdown, String? plotSkeletonMarkdown, String? storyEngineMarkdown, String? profileId, int chunkCount, int characterCount, DateTime createdAt, DateTime updatedAt, DateTime? startedAt, DateTime? completedAt
+ String id, String workflowTaskId, String sampleId, String providerId, String modelName, String plotName, String? projectId, PlotAnalysisStatus status, PlotAnalysisStage? stage, String? errorMessage, String logs, String? analysisReportMarkdown, String? plotSkeletonMarkdown, String? storyEngineMarkdown, String? profileId, int chunkCount, int characterCount, DateTime createdAt, DateTime updatedAt, DateTime? startedAt, DateTime? completedAt
 });
 
 
@@ -302,7 +304,7 @@ class __$PlotAnalysisRunCopyWithImpl<$Res>
 
 /// Create a copy of PlotAnalysisRun
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? workflowTaskId = null,Object? sampleId = null,Object? providerId = null,Object? modelName = null,Object? plotName = null,Object? status = null,Object? stage = freezed,Object? errorMessage = freezed,Object? logs = null,Object? analysisReportMarkdown = freezed,Object? plotSkeletonMarkdown = freezed,Object? storyEngineMarkdown = freezed,Object? profileId = freezed,Object? chunkCount = null,Object? characterCount = null,Object? createdAt = null,Object? updatedAt = null,Object? startedAt = freezed,Object? completedAt = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? workflowTaskId = null,Object? sampleId = null,Object? providerId = null,Object? modelName = null,Object? plotName = null,Object? projectId = freezed,Object? status = null,Object? stage = freezed,Object? errorMessage = freezed,Object? logs = null,Object? analysisReportMarkdown = freezed,Object? plotSkeletonMarkdown = freezed,Object? storyEngineMarkdown = freezed,Object? profileId = freezed,Object? chunkCount = null,Object? characterCount = null,Object? createdAt = null,Object? updatedAt = null,Object? startedAt = freezed,Object? completedAt = freezed,}) {
   return _then(_PlotAnalysisRun(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,workflowTaskId: null == workflowTaskId ? _self.workflowTaskId : workflowTaskId // ignore: cast_nullable_to_non_nullable
@@ -310,7 +312,8 @@ as String,sampleId: null == sampleId ? _self.sampleId : sampleId // ignore: cast
 as String,providerId: null == providerId ? _self.providerId : providerId // ignore: cast_nullable_to_non_nullable
 as String,modelName: null == modelName ? _self.modelName : modelName // ignore: cast_nullable_to_non_nullable
 as String,plotName: null == plotName ? _self.plotName : plotName // ignore: cast_nullable_to_non_nullable
-as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as String,projectId: freezed == projectId ? _self.projectId : projectId // ignore: cast_nullable_to_non_nullable
+as String?,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as PlotAnalysisStatus,stage: freezed == stage ? _self.stage : stage // ignore: cast_nullable_to_non_nullable
 as PlotAnalysisStage?,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
 as String?,logs: null == logs ? _self.logs : logs // ignore: cast_nullable_to_non_nullable

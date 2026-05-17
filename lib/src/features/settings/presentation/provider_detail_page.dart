@@ -153,7 +153,8 @@ class _ProviderDetailContentState
     return PersonaPage(
       eyebrow: 'Provider',
       title: provider.name,
-      description: '${provider.baseUrl} · ${provider.defaultModel}',
+      description:
+          '${provider.baseUrl} · ${provider.defaultModel} · ${provider.modelNames.length} models',
       actions: [
         OutlinedButton.icon(
           onPressed: () => context.go('/settings'),
@@ -417,7 +418,7 @@ class _ProviderCommandBar extends StatelessWidget {
               const SizedBox(width: 6),
               Flexible(
                 child: Text(
-                  provider.defaultModel,
+                  '${provider.defaultModel} · ${provider.modelNames.length} models',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: textTheme.bodyMedium?.copyWith(
@@ -484,7 +485,8 @@ class _ChatWorkbench extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(18, 16, 18, 10),
               child: PersonaSectionHeader(
                 title: '流式对话测试',
-                description: '${provider.name} · ${provider.defaultModel}',
+                description:
+                    '${provider.name} · ${provider.defaultModel} · ${provider.modelNames.length} models',
                 trailing: isStreaming
                     ? PersonaStatusPill(
                         label: '生成中',
@@ -604,7 +606,10 @@ class _ChatEmptyState extends StatelessWidget {
               size: 34,
             ),
             const SizedBox(height: 12),
-            Text(provider.defaultModel, style: textTheme.titleMedium),
+            Text(
+              '${provider.defaultModel} · ${provider.modelNames.length} models',
+              style: textTheme.titleMedium,
+            ),
             const SizedBox(height: 6),
             Text(
               '发送测试消息后，这里会逐步渲染模型回复。',

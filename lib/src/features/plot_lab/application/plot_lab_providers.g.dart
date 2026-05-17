@@ -701,7 +701,7 @@ final class PlotLabControllerProvider
   PlotLabController create() => PlotLabController();
 }
 
-String _$plotLabControllerHash() => r'a4f2e9463449bdd72231a43c65839b9d43c05c9d';
+String _$plotLabControllerHash() => r'32d726006b0c26d60f3d53dd8c88479f3c442106';
 
 abstract class _$PlotLabController extends $AsyncNotifier<void> {
   FutureOr<void> build();

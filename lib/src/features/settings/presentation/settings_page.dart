@@ -292,6 +292,17 @@ class _ProviderRow extends ConsumerWidget {
             ),
           ),
         ),
+        if (provider.modelNames.length > 1) ...[
+          const SizedBox(width: 8),
+          Text(
+            '+${provider.modelNames.length - 1} models',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.labelSmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
         if (!provider.isEnabled) ...[
           const SizedBox(width: 8),
           PersonaStatusPill(
@@ -469,6 +480,7 @@ class _ProviderDialogState extends ConsumerState<_ProviderDialog> {
   late final TextEditingController _baseUrlController;
   late final TextEditingController _apiKeyController;
   late final TextEditingController _modelController;
+  late final TextEditingController _modelsController;
   late bool _isEnabled;
 
   @override
@@ -481,6 +493,9 @@ class _ProviderDialogState extends ConsumerState<_ProviderDialog> {
     _modelController = TextEditingController(
       text: provider?.defaultModel ?? '',
     );
+    _modelsController = TextEditingController(
+      text: (provider?.modelNames ?? const <String>[]).join('\n'),
+    );
     _isEnabled = provider?.isEnabled ?? true;
   }
 
@@ -490,6 +505,7 @@ class _ProviderDialogState extends ConsumerState<_ProviderDialog> {
     _baseUrlController.dispose();
     _apiKeyController.dispose();
     _modelController.dispose();
+    _modelsController.dispose();
     super.dispose();
   }
 
@@ -556,6 +572,15 @@ class _ProviderDialogState extends ConsumerState<_ProviderDialog> {
                 obscureText: true,
                 validator: _requiredValidator,
               );
+              final modelsField = TextFormField(
+                controller: _modelsController,
+                decoration: const InputDecoration(
+                  labelText: '可用模型',
+                  hintText: '每行一个模型；默认模型会自动加入列表',
+                ),
+                minLines: 3,
+                maxLines: 5,
+              );
 
               final fields = [nameField, modelField, baseUrlField, apiKeyField];
 
@@ -578,10 +603,12 @@ class _ProviderDialogState extends ConsumerState<_ProviderDialog> {
                         Expanded(child: apiKeyField),
                       ],
                     ),
+                    const SizedBox(height: 12),
+                    modelsField,
                   ] else
-                    for (final field in fields) ...[
+                    for (final field in [...fields, modelsField]) ...[
                       field,
-                      if (field != fields.last) const SizedBox(height: 12),
+                      if (field != modelsField) const SizedBox(height: 12),
                     ],
                   const SizedBox(height: 14),
                   DecoratedBox(
@@ -672,6 +699,7 @@ class _ProviderDialogState extends ConsumerState<_ProviderDialog> {
             baseUrl: _baseUrlController.text,
             apiKey: _apiKeyController.text,
             defaultModel: _modelController.text,
+            modelNames: _parseModelNames(_modelsController.text),
             systemPrompt: widget.provider?.systemPrompt ?? '',
             isEnabled: _isEnabled,
           ),
@@ -762,6 +790,14 @@ String? _urlValidator(String? value) {
     return '请输入有效 URL';
   }
   return null;
+}
+
+List<String> _parseModelNames(String value) {
+  return value
+      .split(RegExp(r'[\n,]'))
+      .map((item) => item.trim())
+      .where((item) => item.isNotEmpty)
+      .toList(growable: false);
 }
 
 Widget _buildSkeletonLoading() {

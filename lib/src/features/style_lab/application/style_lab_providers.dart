@@ -96,7 +96,7 @@ class StyleLabController extends _$StyleLabController {
     await ref.read(styleLabRepositoryProvider).markInterruptedRunsFailed();
   }
 
-  Future<List<StyleSample>> importFile(String path) async {
+  Future<List<StyleSample>> importFile(String path, {String? projectId}) async {
     state = const AsyncLoading();
     final result = await AsyncValue.guard(() async {
       final inputs = await ref
@@ -105,7 +105,21 @@ class StyleLabController extends _$StyleLabController {
       final repository = ref.read(styleLabRepositoryProvider);
       final saved = <StyleSample>[];
       for (final input in inputs) {
-        saved.add(await repository.saveSample(input));
+        saved.add(
+          await repository.saveSample(
+            StyleSampleInput(
+              sourceType: input.sourceType,
+              title: input.title,
+              content: input.content,
+              projectId: projectId ?? input.projectId,
+              sourceFilename: input.sourceFilename,
+              epubBookTitle: input.epubBookTitle,
+              epubAuthor: input.epubAuthor,
+              epubChapterTitle: input.epubChapterTitle,
+              epubChapterIndex: input.epubChapterIndex,
+            ),
+          ),
+        );
       }
       return saved;
     });
@@ -116,7 +130,9 @@ class StyleLabController extends _$StyleLabController {
   Future<StyleAnalysisRun> createAndRun({
     required String sampleId,
     required String providerId,
+    required String modelName,
     required String styleName,
+    String? projectId,
   }) async {
     state = const AsyncLoading();
     final result = await AsyncValue.guard(() async {
@@ -138,9 +154,11 @@ class StyleLabController extends _$StyleLabController {
         StyleAnalysisRunInput(
           sampleId: sample.id,
           providerId: provider.id,
-          modelName: provider.defaultModel,
+          modelName: modelName.trim().isEmpty
+              ? provider.defaultModel
+              : modelName.trim(),
           styleName: styleName.trim().isEmpty ? sample.title : styleName.trim(),
-          projectId: sample.projectId,
+          projectId: projectId ?? sample.projectId,
           characterCount: sample.characterCount,
         ),
       );
