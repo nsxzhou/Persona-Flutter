@@ -3,6 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:persona_flutter/src/features/novel_workshop/application/novel_workshop_providers.dart';
+import 'package:persona_flutter/src/features/novel_workshop/domain/accepted_chapter.dart';
+import 'package:persona_flutter/src/features/novel_workshop/domain/chapter_plan.dart';
+import 'package:persona_flutter/src/features/novel_workshop/domain/memory_projection.dart';
+import 'package:persona_flutter/src/features/novel_workshop/domain/story_bible.dart';
+import 'package:persona_flutter/src/features/novel_workshop/presentation/novel_workshop_page.dart';
 import 'package:persona_flutter/src/features/projects/application/project_providers.dart';
 import 'package:persona_flutter/src/features/projects/domain/project_repository.dart';
 import 'package:persona_flutter/src/features/projects/domain/writing_project.dart';
@@ -162,6 +169,18 @@ void main() {
           writingProjectProvider.overrideWith(
             (ref, id) => Stream<WritingProject?>.value(project),
           ),
+          chapterPlansProvider.overrideWith(
+            (ref, projectId) => Stream<List<ChapterPlan>>.value(const []),
+          ),
+          acceptedChaptersProvider.overrideWith(
+            (ref, projectId) => Stream<List<AcceptedChapter>>.value(const []),
+          ),
+          storyBibleProvider.overrideWith(
+            (ref, projectId) => Stream<StoryBible?>.value(null),
+          ),
+          memoryProjectionProvider.overrideWith(
+            (ref, projectId) => Stream<MemoryProjection?>.value(null),
+          ),
           providerConfigsProvider.overrideWith(
             (ref) => Stream<List<ProviderConfig>>.value([_provider()]),
           ),
@@ -182,13 +201,67 @@ void main() {
 
     expect(find.text('雾港纪事'), findsOneWidget);
     expect(find.text('潮湿港城里的长篇悬疑。'), findsWidgets);
+    expect(find.text('项目控制台'), findsOneWidget);
+    expect(find.text('进入章节工作台'), findsWidgets);
     expect(find.text('项目概要'), findsOneWidget);
-    expect(find.text('OpenAI · gpt-4.1-mini'), findsOneWidget);
-    expect(find.text('未挂载 Style Profile。'), findsOneWidget);
-    expect(find.text('未挂载 Plot Profile。'), findsOneWidget);
+    expect(find.text('OpenAI · gpt-4.1-mini'), findsWidgets);
+    expect(find.text('未挂载 Style Profile。'), findsWidgets);
+    expect(find.text('未挂载 Plot Profile。'), findsWidgets);
     expect(find.text('简体中文'), findsOneWidget);
     expect(find.text('3000 字'), findsOneWidget);
-    expect(find.text('后续工作台入口'), findsOneWidget);
+    expect(find.text('创作工作台'), findsOneWidget);
+    expect(find.text('后续工作台入口'), findsNothing);
+  });
+
+  testWidgets('project detail routes to novel workshop', (tester) async {
+    final project = _project(
+      id: 'project-1',
+      title: '雾港纪事',
+      description: '潮湿港城里的长篇悬疑。',
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          writingProjectProvider.overrideWith(
+            (ref, id) => Stream<WritingProject?>.value(project),
+          ),
+          chapterPlansProvider.overrideWith(
+            (ref, projectId) => Stream<List<ChapterPlan>>.value(const []),
+          ),
+          acceptedChaptersProvider.overrideWith(
+            (ref, projectId) => Stream<List<AcceptedChapter>>.value(const []),
+          ),
+          storyBibleProvider.overrideWith(
+            (ref, projectId) => Stream<StoryBible?>.value(null),
+          ),
+          memoryProjectionProvider.overrideWith(
+            (ref, projectId) => Stream<MemoryProjection?>.value(null),
+          ),
+          providerConfigsProvider.overrideWith(
+            (ref) => Stream<List<ProviderConfig>>.value([_provider()]),
+          ),
+          styleProfilesProvider.overrideWith(
+            (ref) => Stream<List<StyleProfile>>.value(const []),
+          ),
+          plotProfilesProvider.overrideWith(
+            (ref) => Stream<List<PlotProfile>>.value(const []),
+          ),
+        ],
+        child: MaterialApp.router(routerConfig: _projectRouter()),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, '进入章节工作台').first);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+    await tester.pump();
+
+    expect(find.text('章节工作台'), findsOneWidget);
+    expect(find.text('还没有章节计划'), findsOneWidget);
   });
 
   testWidgets('project detail page renders invalid creative references', (
@@ -209,6 +282,18 @@ void main() {
           writingProjectProvider.overrideWith(
             (ref, id) => Stream<WritingProject?>.value(project),
           ),
+          chapterPlansProvider.overrideWith(
+            (ref, projectId) => Stream<List<ChapterPlan>>.value(const []),
+          ),
+          acceptedChaptersProvider.overrideWith(
+            (ref, projectId) => Stream<List<AcceptedChapter>>.value(const []),
+          ),
+          storyBibleProvider.overrideWith(
+            (ref, projectId) => Stream<StoryBible?>.value(null),
+          ),
+          memoryProjectionProvider.overrideWith(
+            (ref, projectId) => Stream<MemoryProjection?>.value(null),
+          ),
           providerConfigsProvider.overrideWith(
             (ref) => Stream<List<ProviderConfig>>.value(const []),
           ),
@@ -227,9 +312,9 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Provider 已失效 · deleted-model'), findsOneWidget);
-    expect(find.text('Style Profile 已失效。'), findsOneWidget);
-    expect(find.text('Plot Profile 已失效。'), findsOneWidget);
+    expect(find.text('Provider 已失效 · deleted-model'), findsWidgets);
+    expect(find.text('Style Profile 已失效。'), findsWidgets);
+    expect(find.text('Plot Profile 已失效。'), findsWidgets);
   });
 
   testWidgets('project dialog renders creative configuration fields', (
@@ -320,6 +405,27 @@ void main() {
     expect(find.text('项目不存在'), findsOneWidget);
     expect(find.text('没有找到对应的项目记录。'), findsOneWidget);
   });
+}
+
+GoRouter _projectRouter() {
+  return GoRouter(
+    initialLocation: '/projects/project-1',
+    routes: [
+      GoRoute(
+        path: '/projects/:projectId',
+        builder: (context, state) =>
+            ProjectDetailPage(projectId: state.pathParameters['projectId']!),
+        routes: [
+          GoRoute(
+            path: 'workshop',
+            builder: (context, state) => NovelWorkshopPage(
+              projectId: state.pathParameters['projectId']!,
+            ),
+          ),
+        ],
+      ),
+    ],
+  );
 }
 
 WritingProject _project({

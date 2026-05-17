@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/ui/persona_page.dart';
+import '../../novel_workshop/application/novel_workshop_providers.dart';
 import '../../plot_lab/application/plot_lab_providers.dart';
 import '../../plot_lab/domain/plot_profile.dart';
 import '../../settings/application/provider_config_providers.dart';
@@ -81,14 +82,23 @@ class _ProjectDetailContent extends ConsumerWidget {
     final providers = ref.watch(providerConfigsProvider);
     final styleProfiles = ref.watch(styleProfilesProvider);
     final plotProfiles = ref.watch(plotProfilesProvider);
+    final chapterPlans = ref.watch(chapterPlansProvider(project.id));
+    final acceptedChapters = ref.watch(acceptedChaptersProvider(project.id));
+    final storyBible = ref.watch(storyBibleProvider(project.id));
+    final memoryProjection = ref.watch(memoryProjectionProvider(project.id));
 
     return PersonaPage(
-      eyebrow: '项目档案',
+      eyebrow: '项目控制台',
       title: project.title,
       description: project.description.trim().isEmpty
           ? '这个项目还没有简介。'
           : project.description,
       actions: [
+        FilledButton.icon(
+          onPressed: () => context.go('/projects/${project.id}/workshop'),
+          icon: const Icon(Icons.dashboard_customize_outlined),
+          label: const Text('进入章节工作台'),
+        ),
         OutlinedButton.icon(
           onPressed: () => context.go('/projects'),
           icon: const Icon(Icons.arrow_back),
@@ -96,6 +106,21 @@ class _ProjectDetailContent extends ConsumerWidget {
         ),
       ],
       children: [
+        _ProjectConsoleSummary(
+          project: project,
+          chapterPlanCount: _asyncCount(chapterPlans),
+          acceptedChapterCount: _asyncCount(acceptedChapters),
+          storyBibleState: _documentState(
+            storyBible,
+            empty: '未建立',
+            ready: '已建立',
+          ),
+          memoryProjectionState: _documentState(
+            memoryProjection,
+            empty: '未生成',
+            ready: '已生成',
+          ),
+        ),
         LayoutBuilder(
           builder: (context, constraints) {
             final dossier = _ProjectDossier(
@@ -104,11 +129,28 @@ class _ProjectDetailContent extends ConsumerWidget {
               styleProfileLabel: _styleProfileLabel(styleProfiles, project),
               plotProfileLabel: _plotProfileLabel(plotProfiles, project),
             );
-            const nextSteps = _ProjectWorkbenchPreview();
+            final commandPanel = _ProjectCommandPanel(
+              project: project,
+              providerLabel: _providerLabel(providers, project),
+              styleProfileLabel: _styleProfileLabel(styleProfiles, project),
+              plotProfileLabel: _plotProfileLabel(plotProfiles, project),
+              chapterPlanCount: _asyncCount(chapterPlans),
+              acceptedChapterCount: _asyncCount(acceptedChapters),
+              storyBibleState: _documentState(
+                storyBible,
+                empty: '未建立',
+                ready: '已建立',
+              ),
+              memoryProjectionState: _documentState(
+                memoryProjection,
+                empty: '未生成',
+                ready: '已生成',
+              ),
+            );
 
             if (constraints.maxWidth < 900) {
               return Column(
-                children: [dossier, const SizedBox(height: 18), nextSteps],
+                children: [dossier, const SizedBox(height: 18), commandPanel],
               );
             }
 
@@ -117,12 +159,134 @@ class _ProjectDetailContent extends ConsumerWidget {
               children: [
                 Expanded(flex: 6, child: dossier),
                 const SizedBox(width: 18),
-                const Expanded(flex: 5, child: nextSteps),
+                Expanded(flex: 5, child: commandPanel),
               ],
             );
           },
         ),
       ],
+    );
+  }
+}
+
+class _ProjectConsoleSummary extends StatelessWidget {
+  const _ProjectConsoleSummary({
+    required this.project,
+    required this.chapterPlanCount,
+    required this.acceptedChapterCount,
+    required this.storyBibleState,
+    required this.memoryProjectionState,
+  });
+
+  final WritingProject project;
+  final String chapterPlanCount;
+  final String acceptedChapterCount;
+  final String storyBibleState;
+  final String memoryProjectionState;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final metrics = [
+          _ConsoleMetricData(
+            label: '章节计划',
+            value: chapterPlanCount,
+            detail: 'Chapter Board',
+            icon: Icons.view_list_outlined,
+          ),
+          _ConsoleMetricData(
+            label: '正式章节',
+            value: acceptedChapterCount,
+            detail: 'Accepted Chapters',
+            icon: Icons.task_alt_outlined,
+          ),
+          _ConsoleMetricData(
+            label: '故事圣经',
+            value: storyBibleState,
+            detail: 'Story Bible',
+            icon: Icons.menu_book_outlined,
+          ),
+          _ConsoleMetricData(
+            label: '记忆投影',
+            value: memoryProjectionState,
+            detail: 'Memory Projection',
+            icon: Icons.account_tree_outlined,
+          ),
+        ];
+
+        final columns = constraints.maxWidth < 760 ? 2 : 4;
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: metrics.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            mainAxisExtent: 118,
+          ),
+          itemBuilder: (context, index) =>
+              _ConsoleMetric(metric: metrics[index]),
+        );
+      },
+    );
+  }
+}
+
+class _ConsoleMetricData {
+  const _ConsoleMetricData({
+    required this.label,
+    required this.value,
+    required this.detail,
+    required this.icon,
+  });
+
+  final String label;
+  final String value;
+  final String detail;
+  final IconData icon;
+}
+
+class _ConsoleMetric extends StatelessWidget {
+  const _ConsoleMetric({required this.metric});
+
+  final _ConsoleMetricData metric;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    return PersonaPanel(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(9),
+              child: Icon(metric.icon, color: colorScheme.primary, size: 20),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(metric.label.toUpperCase(), style: textTheme.labelMedium),
+                const SizedBox(height: 8),
+                Text(metric.value, style: textTheme.titleLarge),
+                const SizedBox(height: 4),
+                Text(metric.detail, style: textTheme.bodyMedium),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -256,37 +420,136 @@ class _DossierField extends StatelessWidget {
   }
 }
 
-class _ProjectWorkbenchPreview extends StatelessWidget {
-  const _ProjectWorkbenchPreview();
+class _ProjectCommandPanel extends StatelessWidget {
+  const _ProjectCommandPanel({
+    required this.project,
+    required this.providerLabel,
+    required this.styleProfileLabel,
+    required this.plotProfileLabel,
+    required this.chapterPlanCount,
+    required this.acceptedChapterCount,
+    required this.storyBibleState,
+    required this.memoryProjectionState,
+  });
+
+  final WritingProject project;
+  final String providerLabel;
+  final String styleProfileLabel;
+  final String plotProfileLabel;
+  final String chapterPlanCount;
+  final String acceptedChapterCount;
+  final String storyBibleState;
+  final String memoryProjectionState;
 
   @override
   Widget build(BuildContext context) {
     return PersonaPanel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          PersonaSectionHeader(
-            title: '后续工作台入口',
-            description: '本轮只建立项目档案，以下能力暂不提供点击入口。',
+        children: [
+          const PersonaSectionHeader(
+            title: '创作工作台',
+            description: '从项目资产进入章节流水线。当前阶段支持章节计划管理。',
           ),
-          SizedBox(height: 16),
-          PersonaActionTile(
-            icon: Icons.account_tree_outlined,
-            title: '章节结构',
-            description: '后续接入分卷、章节细纲和正文状态。',
+          const SizedBox(height: 16),
+          _CommandAction(
+            icon: Icons.dashboard_customize_outlined,
+            title: '进入章节工作台',
+            description: '管理 Chapter Plan，后续接入 Contract、Draft、Audit 和 Accept。',
+            onTap: () => context.go('/projects/${project.id}/workshop'),
           ),
-          SizedBox(height: 12),
-          PersonaActionTile(
-            icon: Icons.style_outlined,
-            title: 'Style / Plot 挂载',
-            description: '后续把分析档案绑定到当前项目。',
+          const SizedBox(height: 16),
+          _ReadinessLine(label: 'Provider / Model', value: providerLabel),
+          _ReadinessLine(label: 'Style Profile', value: styleProfileLabel),
+          _ReadinessLine(label: 'Plot Profile', value: plotProfileLabel),
+          _ReadinessLine(label: '章节计划', value: '$chapterPlanCount 个计划'),
+          _ReadinessLine(label: '正式章节', value: '$acceptedChapterCount 个已确认'),
+          _ReadinessLine(label: 'Story Bible', value: storyBibleState),
+          _ReadinessLine(
+            label: 'Memory Projection',
+            value: memoryProjectionState,
           ),
-          SizedBox(height: 12),
-          PersonaActionTile(
-            icon: Icons.edit_note_outlined,
-            title: 'Zen Editor',
-            description: '后续进入章节写作、改写和记忆同步。',
+        ],
+      ),
+    );
+  }
+}
+
+class _CommandAction extends StatelessWidget {
+  const _CommandAction({
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String description;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: colorScheme.primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: colorScheme.primary.withValues(alpha: 0.24),
+            ),
           ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Icon(icon, color: colorScheme.primary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: textTheme.titleMedium),
+                      const SizedBox(height: 4),
+                      Text(description, style: textTheme.bodyMedium),
+                    ],
+                  ),
+                ),
+                Icon(Icons.arrow_forward, color: colorScheme.primary, size: 18),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReadinessLine extends StatelessWidget {
+  const _ReadinessLine({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 132,
+            child: Text(label.toUpperCase(), style: textTheme.labelMedium),
+          ),
+          Expanded(child: Text(value, style: textTheme.bodyLarge)),
         ],
       ),
     );
@@ -378,4 +641,24 @@ String _formatProjectTime(DateTime value) {
   final minute = local.minute.toString().padLeft(2, '0');
 
   return '$year-$month-$day $hour:$minute';
+}
+
+String _asyncCount(AsyncValue<List<Object?>> value) {
+  return value.maybeWhen(
+    data: (items) => items.length.toString(),
+    orElse: () => '...',
+  );
+}
+
+String _documentState(
+  AsyncValue<Object?> value, {
+  required String empty,
+  required String ready,
+}) {
+  return value.maybeWhen(
+    data: (item) => item == null ? empty : ready,
+    loading: () => '读取中...',
+    error: (error, stackTrace) => '读取失败',
+    orElse: () => '读取中...',
+  );
 }
