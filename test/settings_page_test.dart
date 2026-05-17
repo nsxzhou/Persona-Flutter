@@ -185,6 +185,58 @@ void main() {
     expect(find.text('sk-secret'), findsNothing);
   });
 
+  testWidgets('provider detail page sends selected test model', (tester) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final provider = _provider(
+      id: 'deepseek',
+      name: 'deepseek',
+      apiKey: 'sk-secret',
+      defaultModel: 'deepseek-chat',
+      modelNames: const ['deepseek-chat', 'deepseek-reasoner'],
+    );
+    final client = _RecordingLlmClient();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          providerConfigProvider.overrideWith(
+            (ref, id) => Stream<ProviderConfig?>.value(provider),
+          ),
+          llmClientProvider.overrideWithValue(client),
+        ],
+        child: const MaterialApp(
+          home: ProviderDetailPage(providerId: 'deepseek'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('参数'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('deepseek-chat').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('deepseek-reasoner').last);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).last, '继续写下一段');
+    await tester.ensureVisible(find.text('发送测试'));
+    await tester.tap(find.text('发送测试'));
+    await tester.pumpAndSettle();
+
+    expect(client.lastRequest?.model, 'deepseek-reasoner');
+
+    await tester.tap(find.text('Request'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Actual Request'), findsOneWidget);
+    expect(find.text('deepseek-reasoner'), findsWidgets);
+    expect(find.text('sk-secret'), findsNothing);
+  });
+
   testWidgets('provider detail page fits narrow viewport', (tester) async {
     tester.view.physicalSize = const Size(760, 980);
     tester.view.devicePixelRatio = 1;
@@ -228,6 +280,7 @@ ProviderConfig _provider({
   required String apiKey,
   String baseUrl = 'https://api.deepseek.com/v1',
   String defaultModel = 'deepseek-v4-flash',
+  List<String> modelNames = const <String>[],
   String systemPrompt = 'Provider writing rules',
   bool isEnabled = true,
   ProviderTestStatus testStatus = ProviderTestStatus.succeeded,
@@ -239,6 +292,7 @@ ProviderConfig _provider({
     baseUrl: baseUrl,
     apiKey: apiKey,
     defaultModel: defaultModel,
+    modelNames: modelNames,
     systemPrompt: systemPrompt,
     isEnabled: isEnabled,
     testStatus: testStatus,
@@ -257,6 +311,20 @@ class _FakeLlmClient implements LlmClient {
   }) async* {
     yield const LlmStreamDelta('模型');
     yield const LlmStreamDelta('回复');
+    yield const LlmStreamDone();
+  }
+}
+
+class _RecordingLlmClient implements LlmClient {
+  LlmRequest? lastRequest;
+
+  @override
+  Stream<LlmStreamEvent> streamChat({
+    required ProviderConfig provider,
+    required LlmRequest request,
+  }) async* {
+    lastRequest = request;
+    yield const LlmStreamDelta('模型回复');
     yield const LlmStreamDone();
   }
 }

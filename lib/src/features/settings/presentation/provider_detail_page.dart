@@ -91,6 +91,8 @@ class _ProviderDetailContentState
   late final TextEditingController _draftController;
   double _temperature = 0.7;
   int _inspectorIndex = 0;
+  String? _selectedModelName;
+  String? _lastActualModelName;
   final List<_ChatTranscriptMessage> _messages = [];
   List<LlmMessage> _lastActualRequest = const [];
   StreamSubscription<LlmStreamEvent>? _subscription;
@@ -107,6 +109,20 @@ class _ProviderDetailContentState
     return _defaultProviderChatSystemPrompt;
   }
 
+  String get _resolvedModelName {
+    final modelNames = _normalizedModelNames(widget.provider);
+    final selected = _selectedModelName?.trim();
+    if (selected != null &&
+        selected.isNotEmpty &&
+        modelNames.contains(selected)) {
+      return selected;
+    }
+    if (modelNames.isNotEmpty) {
+      return modelNames.first;
+    }
+    return widget.provider.defaultModel.trim();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -114,6 +130,7 @@ class _ProviderDetailContentState
       text: widget.provider.systemPrompt,
     );
     _draftController = TextEditingController();
+    _selectedModelName = _initialModelName(widget.provider);
   }
 
   @override
@@ -124,13 +141,21 @@ class _ProviderDetailContentState
       _draftController.clear();
       _messages.clear();
       _lastActualRequest = const [];
+      _lastActualModelName = null;
       _errorMessage = null;
       _inspectorIndex = 0;
+      _selectedModelName = _initialModelName(widget.provider);
       unawaited(_subscription?.cancel());
       _subscription = null;
       _streamingAssistantId = null;
     } else if (!_promptHasLocalChanges(oldWidget.provider.systemPrompt)) {
       _promptController.text = widget.provider.systemPrompt;
+    }
+    final selected = _selectedModelName?.trim();
+    if (selected != null &&
+        selected.isNotEmpty &&
+        !_normalizedModelNames(widget.provider).contains(selected)) {
+      _selectedModelName = _initialModelName(widget.provider);
     }
   }
 
@@ -149,6 +174,7 @@ class _ProviderDetailContentState
   @override
   Widget build(BuildContext context) {
     final provider = widget.provider;
+    final selectedModelName = _resolvedModelName;
 
     return PersonaPage(
       eyebrow: 'Provider',
@@ -169,6 +195,7 @@ class _ProviderDetailContentState
           builder: (context, constraints) {
             final chat = _ChatWorkbench(
               provider: provider,
+              selectedModelName: selectedModelName,
               messages: _messages,
               draftController: _draftController,
               isStreaming: _isStreaming,
@@ -181,6 +208,8 @@ class _ProviderDetailContentState
               provider: provider,
               promptController: _promptController,
               temperature: _temperature,
+              selectedModelName: selectedModelName,
+              actualModelName: _lastActualModelName,
               actualRequest: _lastActualRequest,
               isStreaming: _isStreaming,
               selectedIndex: _inspectorIndex,
@@ -189,6 +218,9 @@ class _ProviderDetailContentState
               },
               onTemperatureChanged: (value) {
                 setState(() => _temperature = value);
+              },
+              onModelSelected: (value) {
+                setState(() => _selectedModelName = value);
               },
               onSavePrompt: _savePrompt,
             );
@@ -242,6 +274,7 @@ class _ProviderDetailContentState
 
     final userMessage = _ChatTranscriptMessage.user(userText);
     final assistantMessage = _ChatTranscriptMessage.assistant('');
+    final modelName = _resolvedModelName;
     final requestMessages = [
       LlmMessage.system(_effectiveSystemPrompt),
       ..._messages
@@ -256,6 +289,7 @@ class _ProviderDetailContentState
       _messages.add(userMessage);
       _messages.add(assistantMessage);
       _lastActualRequest = requestMessages;
+      _lastActualModelName = modelName;
       _streamingAssistantId = assistantMessage.id;
     });
 
@@ -276,6 +310,7 @@ class _ProviderDetailContentState
               .where((message) => message.role != LlmMessageRole.system)
               .toList(),
           temperature: _temperature,
+          modelName: modelName,
         );
 
     _subscription = stream.listen(
@@ -360,9 +395,38 @@ class _ProviderDetailContentState
       _draftController.clear();
       _messages.clear();
       _lastActualRequest = const [];
+      _lastActualModelName = null;
       _errorMessage = null;
     });
   }
+}
+
+String _initialModelName(ProviderConfig provider) {
+  final modelNames = _normalizedModelNames(provider);
+  if (modelNames.isNotEmpty) {
+    return modelNames.first;
+  }
+  return provider.defaultModel.trim();
+}
+
+List<String> _normalizedModelNames(ProviderConfig provider) {
+  final seen = <String>{};
+  final modelNames = <String>[];
+
+  void add(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty || !seen.add(trimmed)) {
+      return;
+    }
+    modelNames.add(trimmed);
+  }
+
+  add(provider.defaultModel);
+  for (final modelName in provider.modelNames) {
+    add(modelName);
+  }
+
+  return modelNames;
 }
 
 class _ProviderCommandBar extends StatelessWidget {
@@ -452,6 +516,7 @@ class _ProviderCommandBar extends StatelessWidget {
 class _ChatWorkbench extends StatelessWidget {
   const _ChatWorkbench({
     required this.provider,
+    required this.selectedModelName,
     required this.messages,
     required this.draftController,
     required this.isStreaming,
@@ -462,6 +527,7 @@ class _ChatWorkbench extends StatelessWidget {
   });
 
   final ProviderConfig provider;
+  final String selectedModelName;
   final List<_ChatTranscriptMessage> messages;
   final TextEditingController draftController;
   final bool isStreaming;
@@ -486,7 +552,7 @@ class _ChatWorkbench extends StatelessWidget {
               child: PersonaSectionHeader(
                 title: '流式对话测试',
                 description:
-                    '${provider.name} · ${provider.defaultModel} · ${provider.modelNames.length} models',
+                    '${provider.name} · $selectedModelName · ${_normalizedModelNames(provider).length} models',
                 trailing: isStreaming
                     ? PersonaStatusPill(
                         label: '生成中',
@@ -607,7 +673,7 @@ class _ChatEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              '${provider.defaultModel} · ${provider.modelNames.length} models',
+              '${_initialModelName(provider)} · ${_normalizedModelNames(provider).length} models',
               style: textTheme.titleMedium,
             ),
             const SizedBox(height: 6),
@@ -682,22 +748,28 @@ class _ProviderInspectorPanel extends ConsumerWidget {
     required this.provider,
     required this.promptController,
     required this.temperature,
+    required this.selectedModelName,
+    required this.actualModelName,
     required this.actualRequest,
     required this.isStreaming,
     required this.selectedIndex,
     required this.onSelectedIndexChanged,
     required this.onTemperatureChanged,
+    required this.onModelSelected,
     required this.onSavePrompt,
   });
 
   final ProviderConfig provider;
   final TextEditingController promptController;
   final double temperature;
+  final String selectedModelName;
+  final String? actualModelName;
   final List<LlmMessage> actualRequest;
   final bool isStreaming;
   final int selectedIndex;
   final ValueChanged<int> onSelectedIndexChanged;
   final ValueChanged<double> onTemperatureChanged;
+  final ValueChanged<String> onModelSelected;
   final Future<void> Function() onSavePrompt;
 
   @override
@@ -770,13 +842,16 @@ class _ProviderInspectorPanel extends ConsumerWidget {
                   onSavePrompt: onSavePrompt,
                 ),
                 1 => _ParameterInspectorTab(
-                  temperature: temperature,
-                  isStreaming: isStreaming,
-                  onTemperatureChanged: onTemperatureChanged,
-                ),
-                _ => _RequestInspectorTab(
                   provider: provider,
                   temperature: temperature,
+                  selectedModelName: selectedModelName,
+                  isStreaming: isStreaming,
+                  onTemperatureChanged: onTemperatureChanged,
+                  onModelSelected: onModelSelected,
+                ),
+                _ => _RequestInspectorTab(
+                  temperature: temperature,
+                  modelName: actualModelName ?? selectedModelName,
                   actualRequest: actualRequest,
                 ),
               },
@@ -855,18 +930,25 @@ class _PromptInspectorTab extends StatelessWidget {
 
 class _ParameterInspectorTab extends StatelessWidget {
   const _ParameterInspectorTab({
+    required this.provider,
     required this.temperature,
+    required this.selectedModelName,
     required this.isStreaming,
     required this.onTemperatureChanged,
+    required this.onModelSelected,
   });
 
+  final ProviderConfig provider;
   final double temperature;
+  final String selectedModelName;
   final bool isStreaming;
   final ValueChanged<double> onTemperatureChanged;
+  final ValueChanged<String> onModelSelected;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final modelNames = _normalizedModelNames(provider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -877,6 +959,28 @@ class _ParameterInspectorTab extends StatelessWidget {
           trailing: PersonaStatusPill(
             label: isStreaming ? '锁定中' : '可调整',
             icon: Icons.thermostat_outlined,
+          ),
+        ),
+        const SizedBox(height: 16),
+        DropdownButtonFormField<String>(
+          initialValue: selectedModelName,
+          items: [
+            for (final modelName in modelNames)
+              DropdownMenuItem(
+                value: modelName,
+                child: Text(modelName, overflow: TextOverflow.ellipsis),
+              ),
+          ],
+          onChanged: isStreaming
+              ? null
+              : (value) {
+                  if (value != null) {
+                    onModelSelected(value);
+                  }
+                },
+          decoration: const InputDecoration(
+            labelText: 'Model',
+            border: OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 16),
@@ -897,13 +1001,13 @@ class _ParameterInspectorTab extends StatelessWidget {
 
 class _RequestInspectorTab extends StatelessWidget {
   const _RequestInspectorTab({
-    required this.provider,
     required this.temperature,
+    required this.modelName,
     required this.actualRequest,
   });
 
-  final ProviderConfig provider;
   final double temperature;
+  final String modelName;
   final List<LlmMessage> actualRequest;
 
   @override
@@ -920,8 +1024,8 @@ class _RequestInspectorTab extends StatelessWidget {
           constraints: const BoxConstraints(maxHeight: 440),
           child: SingleChildScrollView(
             child: _ActualRequestView(
-              provider: provider,
               temperature: temperature,
+              modelName: modelName,
               messages: actualRequest,
             ),
           ),
@@ -933,13 +1037,13 @@ class _RequestInspectorTab extends StatelessWidget {
 
 class _ActualRequestView extends StatelessWidget {
   const _ActualRequestView({
-    required this.provider,
     required this.temperature,
+    required this.modelName,
     required this.messages,
   });
 
-  final ProviderConfig provider;
   final double temperature;
+  final String modelName;
   final List<LlmMessage> messages;
 
   @override
@@ -954,7 +1058,7 @@ class _ActualRequestView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _RequestMetaLine(label: 'model', value: provider.defaultModel),
+        _RequestMetaLine(label: 'model', value: modelName),
         _RequestMetaLine(
           label: 'temperature',
           value: temperature.toStringAsFixed(1),
