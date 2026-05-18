@@ -16,12 +16,35 @@ import 'package:persona_flutter/src/features/plot_lab/domain/plot_profile.dart';
 import 'package:persona_flutter/src/features/projects/application/project_providers.dart';
 import 'package:persona_flutter/src/features/projects/domain/project_repository.dart';
 import 'package:persona_flutter/src/features/projects/domain/writing_project.dart';
+import 'package:persona_flutter/src/features/settings/application/provider_config_providers.dart';
+import 'package:persona_flutter/src/features/settings/domain/provider_config.dart';
+import 'package:persona_flutter/src/features/settings/domain/provider_config_repository.dart';
 import 'package:persona_flutter/src/features/style_lab/application/style_lab_providers.dart';
 import 'package:persona_flutter/src/features/style_lab/domain/style_lab_repository.dart';
 import 'package:persona_flutter/src/features/style_lab/domain/style_profile.dart';
 
+const _workshopLocation = '/projects/project-1/workshop';
+const _editorLocation = '/projects/project-1/workshop/editor';
+
 void main() {
-  testWidgets('workshop loads empty chapter state and creates chapter plan', (
+  testWidgets('workshop shows tabbed workbench with asset tabs', (tester) async {
+    final fixture = _WorkshopFixture();
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
+    await tester.pumpAndSettle();
+
+    expect(find.text('项目工作台'), findsOneWidget);
+    expect(find.text('项目概览'), findsWidgets);
+    expect(find.text('Voice Profile'), findsWidgets);
+    expect(find.text('Story Engine'), findsWidgets);
+    expect(find.text('骨架大纲'), findsWidgets);
+    expect(find.text('章节计划'), findsWidgets);
+    expect(find.text('进入编辑器'), findsOneWidget);
+    expect(find.byKey(const ValueKey('novel-workshop-editor')), findsNothing);
+  });
+
+  testWidgets('workshop creates chapter plan from chapter planning tab', (
     tester,
   ) async {
     final fixture = _WorkshopFixture();
@@ -30,14 +53,15 @@ void main() {
     await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
     await tester.pumpAndSettle();
 
-    expect(find.text('创作导航'), findsOneWidget);
-    expect(find.text('工作流诊断'), findsOneWidget);
-    expect(find.text('尚未创建章节'), findsOneWidget);
-
-    await tester.tap(find.text('新建章节').first);
+    // Switch to the chapter planning tab first.
+    await tester.tap(find.text('章节计划').last);
     await tester.pumpAndSettle();
 
-    expect(find.text('第 1 章'), findsWidgets);
+    await tester.tap(find.text('新建章节').first);
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(find.text('新建章节目标卡'), findsOneWidget);
     await tester.enterText(find.widgetWithText(TextFormField, '章节标题'), '第一章');
     await tester.enterText(
       find.widgetWithText(TextFormField, '章节目标'),
@@ -45,10 +69,50 @@ void main() {
     );
     await tester.ensureVisible(find.widgetWithText(FilledButton, '保存'));
     await tester.tap(find.widgetWithText(FilledButton, '保存'));
+    await tester.pump();
     await tester.pumpAndSettle();
 
-    expect(find.text('第一章'), findsWidgets);
+    expect(find.textContaining('第一章'), findsWidgets);
     expect(fixture.repository.plans.single.chapterIndex, 1);
+  });
+
+  testWidgets('editor loads from workshop sub-route', (tester) async {
+    final fixture = _WorkshopFixture(
+      plans: [
+        _plan(id: 'plan-1', index: 1, title: '第一章', objective: '主角进入雾港。'),
+      ],
+    );
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('进入编辑器'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('创作导航'), findsOneWidget);
+    expect(find.byKey(const ValueKey('novel-workshop-editor')), findsOneWidget);
+  });
+
+  testWidgets('editor back button navigates to workshop', (tester) async {
+    final fixture = _WorkshopFixture(
+      plans: [
+        _plan(id: 'plan-1', index: 1, title: '第一章', objective: '主角进入雾港。'),
+      ],
+    );
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(
+      _WorkshopTestApp(fixture: fixture, initialLocation: _editorLocation),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('创作导航'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('返回工作台'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('项目工作台'), findsOneWidget);
   });
 
   testWidgets('editing chapter plan keeps chapter index readonly', (
@@ -61,7 +125,9 @@ void main() {
     );
     addTearDown(fixture.dispose);
 
-    await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
+    await tester.pumpWidget(
+      _WorkshopTestApp(fixture: fixture, initialLocation: _editorLocation),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('编辑目标'));
@@ -87,7 +153,9 @@ void main() {
     );
     addTearDown(fixture.dispose);
 
-    await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
+    await tester.pumpWidget(
+      _WorkshopTestApp(fixture: fixture, initialLocation: _editorLocation),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('生成章节'));
@@ -114,7 +182,9 @@ void main() {
     );
     addTearDown(fixture.dispose);
 
-    await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
+    await tester.pumpWidget(
+      _WorkshopTestApp(fixture: fixture, initialLocation: _editorLocation),
+    );
     await tester.pumpAndSettle();
 
     await tester.enterText(
@@ -149,7 +219,9 @@ void main() {
       );
       addTearDown(fixture.dispose);
 
-      await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
+      await tester.pumpWidget(
+        _WorkshopTestApp(fixture: fixture, initialLocation: _editorLocation),
+      );
       await tester.pumpAndSettle();
 
       expect(
@@ -184,7 +256,9 @@ void main() {
     );
     addTearDown(fixture.dispose);
 
-    await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
+    await tester.pumpWidget(
+      _WorkshopTestApp(fixture: fixture, initialLocation: _editorLocation),
+    );
     await tester.pumpAndSettle();
 
     await tester.ensureVisible(find.text('查看 Prompt Trace'));
@@ -195,7 +269,7 @@ void main() {
   });
 
   testWidgets(
-    'compact workshop stacks inspector below editor without overflow',
+    'compact editor stacks inspector below editor without overflow',
     (tester) async {
       tester.view.physicalSize = const Size(900, 1200);
       tester.view.devicePixelRatio = 1;
@@ -209,7 +283,9 @@ void main() {
       );
       addTearDown(fixture.dispose);
 
-      await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
+      await tester.pumpWidget(
+        _WorkshopTestApp(fixture: fixture, initialLocation: _editorLocation),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('创作导航'), findsOneWidget);
@@ -224,15 +300,22 @@ void main() {
 }
 
 class _WorkshopTestApp extends StatelessWidget {
-  const _WorkshopTestApp({required this.fixture});
+  const _WorkshopTestApp({
+    required this.fixture,
+    this.initialLocation = _workshopLocation,
+  });
 
   final _WorkshopFixture fixture;
+  final String initialLocation;
 
   @override
   Widget build(BuildContext context) {
     return ProviderScope(
       overrides: [
         projectRepositoryProvider.overrideWithValue(fixture.projectRepository),
+        providerConfigRepositoryProvider.overrideWithValue(
+          fixture.providerRepository,
+        ),
         novelWorkshopRepositoryProvider.overrideWithValue(fixture.repository),
         chapterGenerationPipelineProvider.overrideWithValue(fixture.pipeline),
         styleLabRepositoryProvider.overrideWithValue(fixture.styleRepository),
@@ -240,13 +323,21 @@ class _WorkshopTestApp extends StatelessWidget {
       ],
       child: MaterialApp.router(
         routerConfig: GoRouter(
-          initialLocation: '/projects/project-1/workshop',
+          initialLocation: initialLocation,
           routes: [
             GoRoute(
               path: '/projects/:projectId/workshop',
               builder: (context, state) => NovelWorkshopPage(
                 projectId: state.pathParameters['projectId']!,
               ),
+              routes: [
+                GoRoute(
+                  path: 'editor',
+                  builder: (context, state) => NovelEditorPage(
+                    projectId: state.pathParameters['projectId']!,
+                  ),
+                ),
+              ],
             ),
             GoRoute(
               path: '/projects',
@@ -266,10 +357,11 @@ class _WorkshopTestApp extends StatelessWidget {
 
 class _WorkshopFixture {
   _WorkshopFixture({
+    ProjectStatus projectStatus = ProjectStatus.active,
     List<ChapterPlan> plans = const [],
     List<ProjectChapter> chapters = const [],
     List<ChapterGenerationRun> runs = const [],
-  }) : projectRepository = _FakeProjectRepository(),
+  }) : projectRepository = _FakeProjectRepository(status: projectStatus),
        repository = _FakeNovelWorkshopRepository(
          plans: plans,
          chapters: chapters,
@@ -281,6 +373,8 @@ class _WorkshopFixture {
   }
 
   final _FakeProjectRepository projectRepository;
+  final _FakeProviderConfigRepository providerRepository =
+      _FakeProviderConfigRepository();
   final _FakeNovelWorkshopRepository repository;
   final _FakeStyleLabRepository styleRepository;
   final _FakePlotLabRepository plotRepository;
@@ -288,6 +382,7 @@ class _WorkshopFixture {
 
   void dispose() {
     projectRepository.dispose();
+    providerRepository.dispose();
     repository.dispose();
   }
 }
@@ -340,21 +435,25 @@ class _FakeChapterGenerationPipeline implements ChapterGenerationPipeline {
 }
 
 class _FakeProjectRepository implements ProjectRepository {
-  _FakeProjectRepository();
+  _FakeProjectRepository({ProjectStatus status = ProjectStatus.active}) {
+    _project = WritingProject(
+      id: 'project-1',
+      title: '雾港纪事',
+      description: '项目简介',
+      status: status,
+      defaultProviderId: 'provider-1',
+      defaultModelName: 'gpt-4.1-mini',
+      styleProfileId: 'style-1',
+      plotProfileId: 'plot-1',
+      createdAt: DateTime(2026, 5, 18, 9),
+      updatedAt: DateTime(2026, 5, 18, 10),
+    );
+  }
 
   final _changes = StreamController<void>.broadcast();
-  final project = WritingProject(
-    id: 'project-1',
-    title: '雾港纪事',
-    description: '项目简介',
-    status: ProjectStatus.active,
-    defaultProviderId: 'provider-1',
-    defaultModelName: 'gpt-4.1-mini',
-    styleProfileId: 'style-1',
-    plotProfileId: 'plot-1',
-    createdAt: DateTime(2026, 5, 18, 9),
-    updatedAt: DateTime(2026, 5, 18, 10),
-  );
+  late WritingProject _project;
+
+  WritingProject get project => _project;
 
   void dispose() {
     _changes.close();
@@ -365,14 +464,31 @@ class _FakeProjectRepository implements ProjectRepository {
 
   @override
   Future<WritingProject?> findProject(String id) async {
-    return id == project.id ? project : null;
+    return id == _project.id ? _project : null;
   }
 
   @override
   Future<void> saveProject({
     String? id,
     required WritingProjectInput input,
-  }) async {}
+  }) async {
+    _project = WritingProject(
+      id: id ?? _project.id,
+      title: input.title,
+      description: input.description,
+      status: input.status,
+      defaultProviderId: input.defaultProviderId,
+      defaultModelName: input.defaultModelName,
+      styleProfileId: input.styleProfileId,
+      plotProfileId: input.plotProfileId,
+      language: input.language,
+      targetLength: input.targetLength,
+      narrativePerspective: input.narrativePerspective,
+      createdAt: _project.createdAt,
+      updatedAt: DateTime(2026, 5, 18, 12),
+    );
+    _changes.add(null);
+  }
 
   @override
   Future<void> updateStatus({
@@ -382,13 +498,82 @@ class _FakeProjectRepository implements ProjectRepository {
 
   @override
   Stream<WritingProject?> watchProject(String id) async* {
-    yield id == project.id ? project : null;
-    yield* _changes.stream.map((_) => id == project.id ? project : null);
+    yield id == _project.id ? _project : null;
+    yield* _changes.stream.map((_) => id == _project.id ? _project : null);
   }
 
   @override
   Stream<List<WritingProject>> watchProjects(ProjectStatus status) async* {
-    yield status == ProjectStatus.active ? [project] : const [];
+    yield status == _project.status ? [_project] : const [];
+  }
+}
+
+class _FakeProviderConfigRepository implements ProviderConfigRepository {
+  _FakeProviderConfigRepository() {
+    _providers = [
+      ProviderConfig(
+        id: 'provider-1',
+        name: 'OpenAI',
+        baseUrl: 'https://api.example.com/v1',
+        apiKey: 'sk-test',
+        defaultModel: 'gpt-4.1-mini',
+        modelNames: const ['gpt-4.1-mini', 'gpt-4.1'],
+        systemPrompt: '',
+        isEnabled: true,
+        testStatus: ProviderTestStatus.untested,
+        createdAt: DateTime(2026, 5, 18, 9),
+        updatedAt: DateTime(2026, 5, 18, 10),
+      ),
+    ];
+  }
+
+  final _changes = StreamController<void>.broadcast();
+  late final List<ProviderConfig> _providers;
+
+  void dispose() {
+    _changes.close();
+  }
+
+  @override
+  Future<void> deleteProvider(String id) async {}
+
+  @override
+  Future<ProviderConfig?> findProvider(String id) async {
+    return _providers.where((provider) => provider.id == id).firstOrNull;
+  }
+
+  @override
+  Future<void> saveProvider({
+    String? id,
+    required ProviderConfigInput input,
+  }) async {}
+
+  @override
+  Future<void> updateSystemPrompt({
+    required String id,
+    required String systemPrompt,
+  }) async {}
+
+  @override
+  Future<void> updateTestResult({
+    required String id,
+    required ProviderTestStatus status,
+    required DateTime testedAt,
+    String? message,
+  }) async {}
+
+  @override
+  Stream<List<ProviderConfig>> watchProviders() async* {
+    yield _providers;
+    yield* _changes.stream.map((_) => _providers);
+  }
+
+  @override
+  Stream<ProviderConfig?> watchProvider(String id) async* {
+    yield _providers.where((provider) => provider.id == id).firstOrNull;
+    yield* _changes.stream.map(
+      (_) => _providers.where((provider) => provider.id == id).firstOrNull,
+    );
   }
 }
 
