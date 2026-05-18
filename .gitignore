@@ -7,8 +7,8 @@
 # Local AI/tool caches
 .ace-tool/
 
-# Old reference project and imported local samples
-Persona_副本/
+# Local reference projects and imported local samples
+reference_projects/
 
 # Secrets and local environment
 .env
