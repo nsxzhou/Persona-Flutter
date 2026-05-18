@@ -220,6 +220,78 @@ class PlotProfileRecords extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+class ProjectRuntimeMemoryRecords extends Table {
+  TextColumn get projectId => text().references(ProjectRecords, #id)();
+  TextColumn get charactersStatus => text().withDefault(const Constant(''))();
+  TextColumn get runtimeState => text().withDefault(const Constant(''))();
+  TextColumn get runtimeThreads => text().withDefault(const Constant(''))();
+  TextColumn get storySummary => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {projectId};
+}
+
+class ChapterPlanRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get projectId => text().references(ProjectRecords, #id)();
+  IntColumn get chapterIndex => integer()();
+  TextColumn get title => text().withDefault(const Constant(''))();
+  TextColumn get objective => text().withDefault(const Constant(''))();
+  TextColumn get pressureSource => text().withDefault(const Constant(''))();
+  TextColumn get payoffTarget => text().withDefault(const Constant(''))();
+  TextColumn get relationshipShift => text().withDefault(const Constant(''))();
+  TextColumn get hookType => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+
+  @override
+  List<Set<Column<Object>>> get uniqueKeys => [
+    {projectId, chapterIndex},
+  ];
+}
+
+class ProjectChapterRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get projectId => text().references(ProjectRecords, #id)();
+  TextColumn get chapterPlanId =>
+      text().unique().references(ChapterPlanRecords, #id)();
+  IntColumn get chapterIndex => integer()();
+  TextColumn get title => text().withDefault(const Constant(''))();
+  TextColumn get contentMarkdown => text().withDefault(const Constant(''))();
+  TextColumn get contentHash => text().withDefault(const Constant(''))();
+  TextColumn get continuityVerdict =>
+      text().withDefault(const Constant('pass'))();
+  TextColumn get continuityReportMarkdown =>
+      text().withDefault(const Constant(''))();
+  TextColumn get memorySyncStatus =>
+      text().withDefault(const Constant('idle'))();
+  TextColumn get memorySyncContentHash =>
+      text().withDefault(const Constant(''))();
+  TextColumn get memorySyncProposedCharactersStatus =>
+      text().withDefault(const Constant(''))();
+  TextColumn get memorySyncProposedRuntimeState =>
+      text().withDefault(const Constant(''))();
+  TextColumn get memorySyncProposedRuntimeThreads =>
+      text().withDefault(const Constant(''))();
+  TextColumn get memorySyncProposedStorySummary =>
+      text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+
+  @override
+  List<Set<Column<Object>>> get uniqueKeys => [
+    {projectId, chapterIndex},
+  ];
+}
+
 @DriftDatabase(
   tables: [
     WorkflowTaskRecords,
@@ -233,13 +305,16 @@ class PlotProfileRecords extends Table {
     PlotSampleRecords,
     PlotAnalysisRunRecords,
     PlotProfileRecords,
+    ProjectRuntimeMemoryRecords,
+    ChapterPlanRecords,
+    ProjectChapterRecords,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration {
@@ -339,6 +414,11 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 11) {
           await _dropNovelWorkshopPersistence();
+        }
+        if (from < 12) {
+          await migrator.createTable(projectRuntimeMemoryRecords);
+          await migrator.createTable(chapterPlanRecords);
+          await migrator.createTable(projectChapterRecords);
         }
       },
     );

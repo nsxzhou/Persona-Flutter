@@ -373,10 +373,15 @@ void main() {
         ['task-style'],
       );
       expect(await _tableExists(sqlite, 'story_bible_records'), isFalse);
-      expect(await _tableExists(sqlite, 'chapter_plan_records'), isFalse);
       expect(await _tableExists(sqlite, 'chapter_draft_run_records'), isFalse);
       expect(await _tableExists(sqlite, 'accepted_chapter_records'), isFalse);
       expect(await _tableExists(sqlite, 'memory_projection_records'), isFalse);
+      expect(
+        await _tableExists(sqlite, 'project_runtime_memory_records'),
+        isTrue,
+      );
+      expect(await _tableExists(sqlite, 'chapter_plan_records'), isTrue);
+      expect(await _tableExists(sqlite, 'project_chapter_records'), isTrue);
     },
   );
 }

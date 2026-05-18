@@ -8240,6 +8240,2258 @@ class PlotProfileRecordsCompanion extends UpdateCompanion<PlotProfileRecord> {
   }
 }
 
+class $ProjectRuntimeMemoryRecordsTable extends ProjectRuntimeMemoryRecords
+    with
+        TableInfo<
+          $ProjectRuntimeMemoryRecordsTable,
+          ProjectRuntimeMemoryRecord
+        > {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ProjectRuntimeMemoryRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _projectIdMeta = const VerificationMeta(
+    'projectId',
+  );
+  @override
+  late final GeneratedColumn<String> projectId = GeneratedColumn<String>(
+    'project_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES project_records (id)',
+    ),
+  );
+  static const VerificationMeta _charactersStatusMeta = const VerificationMeta(
+    'charactersStatus',
+  );
+  @override
+  late final GeneratedColumn<String> charactersStatus = GeneratedColumn<String>(
+    'characters_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _runtimeStateMeta = const VerificationMeta(
+    'runtimeState',
+  );
+  @override
+  late final GeneratedColumn<String> runtimeState = GeneratedColumn<String>(
+    'runtime_state',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _runtimeThreadsMeta = const VerificationMeta(
+    'runtimeThreads',
+  );
+  @override
+  late final GeneratedColumn<String> runtimeThreads = GeneratedColumn<String>(
+    'runtime_threads',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _storySummaryMeta = const VerificationMeta(
+    'storySummary',
+  );
+  @override
+  late final GeneratedColumn<String> storySummary = GeneratedColumn<String>(
+    'story_summary',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    projectId,
+    charactersStatus,
+    runtimeState,
+    runtimeThreads,
+    storySummary,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'project_runtime_memory_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ProjectRuntimeMemoryRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('project_id')) {
+      context.handle(
+        _projectIdMeta,
+        projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_projectIdMeta);
+    }
+    if (data.containsKey('characters_status')) {
+      context.handle(
+        _charactersStatusMeta,
+        charactersStatus.isAcceptableOrUnknown(
+          data['characters_status']!,
+          _charactersStatusMeta,
+        ),
+      );
+    }
+    if (data.containsKey('runtime_state')) {
+      context.handle(
+        _runtimeStateMeta,
+        runtimeState.isAcceptableOrUnknown(
+          data['runtime_state']!,
+          _runtimeStateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('runtime_threads')) {
+      context.handle(
+        _runtimeThreadsMeta,
+        runtimeThreads.isAcceptableOrUnknown(
+          data['runtime_threads']!,
+          _runtimeThreadsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('story_summary')) {
+      context.handle(
+        _storySummaryMeta,
+        storySummary.isAcceptableOrUnknown(
+          data['story_summary']!,
+          _storySummaryMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {projectId};
+  @override
+  ProjectRuntimeMemoryRecord map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ProjectRuntimeMemoryRecord(
+      projectId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}project_id'],
+      )!,
+      charactersStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}characters_status'],
+      )!,
+      runtimeState: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}runtime_state'],
+      )!,
+      runtimeThreads: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}runtime_threads'],
+      )!,
+      storySummary: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}story_summary'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ProjectRuntimeMemoryRecordsTable createAlias(String alias) {
+    return $ProjectRuntimeMemoryRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class ProjectRuntimeMemoryRecord extends DataClass
+    implements Insertable<ProjectRuntimeMemoryRecord> {
+  final String projectId;
+  final String charactersStatus;
+  final String runtimeState;
+  final String runtimeThreads;
+  final String storySummary;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const ProjectRuntimeMemoryRecord({
+    required this.projectId,
+    required this.charactersStatus,
+    required this.runtimeState,
+    required this.runtimeThreads,
+    required this.storySummary,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['project_id'] = Variable<String>(projectId);
+    map['characters_status'] = Variable<String>(charactersStatus);
+    map['runtime_state'] = Variable<String>(runtimeState);
+    map['runtime_threads'] = Variable<String>(runtimeThreads);
+    map['story_summary'] = Variable<String>(storySummary);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  ProjectRuntimeMemoryRecordsCompanion toCompanion(bool nullToAbsent) {
+    return ProjectRuntimeMemoryRecordsCompanion(
+      projectId: Value(projectId),
+      charactersStatus: Value(charactersStatus),
+      runtimeState: Value(runtimeState),
+      runtimeThreads: Value(runtimeThreads),
+      storySummary: Value(storySummary),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory ProjectRuntimeMemoryRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ProjectRuntimeMemoryRecord(
+      projectId: serializer.fromJson<String>(json['projectId']),
+      charactersStatus: serializer.fromJson<String>(json['charactersStatus']),
+      runtimeState: serializer.fromJson<String>(json['runtimeState']),
+      runtimeThreads: serializer.fromJson<String>(json['runtimeThreads']),
+      storySummary: serializer.fromJson<String>(json['storySummary']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'projectId': serializer.toJson<String>(projectId),
+      'charactersStatus': serializer.toJson<String>(charactersStatus),
+      'runtimeState': serializer.toJson<String>(runtimeState),
+      'runtimeThreads': serializer.toJson<String>(runtimeThreads),
+      'storySummary': serializer.toJson<String>(storySummary),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  ProjectRuntimeMemoryRecord copyWith({
+    String? projectId,
+    String? charactersStatus,
+    String? runtimeState,
+    String? runtimeThreads,
+    String? storySummary,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => ProjectRuntimeMemoryRecord(
+    projectId: projectId ?? this.projectId,
+    charactersStatus: charactersStatus ?? this.charactersStatus,
+    runtimeState: runtimeState ?? this.runtimeState,
+    runtimeThreads: runtimeThreads ?? this.runtimeThreads,
+    storySummary: storySummary ?? this.storySummary,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  ProjectRuntimeMemoryRecord copyWithCompanion(
+    ProjectRuntimeMemoryRecordsCompanion data,
+  ) {
+    return ProjectRuntimeMemoryRecord(
+      projectId: data.projectId.present ? data.projectId.value : this.projectId,
+      charactersStatus: data.charactersStatus.present
+          ? data.charactersStatus.value
+          : this.charactersStatus,
+      runtimeState: data.runtimeState.present
+          ? data.runtimeState.value
+          : this.runtimeState,
+      runtimeThreads: data.runtimeThreads.present
+          ? data.runtimeThreads.value
+          : this.runtimeThreads,
+      storySummary: data.storySummary.present
+          ? data.storySummary.value
+          : this.storySummary,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProjectRuntimeMemoryRecord(')
+          ..write('projectId: $projectId, ')
+          ..write('charactersStatus: $charactersStatus, ')
+          ..write('runtimeState: $runtimeState, ')
+          ..write('runtimeThreads: $runtimeThreads, ')
+          ..write('storySummary: $storySummary, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    projectId,
+    charactersStatus,
+    runtimeState,
+    runtimeThreads,
+    storySummary,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ProjectRuntimeMemoryRecord &&
+          other.projectId == this.projectId &&
+          other.charactersStatus == this.charactersStatus &&
+          other.runtimeState == this.runtimeState &&
+          other.runtimeThreads == this.runtimeThreads &&
+          other.storySummary == this.storySummary &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class ProjectRuntimeMemoryRecordsCompanion
+    extends UpdateCompanion<ProjectRuntimeMemoryRecord> {
+  final Value<String> projectId;
+  final Value<String> charactersStatus;
+  final Value<String> runtimeState;
+  final Value<String> runtimeThreads;
+  final Value<String> storySummary;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const ProjectRuntimeMemoryRecordsCompanion({
+    this.projectId = const Value.absent(),
+    this.charactersStatus = const Value.absent(),
+    this.runtimeState = const Value.absent(),
+    this.runtimeThreads = const Value.absent(),
+    this.storySummary = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ProjectRuntimeMemoryRecordsCompanion.insert({
+    required String projectId,
+    this.charactersStatus = const Value.absent(),
+    this.runtimeState = const Value.absent(),
+    this.runtimeThreads = const Value.absent(),
+    this.storySummary = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : projectId = Value(projectId),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<ProjectRuntimeMemoryRecord> custom({
+    Expression<String>? projectId,
+    Expression<String>? charactersStatus,
+    Expression<String>? runtimeState,
+    Expression<String>? runtimeThreads,
+    Expression<String>? storySummary,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (projectId != null) 'project_id': projectId,
+      if (charactersStatus != null) 'characters_status': charactersStatus,
+      if (runtimeState != null) 'runtime_state': runtimeState,
+      if (runtimeThreads != null) 'runtime_threads': runtimeThreads,
+      if (storySummary != null) 'story_summary': storySummary,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ProjectRuntimeMemoryRecordsCompanion copyWith({
+    Value<String>? projectId,
+    Value<String>? charactersStatus,
+    Value<String>? runtimeState,
+    Value<String>? runtimeThreads,
+    Value<String>? storySummary,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return ProjectRuntimeMemoryRecordsCompanion(
+      projectId: projectId ?? this.projectId,
+      charactersStatus: charactersStatus ?? this.charactersStatus,
+      runtimeState: runtimeState ?? this.runtimeState,
+      runtimeThreads: runtimeThreads ?? this.runtimeThreads,
+      storySummary: storySummary ?? this.storySummary,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (projectId.present) {
+      map['project_id'] = Variable<String>(projectId.value);
+    }
+    if (charactersStatus.present) {
+      map['characters_status'] = Variable<String>(charactersStatus.value);
+    }
+    if (runtimeState.present) {
+      map['runtime_state'] = Variable<String>(runtimeState.value);
+    }
+    if (runtimeThreads.present) {
+      map['runtime_threads'] = Variable<String>(runtimeThreads.value);
+    }
+    if (storySummary.present) {
+      map['story_summary'] = Variable<String>(storySummary.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProjectRuntimeMemoryRecordsCompanion(')
+          ..write('projectId: $projectId, ')
+          ..write('charactersStatus: $charactersStatus, ')
+          ..write('runtimeState: $runtimeState, ')
+          ..write('runtimeThreads: $runtimeThreads, ')
+          ..write('storySummary: $storySummary, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ChapterPlanRecordsTable extends ChapterPlanRecords
+    with TableInfo<$ChapterPlanRecordsTable, ChapterPlanRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ChapterPlanRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _projectIdMeta = const VerificationMeta(
+    'projectId',
+  );
+  @override
+  late final GeneratedColumn<String> projectId = GeneratedColumn<String>(
+    'project_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES project_records (id)',
+    ),
+  );
+  static const VerificationMeta _chapterIndexMeta = const VerificationMeta(
+    'chapterIndex',
+  );
+  @override
+  late final GeneratedColumn<int> chapterIndex = GeneratedColumn<int>(
+    'chapter_index',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _objectiveMeta = const VerificationMeta(
+    'objective',
+  );
+  @override
+  late final GeneratedColumn<String> objective = GeneratedColumn<String>(
+    'objective',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _pressureSourceMeta = const VerificationMeta(
+    'pressureSource',
+  );
+  @override
+  late final GeneratedColumn<String> pressureSource = GeneratedColumn<String>(
+    'pressure_source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _payoffTargetMeta = const VerificationMeta(
+    'payoffTarget',
+  );
+  @override
+  late final GeneratedColumn<String> payoffTarget = GeneratedColumn<String>(
+    'payoff_target',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _relationshipShiftMeta = const VerificationMeta(
+    'relationshipShift',
+  );
+  @override
+  late final GeneratedColumn<String> relationshipShift =
+      GeneratedColumn<String>(
+        'relationship_shift',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(''),
+      );
+  static const VerificationMeta _hookTypeMeta = const VerificationMeta(
+    'hookType',
+  );
+  @override
+  late final GeneratedColumn<String> hookType = GeneratedColumn<String>(
+    'hook_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    projectId,
+    chapterIndex,
+    title,
+    objective,
+    pressureSource,
+    payoffTarget,
+    relationshipShift,
+    hookType,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'chapter_plan_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ChapterPlanRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('project_id')) {
+      context.handle(
+        _projectIdMeta,
+        projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_projectIdMeta);
+    }
+    if (data.containsKey('chapter_index')) {
+      context.handle(
+        _chapterIndexMeta,
+        chapterIndex.isAcceptableOrUnknown(
+          data['chapter_index']!,
+          _chapterIndexMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_chapterIndexMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    }
+    if (data.containsKey('objective')) {
+      context.handle(
+        _objectiveMeta,
+        objective.isAcceptableOrUnknown(data['objective']!, _objectiveMeta),
+      );
+    }
+    if (data.containsKey('pressure_source')) {
+      context.handle(
+        _pressureSourceMeta,
+        pressureSource.isAcceptableOrUnknown(
+          data['pressure_source']!,
+          _pressureSourceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('payoff_target')) {
+      context.handle(
+        _payoffTargetMeta,
+        payoffTarget.isAcceptableOrUnknown(
+          data['payoff_target']!,
+          _payoffTargetMeta,
+        ),
+      );
+    }
+    if (data.containsKey('relationship_shift')) {
+      context.handle(
+        _relationshipShiftMeta,
+        relationshipShift.isAcceptableOrUnknown(
+          data['relationship_shift']!,
+          _relationshipShiftMeta,
+        ),
+      );
+    }
+    if (data.containsKey('hook_type')) {
+      context.handle(
+        _hookTypeMeta,
+        hookType.isAcceptableOrUnknown(data['hook_type']!, _hookTypeMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {projectId, chapterIndex},
+  ];
+  @override
+  ChapterPlanRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ChapterPlanRecord(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      projectId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}project_id'],
+      )!,
+      chapterIndex: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}chapter_index'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      objective: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}objective'],
+      )!,
+      pressureSource: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pressure_source'],
+      )!,
+      payoffTarget: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payoff_target'],
+      )!,
+      relationshipShift: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}relationship_shift'],
+      )!,
+      hookType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hook_type'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ChapterPlanRecordsTable createAlias(String alias) {
+    return $ChapterPlanRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class ChapterPlanRecord extends DataClass
+    implements Insertable<ChapterPlanRecord> {
+  final String id;
+  final String projectId;
+  final int chapterIndex;
+  final String title;
+  final String objective;
+  final String pressureSource;
+  final String payoffTarget;
+  final String relationshipShift;
+  final String hookType;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const ChapterPlanRecord({
+    required this.id,
+    required this.projectId,
+    required this.chapterIndex,
+    required this.title,
+    required this.objective,
+    required this.pressureSource,
+    required this.payoffTarget,
+    required this.relationshipShift,
+    required this.hookType,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['project_id'] = Variable<String>(projectId);
+    map['chapter_index'] = Variable<int>(chapterIndex);
+    map['title'] = Variable<String>(title);
+    map['objective'] = Variable<String>(objective);
+    map['pressure_source'] = Variable<String>(pressureSource);
+    map['payoff_target'] = Variable<String>(payoffTarget);
+    map['relationship_shift'] = Variable<String>(relationshipShift);
+    map['hook_type'] = Variable<String>(hookType);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  ChapterPlanRecordsCompanion toCompanion(bool nullToAbsent) {
+    return ChapterPlanRecordsCompanion(
+      id: Value(id),
+      projectId: Value(projectId),
+      chapterIndex: Value(chapterIndex),
+      title: Value(title),
+      objective: Value(objective),
+      pressureSource: Value(pressureSource),
+      payoffTarget: Value(payoffTarget),
+      relationshipShift: Value(relationshipShift),
+      hookType: Value(hookType),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory ChapterPlanRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ChapterPlanRecord(
+      id: serializer.fromJson<String>(json['id']),
+      projectId: serializer.fromJson<String>(json['projectId']),
+      chapterIndex: serializer.fromJson<int>(json['chapterIndex']),
+      title: serializer.fromJson<String>(json['title']),
+      objective: serializer.fromJson<String>(json['objective']),
+      pressureSource: serializer.fromJson<String>(json['pressureSource']),
+      payoffTarget: serializer.fromJson<String>(json['payoffTarget']),
+      relationshipShift: serializer.fromJson<String>(json['relationshipShift']),
+      hookType: serializer.fromJson<String>(json['hookType']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'projectId': serializer.toJson<String>(projectId),
+      'chapterIndex': serializer.toJson<int>(chapterIndex),
+      'title': serializer.toJson<String>(title),
+      'objective': serializer.toJson<String>(objective),
+      'pressureSource': serializer.toJson<String>(pressureSource),
+      'payoffTarget': serializer.toJson<String>(payoffTarget),
+      'relationshipShift': serializer.toJson<String>(relationshipShift),
+      'hookType': serializer.toJson<String>(hookType),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  ChapterPlanRecord copyWith({
+    String? id,
+    String? projectId,
+    int? chapterIndex,
+    String? title,
+    String? objective,
+    String? pressureSource,
+    String? payoffTarget,
+    String? relationshipShift,
+    String? hookType,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => ChapterPlanRecord(
+    id: id ?? this.id,
+    projectId: projectId ?? this.projectId,
+    chapterIndex: chapterIndex ?? this.chapterIndex,
+    title: title ?? this.title,
+    objective: objective ?? this.objective,
+    pressureSource: pressureSource ?? this.pressureSource,
+    payoffTarget: payoffTarget ?? this.payoffTarget,
+    relationshipShift: relationshipShift ?? this.relationshipShift,
+    hookType: hookType ?? this.hookType,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  ChapterPlanRecord copyWithCompanion(ChapterPlanRecordsCompanion data) {
+    return ChapterPlanRecord(
+      id: data.id.present ? data.id.value : this.id,
+      projectId: data.projectId.present ? data.projectId.value : this.projectId,
+      chapterIndex: data.chapterIndex.present
+          ? data.chapterIndex.value
+          : this.chapterIndex,
+      title: data.title.present ? data.title.value : this.title,
+      objective: data.objective.present ? data.objective.value : this.objective,
+      pressureSource: data.pressureSource.present
+          ? data.pressureSource.value
+          : this.pressureSource,
+      payoffTarget: data.payoffTarget.present
+          ? data.payoffTarget.value
+          : this.payoffTarget,
+      relationshipShift: data.relationshipShift.present
+          ? data.relationshipShift.value
+          : this.relationshipShift,
+      hookType: data.hookType.present ? data.hookType.value : this.hookType,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChapterPlanRecord(')
+          ..write('id: $id, ')
+          ..write('projectId: $projectId, ')
+          ..write('chapterIndex: $chapterIndex, ')
+          ..write('title: $title, ')
+          ..write('objective: $objective, ')
+          ..write('pressureSource: $pressureSource, ')
+          ..write('payoffTarget: $payoffTarget, ')
+          ..write('relationshipShift: $relationshipShift, ')
+          ..write('hookType: $hookType, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    projectId,
+    chapterIndex,
+    title,
+    objective,
+    pressureSource,
+    payoffTarget,
+    relationshipShift,
+    hookType,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ChapterPlanRecord &&
+          other.id == this.id &&
+          other.projectId == this.projectId &&
+          other.chapterIndex == this.chapterIndex &&
+          other.title == this.title &&
+          other.objective == this.objective &&
+          other.pressureSource == this.pressureSource &&
+          other.payoffTarget == this.payoffTarget &&
+          other.relationshipShift == this.relationshipShift &&
+          other.hookType == this.hookType &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class ChapterPlanRecordsCompanion extends UpdateCompanion<ChapterPlanRecord> {
+  final Value<String> id;
+  final Value<String> projectId;
+  final Value<int> chapterIndex;
+  final Value<String> title;
+  final Value<String> objective;
+  final Value<String> pressureSource;
+  final Value<String> payoffTarget;
+  final Value<String> relationshipShift;
+  final Value<String> hookType;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const ChapterPlanRecordsCompanion({
+    this.id = const Value.absent(),
+    this.projectId = const Value.absent(),
+    this.chapterIndex = const Value.absent(),
+    this.title = const Value.absent(),
+    this.objective = const Value.absent(),
+    this.pressureSource = const Value.absent(),
+    this.payoffTarget = const Value.absent(),
+    this.relationshipShift = const Value.absent(),
+    this.hookType = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ChapterPlanRecordsCompanion.insert({
+    required String id,
+    required String projectId,
+    required int chapterIndex,
+    this.title = const Value.absent(),
+    this.objective = const Value.absent(),
+    this.pressureSource = const Value.absent(),
+    this.payoffTarget = const Value.absent(),
+    this.relationshipShift = const Value.absent(),
+    this.hookType = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       projectId = Value(projectId),
+       chapterIndex = Value(chapterIndex),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<ChapterPlanRecord> custom({
+    Expression<String>? id,
+    Expression<String>? projectId,
+    Expression<int>? chapterIndex,
+    Expression<String>? title,
+    Expression<String>? objective,
+    Expression<String>? pressureSource,
+    Expression<String>? payoffTarget,
+    Expression<String>? relationshipShift,
+    Expression<String>? hookType,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (projectId != null) 'project_id': projectId,
+      if (chapterIndex != null) 'chapter_index': chapterIndex,
+      if (title != null) 'title': title,
+      if (objective != null) 'objective': objective,
+      if (pressureSource != null) 'pressure_source': pressureSource,
+      if (payoffTarget != null) 'payoff_target': payoffTarget,
+      if (relationshipShift != null) 'relationship_shift': relationshipShift,
+      if (hookType != null) 'hook_type': hookType,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ChapterPlanRecordsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? projectId,
+    Value<int>? chapterIndex,
+    Value<String>? title,
+    Value<String>? objective,
+    Value<String>? pressureSource,
+    Value<String>? payoffTarget,
+    Value<String>? relationshipShift,
+    Value<String>? hookType,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return ChapterPlanRecordsCompanion(
+      id: id ?? this.id,
+      projectId: projectId ?? this.projectId,
+      chapterIndex: chapterIndex ?? this.chapterIndex,
+      title: title ?? this.title,
+      objective: objective ?? this.objective,
+      pressureSource: pressureSource ?? this.pressureSource,
+      payoffTarget: payoffTarget ?? this.payoffTarget,
+      relationshipShift: relationshipShift ?? this.relationshipShift,
+      hookType: hookType ?? this.hookType,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (projectId.present) {
+      map['project_id'] = Variable<String>(projectId.value);
+    }
+    if (chapterIndex.present) {
+      map['chapter_index'] = Variable<int>(chapterIndex.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (objective.present) {
+      map['objective'] = Variable<String>(objective.value);
+    }
+    if (pressureSource.present) {
+      map['pressure_source'] = Variable<String>(pressureSource.value);
+    }
+    if (payoffTarget.present) {
+      map['payoff_target'] = Variable<String>(payoffTarget.value);
+    }
+    if (relationshipShift.present) {
+      map['relationship_shift'] = Variable<String>(relationshipShift.value);
+    }
+    if (hookType.present) {
+      map['hook_type'] = Variable<String>(hookType.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChapterPlanRecordsCompanion(')
+          ..write('id: $id, ')
+          ..write('projectId: $projectId, ')
+          ..write('chapterIndex: $chapterIndex, ')
+          ..write('title: $title, ')
+          ..write('objective: $objective, ')
+          ..write('pressureSource: $pressureSource, ')
+          ..write('payoffTarget: $payoffTarget, ')
+          ..write('relationshipShift: $relationshipShift, ')
+          ..write('hookType: $hookType, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ProjectChapterRecordsTable extends ProjectChapterRecords
+    with TableInfo<$ProjectChapterRecordsTable, ProjectChapterRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ProjectChapterRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _projectIdMeta = const VerificationMeta(
+    'projectId',
+  );
+  @override
+  late final GeneratedColumn<String> projectId = GeneratedColumn<String>(
+    'project_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES project_records (id)',
+    ),
+  );
+  static const VerificationMeta _chapterPlanIdMeta = const VerificationMeta(
+    'chapterPlanId',
+  );
+  @override
+  late final GeneratedColumn<String> chapterPlanId = GeneratedColumn<String>(
+    'chapter_plan_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'UNIQUE REFERENCES chapter_plan_records (id)',
+    ),
+  );
+  static const VerificationMeta _chapterIndexMeta = const VerificationMeta(
+    'chapterIndex',
+  );
+  @override
+  late final GeneratedColumn<int> chapterIndex = GeneratedColumn<int>(
+    'chapter_index',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _contentMarkdownMeta = const VerificationMeta(
+    'contentMarkdown',
+  );
+  @override
+  late final GeneratedColumn<String> contentMarkdown = GeneratedColumn<String>(
+    'content_markdown',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _contentHashMeta = const VerificationMeta(
+    'contentHash',
+  );
+  @override
+  late final GeneratedColumn<String> contentHash = GeneratedColumn<String>(
+    'content_hash',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _continuityVerdictMeta = const VerificationMeta(
+    'continuityVerdict',
+  );
+  @override
+  late final GeneratedColumn<String> continuityVerdict =
+      GeneratedColumn<String>(
+        'continuity_verdict',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('pass'),
+      );
+  static const VerificationMeta _continuityReportMarkdownMeta =
+      const VerificationMeta('continuityReportMarkdown');
+  @override
+  late final GeneratedColumn<String> continuityReportMarkdown =
+      GeneratedColumn<String>(
+        'continuity_report_markdown',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(''),
+      );
+  static const VerificationMeta _memorySyncStatusMeta = const VerificationMeta(
+    'memorySyncStatus',
+  );
+  @override
+  late final GeneratedColumn<String> memorySyncStatus = GeneratedColumn<String>(
+    'memory_sync_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('idle'),
+  );
+  static const VerificationMeta _memorySyncContentHashMeta =
+      const VerificationMeta('memorySyncContentHash');
+  @override
+  late final GeneratedColumn<String> memorySyncContentHash =
+      GeneratedColumn<String>(
+        'memory_sync_content_hash',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(''),
+      );
+  static const VerificationMeta _memorySyncProposedCharactersStatusMeta =
+      const VerificationMeta('memorySyncProposedCharactersStatus');
+  @override
+  late final GeneratedColumn<String> memorySyncProposedCharactersStatus =
+      GeneratedColumn<String>(
+        'memory_sync_proposed_characters_status',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(''),
+      );
+  static const VerificationMeta _memorySyncProposedRuntimeStateMeta =
+      const VerificationMeta('memorySyncProposedRuntimeState');
+  @override
+  late final GeneratedColumn<String> memorySyncProposedRuntimeState =
+      GeneratedColumn<String>(
+        'memory_sync_proposed_runtime_state',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(''),
+      );
+  static const VerificationMeta _memorySyncProposedRuntimeThreadsMeta =
+      const VerificationMeta('memorySyncProposedRuntimeThreads');
+  @override
+  late final GeneratedColumn<String> memorySyncProposedRuntimeThreads =
+      GeneratedColumn<String>(
+        'memory_sync_proposed_runtime_threads',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(''),
+      );
+  static const VerificationMeta _memorySyncProposedStorySummaryMeta =
+      const VerificationMeta('memorySyncProposedStorySummary');
+  @override
+  late final GeneratedColumn<String> memorySyncProposedStorySummary =
+      GeneratedColumn<String>(
+        'memory_sync_proposed_story_summary',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(''),
+      );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    projectId,
+    chapterPlanId,
+    chapterIndex,
+    title,
+    contentMarkdown,
+    contentHash,
+    continuityVerdict,
+    continuityReportMarkdown,
+    memorySyncStatus,
+    memorySyncContentHash,
+    memorySyncProposedCharactersStatus,
+    memorySyncProposedRuntimeState,
+    memorySyncProposedRuntimeThreads,
+    memorySyncProposedStorySummary,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'project_chapter_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ProjectChapterRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('project_id')) {
+      context.handle(
+        _projectIdMeta,
+        projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_projectIdMeta);
+    }
+    if (data.containsKey('chapter_plan_id')) {
+      context.handle(
+        _chapterPlanIdMeta,
+        chapterPlanId.isAcceptableOrUnknown(
+          data['chapter_plan_id']!,
+          _chapterPlanIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_chapterPlanIdMeta);
+    }
+    if (data.containsKey('chapter_index')) {
+      context.handle(
+        _chapterIndexMeta,
+        chapterIndex.isAcceptableOrUnknown(
+          data['chapter_index']!,
+          _chapterIndexMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_chapterIndexMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    }
+    if (data.containsKey('content_markdown')) {
+      context.handle(
+        _contentMarkdownMeta,
+        contentMarkdown.isAcceptableOrUnknown(
+          data['content_markdown']!,
+          _contentMarkdownMeta,
+        ),
+      );
+    }
+    if (data.containsKey('content_hash')) {
+      context.handle(
+        _contentHashMeta,
+        contentHash.isAcceptableOrUnknown(
+          data['content_hash']!,
+          _contentHashMeta,
+        ),
+      );
+    }
+    if (data.containsKey('continuity_verdict')) {
+      context.handle(
+        _continuityVerdictMeta,
+        continuityVerdict.isAcceptableOrUnknown(
+          data['continuity_verdict']!,
+          _continuityVerdictMeta,
+        ),
+      );
+    }
+    if (data.containsKey('continuity_report_markdown')) {
+      context.handle(
+        _continuityReportMarkdownMeta,
+        continuityReportMarkdown.isAcceptableOrUnknown(
+          data['continuity_report_markdown']!,
+          _continuityReportMarkdownMeta,
+        ),
+      );
+    }
+    if (data.containsKey('memory_sync_status')) {
+      context.handle(
+        _memorySyncStatusMeta,
+        memorySyncStatus.isAcceptableOrUnknown(
+          data['memory_sync_status']!,
+          _memorySyncStatusMeta,
+        ),
+      );
+    }
+    if (data.containsKey('memory_sync_content_hash')) {
+      context.handle(
+        _memorySyncContentHashMeta,
+        memorySyncContentHash.isAcceptableOrUnknown(
+          data['memory_sync_content_hash']!,
+          _memorySyncContentHashMeta,
+        ),
+      );
+    }
+    if (data.containsKey('memory_sync_proposed_characters_status')) {
+      context.handle(
+        _memorySyncProposedCharactersStatusMeta,
+        memorySyncProposedCharactersStatus.isAcceptableOrUnknown(
+          data['memory_sync_proposed_characters_status']!,
+          _memorySyncProposedCharactersStatusMeta,
+        ),
+      );
+    }
+    if (data.containsKey('memory_sync_proposed_runtime_state')) {
+      context.handle(
+        _memorySyncProposedRuntimeStateMeta,
+        memorySyncProposedRuntimeState.isAcceptableOrUnknown(
+          data['memory_sync_proposed_runtime_state']!,
+          _memorySyncProposedRuntimeStateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('memory_sync_proposed_runtime_threads')) {
+      context.handle(
+        _memorySyncProposedRuntimeThreadsMeta,
+        memorySyncProposedRuntimeThreads.isAcceptableOrUnknown(
+          data['memory_sync_proposed_runtime_threads']!,
+          _memorySyncProposedRuntimeThreadsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('memory_sync_proposed_story_summary')) {
+      context.handle(
+        _memorySyncProposedStorySummaryMeta,
+        memorySyncProposedStorySummary.isAcceptableOrUnknown(
+          data['memory_sync_proposed_story_summary']!,
+          _memorySyncProposedStorySummaryMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {projectId, chapterIndex},
+  ];
+  @override
+  ProjectChapterRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ProjectChapterRecord(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      projectId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}project_id'],
+      )!,
+      chapterPlanId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}chapter_plan_id'],
+      )!,
+      chapterIndex: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}chapter_index'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      contentMarkdown: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content_markdown'],
+      )!,
+      contentHash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content_hash'],
+      )!,
+      continuityVerdict: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}continuity_verdict'],
+      )!,
+      continuityReportMarkdown: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}continuity_report_markdown'],
+      )!,
+      memorySyncStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}memory_sync_status'],
+      )!,
+      memorySyncContentHash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}memory_sync_content_hash'],
+      )!,
+      memorySyncProposedCharactersStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}memory_sync_proposed_characters_status'],
+      )!,
+      memorySyncProposedRuntimeState: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}memory_sync_proposed_runtime_state'],
+      )!,
+      memorySyncProposedRuntimeThreads: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}memory_sync_proposed_runtime_threads'],
+      )!,
+      memorySyncProposedStorySummary: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}memory_sync_proposed_story_summary'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ProjectChapterRecordsTable createAlias(String alias) {
+    return $ProjectChapterRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class ProjectChapterRecord extends DataClass
+    implements Insertable<ProjectChapterRecord> {
+  final String id;
+  final String projectId;
+  final String chapterPlanId;
+  final int chapterIndex;
+  final String title;
+  final String contentMarkdown;
+  final String contentHash;
+  final String continuityVerdict;
+  final String continuityReportMarkdown;
+  final String memorySyncStatus;
+  final String memorySyncContentHash;
+  final String memorySyncProposedCharactersStatus;
+  final String memorySyncProposedRuntimeState;
+  final String memorySyncProposedRuntimeThreads;
+  final String memorySyncProposedStorySummary;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const ProjectChapterRecord({
+    required this.id,
+    required this.projectId,
+    required this.chapterPlanId,
+    required this.chapterIndex,
+    required this.title,
+    required this.contentMarkdown,
+    required this.contentHash,
+    required this.continuityVerdict,
+    required this.continuityReportMarkdown,
+    required this.memorySyncStatus,
+    required this.memorySyncContentHash,
+    required this.memorySyncProposedCharactersStatus,
+    required this.memorySyncProposedRuntimeState,
+    required this.memorySyncProposedRuntimeThreads,
+    required this.memorySyncProposedStorySummary,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['project_id'] = Variable<String>(projectId);
+    map['chapter_plan_id'] = Variable<String>(chapterPlanId);
+    map['chapter_index'] = Variable<int>(chapterIndex);
+    map['title'] = Variable<String>(title);
+    map['content_markdown'] = Variable<String>(contentMarkdown);
+    map['content_hash'] = Variable<String>(contentHash);
+    map['continuity_verdict'] = Variable<String>(continuityVerdict);
+    map['continuity_report_markdown'] = Variable<String>(
+      continuityReportMarkdown,
+    );
+    map['memory_sync_status'] = Variable<String>(memorySyncStatus);
+    map['memory_sync_content_hash'] = Variable<String>(memorySyncContentHash);
+    map['memory_sync_proposed_characters_status'] = Variable<String>(
+      memorySyncProposedCharactersStatus,
+    );
+    map['memory_sync_proposed_runtime_state'] = Variable<String>(
+      memorySyncProposedRuntimeState,
+    );
+    map['memory_sync_proposed_runtime_threads'] = Variable<String>(
+      memorySyncProposedRuntimeThreads,
+    );
+    map['memory_sync_proposed_story_summary'] = Variable<String>(
+      memorySyncProposedStorySummary,
+    );
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  ProjectChapterRecordsCompanion toCompanion(bool nullToAbsent) {
+    return ProjectChapterRecordsCompanion(
+      id: Value(id),
+      projectId: Value(projectId),
+      chapterPlanId: Value(chapterPlanId),
+      chapterIndex: Value(chapterIndex),
+      title: Value(title),
+      contentMarkdown: Value(contentMarkdown),
+      contentHash: Value(contentHash),
+      continuityVerdict: Value(continuityVerdict),
+      continuityReportMarkdown: Value(continuityReportMarkdown),
+      memorySyncStatus: Value(memorySyncStatus),
+      memorySyncContentHash: Value(memorySyncContentHash),
+      memorySyncProposedCharactersStatus: Value(
+        memorySyncProposedCharactersStatus,
+      ),
+      memorySyncProposedRuntimeState: Value(memorySyncProposedRuntimeState),
+      memorySyncProposedRuntimeThreads: Value(memorySyncProposedRuntimeThreads),
+      memorySyncProposedStorySummary: Value(memorySyncProposedStorySummary),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory ProjectChapterRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ProjectChapterRecord(
+      id: serializer.fromJson<String>(json['id']),
+      projectId: serializer.fromJson<String>(json['projectId']),
+      chapterPlanId: serializer.fromJson<String>(json['chapterPlanId']),
+      chapterIndex: serializer.fromJson<int>(json['chapterIndex']),
+      title: serializer.fromJson<String>(json['title']),
+      contentMarkdown: serializer.fromJson<String>(json['contentMarkdown']),
+      contentHash: serializer.fromJson<String>(json['contentHash']),
+      continuityVerdict: serializer.fromJson<String>(json['continuityVerdict']),
+      continuityReportMarkdown: serializer.fromJson<String>(
+        json['continuityReportMarkdown'],
+      ),
+      memorySyncStatus: serializer.fromJson<String>(json['memorySyncStatus']),
+      memorySyncContentHash: serializer.fromJson<String>(
+        json['memorySyncContentHash'],
+      ),
+      memorySyncProposedCharactersStatus: serializer.fromJson<String>(
+        json['memorySyncProposedCharactersStatus'],
+      ),
+      memorySyncProposedRuntimeState: serializer.fromJson<String>(
+        json['memorySyncProposedRuntimeState'],
+      ),
+      memorySyncProposedRuntimeThreads: serializer.fromJson<String>(
+        json['memorySyncProposedRuntimeThreads'],
+      ),
+      memorySyncProposedStorySummary: serializer.fromJson<String>(
+        json['memorySyncProposedStorySummary'],
+      ),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'projectId': serializer.toJson<String>(projectId),
+      'chapterPlanId': serializer.toJson<String>(chapterPlanId),
+      'chapterIndex': serializer.toJson<int>(chapterIndex),
+      'title': serializer.toJson<String>(title),
+      'contentMarkdown': serializer.toJson<String>(contentMarkdown),
+      'contentHash': serializer.toJson<String>(contentHash),
+      'continuityVerdict': serializer.toJson<String>(continuityVerdict),
+      'continuityReportMarkdown': serializer.toJson<String>(
+        continuityReportMarkdown,
+      ),
+      'memorySyncStatus': serializer.toJson<String>(memorySyncStatus),
+      'memorySyncContentHash': serializer.toJson<String>(memorySyncContentHash),
+      'memorySyncProposedCharactersStatus': serializer.toJson<String>(
+        memorySyncProposedCharactersStatus,
+      ),
+      'memorySyncProposedRuntimeState': serializer.toJson<String>(
+        memorySyncProposedRuntimeState,
+      ),
+      'memorySyncProposedRuntimeThreads': serializer.toJson<String>(
+        memorySyncProposedRuntimeThreads,
+      ),
+      'memorySyncProposedStorySummary': serializer.toJson<String>(
+        memorySyncProposedStorySummary,
+      ),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  ProjectChapterRecord copyWith({
+    String? id,
+    String? projectId,
+    String? chapterPlanId,
+    int? chapterIndex,
+    String? title,
+    String? contentMarkdown,
+    String? contentHash,
+    String? continuityVerdict,
+    String? continuityReportMarkdown,
+    String? memorySyncStatus,
+    String? memorySyncContentHash,
+    String? memorySyncProposedCharactersStatus,
+    String? memorySyncProposedRuntimeState,
+    String? memorySyncProposedRuntimeThreads,
+    String? memorySyncProposedStorySummary,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => ProjectChapterRecord(
+    id: id ?? this.id,
+    projectId: projectId ?? this.projectId,
+    chapterPlanId: chapterPlanId ?? this.chapterPlanId,
+    chapterIndex: chapterIndex ?? this.chapterIndex,
+    title: title ?? this.title,
+    contentMarkdown: contentMarkdown ?? this.contentMarkdown,
+    contentHash: contentHash ?? this.contentHash,
+    continuityVerdict: continuityVerdict ?? this.continuityVerdict,
+    continuityReportMarkdown:
+        continuityReportMarkdown ?? this.continuityReportMarkdown,
+    memorySyncStatus: memorySyncStatus ?? this.memorySyncStatus,
+    memorySyncContentHash: memorySyncContentHash ?? this.memorySyncContentHash,
+    memorySyncProposedCharactersStatus:
+        memorySyncProposedCharactersStatus ??
+        this.memorySyncProposedCharactersStatus,
+    memorySyncProposedRuntimeState:
+        memorySyncProposedRuntimeState ?? this.memorySyncProposedRuntimeState,
+    memorySyncProposedRuntimeThreads:
+        memorySyncProposedRuntimeThreads ??
+        this.memorySyncProposedRuntimeThreads,
+    memorySyncProposedStorySummary:
+        memorySyncProposedStorySummary ?? this.memorySyncProposedStorySummary,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  ProjectChapterRecord copyWithCompanion(ProjectChapterRecordsCompanion data) {
+    return ProjectChapterRecord(
+      id: data.id.present ? data.id.value : this.id,
+      projectId: data.projectId.present ? data.projectId.value : this.projectId,
+      chapterPlanId: data.chapterPlanId.present
+          ? data.chapterPlanId.value
+          : this.chapterPlanId,
+      chapterIndex: data.chapterIndex.present
+          ? data.chapterIndex.value
+          : this.chapterIndex,
+      title: data.title.present ? data.title.value : this.title,
+      contentMarkdown: data.contentMarkdown.present
+          ? data.contentMarkdown.value
+          : this.contentMarkdown,
+      contentHash: data.contentHash.present
+          ? data.contentHash.value
+          : this.contentHash,
+      continuityVerdict: data.continuityVerdict.present
+          ? data.continuityVerdict.value
+          : this.continuityVerdict,
+      continuityReportMarkdown: data.continuityReportMarkdown.present
+          ? data.continuityReportMarkdown.value
+          : this.continuityReportMarkdown,
+      memorySyncStatus: data.memorySyncStatus.present
+          ? data.memorySyncStatus.value
+          : this.memorySyncStatus,
+      memorySyncContentHash: data.memorySyncContentHash.present
+          ? data.memorySyncContentHash.value
+          : this.memorySyncContentHash,
+      memorySyncProposedCharactersStatus:
+          data.memorySyncProposedCharactersStatus.present
+          ? data.memorySyncProposedCharactersStatus.value
+          : this.memorySyncProposedCharactersStatus,
+      memorySyncProposedRuntimeState:
+          data.memorySyncProposedRuntimeState.present
+          ? data.memorySyncProposedRuntimeState.value
+          : this.memorySyncProposedRuntimeState,
+      memorySyncProposedRuntimeThreads:
+          data.memorySyncProposedRuntimeThreads.present
+          ? data.memorySyncProposedRuntimeThreads.value
+          : this.memorySyncProposedRuntimeThreads,
+      memorySyncProposedStorySummary:
+          data.memorySyncProposedStorySummary.present
+          ? data.memorySyncProposedStorySummary.value
+          : this.memorySyncProposedStorySummary,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProjectChapterRecord(')
+          ..write('id: $id, ')
+          ..write('projectId: $projectId, ')
+          ..write('chapterPlanId: $chapterPlanId, ')
+          ..write('chapterIndex: $chapterIndex, ')
+          ..write('title: $title, ')
+          ..write('contentMarkdown: $contentMarkdown, ')
+          ..write('contentHash: $contentHash, ')
+          ..write('continuityVerdict: $continuityVerdict, ')
+          ..write('continuityReportMarkdown: $continuityReportMarkdown, ')
+          ..write('memorySyncStatus: $memorySyncStatus, ')
+          ..write('memorySyncContentHash: $memorySyncContentHash, ')
+          ..write(
+            'memorySyncProposedCharactersStatus: $memorySyncProposedCharactersStatus, ',
+          )
+          ..write(
+            'memorySyncProposedRuntimeState: $memorySyncProposedRuntimeState, ',
+          )
+          ..write(
+            'memorySyncProposedRuntimeThreads: $memorySyncProposedRuntimeThreads, ',
+          )
+          ..write(
+            'memorySyncProposedStorySummary: $memorySyncProposedStorySummary, ',
+          )
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    projectId,
+    chapterPlanId,
+    chapterIndex,
+    title,
+    contentMarkdown,
+    contentHash,
+    continuityVerdict,
+    continuityReportMarkdown,
+    memorySyncStatus,
+    memorySyncContentHash,
+    memorySyncProposedCharactersStatus,
+    memorySyncProposedRuntimeState,
+    memorySyncProposedRuntimeThreads,
+    memorySyncProposedStorySummary,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ProjectChapterRecord &&
+          other.id == this.id &&
+          other.projectId == this.projectId &&
+          other.chapterPlanId == this.chapterPlanId &&
+          other.chapterIndex == this.chapterIndex &&
+          other.title == this.title &&
+          other.contentMarkdown == this.contentMarkdown &&
+          other.contentHash == this.contentHash &&
+          other.continuityVerdict == this.continuityVerdict &&
+          other.continuityReportMarkdown == this.continuityReportMarkdown &&
+          other.memorySyncStatus == this.memorySyncStatus &&
+          other.memorySyncContentHash == this.memorySyncContentHash &&
+          other.memorySyncProposedCharactersStatus ==
+              this.memorySyncProposedCharactersStatus &&
+          other.memorySyncProposedRuntimeState ==
+              this.memorySyncProposedRuntimeState &&
+          other.memorySyncProposedRuntimeThreads ==
+              this.memorySyncProposedRuntimeThreads &&
+          other.memorySyncProposedStorySummary ==
+              this.memorySyncProposedStorySummary &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class ProjectChapterRecordsCompanion
+    extends UpdateCompanion<ProjectChapterRecord> {
+  final Value<String> id;
+  final Value<String> projectId;
+  final Value<String> chapterPlanId;
+  final Value<int> chapterIndex;
+  final Value<String> title;
+  final Value<String> contentMarkdown;
+  final Value<String> contentHash;
+  final Value<String> continuityVerdict;
+  final Value<String> continuityReportMarkdown;
+  final Value<String> memorySyncStatus;
+  final Value<String> memorySyncContentHash;
+  final Value<String> memorySyncProposedCharactersStatus;
+  final Value<String> memorySyncProposedRuntimeState;
+  final Value<String> memorySyncProposedRuntimeThreads;
+  final Value<String> memorySyncProposedStorySummary;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const ProjectChapterRecordsCompanion({
+    this.id = const Value.absent(),
+    this.projectId = const Value.absent(),
+    this.chapterPlanId = const Value.absent(),
+    this.chapterIndex = const Value.absent(),
+    this.title = const Value.absent(),
+    this.contentMarkdown = const Value.absent(),
+    this.contentHash = const Value.absent(),
+    this.continuityVerdict = const Value.absent(),
+    this.continuityReportMarkdown = const Value.absent(),
+    this.memorySyncStatus = const Value.absent(),
+    this.memorySyncContentHash = const Value.absent(),
+    this.memorySyncProposedCharactersStatus = const Value.absent(),
+    this.memorySyncProposedRuntimeState = const Value.absent(),
+    this.memorySyncProposedRuntimeThreads = const Value.absent(),
+    this.memorySyncProposedStorySummary = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ProjectChapterRecordsCompanion.insert({
+    required String id,
+    required String projectId,
+    required String chapterPlanId,
+    required int chapterIndex,
+    this.title = const Value.absent(),
+    this.contentMarkdown = const Value.absent(),
+    this.contentHash = const Value.absent(),
+    this.continuityVerdict = const Value.absent(),
+    this.continuityReportMarkdown = const Value.absent(),
+    this.memorySyncStatus = const Value.absent(),
+    this.memorySyncContentHash = const Value.absent(),
+    this.memorySyncProposedCharactersStatus = const Value.absent(),
+    this.memorySyncProposedRuntimeState = const Value.absent(),
+    this.memorySyncProposedRuntimeThreads = const Value.absent(),
+    this.memorySyncProposedStorySummary = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       projectId = Value(projectId),
+       chapterPlanId = Value(chapterPlanId),
+       chapterIndex = Value(chapterIndex),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<ProjectChapterRecord> custom({
+    Expression<String>? id,
+    Expression<String>? projectId,
+    Expression<String>? chapterPlanId,
+    Expression<int>? chapterIndex,
+    Expression<String>? title,
+    Expression<String>? contentMarkdown,
+    Expression<String>? contentHash,
+    Expression<String>? continuityVerdict,
+    Expression<String>? continuityReportMarkdown,
+    Expression<String>? memorySyncStatus,
+    Expression<String>? memorySyncContentHash,
+    Expression<String>? memorySyncProposedCharactersStatus,
+    Expression<String>? memorySyncProposedRuntimeState,
+    Expression<String>? memorySyncProposedRuntimeThreads,
+    Expression<String>? memorySyncProposedStorySummary,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (projectId != null) 'project_id': projectId,
+      if (chapterPlanId != null) 'chapter_plan_id': chapterPlanId,
+      if (chapterIndex != null) 'chapter_index': chapterIndex,
+      if (title != null) 'title': title,
+      if (contentMarkdown != null) 'content_markdown': contentMarkdown,
+      if (contentHash != null) 'content_hash': contentHash,
+      if (continuityVerdict != null) 'continuity_verdict': continuityVerdict,
+      if (continuityReportMarkdown != null)
+        'continuity_report_markdown': continuityReportMarkdown,
+      if (memorySyncStatus != null) 'memory_sync_status': memorySyncStatus,
+      if (memorySyncContentHash != null)
+        'memory_sync_content_hash': memorySyncContentHash,
+      if (memorySyncProposedCharactersStatus != null)
+        'memory_sync_proposed_characters_status':
+            memorySyncProposedCharactersStatus,
+      if (memorySyncProposedRuntimeState != null)
+        'memory_sync_proposed_runtime_state': memorySyncProposedRuntimeState,
+      if (memorySyncProposedRuntimeThreads != null)
+        'memory_sync_proposed_runtime_threads':
+            memorySyncProposedRuntimeThreads,
+      if (memorySyncProposedStorySummary != null)
+        'memory_sync_proposed_story_summary': memorySyncProposedStorySummary,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ProjectChapterRecordsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? projectId,
+    Value<String>? chapterPlanId,
+    Value<int>? chapterIndex,
+    Value<String>? title,
+    Value<String>? contentMarkdown,
+    Value<String>? contentHash,
+    Value<String>? continuityVerdict,
+    Value<String>? continuityReportMarkdown,
+    Value<String>? memorySyncStatus,
+    Value<String>? memorySyncContentHash,
+    Value<String>? memorySyncProposedCharactersStatus,
+    Value<String>? memorySyncProposedRuntimeState,
+    Value<String>? memorySyncProposedRuntimeThreads,
+    Value<String>? memorySyncProposedStorySummary,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return ProjectChapterRecordsCompanion(
+      id: id ?? this.id,
+      projectId: projectId ?? this.projectId,
+      chapterPlanId: chapterPlanId ?? this.chapterPlanId,
+      chapterIndex: chapterIndex ?? this.chapterIndex,
+      title: title ?? this.title,
+      contentMarkdown: contentMarkdown ?? this.contentMarkdown,
+      contentHash: contentHash ?? this.contentHash,
+      continuityVerdict: continuityVerdict ?? this.continuityVerdict,
+      continuityReportMarkdown:
+          continuityReportMarkdown ?? this.continuityReportMarkdown,
+      memorySyncStatus: memorySyncStatus ?? this.memorySyncStatus,
+      memorySyncContentHash:
+          memorySyncContentHash ?? this.memorySyncContentHash,
+      memorySyncProposedCharactersStatus:
+          memorySyncProposedCharactersStatus ??
+          this.memorySyncProposedCharactersStatus,
+      memorySyncProposedRuntimeState:
+          memorySyncProposedRuntimeState ?? this.memorySyncProposedRuntimeState,
+      memorySyncProposedRuntimeThreads:
+          memorySyncProposedRuntimeThreads ??
+          this.memorySyncProposedRuntimeThreads,
+      memorySyncProposedStorySummary:
+          memorySyncProposedStorySummary ?? this.memorySyncProposedStorySummary,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (projectId.present) {
+      map['project_id'] = Variable<String>(projectId.value);
+    }
+    if (chapterPlanId.present) {
+      map['chapter_plan_id'] = Variable<String>(chapterPlanId.value);
+    }
+    if (chapterIndex.present) {
+      map['chapter_index'] = Variable<int>(chapterIndex.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (contentMarkdown.present) {
+      map['content_markdown'] = Variable<String>(contentMarkdown.value);
+    }
+    if (contentHash.present) {
+      map['content_hash'] = Variable<String>(contentHash.value);
+    }
+    if (continuityVerdict.present) {
+      map['continuity_verdict'] = Variable<String>(continuityVerdict.value);
+    }
+    if (continuityReportMarkdown.present) {
+      map['continuity_report_markdown'] = Variable<String>(
+        continuityReportMarkdown.value,
+      );
+    }
+    if (memorySyncStatus.present) {
+      map['memory_sync_status'] = Variable<String>(memorySyncStatus.value);
+    }
+    if (memorySyncContentHash.present) {
+      map['memory_sync_content_hash'] = Variable<String>(
+        memorySyncContentHash.value,
+      );
+    }
+    if (memorySyncProposedCharactersStatus.present) {
+      map['memory_sync_proposed_characters_status'] = Variable<String>(
+        memorySyncProposedCharactersStatus.value,
+      );
+    }
+    if (memorySyncProposedRuntimeState.present) {
+      map['memory_sync_proposed_runtime_state'] = Variable<String>(
+        memorySyncProposedRuntimeState.value,
+      );
+    }
+    if (memorySyncProposedRuntimeThreads.present) {
+      map['memory_sync_proposed_runtime_threads'] = Variable<String>(
+        memorySyncProposedRuntimeThreads.value,
+      );
+    }
+    if (memorySyncProposedStorySummary.present) {
+      map['memory_sync_proposed_story_summary'] = Variable<String>(
+        memorySyncProposedStorySummary.value,
+      );
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProjectChapterRecordsCompanion(')
+          ..write('id: $id, ')
+          ..write('projectId: $projectId, ')
+          ..write('chapterPlanId: $chapterPlanId, ')
+          ..write('chapterIndex: $chapterIndex, ')
+          ..write('title: $title, ')
+          ..write('contentMarkdown: $contentMarkdown, ')
+          ..write('contentHash: $contentHash, ')
+          ..write('continuityVerdict: $continuityVerdict, ')
+          ..write('continuityReportMarkdown: $continuityReportMarkdown, ')
+          ..write('memorySyncStatus: $memorySyncStatus, ')
+          ..write('memorySyncContentHash: $memorySyncContentHash, ')
+          ..write(
+            'memorySyncProposedCharactersStatus: $memorySyncProposedCharactersStatus, ',
+          )
+          ..write(
+            'memorySyncProposedRuntimeState: $memorySyncProposedRuntimeState, ',
+          )
+          ..write(
+            'memorySyncProposedRuntimeThreads: $memorySyncProposedRuntimeThreads, ',
+          )
+          ..write(
+            'memorySyncProposedStorySummary: $memorySyncProposedStorySummary, ',
+          )
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -8264,6 +10516,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $PlotAnalysisRunRecordsTable(this);
   late final $PlotProfileRecordsTable plotProfileRecords =
       $PlotProfileRecordsTable(this);
+  late final $ProjectRuntimeMemoryRecordsTable projectRuntimeMemoryRecords =
+      $ProjectRuntimeMemoryRecordsTable(this);
+  late final $ChapterPlanRecordsTable chapterPlanRecords =
+      $ChapterPlanRecordsTable(this);
+  late final $ProjectChapterRecordsTable projectChapterRecords =
+      $ProjectChapterRecordsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -8280,6 +10538,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     plotSampleRecords,
     plotAnalysisRunRecords,
     plotProfileRecords,
+    projectRuntimeMemoryRecords,
+    chapterPlanRecords,
+    projectChapterRecords,
   ];
 }
 
@@ -10677,6 +12938,86 @@ final class $$ProjectRecordsTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<
+    $ProjectRuntimeMemoryRecordsTable,
+    List<ProjectRuntimeMemoryRecord>
+  >
+  _projectRuntimeMemoryRecordsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.projectRuntimeMemoryRecords,
+        aliasName: $_aliasNameGenerator(
+          db.projectRecords.id,
+          db.projectRuntimeMemoryRecords.projectId,
+        ),
+      );
+
+  $$ProjectRuntimeMemoryRecordsTableProcessedTableManager
+  get projectRuntimeMemoryRecordsRefs {
+    final manager = $$ProjectRuntimeMemoryRecordsTableTableManager(
+      $_db,
+      $_db.projectRuntimeMemoryRecords,
+    ).filter((f) => f.projectId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _projectRuntimeMemoryRecordsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$ChapterPlanRecordsTable, List<ChapterPlanRecord>>
+  _chapterPlanRecordsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.chapterPlanRecords,
+        aliasName: $_aliasNameGenerator(
+          db.projectRecords.id,
+          db.chapterPlanRecords.projectId,
+        ),
+      );
+
+  $$ChapterPlanRecordsTableProcessedTableManager get chapterPlanRecordsRefs {
+    final manager = $$ChapterPlanRecordsTableTableManager(
+      $_db,
+      $_db.chapterPlanRecords,
+    ).filter((f) => f.projectId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _chapterPlanRecordsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $ProjectChapterRecordsTable,
+    List<ProjectChapterRecord>
+  >
+  _projectChapterRecordsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.projectChapterRecords,
+        aliasName: $_aliasNameGenerator(
+          db.projectRecords.id,
+          db.projectChapterRecords.projectId,
+        ),
+      );
+
+  $$ProjectChapterRecordsTableProcessedTableManager
+  get projectChapterRecordsRefs {
+    final manager = $$ProjectChapterRecordsTableTableManager(
+      $_db,
+      $_db.projectChapterRecords,
+    ).filter((f) => f.projectId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _projectChapterRecordsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$ProjectRecordsTableFilterComposer
@@ -10902,6 +13243,86 @@ class $$ProjectRecordsTableFilterComposer
                 $removeJoinBuilderFromRootComposer,
           ),
     );
+    return f(composer);
+  }
+
+  Expression<bool> projectRuntimeMemoryRecordsRefs(
+    Expression<bool> Function(
+      $$ProjectRuntimeMemoryRecordsTableFilterComposer f,
+    )
+    f,
+  ) {
+    final $$ProjectRuntimeMemoryRecordsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.projectRuntimeMemoryRecords,
+          getReferencedColumn: (t) => t.projectId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ProjectRuntimeMemoryRecordsTableFilterComposer(
+                $db: $db,
+                $table: $db.projectRuntimeMemoryRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<bool> chapterPlanRecordsRefs(
+    Expression<bool> Function($$ChapterPlanRecordsTableFilterComposer f) f,
+  ) {
+    final $$ChapterPlanRecordsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.chapterPlanRecords,
+      getReferencedColumn: (t) => t.projectId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ChapterPlanRecordsTableFilterComposer(
+            $db: $db,
+            $table: $db.chapterPlanRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> projectChapterRecordsRefs(
+    Expression<bool> Function($$ProjectChapterRecordsTableFilterComposer f) f,
+  ) {
+    final $$ProjectChapterRecordsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.projectChapterRecords,
+          getReferencedColumn: (t) => t.projectId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ProjectChapterRecordsTableFilterComposer(
+                $db: $db,
+                $table: $db.projectChapterRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
     return f(composer);
   }
 }
@@ -11199,6 +13620,87 @@ class $$ProjectRecordsTableAnnotationComposer
         );
     return f(composer);
   }
+
+  Expression<T> projectRuntimeMemoryRecordsRefs<T extends Object>(
+    Expression<T> Function(
+      $$ProjectRuntimeMemoryRecordsTableAnnotationComposer a,
+    )
+    f,
+  ) {
+    final $$ProjectRuntimeMemoryRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.projectRuntimeMemoryRecords,
+          getReferencedColumn: (t) => t.projectId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ProjectRuntimeMemoryRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.projectRuntimeMemoryRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<T> chapterPlanRecordsRefs<T extends Object>(
+    Expression<T> Function($$ChapterPlanRecordsTableAnnotationComposer a) f,
+  ) {
+    final $$ChapterPlanRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.chapterPlanRecords,
+          getReferencedColumn: (t) => t.projectId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ChapterPlanRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.chapterPlanRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<T> projectChapterRecordsRefs<T extends Object>(
+    Expression<T> Function($$ProjectChapterRecordsTableAnnotationComposer a) f,
+  ) {
+    final $$ProjectChapterRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.projectChapterRecords,
+          getReferencedColumn: (t) => t.projectId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ProjectChapterRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.projectChapterRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$ProjectRecordsTableTableManager
@@ -11221,6 +13723,9 @@ class $$ProjectRecordsTableTableManager
             bool plotSampleRecordsRefs,
             bool plotAnalysisRunRecordsRefs,
             bool plotProfileRecordsRefs,
+            bool projectRuntimeMemoryRecordsRefs,
+            bool chapterPlanRecordsRefs,
+            bool projectChapterRecordsRefs,
           })
         > {
   $$ProjectRecordsTableTableManager(
@@ -11316,6 +13821,9 @@ class $$ProjectRecordsTableTableManager
                 plotSampleRecordsRefs = false,
                 plotAnalysisRunRecordsRefs = false,
                 plotProfileRecordsRefs = false,
+                projectRuntimeMemoryRecordsRefs = false,
+                chapterPlanRecordsRefs = false,
+                projectChapterRecordsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -11326,6 +13834,10 @@ class $$ProjectRecordsTableTableManager
                     if (plotSampleRecordsRefs) db.plotSampleRecords,
                     if (plotAnalysisRunRecordsRefs) db.plotAnalysisRunRecords,
                     if (plotProfileRecordsRefs) db.plotProfileRecords,
+                    if (projectRuntimeMemoryRecordsRefs)
+                      db.projectRuntimeMemoryRecords,
+                    if (chapterPlanRecordsRefs) db.chapterPlanRecords,
+                    if (projectChapterRecordsRefs) db.projectChapterRecords,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -11456,6 +13968,69 @@ class $$ProjectRecordsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (projectRuntimeMemoryRecordsRefs)
+                        await $_getPrefetchedData<
+                          ProjectRecord,
+                          $ProjectRecordsTable,
+                          ProjectRuntimeMemoryRecord
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ProjectRecordsTableReferences
+                              ._projectRuntimeMemoryRecordsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ProjectRecordsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).projectRuntimeMemoryRecordsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.projectId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (chapterPlanRecordsRefs)
+                        await $_getPrefetchedData<
+                          ProjectRecord,
+                          $ProjectRecordsTable,
+                          ChapterPlanRecord
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ProjectRecordsTableReferences
+                              ._chapterPlanRecordsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ProjectRecordsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).chapterPlanRecordsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.projectId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (projectChapterRecordsRefs)
+                        await $_getPrefetchedData<
+                          ProjectRecord,
+                          $ProjectRecordsTable,
+                          ProjectChapterRecord
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ProjectRecordsTableReferences
+                              ._projectChapterRecordsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ProjectRecordsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).projectChapterRecordsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.projectId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -11483,6 +14058,9 @@ typedef $$ProjectRecordsTableProcessedTableManager =
         bool plotSampleRecordsRefs,
         bool plotAnalysisRunRecordsRefs,
         bool plotProfileRecordsRefs,
+        bool projectRuntimeMemoryRecordsRefs,
+        bool chapterPlanRecordsRefs,
+        bool projectChapterRecordsRefs,
       })
     >;
 typedef $$StyleSampleRecordsTableCreateCompanionBuilder =
@@ -16600,6 +19178,1682 @@ typedef $$PlotProfileRecordsTableProcessedTableManager =
         bool sourceSampleId,
       })
     >;
+typedef $$ProjectRuntimeMemoryRecordsTableCreateCompanionBuilder =
+    ProjectRuntimeMemoryRecordsCompanion Function({
+      required String projectId,
+      Value<String> charactersStatus,
+      Value<String> runtimeState,
+      Value<String> runtimeThreads,
+      Value<String> storySummary,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$ProjectRuntimeMemoryRecordsTableUpdateCompanionBuilder =
+    ProjectRuntimeMemoryRecordsCompanion Function({
+      Value<String> projectId,
+      Value<String> charactersStatus,
+      Value<String> runtimeState,
+      Value<String> runtimeThreads,
+      Value<String> storySummary,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+final class $$ProjectRuntimeMemoryRecordsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $ProjectRuntimeMemoryRecordsTable,
+          ProjectRuntimeMemoryRecord
+        > {
+  $$ProjectRuntimeMemoryRecordsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $ProjectRecordsTable _projectIdTable(_$AppDatabase db) =>
+      db.projectRecords.createAlias(
+        $_aliasNameGenerator(
+          db.projectRuntimeMemoryRecords.projectId,
+          db.projectRecords.id,
+        ),
+      );
+
+  $$ProjectRecordsTableProcessedTableManager get projectId {
+    final $_column = $_itemColumn<String>('project_id')!;
+
+    final manager = $$ProjectRecordsTableTableManager(
+      $_db,
+      $_db.projectRecords,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_projectIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$ProjectRuntimeMemoryRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $ProjectRuntimeMemoryRecordsTable> {
+  $$ProjectRuntimeMemoryRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get charactersStatus => $composableBuilder(
+    column: $table.charactersStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get runtimeState => $composableBuilder(
+    column: $table.runtimeState,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get runtimeThreads => $composableBuilder(
+    column: $table.runtimeThreads,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get storySummary => $composableBuilder(
+    column: $table.storySummary,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ProjectRecordsTableFilterComposer get projectId {
+    final $$ProjectRecordsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.projectId,
+      referencedTable: $db.projectRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProjectRecordsTableFilterComposer(
+            $db: $db,
+            $table: $db.projectRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ProjectRuntimeMemoryRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ProjectRuntimeMemoryRecordsTable> {
+  $$ProjectRuntimeMemoryRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get charactersStatus => $composableBuilder(
+    column: $table.charactersStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get runtimeState => $composableBuilder(
+    column: $table.runtimeState,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get runtimeThreads => $composableBuilder(
+    column: $table.runtimeThreads,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get storySummary => $composableBuilder(
+    column: $table.storySummary,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ProjectRecordsTableOrderingComposer get projectId {
+    final $$ProjectRecordsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.projectId,
+      referencedTable: $db.projectRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProjectRecordsTableOrderingComposer(
+            $db: $db,
+            $table: $db.projectRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ProjectRuntimeMemoryRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ProjectRuntimeMemoryRecordsTable> {
+  $$ProjectRuntimeMemoryRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get charactersStatus => $composableBuilder(
+    column: $table.charactersStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get runtimeState => $composableBuilder(
+    column: $table.runtimeState,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get runtimeThreads => $composableBuilder(
+    column: $table.runtimeThreads,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get storySummary => $composableBuilder(
+    column: $table.storySummary,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$ProjectRecordsTableAnnotationComposer get projectId {
+    final $$ProjectRecordsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.projectId,
+      referencedTable: $db.projectRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProjectRecordsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.projectRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ProjectRuntimeMemoryRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ProjectRuntimeMemoryRecordsTable,
+          ProjectRuntimeMemoryRecord,
+          $$ProjectRuntimeMemoryRecordsTableFilterComposer,
+          $$ProjectRuntimeMemoryRecordsTableOrderingComposer,
+          $$ProjectRuntimeMemoryRecordsTableAnnotationComposer,
+          $$ProjectRuntimeMemoryRecordsTableCreateCompanionBuilder,
+          $$ProjectRuntimeMemoryRecordsTableUpdateCompanionBuilder,
+          (
+            ProjectRuntimeMemoryRecord,
+            $$ProjectRuntimeMemoryRecordsTableReferences,
+          ),
+          ProjectRuntimeMemoryRecord,
+          PrefetchHooks Function({bool projectId})
+        > {
+  $$ProjectRuntimeMemoryRecordsTableTableManager(
+    _$AppDatabase db,
+    $ProjectRuntimeMemoryRecordsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ProjectRuntimeMemoryRecordsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$ProjectRuntimeMemoryRecordsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$ProjectRuntimeMemoryRecordsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> projectId = const Value.absent(),
+                Value<String> charactersStatus = const Value.absent(),
+                Value<String> runtimeState = const Value.absent(),
+                Value<String> runtimeThreads = const Value.absent(),
+                Value<String> storySummary = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ProjectRuntimeMemoryRecordsCompanion(
+                projectId: projectId,
+                charactersStatus: charactersStatus,
+                runtimeState: runtimeState,
+                runtimeThreads: runtimeThreads,
+                storySummary: storySummary,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String projectId,
+                Value<String> charactersStatus = const Value.absent(),
+                Value<String> runtimeState = const Value.absent(),
+                Value<String> runtimeThreads = const Value.absent(),
+                Value<String> storySummary = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => ProjectRuntimeMemoryRecordsCompanion.insert(
+                projectId: projectId,
+                charactersStatus: charactersStatus,
+                runtimeState: runtimeState,
+                runtimeThreads: runtimeThreads,
+                storySummary: storySummary,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ProjectRuntimeMemoryRecordsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({projectId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (projectId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.projectId,
+                                referencedTable:
+                                    $$ProjectRuntimeMemoryRecordsTableReferences
+                                        ._projectIdTable(db),
+                                referencedColumn:
+                                    $$ProjectRuntimeMemoryRecordsTableReferences
+                                        ._projectIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$ProjectRuntimeMemoryRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ProjectRuntimeMemoryRecordsTable,
+      ProjectRuntimeMemoryRecord,
+      $$ProjectRuntimeMemoryRecordsTableFilterComposer,
+      $$ProjectRuntimeMemoryRecordsTableOrderingComposer,
+      $$ProjectRuntimeMemoryRecordsTableAnnotationComposer,
+      $$ProjectRuntimeMemoryRecordsTableCreateCompanionBuilder,
+      $$ProjectRuntimeMemoryRecordsTableUpdateCompanionBuilder,
+      (
+        ProjectRuntimeMemoryRecord,
+        $$ProjectRuntimeMemoryRecordsTableReferences,
+      ),
+      ProjectRuntimeMemoryRecord,
+      PrefetchHooks Function({bool projectId})
+    >;
+typedef $$ChapterPlanRecordsTableCreateCompanionBuilder =
+    ChapterPlanRecordsCompanion Function({
+      required String id,
+      required String projectId,
+      required int chapterIndex,
+      Value<String> title,
+      Value<String> objective,
+      Value<String> pressureSource,
+      Value<String> payoffTarget,
+      Value<String> relationshipShift,
+      Value<String> hookType,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$ChapterPlanRecordsTableUpdateCompanionBuilder =
+    ChapterPlanRecordsCompanion Function({
+      Value<String> id,
+      Value<String> projectId,
+      Value<int> chapterIndex,
+      Value<String> title,
+      Value<String> objective,
+      Value<String> pressureSource,
+      Value<String> payoffTarget,
+      Value<String> relationshipShift,
+      Value<String> hookType,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+final class $$ChapterPlanRecordsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $ChapterPlanRecordsTable,
+          ChapterPlanRecord
+        > {
+  $$ChapterPlanRecordsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $ProjectRecordsTable _projectIdTable(_$AppDatabase db) =>
+      db.projectRecords.createAlias(
+        $_aliasNameGenerator(
+          db.chapterPlanRecords.projectId,
+          db.projectRecords.id,
+        ),
+      );
+
+  $$ProjectRecordsTableProcessedTableManager get projectId {
+    final $_column = $_itemColumn<String>('project_id')!;
+
+    final manager = $$ProjectRecordsTableTableManager(
+      $_db,
+      $_db.projectRecords,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_projectIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $ProjectChapterRecordsTable,
+    List<ProjectChapterRecord>
+  >
+  _projectChapterRecordsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.projectChapterRecords,
+        aliasName: $_aliasNameGenerator(
+          db.chapterPlanRecords.id,
+          db.projectChapterRecords.chapterPlanId,
+        ),
+      );
+
+  $$ProjectChapterRecordsTableProcessedTableManager
+  get projectChapterRecordsRefs {
+    final manager = $$ProjectChapterRecordsTableTableManager(
+      $_db,
+      $_db.projectChapterRecords,
+    ).filter((f) => f.chapterPlanId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _projectChapterRecordsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$ChapterPlanRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $ChapterPlanRecordsTable> {
+  $$ChapterPlanRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get chapterIndex => $composableBuilder(
+    column: $table.chapterIndex,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get objective => $composableBuilder(
+    column: $table.objective,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get pressureSource => $composableBuilder(
+    column: $table.pressureSource,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payoffTarget => $composableBuilder(
+    column: $table.payoffTarget,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get relationshipShift => $composableBuilder(
+    column: $table.relationshipShift,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hookType => $composableBuilder(
+    column: $table.hookType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ProjectRecordsTableFilterComposer get projectId {
+    final $$ProjectRecordsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.projectId,
+      referencedTable: $db.projectRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProjectRecordsTableFilterComposer(
+            $db: $db,
+            $table: $db.projectRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> projectChapterRecordsRefs(
+    Expression<bool> Function($$ProjectChapterRecordsTableFilterComposer f) f,
+  ) {
+    final $$ProjectChapterRecordsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.projectChapterRecords,
+          getReferencedColumn: (t) => t.chapterPlanId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ProjectChapterRecordsTableFilterComposer(
+                $db: $db,
+                $table: $db.projectChapterRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+}
+
+class $$ChapterPlanRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ChapterPlanRecordsTable> {
+  $$ChapterPlanRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get chapterIndex => $composableBuilder(
+    column: $table.chapterIndex,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get objective => $composableBuilder(
+    column: $table.objective,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get pressureSource => $composableBuilder(
+    column: $table.pressureSource,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payoffTarget => $composableBuilder(
+    column: $table.payoffTarget,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get relationshipShift => $composableBuilder(
+    column: $table.relationshipShift,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get hookType => $composableBuilder(
+    column: $table.hookType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ProjectRecordsTableOrderingComposer get projectId {
+    final $$ProjectRecordsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.projectId,
+      referencedTable: $db.projectRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProjectRecordsTableOrderingComposer(
+            $db: $db,
+            $table: $db.projectRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ChapterPlanRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ChapterPlanRecordsTable> {
+  $$ChapterPlanRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get chapterIndex => $composableBuilder(
+    column: $table.chapterIndex,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get objective =>
+      $composableBuilder(column: $table.objective, builder: (column) => column);
+
+  GeneratedColumn<String> get pressureSource => $composableBuilder(
+    column: $table.pressureSource,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get payoffTarget => $composableBuilder(
+    column: $table.payoffTarget,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get relationshipShift => $composableBuilder(
+    column: $table.relationshipShift,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get hookType =>
+      $composableBuilder(column: $table.hookType, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$ProjectRecordsTableAnnotationComposer get projectId {
+    final $$ProjectRecordsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.projectId,
+      referencedTable: $db.projectRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProjectRecordsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.projectRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<T> projectChapterRecordsRefs<T extends Object>(
+    Expression<T> Function($$ProjectChapterRecordsTableAnnotationComposer a) f,
+  ) {
+    final $$ProjectChapterRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.projectChapterRecords,
+          getReferencedColumn: (t) => t.chapterPlanId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ProjectChapterRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.projectChapterRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+}
+
+class $$ChapterPlanRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ChapterPlanRecordsTable,
+          ChapterPlanRecord,
+          $$ChapterPlanRecordsTableFilterComposer,
+          $$ChapterPlanRecordsTableOrderingComposer,
+          $$ChapterPlanRecordsTableAnnotationComposer,
+          $$ChapterPlanRecordsTableCreateCompanionBuilder,
+          $$ChapterPlanRecordsTableUpdateCompanionBuilder,
+          (ChapterPlanRecord, $$ChapterPlanRecordsTableReferences),
+          ChapterPlanRecord,
+          PrefetchHooks Function({
+            bool projectId,
+            bool projectChapterRecordsRefs,
+          })
+        > {
+  $$ChapterPlanRecordsTableTableManager(
+    _$AppDatabase db,
+    $ChapterPlanRecordsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ChapterPlanRecordsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ChapterPlanRecordsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ChapterPlanRecordsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> projectId = const Value.absent(),
+                Value<int> chapterIndex = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> objective = const Value.absent(),
+                Value<String> pressureSource = const Value.absent(),
+                Value<String> payoffTarget = const Value.absent(),
+                Value<String> relationshipShift = const Value.absent(),
+                Value<String> hookType = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ChapterPlanRecordsCompanion(
+                id: id,
+                projectId: projectId,
+                chapterIndex: chapterIndex,
+                title: title,
+                objective: objective,
+                pressureSource: pressureSource,
+                payoffTarget: payoffTarget,
+                relationshipShift: relationshipShift,
+                hookType: hookType,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String projectId,
+                required int chapterIndex,
+                Value<String> title = const Value.absent(),
+                Value<String> objective = const Value.absent(),
+                Value<String> pressureSource = const Value.absent(),
+                Value<String> payoffTarget = const Value.absent(),
+                Value<String> relationshipShift = const Value.absent(),
+                Value<String> hookType = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => ChapterPlanRecordsCompanion.insert(
+                id: id,
+                projectId: projectId,
+                chapterIndex: chapterIndex,
+                title: title,
+                objective: objective,
+                pressureSource: pressureSource,
+                payoffTarget: payoffTarget,
+                relationshipShift: relationshipShift,
+                hookType: hookType,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ChapterPlanRecordsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({projectId = false, projectChapterRecordsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (projectChapterRecordsRefs) db.projectChapterRecords,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (projectId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.projectId,
+                                    referencedTable:
+                                        $$ChapterPlanRecordsTableReferences
+                                            ._projectIdTable(db),
+                                    referencedColumn:
+                                        $$ChapterPlanRecordsTableReferences
+                                            ._projectIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (projectChapterRecordsRefs)
+                        await $_getPrefetchedData<
+                          ChapterPlanRecord,
+                          $ChapterPlanRecordsTable,
+                          ProjectChapterRecord
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ChapterPlanRecordsTableReferences
+                              ._projectChapterRecordsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ChapterPlanRecordsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).projectChapterRecordsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.chapterPlanId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$ChapterPlanRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ChapterPlanRecordsTable,
+      ChapterPlanRecord,
+      $$ChapterPlanRecordsTableFilterComposer,
+      $$ChapterPlanRecordsTableOrderingComposer,
+      $$ChapterPlanRecordsTableAnnotationComposer,
+      $$ChapterPlanRecordsTableCreateCompanionBuilder,
+      $$ChapterPlanRecordsTableUpdateCompanionBuilder,
+      (ChapterPlanRecord, $$ChapterPlanRecordsTableReferences),
+      ChapterPlanRecord,
+      PrefetchHooks Function({bool projectId, bool projectChapterRecordsRefs})
+    >;
+typedef $$ProjectChapterRecordsTableCreateCompanionBuilder =
+    ProjectChapterRecordsCompanion Function({
+      required String id,
+      required String projectId,
+      required String chapterPlanId,
+      required int chapterIndex,
+      Value<String> title,
+      Value<String> contentMarkdown,
+      Value<String> contentHash,
+      Value<String> continuityVerdict,
+      Value<String> continuityReportMarkdown,
+      Value<String> memorySyncStatus,
+      Value<String> memorySyncContentHash,
+      Value<String> memorySyncProposedCharactersStatus,
+      Value<String> memorySyncProposedRuntimeState,
+      Value<String> memorySyncProposedRuntimeThreads,
+      Value<String> memorySyncProposedStorySummary,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$ProjectChapterRecordsTableUpdateCompanionBuilder =
+    ProjectChapterRecordsCompanion Function({
+      Value<String> id,
+      Value<String> projectId,
+      Value<String> chapterPlanId,
+      Value<int> chapterIndex,
+      Value<String> title,
+      Value<String> contentMarkdown,
+      Value<String> contentHash,
+      Value<String> continuityVerdict,
+      Value<String> continuityReportMarkdown,
+      Value<String> memorySyncStatus,
+      Value<String> memorySyncContentHash,
+      Value<String> memorySyncProposedCharactersStatus,
+      Value<String> memorySyncProposedRuntimeState,
+      Value<String> memorySyncProposedRuntimeThreads,
+      Value<String> memorySyncProposedStorySummary,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+final class $$ProjectChapterRecordsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $ProjectChapterRecordsTable,
+          ProjectChapterRecord
+        > {
+  $$ProjectChapterRecordsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $ProjectRecordsTable _projectIdTable(_$AppDatabase db) =>
+      db.projectRecords.createAlias(
+        $_aliasNameGenerator(
+          db.projectChapterRecords.projectId,
+          db.projectRecords.id,
+        ),
+      );
+
+  $$ProjectRecordsTableProcessedTableManager get projectId {
+    final $_column = $_itemColumn<String>('project_id')!;
+
+    final manager = $$ProjectRecordsTableTableManager(
+      $_db,
+      $_db.projectRecords,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_projectIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $ChapterPlanRecordsTable _chapterPlanIdTable(_$AppDatabase db) =>
+      db.chapterPlanRecords.createAlias(
+        $_aliasNameGenerator(
+          db.projectChapterRecords.chapterPlanId,
+          db.chapterPlanRecords.id,
+        ),
+      );
+
+  $$ChapterPlanRecordsTableProcessedTableManager get chapterPlanId {
+    final $_column = $_itemColumn<String>('chapter_plan_id')!;
+
+    final manager = $$ChapterPlanRecordsTableTableManager(
+      $_db,
+      $_db.chapterPlanRecords,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_chapterPlanIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$ProjectChapterRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $ProjectChapterRecordsTable> {
+  $$ProjectChapterRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get chapterIndex => $composableBuilder(
+    column: $table.chapterIndex,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contentMarkdown => $composableBuilder(
+    column: $table.contentMarkdown,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contentHash => $composableBuilder(
+    column: $table.contentHash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get continuityVerdict => $composableBuilder(
+    column: $table.continuityVerdict,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get continuityReportMarkdown => $composableBuilder(
+    column: $table.continuityReportMarkdown,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get memorySyncStatus => $composableBuilder(
+    column: $table.memorySyncStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get memorySyncContentHash => $composableBuilder(
+    column: $table.memorySyncContentHash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get memorySyncProposedCharactersStatus =>
+      $composableBuilder(
+        column: $table.memorySyncProposedCharactersStatus,
+        builder: (column) => ColumnFilters(column),
+      );
+
+  ColumnFilters<String> get memorySyncProposedRuntimeState =>
+      $composableBuilder(
+        column: $table.memorySyncProposedRuntimeState,
+        builder: (column) => ColumnFilters(column),
+      );
+
+  ColumnFilters<String> get memorySyncProposedRuntimeThreads =>
+      $composableBuilder(
+        column: $table.memorySyncProposedRuntimeThreads,
+        builder: (column) => ColumnFilters(column),
+      );
+
+  ColumnFilters<String> get memorySyncProposedStorySummary =>
+      $composableBuilder(
+        column: $table.memorySyncProposedStorySummary,
+        builder: (column) => ColumnFilters(column),
+      );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ProjectRecordsTableFilterComposer get projectId {
+    final $$ProjectRecordsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.projectId,
+      referencedTable: $db.projectRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProjectRecordsTableFilterComposer(
+            $db: $db,
+            $table: $db.projectRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ChapterPlanRecordsTableFilterComposer get chapterPlanId {
+    final $$ChapterPlanRecordsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chapterPlanId,
+      referencedTable: $db.chapterPlanRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ChapterPlanRecordsTableFilterComposer(
+            $db: $db,
+            $table: $db.chapterPlanRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ProjectChapterRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ProjectChapterRecordsTable> {
+  $$ProjectChapterRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get chapterIndex => $composableBuilder(
+    column: $table.chapterIndex,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get contentMarkdown => $composableBuilder(
+    column: $table.contentMarkdown,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get contentHash => $composableBuilder(
+    column: $table.contentHash,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get continuityVerdict => $composableBuilder(
+    column: $table.continuityVerdict,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get continuityReportMarkdown => $composableBuilder(
+    column: $table.continuityReportMarkdown,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get memorySyncStatus => $composableBuilder(
+    column: $table.memorySyncStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get memorySyncContentHash => $composableBuilder(
+    column: $table.memorySyncContentHash,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get memorySyncProposedCharactersStatus =>
+      $composableBuilder(
+        column: $table.memorySyncProposedCharactersStatus,
+        builder: (column) => ColumnOrderings(column),
+      );
+
+  ColumnOrderings<String> get memorySyncProposedRuntimeState =>
+      $composableBuilder(
+        column: $table.memorySyncProposedRuntimeState,
+        builder: (column) => ColumnOrderings(column),
+      );
+
+  ColumnOrderings<String> get memorySyncProposedRuntimeThreads =>
+      $composableBuilder(
+        column: $table.memorySyncProposedRuntimeThreads,
+        builder: (column) => ColumnOrderings(column),
+      );
+
+  ColumnOrderings<String> get memorySyncProposedStorySummary =>
+      $composableBuilder(
+        column: $table.memorySyncProposedStorySummary,
+        builder: (column) => ColumnOrderings(column),
+      );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ProjectRecordsTableOrderingComposer get projectId {
+    final $$ProjectRecordsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.projectId,
+      referencedTable: $db.projectRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProjectRecordsTableOrderingComposer(
+            $db: $db,
+            $table: $db.projectRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ChapterPlanRecordsTableOrderingComposer get chapterPlanId {
+    final $$ChapterPlanRecordsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chapterPlanId,
+      referencedTable: $db.chapterPlanRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ChapterPlanRecordsTableOrderingComposer(
+            $db: $db,
+            $table: $db.chapterPlanRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ProjectChapterRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ProjectChapterRecordsTable> {
+  $$ProjectChapterRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get chapterIndex => $composableBuilder(
+    column: $table.chapterIndex,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get contentMarkdown => $composableBuilder(
+    column: $table.contentMarkdown,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get contentHash => $composableBuilder(
+    column: $table.contentHash,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get continuityVerdict => $composableBuilder(
+    column: $table.continuityVerdict,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get continuityReportMarkdown => $composableBuilder(
+    column: $table.continuityReportMarkdown,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get memorySyncStatus => $composableBuilder(
+    column: $table.memorySyncStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get memorySyncContentHash => $composableBuilder(
+    column: $table.memorySyncContentHash,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get memorySyncProposedCharactersStatus =>
+      $composableBuilder(
+        column: $table.memorySyncProposedCharactersStatus,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<String> get memorySyncProposedRuntimeState =>
+      $composableBuilder(
+        column: $table.memorySyncProposedRuntimeState,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<String> get memorySyncProposedRuntimeThreads =>
+      $composableBuilder(
+        column: $table.memorySyncProposedRuntimeThreads,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<String> get memorySyncProposedStorySummary =>
+      $composableBuilder(
+        column: $table.memorySyncProposedStorySummary,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$ProjectRecordsTableAnnotationComposer get projectId {
+    final $$ProjectRecordsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.projectId,
+      referencedTable: $db.projectRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProjectRecordsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.projectRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ChapterPlanRecordsTableAnnotationComposer get chapterPlanId {
+    final $$ChapterPlanRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.chapterPlanId,
+          referencedTable: $db.chapterPlanRecords,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ChapterPlanRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.chapterPlanRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$ProjectChapterRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ProjectChapterRecordsTable,
+          ProjectChapterRecord,
+          $$ProjectChapterRecordsTableFilterComposer,
+          $$ProjectChapterRecordsTableOrderingComposer,
+          $$ProjectChapterRecordsTableAnnotationComposer,
+          $$ProjectChapterRecordsTableCreateCompanionBuilder,
+          $$ProjectChapterRecordsTableUpdateCompanionBuilder,
+          (ProjectChapterRecord, $$ProjectChapterRecordsTableReferences),
+          ProjectChapterRecord,
+          PrefetchHooks Function({bool projectId, bool chapterPlanId})
+        > {
+  $$ProjectChapterRecordsTableTableManager(
+    _$AppDatabase db,
+    $ProjectChapterRecordsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ProjectChapterRecordsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$ProjectChapterRecordsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$ProjectChapterRecordsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> projectId = const Value.absent(),
+                Value<String> chapterPlanId = const Value.absent(),
+                Value<int> chapterIndex = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> contentMarkdown = const Value.absent(),
+                Value<String> contentHash = const Value.absent(),
+                Value<String> continuityVerdict = const Value.absent(),
+                Value<String> continuityReportMarkdown = const Value.absent(),
+                Value<String> memorySyncStatus = const Value.absent(),
+                Value<String> memorySyncContentHash = const Value.absent(),
+                Value<String> memorySyncProposedCharactersStatus =
+                    const Value.absent(),
+                Value<String> memorySyncProposedRuntimeState =
+                    const Value.absent(),
+                Value<String> memorySyncProposedRuntimeThreads =
+                    const Value.absent(),
+                Value<String> memorySyncProposedStorySummary =
+                    const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ProjectChapterRecordsCompanion(
+                id: id,
+                projectId: projectId,
+                chapterPlanId: chapterPlanId,
+                chapterIndex: chapterIndex,
+                title: title,
+                contentMarkdown: contentMarkdown,
+                contentHash: contentHash,
+                continuityVerdict: continuityVerdict,
+                continuityReportMarkdown: continuityReportMarkdown,
+                memorySyncStatus: memorySyncStatus,
+                memorySyncContentHash: memorySyncContentHash,
+                memorySyncProposedCharactersStatus:
+                    memorySyncProposedCharactersStatus,
+                memorySyncProposedRuntimeState: memorySyncProposedRuntimeState,
+                memorySyncProposedRuntimeThreads:
+                    memorySyncProposedRuntimeThreads,
+                memorySyncProposedStorySummary: memorySyncProposedStorySummary,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String projectId,
+                required String chapterPlanId,
+                required int chapterIndex,
+                Value<String> title = const Value.absent(),
+                Value<String> contentMarkdown = const Value.absent(),
+                Value<String> contentHash = const Value.absent(),
+                Value<String> continuityVerdict = const Value.absent(),
+                Value<String> continuityReportMarkdown = const Value.absent(),
+                Value<String> memorySyncStatus = const Value.absent(),
+                Value<String> memorySyncContentHash = const Value.absent(),
+                Value<String> memorySyncProposedCharactersStatus =
+                    const Value.absent(),
+                Value<String> memorySyncProposedRuntimeState =
+                    const Value.absent(),
+                Value<String> memorySyncProposedRuntimeThreads =
+                    const Value.absent(),
+                Value<String> memorySyncProposedStorySummary =
+                    const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => ProjectChapterRecordsCompanion.insert(
+                id: id,
+                projectId: projectId,
+                chapterPlanId: chapterPlanId,
+                chapterIndex: chapterIndex,
+                title: title,
+                contentMarkdown: contentMarkdown,
+                contentHash: contentHash,
+                continuityVerdict: continuityVerdict,
+                continuityReportMarkdown: continuityReportMarkdown,
+                memorySyncStatus: memorySyncStatus,
+                memorySyncContentHash: memorySyncContentHash,
+                memorySyncProposedCharactersStatus:
+                    memorySyncProposedCharactersStatus,
+                memorySyncProposedRuntimeState: memorySyncProposedRuntimeState,
+                memorySyncProposedRuntimeThreads:
+                    memorySyncProposedRuntimeThreads,
+                memorySyncProposedStorySummary: memorySyncProposedStorySummary,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ProjectChapterRecordsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({projectId = false, chapterPlanId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (projectId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.projectId,
+                                referencedTable:
+                                    $$ProjectChapterRecordsTableReferences
+                                        ._projectIdTable(db),
+                                referencedColumn:
+                                    $$ProjectChapterRecordsTableReferences
+                                        ._projectIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+                    if (chapterPlanId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.chapterPlanId,
+                                referencedTable:
+                                    $$ProjectChapterRecordsTableReferences
+                                        ._chapterPlanIdTable(db),
+                                referencedColumn:
+                                    $$ProjectChapterRecordsTableReferences
+                                        ._chapterPlanIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$ProjectChapterRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ProjectChapterRecordsTable,
+      ProjectChapterRecord,
+      $$ProjectChapterRecordsTableFilterComposer,
+      $$ProjectChapterRecordsTableOrderingComposer,
+      $$ProjectChapterRecordsTableAnnotationComposer,
+      $$ProjectChapterRecordsTableCreateCompanionBuilder,
+      $$ProjectChapterRecordsTableUpdateCompanionBuilder,
+      (ProjectChapterRecord, $$ProjectChapterRecordsTableReferences),
+      ProjectChapterRecord,
+      PrefetchHooks Function({bool projectId, bool chapterPlanId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -16636,4 +20890,14 @@ class $AppDatabaseManager {
       );
   $$PlotProfileRecordsTableTableManager get plotProfileRecords =>
       $$PlotProfileRecordsTableTableManager(_db, _db.plotProfileRecords);
+  $$ProjectRuntimeMemoryRecordsTableTableManager
+  get projectRuntimeMemoryRecords =>
+      $$ProjectRuntimeMemoryRecordsTableTableManager(
+        _db,
+        _db.projectRuntimeMemoryRecords,
+      );
+  $$ChapterPlanRecordsTableTableManager get chapterPlanRecords =>
+      $$ChapterPlanRecordsTableTableManager(_db, _db.chapterPlanRecords);
+  $$ProjectChapterRecordsTableTableManager get projectChapterRecords =>
+      $$ProjectChapterRecordsTableTableManager(_db, _db.projectChapterRecords);
 }
