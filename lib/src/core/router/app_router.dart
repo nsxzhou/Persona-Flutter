@@ -31,6 +31,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     builder: (context, state) => NovelWorkshopPage(
                       projectId: state.pathParameters['projectId']!,
                     ),
+                    routes: [
+                      GoRoute(
+                        path: 'editor',
+                        builder: (context, state) => NovelEditorPage(
+                          projectId: state.pathParameters['projectId']!,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
