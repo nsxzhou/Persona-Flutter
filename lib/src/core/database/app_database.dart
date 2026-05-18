@@ -81,118 +81,6 @@ class ProjectRecords extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
-class StoryBibleRecords extends Table {
-  TextColumn get id => text()();
-  TextColumn get projectId => text().references(ProjectRecords, #id)();
-  TextColumn get authorIntent => text().withDefault(const Constant(''))();
-  TextColumn get currentFocus => text().withDefault(const Constant(''))();
-  TextColumn get worldMarkdown => text().withDefault(const Constant(''))();
-  TextColumn get charactersMarkdown => text().withDefault(const Constant(''))();
-  TextColumn get rulesMarkdown => text().withDefault(const Constant(''))();
-  DateTimeColumn get createdAt => dateTime()();
-  DateTimeColumn get updatedAt => dateTime()();
-
-  @override
-  Set<Column<Object>> get primaryKey => {id};
-
-  @override
-  List<Set<Column<Object>>> get uniqueKeys => [
-    {projectId},
-  ];
-}
-
-class ChapterPlanRecords extends Table {
-  TextColumn get id => text()();
-  TextColumn get projectId => text().references(ProjectRecords, #id)();
-  IntColumn get chapterIndex => integer()();
-  TextColumn get title => text()();
-  TextColumn get goal => text().withDefault(const Constant(''))();
-  TextColumn get targetBeat => text().withDefault(const Constant(''))();
-  TextColumn get mustInclude => text().withDefault(const Constant(''))();
-  TextColumn get mustAvoid => text().withDefault(const Constant(''))();
-  TextColumn get hook => text().withDefault(const Constant(''))();
-  TextColumn get payoff => text().withDefault(const Constant(''))();
-  TextColumn get status => text()();
-  DateTimeColumn get createdAt => dateTime()();
-  DateTimeColumn get updatedAt => dateTime()();
-
-  @override
-  Set<Column<Object>> get primaryKey => {id};
-
-  @override
-  List<Set<Column<Object>>> get uniqueKeys => [
-    {projectId, chapterIndex},
-  ];
-}
-
-class ChapterDraftRunRecords extends Table {
-  TextColumn get id => text()();
-  TextColumn get workflowTaskId =>
-      text().references(WorkflowTaskRecords, #id)();
-  TextColumn get projectId => text().references(ProjectRecords, #id)();
-  TextColumn get chapterPlanId => text().references(ChapterPlanRecords, #id)();
-  TextColumn get providerId => text().references(ProviderConfigRecords, #id)();
-  TextColumn get modelName => text()();
-  TextColumn get status => text()();
-  TextColumn get stage => text().nullable()();
-  TextColumn get contractMarkdown => text().withDefault(const Constant(''))();
-  TextColumn get draftMarkdown => text().withDefault(const Constant(''))();
-  TextColumn get auditMarkdown => text().withDefault(const Constant(''))();
-  TextColumn get revisedMarkdown => text().withDefault(const Constant(''))();
-  TextColumn get errorMessage => text().nullable()();
-  TextColumn get logs => text().withDefault(const Constant(''))();
-  DateTimeColumn get createdAt => dateTime()();
-  DateTimeColumn get updatedAt => dateTime()();
-
-  @override
-  Set<Column<Object>> get primaryKey => {id};
-}
-
-class AcceptedChapterRecords extends Table {
-  TextColumn get id => text()();
-  TextColumn get projectId => text().references(ProjectRecords, #id)();
-  TextColumn get chapterPlanId => text().references(ChapterPlanRecords, #id)();
-  TextColumn get sourceRunId =>
-      text().references(ChapterDraftRunRecords, #id)();
-  IntColumn get chapterIndex => integer()();
-  TextColumn get title => text()();
-  TextColumn get contentMarkdown => text()();
-  DateTimeColumn get acceptedAt => dateTime()();
-  DateTimeColumn get createdAt => dateTime()();
-  DateTimeColumn get updatedAt => dateTime()();
-
-  @override
-  Set<Column<Object>> get primaryKey => {id};
-
-  @override
-  List<Set<Column<Object>>> get uniqueKeys => [
-    {chapterPlanId},
-  ];
-}
-
-class MemoryProjectionRecords extends Table {
-  TextColumn get id => text()();
-  TextColumn get projectId => text().references(ProjectRecords, #id)();
-  TextColumn get recentSummary => text().withDefault(const Constant(''))();
-  TextColumn get globalSummary => text().withDefault(const Constant(''))();
-  TextColumn get factLedgerMarkdown => text().withDefault(const Constant(''))();
-  TextColumn get characterStatesMarkdown =>
-      text().withDefault(const Constant(''))();
-  TextColumn get unresolvedHooksMarkdown =>
-      text().withDefault(const Constant(''))();
-  TextColumn get updatedFromChapterId =>
-      text().nullable().references(AcceptedChapterRecords, #id)();
-  DateTimeColumn get updatedAt => dateTime()();
-
-  @override
-  Set<Column<Object>> get primaryKey => {id};
-
-  @override
-  List<Set<Column<Object>>> get uniqueKeys => [
-    {projectId},
-  ];
-}
-
 class StyleSampleRecords extends Table {
   TextColumn get id => text()();
   TextColumn get sourceType => text()();
@@ -339,11 +227,6 @@ class PlotProfileRecords extends Table {
     ProviderConfigRecords,
     ProviderModelRecords,
     ProjectRecords,
-    StoryBibleRecords,
-    ChapterPlanRecords,
-    ChapterDraftRunRecords,
-    AcceptedChapterRecords,
-    MemoryProjectionRecords,
     StyleSampleRecords,
     StyleAnalysisRunRecords,
     StyleProfileRecords,
@@ -356,7 +239,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration {
@@ -454,15 +337,53 @@ class AppDatabase extends _$AppDatabase {
               AND default_model_name IS NULL
           ''');
         }
-        if (from < 10) {
-          await migrator.createTable(storyBibleRecords);
-          await migrator.createTable(chapterPlanRecords);
-          await migrator.createTable(chapterDraftRunRecords);
-          await migrator.createTable(acceptedChapterRecords);
-          await migrator.createTable(memoryProjectionRecords);
+        if (from < 11) {
+          await _dropNovelWorkshopPersistence();
         }
       },
     );
+  }
+
+  Future<void> _dropNovelWorkshopPersistence() async {
+    final hasWorkflowTasks = await _tableExists('workflow_task_records');
+    if (hasWorkflowTasks) {
+      final hasPromptTraces = await _tableExists(
+        'workflow_prompt_trace_records',
+      );
+      if (hasPromptTraces) {
+        await customStatement('''
+          DELETE FROM workflow_prompt_trace_records
+          WHERE workflow_task_id IN (
+            SELECT id FROM workflow_task_records
+            WHERE kind = 'novel_chapter_draft'
+          )
+        ''');
+      }
+    }
+    await customStatement('DROP TABLE IF EXISTS memory_projection_records');
+    await customStatement('DROP TABLE IF EXISTS accepted_chapter_records');
+    await customStatement('DROP TABLE IF EXISTS chapter_draft_run_records');
+    await customStatement('DROP TABLE IF EXISTS chapter_plan_records');
+    await customStatement('DROP TABLE IF EXISTS story_bible_records');
+    if (hasWorkflowTasks) {
+      await customStatement('''
+        DELETE FROM workflow_task_records
+        WHERE kind = 'novel_chapter_draft'
+      ''');
+    }
+  }
+
+  Future<bool> _tableExists(String tableName) async {
+    final rows = await customSelect(
+      '''
+      SELECT name
+      FROM sqlite_master
+      WHERE type = 'table' AND name = ?
+      LIMIT 1
+      ''',
+      variables: [Variable.withString(tableName)],
+    ).get();
+    return rows.isNotEmpty;
   }
 }
 

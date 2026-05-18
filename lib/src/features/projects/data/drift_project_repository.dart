@@ -101,41 +101,9 @@ class DriftProjectRepository implements ProjectRepository {
 
   @override
   Future<void> deleteProject(String id) async {
-    final runs = await (_database.select(
-      _database.chapterDraftRunRecords,
-    )..where((run) => run.projectId.equals(id))).get();
-
-    await _database.transaction(() async {
-      for (final run in runs) {
-        await (_database.delete(_database.workflowPromptTraceRecords)..where(
-              (trace) => trace.workflowTaskId.equals(run.workflowTaskId),
-            ))
-            .go();
-      }
-      await (_database.delete(
-        _database.memoryProjectionRecords,
-      )..where((projection) => projection.projectId.equals(id))).go();
-      await (_database.delete(
-        _database.acceptedChapterRecords,
-      )..where((chapter) => chapter.projectId.equals(id))).go();
-      await (_database.delete(
-        _database.chapterDraftRunRecords,
-      )..where((run) => run.projectId.equals(id))).go();
-      for (final run in runs) {
-        await (_database.delete(
-          _database.workflowTaskRecords,
-        )..where((task) => task.id.equals(run.workflowTaskId))).go();
-      }
-      await (_database.delete(
-        _database.chapterPlanRecords,
-      )..where((plan) => plan.projectId.equals(id))).go();
-      await (_database.delete(
-        _database.storyBibleRecords,
-      )..where((bible) => bible.projectId.equals(id))).go();
-      await (_database.delete(
-        _database.projectRecords,
-      )..where((project) => project.id.equals(id))).go();
-    });
+    await (_database.delete(
+      _database.projectRecords,
+    )..where((project) => project.id.equals(id))).go();
   }
 
   WritingProject _mapRecord(ProjectRecord row) {

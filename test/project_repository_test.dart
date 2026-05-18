@@ -245,6 +245,140 @@ void main() {
       expect(project.narrativePerspective, defaultProjectNarrativePerspective);
     },
   );
+
+  test(
+    'migration drops legacy novel workshop tables and workflow traces',
+    () async {
+      final sqlite = sqlite3.openInMemory();
+      addTearDown(sqlite.dispose);
+      final now = DateTime.utc(2026, 5, 18).millisecondsSinceEpoch;
+
+      _createSchema10NovelWorkshopTables(sqlite);
+      sqlite.execute(
+        '''
+      INSERT INTO workflow_task_records (
+        id, kind, status, title, created_at, updated_at
+      ) VALUES (
+        'task-novel', 'novel_chapter_draft', 'running', '章节草稿', ?, ?
+      );
+    ''',
+        [now, now],
+      );
+      sqlite.execute(
+        '''
+      INSERT INTO workflow_task_records (
+        id, kind, status, title, created_at, updated_at
+      ) VALUES (
+        'task-style', 'style_analysis', 'succeeded', '风格分析', ?, ?
+      );
+    ''',
+        [now, now],
+      );
+      sqlite.execute(
+        '''
+      INSERT INTO workflow_prompt_trace_records (
+        workflow_task_id, trace_markdown, created_at, updated_at
+      ) VALUES (
+        'task-novel', '# Novel Trace', ?, ?
+      );
+    ''',
+        [now, now],
+      );
+      sqlite.execute(
+        '''
+      INSERT INTO workflow_prompt_trace_records (
+        workflow_task_id, trace_markdown, created_at, updated_at
+      ) VALUES (
+        'task-style', '# Style Trace', ?, ?
+      );
+    ''',
+        [now, now],
+      );
+      sqlite.execute(
+        '''
+      INSERT INTO story_bible_records (
+        id, project_id, world_markdown, created_at, updated_at
+      ) VALUES (
+        'bible-1', 'project-1', '# World', ?, ?
+      );
+    ''',
+        [now, now],
+      );
+      sqlite.execute(
+        '''
+      INSERT INTO chapter_plan_records (
+        id, project_id, chapter_index, title, status, created_at, updated_at
+      ) VALUES (
+        'plan-1', 'project-1', 1, '第一章', 'drafting', ?, ?
+      );
+    ''',
+        [now, now],
+      );
+      sqlite.execute(
+        '''
+      INSERT INTO chapter_draft_run_records (
+        id, workflow_task_id, project_id, chapter_plan_id, provider_id,
+        model_name, status, created_at, updated_at
+      ) VALUES (
+        'run-1', 'task-novel', 'project-1', 'plan-1', 'provider-1',
+        'gpt-4.1-mini', 'running', ?, ?
+      );
+    ''',
+        [now, now],
+      );
+      sqlite.execute(
+        '''
+      INSERT INTO accepted_chapter_records (
+        id, project_id, chapter_plan_id, source_run_id, chapter_index, title,
+        content_markdown, accepted_at, created_at, updated_at
+      ) VALUES (
+        'chapter-1', 'project-1', 'plan-1', 'run-1', 1, '第一章',
+        '正文', ?, ?, ?
+      );
+    ''',
+        [now, now, now],
+      );
+      sqlite.execute(
+        '''
+      INSERT INTO memory_projection_records (
+        id, project_id, global_summary, updated_from_chapter_id, updated_at
+      ) VALUES (
+        'memory-1', 'project-1', '摘要', 'chapter-1', ?
+      );
+    ''',
+        [now],
+      );
+      sqlite.execute('PRAGMA user_version = 10;');
+
+      final database = AppDatabase(
+        NativeDatabase.opened(sqlite, closeUnderlyingOnClose: false),
+      );
+      addTearDown(database.close);
+
+      final remainingTasks = await database
+          .customSelect('SELECT id FROM workflow_task_records ORDER BY id')
+          .get();
+      final remainingTraces = await database
+          .customSelect(
+            'SELECT workflow_task_id FROM workflow_prompt_trace_records '
+            'ORDER BY workflow_task_id',
+          )
+          .get();
+
+      expect(remainingTasks.map((row) => row.read<String>('id')), [
+        'task-style',
+      ]);
+      expect(
+        remainingTraces.map((row) => row.read<String>('workflow_task_id')),
+        ['task-style'],
+      );
+      expect(await _tableExists(sqlite, 'story_bible_records'), isFalse);
+      expect(await _tableExists(sqlite, 'chapter_plan_records'), isFalse);
+      expect(await _tableExists(sqlite, 'chapter_draft_run_records'), isFalse);
+      expect(await _tableExists(sqlite, 'accepted_chapter_records'), isFalse);
+      expect(await _tableExists(sqlite, 'memory_projection_records'), isFalse);
+    },
+  );
 }
 
 ProviderConfigInput _providerInput() {
@@ -257,4 +391,120 @@ ProviderConfigInput _providerInput() {
     systemPrompt: '',
     isEnabled: true,
   );
+}
+
+void _createSchema10NovelWorkshopTables(Database sqlite) {
+  sqlite.execute('''
+    CREATE TABLE workflow_task_records (
+      id TEXT NOT NULL PRIMARY KEY,
+      kind TEXT NOT NULL,
+      status TEXT NOT NULL,
+      title TEXT NOT NULL,
+      stage TEXT,
+      error_message TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+  ''');
+  sqlite.execute('''
+    CREATE TABLE workflow_prompt_trace_records (
+      workflow_task_id TEXT NOT NULL
+        REFERENCES workflow_task_records (id)
+        PRIMARY KEY,
+      trace_markdown TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+  ''');
+  sqlite.execute('''
+    CREATE TABLE story_bible_records (
+      id TEXT NOT NULL PRIMARY KEY,
+      project_id TEXT NOT NULL UNIQUE,
+      author_intent TEXT NOT NULL DEFAULT '',
+      current_focus TEXT NOT NULL DEFAULT '',
+      world_markdown TEXT NOT NULL DEFAULT '',
+      characters_markdown TEXT NOT NULL DEFAULT '',
+      rules_markdown TEXT NOT NULL DEFAULT '',
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+  ''');
+  sqlite.execute('''
+    CREATE TABLE chapter_plan_records (
+      id TEXT NOT NULL PRIMARY KEY,
+      project_id TEXT NOT NULL,
+      chapter_index INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      goal TEXT NOT NULL DEFAULT '',
+      target_beat TEXT NOT NULL DEFAULT '',
+      must_include TEXT NOT NULL DEFAULT '',
+      must_avoid TEXT NOT NULL DEFAULT '',
+      hook TEXT NOT NULL DEFAULT '',
+      payoff TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      UNIQUE(project_id, chapter_index)
+    );
+  ''');
+  sqlite.execute('''
+    CREATE TABLE chapter_draft_run_records (
+      id TEXT NOT NULL PRIMARY KEY,
+      workflow_task_id TEXT NOT NULL REFERENCES workflow_task_records (id),
+      project_id TEXT NOT NULL,
+      chapter_plan_id TEXT NOT NULL REFERENCES chapter_plan_records (id),
+      provider_id TEXT NOT NULL,
+      model_name TEXT NOT NULL,
+      status TEXT NOT NULL,
+      stage TEXT,
+      contract_markdown TEXT NOT NULL DEFAULT '',
+      draft_markdown TEXT NOT NULL DEFAULT '',
+      audit_markdown TEXT NOT NULL DEFAULT '',
+      revised_markdown TEXT NOT NULL DEFAULT '',
+      error_message TEXT,
+      logs TEXT NOT NULL DEFAULT '',
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+  ''');
+  sqlite.execute('''
+    CREATE TABLE accepted_chapter_records (
+      id TEXT NOT NULL PRIMARY KEY,
+      project_id TEXT NOT NULL,
+      chapter_plan_id TEXT NOT NULL UNIQUE REFERENCES chapter_plan_records (id),
+      source_run_id TEXT NOT NULL REFERENCES chapter_draft_run_records (id),
+      chapter_index INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      content_markdown TEXT NOT NULL,
+      accepted_at INTEGER NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+  ''');
+  sqlite.execute('''
+    CREATE TABLE memory_projection_records (
+      id TEXT NOT NULL PRIMARY KEY,
+      project_id TEXT NOT NULL UNIQUE,
+      recent_summary TEXT NOT NULL DEFAULT '',
+      global_summary TEXT NOT NULL DEFAULT '',
+      fact_ledger_markdown TEXT NOT NULL DEFAULT '',
+      character_states_markdown TEXT NOT NULL DEFAULT '',
+      unresolved_hooks_markdown TEXT NOT NULL DEFAULT '',
+      updated_from_chapter_id TEXT REFERENCES accepted_chapter_records (id),
+      updated_at INTEGER NOT NULL
+    );
+  ''');
+}
+
+Future<bool> _tableExists(Database sqlite, String tableName) async {
+  final result = sqlite.select(
+    '''
+    SELECT name
+    FROM sqlite_master
+    WHERE type = 'table' AND name = ?
+    LIMIT 1
+    ''',
+    [tableName],
+  );
+  return result.isNotEmpty;
 }
