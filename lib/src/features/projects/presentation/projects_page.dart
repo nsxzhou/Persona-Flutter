@@ -324,45 +324,51 @@ class _ProjectRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final isActive = project.status == ProjectStatus.active;
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: colorScheme.outlineVariant)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final details = _ProjectRowDetails(project: project);
-            final actions = _ProjectRowActions(project: project);
-            final updated = Text(
-              _formatProjectTime(project.updatedAt),
-              style: textTheme.labelMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            );
+    return InkWell(
+      onTap: isActive
+          ? () => context.go('/projects/${project.id}/workshop')
+          : null,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: colorScheme.outlineVariant)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final details = _ProjectRowDetails(project: project);
+              final actions = _ProjectRowActions(project: project);
+              final updated = Text(
+                _formatProjectTime(project.updatedAt),
+                style: textTheme.labelMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              );
 
-            if (constraints.maxWidth < 720) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              if (constraints.maxWidth < 720) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    details,
+                    const SizedBox(height: 12),
+                    Row(children: [updated, const Spacer(), actions]),
+                  ],
+                );
+              }
+
+              return Row(
                 children: [
-                  details,
-                  const SizedBox(height: 12),
-                  Row(children: [updated, const Spacer(), actions]),
+                  Expanded(child: details),
+                  const SizedBox(width: 18),
+                  SizedBox(width: 92, child: updated),
+                  const SizedBox(width: 10),
+                  actions,
                 ],
               );
-            }
-
-            return Row(
-              children: [
-                Expanded(child: details),
-                const SizedBox(width: 18),
-                SizedBox(width: 92, child: updated),
-                const SizedBox(width: 10),
-                actions,
-              ],
-            );
-          },
+            },
+          ),
         ),
       ),
     );
@@ -455,8 +461,6 @@ class _ProjectRowActions extends ConsumerWidget {
       icon: const Icon(Icons.more_horiz),
       onSelected: (action) {
         switch (action) {
-          case _ProjectMenuAction.openWorkshop:
-            context.go('/projects/${project.id}/workshop');
           case _ProjectMenuAction.edit:
             _showProjectDialog(context, project: project);
           case _ProjectMenuAction.archive:
@@ -468,17 +472,6 @@ class _ProjectRowActions extends ConsumerWidget {
         }
       },
       itemBuilder: (context) => [
-        if (project.status == ProjectStatus.active)
-          const PopupMenuItem(
-            value: _ProjectMenuAction.openWorkshop,
-            child: Row(
-              children: [
-                Icon(Icons.menu_book_outlined, size: 18),
-                SizedBox(width: 10),
-                Text('打开工作台'),
-              ],
-            ),
-          ),
         const PopupMenuItem(
           value: _ProjectMenuAction.edit,
           child: Row(
@@ -1209,13 +1202,17 @@ class _ProjectDialogLoadError extends StatelessWidget {
   }
 }
 
-void _showProjectDialog(BuildContext context, {WritingProject? project}) {
+void showProjectDialog(BuildContext context, {WritingProject? project}) {
   showGlassDialog<void>(
     context: context,
     maxWidth: 680,
     maxHeight: MediaQuery.sizeOf(context).height * 0.9,
     builder: (context) => _ProjectDialog(project: project),
   );
+}
+
+void _showProjectDialog(BuildContext context, {WritingProject? project}) {
+  showProjectDialog(context, project: project);
 }
 
 Future<void> _confirmDeleteProject(
@@ -1270,7 +1267,7 @@ Future<void> _confirmDeleteProject(
   }
 }
 
-enum _ProjectMenuAction { openWorkshop, edit, archive, restore, delete }
+enum _ProjectMenuAction { edit, archive, restore, delete }
 
 String? _requiredValidator(String? value) {
   if (value == null || value.trim().isEmpty) {
