@@ -134,14 +134,13 @@ Feature code depends on `LlmInvocationService` / `LlmClient`; only `core/llm/dat
 ## Scenario: LLM artifact document output contract
 
 ### 1. Scope / Trigger
-- Trigger: Any Style Lab, Plot Lab, Novel Workshop, or future feature prompts an LLM to generate a saved artifact, reusable profile/engine, structured domain proposal, review report, or user-editable document.
+- Trigger: Any Style Lab, Plot Lab, or future feature prompts an LLM to generate a saved artifact, reusable profile/engine, structured domain proposal, review report, or user-editable document.
 - This is an application-layer contract because prompt builders, document parsers, persisted text fields, detail pages, and tests must agree on each artifact's declared output shape.
 
 ### 2. Signatures
 - Style artifact: `StyleLabPromptBuilder.buildVoiceProfilePrompt(...)` -> `VoiceProfileFrontMatterParser.parse(...)`
 - Plot sketch artifact: `PlotLabPromptBuilder.buildSketchPrompt(...)` -> `PlotChunkSketchDocumentParser.parse(...)`
 - Plot engine artifact: `PlotLabPromptBuilder.buildStoryEnginePrompt(...)` -> `StoryEngineNormalizer.normalize(...)`
-- Novel structured artifact: Novel Workshop prompt builder -> owning YAML/YAML+MD parser -> `NovelWorkshopRepository` domain inputs.
 - Allowed document shapes:
   - YAML-only: the entire model output is a YAML mapping or list that matches the artifact schema.
   - Markdown-only: the entire model output is Markdown and contains no machine-required structured fields.
@@ -170,15 +169,12 @@ Feature code depends on `LlmInvocationService` / `LlmClient`; only `core/llm/dat
 ### 5. Good/Base/Bad Cases
 - Good: Plot sketch prompt asks for YAML front matter plus `# Chunk Sketch`, then `PlotChunkSketchDocumentParser` validates fields before converting to `PlotChunkSketch`.
 - Base: Style Voice Profile and Plot Story Engine are saved as editable `YAML+MD` documents after parser/normalizer validation.
-- Base: A chapter draft prompt returns Markdown-only because manuscript prose is the artifact and there are no machine-required structured fields.
-- Good: A Novel Workshop continuity extraction prompt returns YAML-only or YAML+MD with `entities`, `relations`, `canonical_events`, and `facts`, then a strict parser converts those fields into repository input objects.
 - Bad: Ask the model for a structured domain proposal in Markdown headings only, then write missing sections as empty strings.
 - Bad: Change a saved reusable artifact prompt to JSON-only and bypass the existing document editing surfaces.
 
 ### 6. Tests Required
 - Parser tests for each declared shape: valid YAML-only/YAML+MD/Markdown-only, missing fields, extra fields, invalid enum/list values, missing body H1 when required, and code-fence cleanup when supported.
 - Pipeline tests confirming Plot sketches still become structured inputs for skeleton/report/story-engine generation.
-- Pipeline tests confirming Novel Workshop structured YAML artifacts become domain inputs without writing malformed or partial records.
 - Pipeline tests for any repair pass, including the malformed input, repaired output, and prompt trace label.
 - UI/widget tests should keep validating that saved artifacts are shown in their declared source format where the page exposes source editing or validation state.
 - UI/widget tests should validate that YAML+MD preview mode strips YAML front matter and renders only the artifact body.
