@@ -221,7 +221,7 @@ class PlotProfileRecords extends Table {
 }
 
 class ProjectRuntimeMemoryRecords extends Table {
-  TextColumn get projectId => text().references(ProjectRecords, #id)();
+  TextColumn get projectId => text()();
   TextColumn get charactersStatus => text().withDefault(const Constant(''))();
   TextColumn get runtimeState => text().withDefault(const Constant(''))();
   TextColumn get runtimeThreads => text().withDefault(const Constant(''))();
@@ -292,6 +292,31 @@ class ProjectChapterRecords extends Table {
   ];
 }
 
+class ChapterGenerationRunRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get workflowTaskId =>
+      text().references(WorkflowTaskRecords, #id)();
+  TextColumn get projectId => text().references(ProjectRecords, #id)();
+  TextColumn get chapterPlanId => text()();
+  TextColumn get chapterId =>
+      text().nullable().references(ProjectChapterRecords, #id)();
+  TextColumn get providerId => text()();
+  TextColumn get modelName => text()();
+  TextColumn get status => text()();
+  TextColumn get stage => text().nullable()();
+  TextColumn get errorMessage => text().nullable()();
+  TextColumn get logs => text().withDefault(const Constant(''))();
+  TextColumn get contextWarningsMarkdown =>
+      text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  DateTimeColumn get startedAt => dateTime().nullable()();
+  DateTimeColumn get completedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     WorkflowTaskRecords,
@@ -308,13 +333,14 @@ class ProjectChapterRecords extends Table {
     ProjectRuntimeMemoryRecords,
     ChapterPlanRecords,
     ProjectChapterRecords,
+    ChapterGenerationRunRecords,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration {
@@ -419,6 +445,9 @@ class AppDatabase extends _$AppDatabase {
           await migrator.createTable(projectRuntimeMemoryRecords);
           await migrator.createTable(chapterPlanRecords);
           await migrator.createTable(projectChapterRecords);
+        }
+        if (from < 13) {
+          await migrator.createTable(chapterGenerationRunRecords);
         }
       },
     );

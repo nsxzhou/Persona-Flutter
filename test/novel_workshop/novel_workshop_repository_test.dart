@@ -1,6 +1,8 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:persona_flutter/src/core/database/app_database.dart';
+import 'package:persona_flutter/src/core/tasks/data/drift_workflow_task_repository.dart';
+import 'package:persona_flutter/src/core/tasks/domain/workflow_task.dart';
 import 'package:persona_flutter/src/features/novel_workshop/data/drift_novel_workshop_repository.dart';
 import 'package:persona_flutter/src/features/novel_workshop/domain/novel_workshop.dart';
 import 'package:persona_flutter/src/features/novel_workshop/domain/writing_context.dart';
@@ -142,6 +144,70 @@ void main() {
     },
   );
 
+  test('chapter generation run syncs workflow task and prompt trace', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final project = await _saveProject(database);
+    final repository = DriftNovelWorkshopRepository(database);
+    final workflowRepository = DriftWorkflowTaskRepository(database);
+    final plan = await repository.saveChapterPlan(
+      input: ChapterPlanInput(
+        projectId: project.id,
+        chapterIndex: 1,
+        objectiveCard: const ChapterObjectiveCard(
+          chapterTitle: '第一章',
+          objective: '主角进入雾港。',
+        ),
+      ),
+    );
+
+    final run = await repository.createChapterGenerationRun(
+      ChapterGenerationRunInput(
+        projectId: project.id,
+        chapterPlanId: plan.id,
+        providerId: project.defaultProviderId!,
+        modelName: project.defaultModelName!,
+      ),
+    );
+
+    expect(run.status, ChapterGenerationStatus.pending);
+    expect(await repository.hasRunningChapterGeneration(plan.id), isTrue);
+
+    final running = await repository.updateChapterGenerationRunState(
+      id: run.id,
+      status: ChapterGenerationStatus.running,
+      stage: ChapterGenerationStage.generatingDraft,
+      contextWarningsMarkdown: '- 运行时记忆为空。',
+      startedAt: DateTime.now(),
+    );
+    final task = await workflowRepository.findTask(run.workflowTaskId);
+    expect(running.stage, ChapterGenerationStage.generatingDraft);
+    expect(running.contextWarningsMarkdown, contains('运行时记忆'));
+    expect(task!.kind, chapterGenerationWorkflowTaskKind);
+    expect(task.status, WorkflowTaskStatus.running);
+    expect(task.stage, ChapterGenerationStage.generatingDraft.name);
+
+    await workflowRepository.upsertPromptTrace(
+      workflowTaskId: run.workflowTaskId,
+      traceMarkdown: '# Prompt Trace',
+    );
+    final trace = await workflowRepository
+        .watchPromptTrace(run.workflowTaskId)
+        .first;
+    expect(trace!.traceMarkdown, '# Prompt Trace');
+
+    final succeeded = await repository.updateChapterGenerationRunState(
+      id: run.id,
+      status: ChapterGenerationStatus.succeeded,
+      stage: null,
+      completedAt: DateTime.now(),
+    );
+    final completedTask = await workflowRepository.findTask(run.workflowTaskId);
+    expect(succeeded.status, ChapterGenerationStatus.succeeded);
+    expect(completedTask!.status, WorkflowTaskStatus.succeeded);
+    expect(await repository.hasRunningChapterGeneration(plan.id), isFalse);
+  });
+
   test('migration creates novel workshop persistence tables', () async {
     final sqlite = sqlite3.openInMemory();
     addTearDown(sqlite.dispose);
@@ -161,6 +227,10 @@ void main() {
     );
     expect(await _tableExists(sqlite, 'chapter_plan_records'), isTrue);
     expect(await _tableExists(sqlite, 'project_chapter_records'), isTrue);
+    expect(
+      await _tableExists(sqlite, 'chapter_generation_run_records'),
+      isTrue,
+    );
   });
 }
 

@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Novel Workshop generation adds feature application/data-layer services and must follow repository boundaries."}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "The task adds Drift schema, workflow task synchronization, prompt trace persistence, and migration tests."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Generation failures should surface through async service/repository errors while preserving failed run/task diagnostics."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "The implementation touches generated Drift/Riverpod files, LLM boundaries, and tests."}

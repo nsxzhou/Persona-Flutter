@@ -12,6 +12,12 @@ enum MemorySyncStatus {
   stale,
 }
 
+enum ChapterGenerationStatus { pending, running, succeeded, failed }
+
+enum ChapterGenerationStage { preparingContext, generatingDraft, savingChapter }
+
+const chapterGenerationWorkflowTaskKind = 'novel_chapter_generation';
+
 class ChapterPlan {
   const ChapterPlan({
     required this.id,
@@ -126,4 +132,70 @@ class ProjectRuntimeMemory {
   final RuntimeMemoryState state;
   final DateTime createdAt;
   final DateTime updatedAt;
+}
+
+class ChapterGenerationRun {
+  const ChapterGenerationRun({
+    required this.id,
+    required this.workflowTaskId,
+    required this.projectId,
+    required this.chapterPlanId,
+    required this.chapterId,
+    required this.providerId,
+    required this.modelName,
+    required this.status,
+    required this.stage,
+    required this.errorMessage,
+    required this.logs,
+    required this.contextWarningsMarkdown,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.startedAt,
+    required this.completedAt,
+  });
+
+  final String id;
+  final String workflowTaskId;
+  final String projectId;
+  final String chapterPlanId;
+  final String? chapterId;
+  final String providerId;
+  final String modelName;
+  final ChapterGenerationStatus status;
+  final ChapterGenerationStage? stage;
+  final String? errorMessage;
+  final String logs;
+  final String contextWarningsMarkdown;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? startedAt;
+  final DateTime? completedAt;
+}
+
+class ChapterGenerationRunInput {
+  const ChapterGenerationRunInput({
+    required this.projectId,
+    required this.chapterPlanId,
+    required this.providerId,
+    required this.modelName,
+  });
+
+  final String projectId;
+  final String chapterPlanId;
+  final String providerId;
+  final String modelName;
+}
+
+class ChapterGenerationResult {
+  const ChapterGenerationResult({
+    required this.run,
+    required this.chapter,
+    required this.contextWarnings,
+    required this.workflowTaskId,
+  });
+
+  final ChapterGenerationRun run;
+  final ProjectChapter chapter;
+  final List<String> contextWarnings;
+  final String workflowTaskId;
 }

@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/tasks/domain/workflow_task.dart';
 import '../domain/novel_workshop.dart';
 import '../domain/novel_workshop_repository.dart';
 import '../domain/writing_context.dart';
@@ -36,6 +37,33 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
   }
 
   @override
+  Stream<List<ChapterGenerationRun>> watchChapterGenerationRuns(
+    String projectId,
+  ) {
+    final query = _database.select(_database.chapterGenerationRunRecords)
+      ..where((run) => run.projectId.equals(projectId))
+      ..orderBy([
+        (run) =>
+            OrderingTerm(expression: run.updatedAt, mode: OrderingMode.desc),
+      ]);
+    return query.watch().map(
+      (rows) => rows.map(_mapGenerationRun).toList(growable: false),
+    );
+  }
+
+  @override
+  Stream<ChapterGenerationRun?> watchChapterGenerationRunByWorkflowTask(
+    String workflowTaskId,
+  ) {
+    final query = _database.select(_database.chapterGenerationRunRecords)
+      ..where((run) => run.workflowTaskId.equals(workflowTaskId))
+      ..limit(1);
+    return query.watchSingleOrNull().map(
+      (row) => row == null ? null : _mapGenerationRun(row),
+    );
+  }
+
+  @override
   Future<ChapterPlan?> findChapterPlan(String id) async {
     final query = _database.select(_database.chapterPlanRecords)
       ..where((plan) => plan.id.equals(id))
@@ -51,6 +79,37 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       ..limit(1);
     final row = await query.getSingleOrNull();
     return row == null ? null : _mapChapter(row);
+  }
+
+  @override
+  Future<ProjectChapter?> findChapterByPlan(String chapterPlanId) async {
+    final query = _database.select(_database.projectChapterRecords)
+      ..where((chapter) => chapter.chapterPlanId.equals(chapterPlanId))
+      ..limit(1);
+    final row = await query.getSingleOrNull();
+    return row == null ? null : _mapChapter(row);
+  }
+
+  @override
+  Future<ChapterGenerationRun?> findChapterGenerationRun(String id) async {
+    final query = _database.select(_database.chapterGenerationRunRecords)
+      ..where((run) => run.id.equals(id))
+      ..limit(1);
+    final row = await query.getSingleOrNull();
+    return row == null ? null : _mapGenerationRun(row);
+  }
+
+  @override
+  Future<bool> hasRunningChapterGeneration(String chapterPlanId) async {
+    final query = _database.select(_database.chapterGenerationRunRecords)
+      ..where(
+        (run) =>
+            run.chapterPlanId.equals(chapterPlanId) &
+            (run.status.equals(ChapterGenerationStatus.pending.name) |
+                run.status.equals(ChapterGenerationStatus.running.name)),
+      )
+      ..limit(1);
+    return await query.getSingleOrNull() != null;
   }
 
   @override
@@ -243,6 +302,144 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     return saved;
   }
 
+  @override
+  Future<ChapterGenerationRun> createChapterGenerationRun(
+    ChapterGenerationRunInput input,
+  ) async {
+    if (input.projectId.trim().isEmpty) {
+      throw StateError('章节生成任务需要 Project。');
+    }
+    if (input.chapterPlanId.trim().isEmpty) {
+      throw StateError('章节生成任务需要 Chapter Plan。');
+    }
+    final now = DateTime.now();
+    final runId = _uuid.v4();
+    final taskId = _uuid.v4();
+    final plan = await findChapterPlan(input.chapterPlanId);
+    final title = _generationTaskTitle(plan);
+
+    await _database.transaction(() async {
+      await _database
+          .into(_database.workflowTaskRecords)
+          .insert(
+            WorkflowTaskRecordsCompanion.insert(
+              id: taskId,
+              kind: chapterGenerationWorkflowTaskKind,
+              status: WorkflowTaskStatus.pending.name,
+              title: title,
+              stage: const Value('queued'),
+              errorMessage: const Value(null),
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+      await _database
+          .into(_database.chapterGenerationRunRecords)
+          .insert(
+            ChapterGenerationRunRecordsCompanion.insert(
+              id: runId,
+              workflowTaskId: taskId,
+              projectId: input.projectId,
+              chapterPlanId: input.chapterPlanId,
+              chapterId: const Value(null),
+              providerId: input.providerId.trim(),
+              modelName: input.modelName.trim(),
+              status: ChapterGenerationStatus.pending.name,
+              stage: const Value(null),
+              errorMessage: const Value(null),
+              logs: const Value(''),
+              contextWarningsMarkdown: const Value(''),
+              createdAt: now,
+              updatedAt: now,
+              startedAt: const Value(null),
+              completedAt: const Value(null),
+            ),
+          );
+    });
+
+    final saved = await findChapterGenerationRun(runId);
+    if (saved == null) {
+      throw StateError('Chapter generation run was not created.');
+    }
+    return saved;
+  }
+
+  @override
+  Future<ChapterGenerationRun> updateChapterGenerationRunState({
+    required String id,
+    required ChapterGenerationStatus status,
+    ChapterGenerationStage? stage,
+    String? chapterId,
+    String? providerId,
+    String? modelName,
+    String? errorMessage,
+    String? logs,
+    String? contextWarningsMarkdown,
+    DateTime? startedAt,
+    DateTime? completedAt,
+  }) async {
+    final run = await findChapterGenerationRun(id);
+    if (run == null) {
+      throw StateError('Chapter generation run does not exist: $id');
+    }
+    if (chapterId != null) {
+      final chapter = await findChapter(chapterId);
+      if (chapter == null) {
+        throw StateError('Project chapter does not exist: $chapterId');
+      }
+      if (chapter.projectId != run.projectId ||
+          chapter.chapterPlanId != run.chapterPlanId) {
+        throw StateError('Chapter generation run does not match chapter.');
+      }
+    }
+    final now = DateTime.now();
+
+    await _database.transaction(() async {
+      await (_database.update(
+        _database.chapterGenerationRunRecords,
+      )..where((row) => row.id.equals(id))).write(
+        ChapterGenerationRunRecordsCompanion(
+          status: Value(status.name),
+          stage: Value(stage?.name),
+          chapterId: chapterId == null
+              ? const Value.absent()
+              : Value(chapterId),
+          providerId: providerId == null
+              ? const Value.absent()
+              : Value(providerId.trim()),
+          modelName: modelName == null
+              ? const Value.absent()
+              : Value(modelName.trim()),
+          errorMessage: Value(errorMessage),
+          logs: logs == null ? const Value.absent() : Value(logs),
+          contextWarningsMarkdown: contextWarningsMarkdown == null
+              ? const Value.absent()
+              : Value(contextWarningsMarkdown),
+          startedAt: startedAt == null
+              ? const Value.absent()
+              : Value(startedAt),
+          completedAt: completedAt == null
+              ? const Value.absent()
+              : Value(completedAt),
+          updatedAt: Value(now),
+        ),
+      );
+      await _updateWorkflowTaskForGenerationRun(
+        workflowTaskId: run.workflowTaskId,
+        status: status,
+        stage: stage,
+        errorMessage: errorMessage,
+        updatedAt: now,
+      );
+    });
+
+    final saved = await findChapterGenerationRun(id);
+    if (saved == null) {
+      throw StateError('Chapter generation run was not updated.');
+    }
+    return saved;
+  }
+
   Future<void> _validateChapterPlanInput(ChapterPlanInput input) async {
     await _requireProject(input.projectId);
     if (input.chapterIndex <= 0) {
@@ -330,6 +527,65 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       memorySyncProposedStorySummary: row.memorySyncProposedStorySummary,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
+    );
+  }
+
+  ChapterGenerationRun _mapGenerationRun(ChapterGenerationRunRecord row) {
+    return ChapterGenerationRun(
+      id: row.id,
+      workflowTaskId: row.workflowTaskId,
+      projectId: row.projectId,
+      chapterPlanId: row.chapterPlanId,
+      chapterId: row.chapterId,
+      providerId: row.providerId,
+      modelName: row.modelName,
+      status: ChapterGenerationStatus.values.byName(row.status),
+      stage: row.stage == null
+          ? null
+          : ChapterGenerationStage.values.byName(row.stage!),
+      errorMessage: row.errorMessage,
+      logs: row.logs,
+      contextWarningsMarkdown: row.contextWarningsMarkdown,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      startedAt: row.startedAt,
+      completedAt: row.completedAt,
+    );
+  }
+
+  String _generationTaskTitle(ChapterPlan? plan) {
+    final title = plan?.objectiveCard.chapterTitle.trim();
+    if (title == null || title.isEmpty) {
+      return '章节生成任务';
+    }
+    return '章节生成：$title';
+  }
+
+  WorkflowTaskStatus _workflowStatus(ChapterGenerationStatus status) {
+    return switch (status) {
+      ChapterGenerationStatus.pending => WorkflowTaskStatus.pending,
+      ChapterGenerationStatus.running => WorkflowTaskStatus.running,
+      ChapterGenerationStatus.succeeded => WorkflowTaskStatus.succeeded,
+      ChapterGenerationStatus.failed => WorkflowTaskStatus.failed,
+    };
+  }
+
+  Future<void> _updateWorkflowTaskForGenerationRun({
+    required String workflowTaskId,
+    required ChapterGenerationStatus status,
+    required ChapterGenerationStage? stage,
+    required String? errorMessage,
+    required DateTime updatedAt,
+  }) {
+    return (_database.update(
+      _database.workflowTaskRecords,
+    )..where((task) => task.id.equals(workflowTaskId))).write(
+      WorkflowTaskRecordsCompanion(
+        status: Value(_workflowStatus(status).name),
+        stage: Value(stage?.name),
+        errorMessage: Value(errorMessage),
+        updatedAt: Value(updatedAt),
+      ),
     );
   }
 

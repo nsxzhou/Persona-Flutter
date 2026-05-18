@@ -277,3 +277,50 @@ Keep `WorkflowTaskRepository` read-only and update run/task records together ins
 Append full prompts to task logs or feature run `logs`, where they can mix with lifecycle messages and bypass redaction.
 #### Correct
 Use `PromptTraceRecorder` and `WorkflowTaskRepository.upsertPromptTrace` so prompt diagnostics are explicit, redacted, and queryable by workflow task id.
+
+## Scenario: Novel chapter generation workflow persistence
+
+### 1. Scope / Trigger
+- Trigger: Novel Workshop creates an LLM-backed chapter generation workflow.
+- This is a cross-layer persistence contract because `ChapterGenerationPipeline`, `ChapterGenerationRunRecords`, `ProjectChapterRecords`, `WorkflowTaskRecords`, and `WorkflowPromptTraceRecords` must stay synchronized.
+
+### 2. Signatures
+- Workflow kind: `novel_chapter_generation`.
+- Drift table: `ChapterGenerationRunRecords`.
+- Domain API: `NovelWorkshopRepository.createChapterGenerationRun(...)`, `updateChapterGenerationRunState(...)`, `hasRunningChapterGeneration(...)`, `findChapterByPlan(...)`.
+- Application API: `ChapterGenerationPipeline.generateChapter({required projectId, required chapterPlanId, bool replaceExisting = false})`.
+
+### 3. Contracts
+- A generation run owns one `workflowTaskId`; run state and workflow task state are updated in the same Drift transaction.
+- `ChapterGenerationRunRecords` is diagnostic as well as relational: `projectId`, `chapterPlanId`, `providerId`, and `modelName` preserve requested values so invalid input can still produce a failed run/task.
+- `ProjectChapterRecords` remains the single current chapter body table; regeneration may overwrite the existing row only when `replaceExisting` is true.
+- Prompt diagnostics must go through `PromptTraceRecorder`; do not store full prompts in run logs.
+- Same `chapterPlanId` cannot have another pending/running generation run; different chapters may run independently.
+
+### 4. Validation & Error Matrix
+- Missing project -> create run/task when project id is non-empty, mark failed, and do not call the LLM.
+- Missing chapter plan -> create run/task, mark failed, and do not call the LLM.
+- Missing/default-invalid Provider or model -> mark failed before LLM invocation.
+- Existing chapter content with `replaceExisting == false` -> mark failed and preserve the existing chapter.
+- LLM returns empty content -> mark failed and do not save/overwrite chapter content.
+- New content saved over an existing chapter -> clear stale memory-sync proposal through `saveChapter`.
+
+### 5. Good/Base/Bad Cases
+- Good: `ChapterGenerationPipeline` creates a run/task first, validates context, calls LLM with prompt trace, saves the chapter, and marks both run and task succeeded.
+- Base: missing Voice Profile, Story Engine, or runtime memory records warnings but still generates when project, Provider/model, and Chapter Plan are valid.
+- Bad: update only the run row and leave Workflow Runs showing stale task status.
+- Bad: silently overwrite existing chapter content without explicit replacement.
+
+### 6. Tests Required
+- Repository tests must assert run/task state synchronization and `hasRunningChapterGeneration`.
+- Migration tests must assert `chapter_generation_run_records` is created with schema upgrades.
+- Pipeline tests must assert success path saves chapter content and prompt trace.
+- Pipeline tests must assert validation failures create failed run/task without LLM calls.
+- Pipeline tests must assert replacement clears stale memory-sync proposal.
+- Prompt trace tests must assert provider API keys are redacted.
+
+### 7. Wrong vs Correct
+#### Wrong
+Let UI create a workflow task and call `saveChapter` directly after an LLM response.
+#### Correct
+Route chapter generation through `ChapterGenerationPipeline`, and let `DriftNovelWorkshopRepository` own run/task creation and state synchronization.
