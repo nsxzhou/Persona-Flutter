@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -7,6 +8,7 @@ import '../../../core/ui/persona_page.dart';
 import '../../../core/ui/skeleton_loader.dart';
 import '../../projects/application/project_providers.dart';
 import '../../projects/domain/writing_project.dart';
+import '../../projects/presentation/projects_page.dart';
 import '../application/novel_workshop_providers.dart';
 import '../domain/novel_workshop.dart';
 import '../domain/writing_context.dart';
@@ -20,7 +22,75 @@ class NovelWorkshopPage extends ConsumerStatefulWidget {
   ConsumerState<NovelWorkshopPage> createState() => _NovelWorkshopPageState();
 }
 
+class NovelEditorPage extends ConsumerStatefulWidget {
+  const NovelEditorPage({required this.projectId, super.key});
+
+  final String projectId;
+
+  @override
+  ConsumerState<NovelEditorPage> createState() => _NovelEditorPageState();
+}
+
 class _NovelWorkshopPageState extends ConsumerState<NovelWorkshopPage> {
+  @override
+  Widget build(BuildContext context) {
+    final project = ref.watch(writingProjectProvider(widget.projectId));
+    final plans = ref.watch(chapterPlansProvider(widget.projectId));
+    final chapters = ref.watch(projectChaptersProvider(widget.projectId));
+    final runs = ref.watch(chapterGenerationRunsProvider(widget.projectId));
+    final memory = ref.watch(projectRuntimeMemoryProvider(widget.projectId));
+    final assets = ref.watch(projectPromptAssetsProvider(widget.projectId));
+
+    return project.when(
+      data: (item) {
+        if (item == null) {
+          return _MissingProjectPage(projectId: widget.projectId);
+        }
+        if (item.status != ProjectStatus.active) {
+          return _ArchivedProjectPage(project: item);
+        }
+        return plans.when(
+          data: (planItems) => chapters.when(
+            data: (chapterItems) => runs.when(
+              data: (runItems) => _AssetWorkbenchPage(
+                project: item,
+                plans: planItems,
+                chapters: chapterItems,
+                runs: runItems,
+                assets: assets,
+                memory: memory,
+                onEditProject: () => showProjectDialog(context, project: item),
+                onCreatePlan: () => _showPlanDialog(
+                  context: context,
+                  projectId: item.id,
+                  nextIndex: _nextChapterIndex(planItems),
+                ),
+                onEditPlan: (plan) => _showPlanDialog(
+                  context: context,
+                  projectId: item.id,
+                  plan: plan,
+                ),
+              ),
+              error: (error, stackTrace) =>
+                  _WorkshopError(message: '无法加载生成任务：$error'),
+              loading: () => const _WorkshopLoading(),
+            ),
+            error: (error, stackTrace) =>
+                _WorkshopError(message: '无法加载章节正文：$error'),
+            loading: () => const _WorkshopLoading(),
+          ),
+          error: (error, stackTrace) =>
+              _WorkshopError(message: '无法加载章节计划：$error'),
+          loading: () => const _WorkshopLoading(),
+        );
+      },
+      error: (error, stackTrace) => _WorkshopError(message: '无法加载项目：$error'),
+      loading: () => const _WorkshopLoading(),
+    );
+  }
+}
+
+class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
   final _editorController = TextEditingController();
   String? _selectedPlanId;
   String? _loadedChapterId;
@@ -297,6 +367,581 @@ class _NovelWorkshopPageState extends ConsumerState<NovelWorkshopPage> {
   }
 }
 
+class _AssetWorkbenchPage extends StatelessWidget {
+  const _AssetWorkbenchPage({
+    required this.project,
+    required this.plans,
+    required this.chapters,
+    required this.runs,
+    required this.assets,
+    required this.memory,
+    required this.onEditProject,
+    required this.onCreatePlan,
+    required this.onEditPlan,
+  });
+
+  final WritingProject project;
+  final List<ChapterPlan> plans;
+  final List<ProjectChapter> chapters;
+  final List<ChapterGenerationRun> runs;
+  final AsyncValue<ProjectPromptAssets> assets;
+  final AsyncValue<ProjectRuntimeMemory> memory;
+  final VoidCallback onEditProject;
+  final VoidCallback onCreatePlan;
+  final ValueChanged<ChapterPlan> onEditPlan;
+
+  @override
+  Widget build(BuildContext context) {
+    return PersonaPage(
+      eyebrow: '项目工作台',
+      title: project.title,
+      description: '管理项目资产、写作参数和章节目标，然后进入编辑器完成正文创作。',
+      maxWidth: 1420,
+      actions: [
+        OutlinedButton.icon(
+          onPressed: () => context.go('/projects'),
+          icon: const Icon(Icons.arrow_back_outlined),
+          label: const Text('返回项目'),
+        ),
+        OutlinedButton.icon(
+          onPressed: onEditProject,
+          icon: const Icon(Icons.tune_outlined),
+          label: const Text('项目设置'),
+        ),
+        FilledButton.icon(
+          onPressed: () =>
+              context.go('/projects/${project.id}/workshop/editor'),
+          icon: const Icon(Icons.edit_note_outlined),
+          label: const Text('进入编辑器'),
+        ),
+      ],
+      children: [
+        _WorkbenchHero(project: project, plans: plans, chapters: chapters),
+        const SizedBox(height: 14),
+        _WorkbenchTabs(
+          project: project,
+          plans: plans,
+          chapters: chapters,
+          runs: runs,
+          assets: assets,
+          memory: memory,
+          onCreatePlan: onCreatePlan,
+          onEditPlan: onEditPlan,
+        ),
+      ],
+    );
+  }
+}
+
+class _WorkbenchTabs extends StatefulWidget {
+  const _WorkbenchTabs({
+    required this.project,
+    required this.plans,
+    required this.chapters,
+    required this.runs,
+    required this.assets,
+    required this.memory,
+    required this.onCreatePlan,
+    required this.onEditPlan,
+  });
+
+  final WritingProject project;
+  final List<ChapterPlan> plans;
+  final List<ProjectChapter> chapters;
+  final List<ChapterGenerationRun> runs;
+  final AsyncValue<ProjectPromptAssets> assets;
+  final AsyncValue<ProjectRuntimeMemory> memory;
+  final VoidCallback onCreatePlan;
+  final ValueChanged<ChapterPlan> onEditPlan;
+
+  @override
+  State<_WorkbenchTabs> createState() => _WorkbenchTabsState();
+}
+
+class _WorkbenchTabsState extends State<_WorkbenchTabs>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 5, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PersonaPanel(
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: TabBar(
+                controller: _tabController,
+                isScrollable: true,
+                tabs: const [
+                  Tab(text: '项目概览'),
+                  Tab(text: 'Voice Profile'),
+                  Tab(text: 'Story Engine'),
+                  Tab(text: '骨架大纲'),
+                  Tab(text: '章节计划'),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(
+            height: 680,
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _ProjectOverviewTab(
+                  project: widget.project,
+                  memory: widget.memory,
+                ),
+                _AssetMarkdownTab(
+                  title: 'Voice Profile',
+                  description: '风格档案生成的 Voice Profile markdown 预览。',
+                  markdownAsync: widget.assets.whenData(
+                    (a) => a.voiceProfileMarkdown,
+                  ),
+                  emptyIcon: Icons.record_voice_over_outlined,
+                  emptyTitle: '暂无 Voice Profile',
+                  emptyDescription: '请先在项目设置中绑定 Style Profile。',
+                ),
+                _AssetMarkdownTab(
+                  title: 'Story Engine',
+                  description: 'Plot Profile 生成的 Story Engine markdown 预览。',
+                  markdownAsync: widget.assets.whenData(
+                    (a) => a.storyEngineMarkdown,
+                  ),
+                  emptyIcon: Icons.engineering_outlined,
+                  emptyTitle: '暂无 Story Engine',
+                  emptyDescription: '请先在项目设置中绑定 Plot Profile。',
+                ),
+                _AssetMarkdownTab(
+                  title: '骨架大纲',
+                  description: 'Plot Profile 提供的 Plot Skeleton markdown 预览。',
+                  markdownAsync: widget.assets.whenData(
+                    (a) => a.plotSkeletonMarkdown,
+                  ),
+                  emptyIcon: Icons.account_tree_outlined,
+                  emptyTitle: '暂无骨架大纲',
+                  emptyDescription: 'Plot Profile 未提供自动拆章素材。',
+                ),
+                _ChapterPlanningTab(
+                  plans: widget.plans,
+                  chapters: widget.chapters,
+                  runs: widget.runs,
+                  onCreatePlan: widget.onCreatePlan,
+                  onEditPlan: widget.onEditPlan,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProjectOverviewTab extends StatelessWidget {
+  const _ProjectOverviewTab({
+    required this.project,
+    required this.memory,
+  });
+
+  final WritingProject project;
+  final AsyncValue<ProjectRuntimeMemory> memory;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PersonaSectionHeader(
+            title: '项目概览',
+            description: '项目基本信息和运行时记忆预览。',
+          ),
+          const SizedBox(height: 16),
+          _InfoLine(label: '项目简介', value: project.description),
+          const SizedBox(height: 8),
+          _InfoLine(
+            label: '创作配置',
+            value:
+                '${project.defaultProviderId ?? '未配置'} / ${project.defaultModelName ?? '未配置'}',
+          ),
+          _InfoLine(
+            label: '语言 / 目标长度',
+            value: '${project.language} · ${project.targetLength} 字',
+          ),
+          _InfoLine(
+            label: '叙事视角',
+            value: project.narrativePerspective,
+          ),
+          const SizedBox(height: 18),
+          Text('Runtime Memory', style: textTheme.titleMedium),
+          const SizedBox(height: 10),
+          memory.when(
+            data: (item) => _RuntimeMemoryPreview(memory: item),
+            error: (error, stackTrace) =>
+                Text('无法加载运行时记忆：$error'),
+            loading: () => const SkeletonBox(width: 220, height: 16),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AssetMarkdownTab extends StatelessWidget {
+  const _AssetMarkdownTab({
+    required this.title,
+    required this.description,
+    required this.markdownAsync,
+    required this.emptyIcon,
+    required this.emptyTitle,
+    required this.emptyDescription,
+  });
+
+  final String title;
+  final String description;
+  final AsyncValue<String> markdownAsync;
+  final IconData emptyIcon;
+  final String emptyTitle;
+  final String emptyDescription;
+
+  @override
+  Widget build(BuildContext context) {
+    return markdownAsync.when(
+      data: (markdown) {
+        final trimmed = markdown.trim();
+        if (trimmed.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.all(20),
+            child: PersonaEmptyStateCard(
+              icon: emptyIcon,
+              title: emptyTitle,
+              description: emptyDescription,
+            ),
+          );
+        }
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              PersonaSectionHeader(
+                title: title,
+                description: description,
+              ),
+              const SizedBox(height: 14),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: MarkdownBody(data: trimmed),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      error: (error, stackTrace) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Text('加载失败：$error'),
+      ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+    );
+  }
+}
+
+class _ChapterPlanningTab extends StatelessWidget {
+  const _ChapterPlanningTab({
+    required this.plans,
+    required this.chapters,
+    required this.runs,
+    required this.onCreatePlan,
+    required this.onEditPlan,
+  });
+
+  final List<ChapterPlan> plans;
+  final List<ProjectChapter> chapters;
+  final List<ChapterGenerationRun> runs;
+  final VoidCallback onCreatePlan;
+  final ValueChanged<ChapterPlan> onEditPlan;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
+          child: Row(
+            children: [
+              const Expanded(
+                child: PersonaSectionHeader(
+                  title: '章节计划',
+                  description: '先维护章节目标，再进入编辑器生成或手写正文。',
+                ),
+              ),
+              FilledButton.icon(
+                onPressed: onCreatePlan,
+                icon: const Icon(Icons.add),
+                label: const Text('新建章节'),
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+        if (plans.isEmpty)
+          Expanded(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: _NavigatorEmptyState(onCreatePlan: onCreatePlan),
+              ),
+            ),
+          )
+        else
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.only(bottom: 18),
+              itemCount: plans.length,
+              itemBuilder: (context, index) {
+                final plan = plans[index];
+                return _WorkbenchChapterTile(
+                  plan: plan,
+                  chapter: _chapterForPlan(chapters, plan.id),
+                  run: _latestRunForPlan(runs, plan.id),
+                  onEdit: () => onEditPlan(plan),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _WorkbenchHero extends StatelessWidget {
+  const _WorkbenchHero({
+    required this.project,
+    required this.plans,
+    required this.chapters,
+  });
+
+  final WritingProject project;
+  final List<ChapterPlan> plans;
+  final List<ProjectChapter> chapters;
+
+  @override
+  Widget build(BuildContext context) {
+    final completed = plans
+        .where(
+          (plan) =>
+              _chapterForPlan(
+                chapters,
+                plan.id,
+              )?.contentMarkdown.trim().isNotEmpty ??
+              false,
+        )
+        .length;
+    return PersonaPanel(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          PersonaStatusPill(
+            label: _projectStatusLabel(project.status),
+            icon: Icons.circle_outlined,
+          ),
+          PersonaStatusPill(
+            label: '${project.defaultProviderId ?? '未配置 Provider'} / ${project.defaultModelName ?? '未配置模型'}',
+            icon: Icons.memory_outlined,
+          ),
+          PersonaStatusPill(
+            label: '${project.language} · ${project.targetLength} 字',
+            icon: Icons.translate_outlined,
+          ),
+          PersonaStatusPill(
+            label: project.narrativePerspective,
+            icon: Icons.visibility_outlined,
+          ),
+          PersonaStatusPill(
+            label: '$completed/${plans.length} 章有正文',
+            icon: Icons.check_circle_outline,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AssetDetailTile extends StatelessWidget {
+  const _AssetDetailTile({
+    required this.title,
+    required this.bound,
+    required this.ready,
+    required this.detail,
+  });
+
+  final String title;
+  final bool bound;
+  final bool ready;
+  final String detail;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final statusColor = ready
+        ? colorScheme.primary
+        : bound
+        ? colorScheme.error
+        : colorScheme.onSurfaceVariant;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border.all(color: colorScheme.outlineVariant),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Icon(
+                ready
+                    ? Icons.check_circle_outline
+                    : Icons.warning_amber_outlined,
+                color: statusColor,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: Theme.of(context).textTheme.labelLarge),
+                    const SizedBox(height: 3),
+                    Text(detail, style: Theme.of(context).textTheme.bodyMedium),
+                  ],
+                ),
+              ),
+              Text(ready ? '已接入' : '待完善'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RuntimeMemoryPreview extends StatelessWidget {
+  const _RuntimeMemoryPreview({required this.memory});
+
+  final ProjectRuntimeMemory memory;
+
+  @override
+  Widget build(BuildContext context) {
+    return _AssetDetailTile(
+      title: 'Runtime Memory',
+      bound: true,
+      ready: !memory.state.isEmpty,
+      detail: memory.state.storySummary.trim().isEmpty
+          ? '运行时记忆为空'
+          : memory.state.storySummary,
+    );
+  }
+}
+
+class _WorkbenchChapterTile extends StatelessWidget {
+  const _WorkbenchChapterTile({
+    required this.plan,
+    required this.chapter,
+    required this.run,
+    required this.onEdit,
+  });
+
+  final ChapterPlan plan;
+  final ProjectChapter? chapter;
+  final ChapterGenerationRun? run;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasContent = chapter?.contentMarkdown.trim().isNotEmpty ?? false;
+    final running =
+        run?.status == ChapterGenerationStatus.pending ||
+        run?.status == ChapterGenerationStatus.running;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
+        child: Row(
+          children: [
+            Icon(
+              running
+                  ? Icons.sync
+                  : hasContent
+                  ? Icons.check_circle_outline
+                  : Icons.radio_button_unchecked,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '第 ${plan.chapterIndex} 章 · ${_chapterTitle(plan)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _objectiveSummary(plan.objectiveCard),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            OutlinedButton.icon(
+              onPressed: onEdit,
+              icon: const Icon(Icons.tune_outlined),
+              label: const Text('编辑目标'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _WorkshopScaffold extends StatelessWidget {
   const _WorkshopScaffold({
     required this.project,
@@ -407,19 +1052,9 @@ class _WorkshopScaffold extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    SizedBox(width: 292, child: navigator),
-                    VerticalDivider(
-                      width: 1,
-                      thickness: 1,
-                      color: Theme.of(context).colorScheme.outlineVariant,
-                    ),
+                    SizedBox(width: 280, child: navigator),
                     Expanded(child: editor),
-                    VerticalDivider(
-                      width: 1,
-                      thickness: 1,
-                      color: Theme.of(context).colorScheme.outlineVariant,
-                    ),
-                    SizedBox(width: 320, child: inspector),
+                    SizedBox(width: 300, child: inspector),
                   ],
                 ),
               ),
@@ -464,23 +1099,22 @@ class _WorkshopTopBar extends StatelessWidget {
         ? Icons.edit_outlined
         : Icons.check_circle_outline;
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        border: Border(bottom: BorderSide(color: colorScheme.outlineVariant)),
-      ),
+    return GlassContainer(
+      borderRadius: 0,
+      border: Border(bottom: BorderSide(color: colorScheme.outlineVariant)),
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
+          padding: const EdgeInsets.fromLTRB(18, 10, 18, 10),
           child: Row(
             children: [
               IconButton(
-                tooltip: '返回项目',
-                onPressed: () => context.go('/projects'),
+                tooltip: '返回工作台',
+                onPressed: () =>
+                    context.go('/projects/${project.id}/workshop'),
                 icon: const Icon(Icons.arrow_back),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: Wrap(
                   spacing: 12,
@@ -491,21 +1125,27 @@ class _WorkshopTopBar extends StatelessWidget {
                       project.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w900,
                       ),
                     ),
                     _CompactStatusPill(
                       label: statusLabel,
                       icon: statusIcon,
-                      color: isDirty ? colorScheme.error : colorScheme.primary,
+                      color: isRunning
+                          ? colorScheme.primary
+                          : isDirty
+                              ? colorScheme.error
+                              : const Color(0xFF16825D),
                     ),
                     if (plan != null)
                       Text(
                         '第 ${plan!.chapterIndex} 章 · ${_chapterTitle(plan!)}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodyMedium,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                       ),
                   ],
                 ),
@@ -518,17 +1158,17 @@ class _WorkshopTopBar extends StatelessWidget {
                 children: [
                   OutlinedButton.icon(
                     onPressed: onCreatePlan,
-                    icon: const Icon(Icons.add),
+                    icon: const Icon(Icons.add, size: 18),
                     label: const Text('新建章节'),
                   ),
                   OutlinedButton.icon(
                     onPressed: onSaveChapter,
-                    icon: const Icon(Icons.save_outlined),
+                    icon: const Icon(Icons.save_outlined, size: 18),
                     label: const Text('保存正文'),
                   ),
                   FilledButton.icon(
                     onPressed: onGenerate,
-                    icon: const Icon(Icons.auto_fix_high_outlined),
+                    icon: const Icon(Icons.auto_fix_high_outlined, size: 18),
                     label: const Text('生成章节'),
                   ),
                 ],
@@ -561,13 +1201,18 @@ class _ChapterNavigator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return ColoredBox(
-      color: colorScheme.surface,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        border: Border(
+          right: BorderSide(color: colorScheme.outlineVariant, width: 0.5),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 14, 12),
+            padding: const EdgeInsets.fromLTRB(18, 14, 14, 12),
             child: Row(
               children: [
                 Expanded(
@@ -833,7 +1478,7 @@ class _ManuscriptEditor extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     if (plan == null) {
       return ColoredBox(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.18),
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.12),
         child: const Center(
           child: PersonaEmptyStateCard(
             icon: Icons.menu_book_outlined,
@@ -844,7 +1489,7 @@ class _ManuscriptEditor extends StatelessWidget {
       );
     }
     return ColoredBox(
-      color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
+      color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.08),
       child: Column(
         children: [
           _ChapterBanner(plan: plan!, run: run, onEditPlan: onEditPlan),
@@ -855,34 +1500,48 @@ class _ManuscriptEditor extends StatelessWidget {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 940),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(28, 24, 28, 30),
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       color: colorScheme.surface,
-                      border: Border.all(color: colorScheme.outlineVariant),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: TextField(
-                      key: const ValueKey('novel-workshop-editor'),
-                      controller: controller,
-                      enabled: !isBusy,
-                      expands: true,
-                      maxLines: null,
-                      minLines: null,
-                      keyboardType: TextInputType.multiline,
-                      textAlignVertical: TextAlignVertical.top,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontSize: 18,
-                        height: 1.72,
-                        color: colorScheme.onSurface,
+                      border: Border.all(
+                        color: colorScheme.outlineVariant.withValues(
+                          alpha: 0.6,
+                        ),
                       ),
-                      decoration: const InputDecoration(
-                        hintText: '在这里写入当前章节正文。',
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        filled: false,
-                        contentPadding: EdgeInsets.fromLTRB(34, 32, 34, 32),
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: colorScheme.shadow.withValues(alpha: 0.04),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: TextField(
+                        key: const ValueKey('novel-workshop-editor'),
+                        controller: controller,
+                        enabled: !isBusy,
+                        expands: true,
+                        maxLines: null,
+                        minLines: null,
+                        keyboardType: TextInputType.multiline,
+                        textAlignVertical: TextAlignVertical.top,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontSize: 17,
+                          height: 1.75,
+                          color: colorScheme.onSurface,
+                        ),
+                        decoration: const InputDecoration(
+                          hintText: '在这里写入当前章节正文...',
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          filled: false,
+                          contentPadding: EdgeInsets.fromLTRB(32, 28, 32, 28),
+                        ),
                       ),
                     ),
                   ),
@@ -913,18 +1572,28 @@ class _ChapterBanner extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        border: Border(bottom: BorderSide(color: colorScheme.outlineVariant)),
+        border: Border(
+          bottom: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.6),
+          ),
+        ),
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 14, 24, 14),
+        padding: const EdgeInsets.fromLTRB(24, 12, 20, 12),
         child: Row(
           children: [
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('当前章节', style: Theme.of(context).textTheme.labelMedium),
-                  const SizedBox(height: 5),
+                  Text(
+                    '当前章节',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
                   Text(
                     '第 ${plan.chapterIndex} 章 · ${_chapterTitle(plan)}',
                     maxLines: 1,
@@ -933,27 +1602,30 @@ class _ChapterBanner extends StatelessWidget {
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                  const SizedBox(height: 5),
+                  const SizedBox(height: 4),
                   Text(
                     _objectiveSummary(plan.objectiveCard),
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodyMedium,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 16),
-            if (run != null)
+            const SizedBox(width: 12),
+            if (run != null) ...[
               _CompactStatusPill(
                 label: _runStatusLabel(run!.status),
                 icon: _runIcon(run!.status),
                 color: _runColor(context, run!.status),
               ),
-            const SizedBox(width: 8),
+              const SizedBox(width: 8),
+            ],
             OutlinedButton.icon(
               onPressed: onEditPlan,
-              icon: const Icon(Icons.tune_outlined),
+              icon: const Icon(Icons.tune_outlined, size: 18),
               label: const Text('编辑目标'),
             ),
           ],
@@ -1013,13 +1685,18 @@ class _WorkshopInspector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return ColoredBox(
-      color: colorScheme.surface,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        border: Border(
+          left: BorderSide(color: colorScheme.outlineVariant, width: 0.5),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 12),
             child: Text(
               '工作流诊断',
               style: Theme.of(
@@ -1067,11 +1744,17 @@ class _InspectorSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 22),
+      padding: const EdgeInsets.only(bottom: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: Theme.of(context).textTheme.labelLarge),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
+            ),
+          ),
           const SizedBox(height: 10),
           child,
         ],
@@ -1737,6 +2420,13 @@ String _runStatusLabel(ChapterGenerationStatus status) {
     ChapterGenerationStatus.running => '运行中',
     ChapterGenerationStatus.succeeded => '成功',
     ChapterGenerationStatus.failed => '失败',
+  };
+}
+
+String _projectStatusLabel(ProjectStatus status) {
+  return switch (status) {
+    ProjectStatus.active => '活动',
+    ProjectStatus.archived => '归档',
   };
 }
 
