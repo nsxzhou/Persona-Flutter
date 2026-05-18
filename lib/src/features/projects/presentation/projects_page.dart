@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/ui/glass_container.dart';
 import '../../../core/ui/persona_page.dart';
@@ -454,6 +455,8 @@ class _ProjectRowActions extends ConsumerWidget {
       icon: const Icon(Icons.more_horiz),
       onSelected: (action) {
         switch (action) {
+          case _ProjectMenuAction.openWorkshop:
+            context.go('/projects/${project.id}/workshop');
           case _ProjectMenuAction.edit:
             _showProjectDialog(context, project: project);
           case _ProjectMenuAction.archive:
@@ -465,6 +468,17 @@ class _ProjectRowActions extends ConsumerWidget {
         }
       },
       itemBuilder: (context) => [
+        if (project.status == ProjectStatus.active)
+          const PopupMenuItem(
+            value: _ProjectMenuAction.openWorkshop,
+            child: Row(
+              children: [
+                Icon(Icons.menu_book_outlined, size: 18),
+                SizedBox(width: 10),
+                Text('打开工作台'),
+              ],
+            ),
+          ),
         const PopupMenuItem(
           value: _ProjectMenuAction.edit,
           child: Row(
@@ -1256,7 +1270,7 @@ Future<void> _confirmDeleteProject(
   }
 }
 
-enum _ProjectMenuAction { edit, archive, restore, delete }
+enum _ProjectMenuAction { openWorkshop, edit, archive, restore, delete }
 
 String? _requiredValidator(String? value) {
   if (value == null || value.trim().isEmpty) {

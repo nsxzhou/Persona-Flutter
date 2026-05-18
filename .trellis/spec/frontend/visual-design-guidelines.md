@@ -152,6 +152,20 @@ Rules:
 
 ---
 
+## Novel Workshop Editor Shell
+
+Novel Workshop is a writing desk, not a dashboard page. When rendering the project-scoped workspace at `/projects/:projectId/workshop`, use an immersive editor shell:
+
+* Fixed top command bar for back navigation, project title, save/generation status, and chapter actions.
+* Left chapter navigator with compact rows and completion/running state.
+* Center manuscript editor as the dominant surface, not a `PersonaPanel` card.
+* Right inspector for objective card, prompt asset status, runtime memory warnings, and Workflow Runs link.
+* Compact widths must stack navigator, editor, and inspector with explicit heights; never put an `Expanded` inspector inside an unbounded vertical scroll view.
+
+Avoid reverting this surface to `PersonaPage` plus three floating panels unless the route stops being a writing editor.
+
+---
+
 ## Motion And Interaction Feedback
 
 Use restrained, fast, and state-clear motion.

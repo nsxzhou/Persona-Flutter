@@ -673,3 +673,48 @@ final class ProjectPromptAssetsFamily extends $Family
   @override
   String toString() => r'projectPromptAssetsProvider';
 }
+
+@ProviderFor(NovelWorkshopController)
+final novelWorkshopControllerProvider = NovelWorkshopControllerProvider._();
+
+final class NovelWorkshopControllerProvider
+    extends $AsyncNotifierProvider<NovelWorkshopController, void> {
+  NovelWorkshopControllerProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'novelWorkshopControllerProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$novelWorkshopControllerHash();
+
+  @$internal
+  @override
+  NovelWorkshopController create() => NovelWorkshopController();
+}
+
+String _$novelWorkshopControllerHash() =>
+    r'ef20db644e1e1901390347030448dd76311ef06e';
+
+abstract class _$NovelWorkshopController extends $AsyncNotifier<void> {
+  FutureOr<void> build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<AsyncValue<void>, void>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<void>, void>,
+              AsyncValue<void>,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/database/database_providers.dart';
@@ -91,4 +93,66 @@ Future<ProjectRuntimeMemory> projectRuntimeMemory(Ref ref, String projectId) {
 @riverpod
 Future<ProjectPromptAssets> projectPromptAssets(Ref ref, String projectId) {
   return ref.watch(projectPromptAssetResolverProvider).resolve(projectId);
+}
+
+@Riverpod(keepAlive: true)
+class NovelWorkshopController extends _$NovelWorkshopController {
+  @override
+  FutureOr<void> build() {}
+
+  Future<ChapterPlan> saveChapterPlan({
+    String? id,
+    required ChapterPlanInput input,
+  }) async {
+    state = const AsyncLoading();
+    late ChapterPlan saved;
+    state = await AsyncValue.guard(() async {
+      saved = await ref
+          .read(novelWorkshopRepositoryProvider)
+          .saveChapterPlan(id: id, input: input);
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
+    return saved;
+  }
+
+  Future<ProjectChapter> saveChapter({
+    String? id,
+    required ProjectChapterInput input,
+  }) async {
+    state = const AsyncLoading();
+    late ProjectChapter saved;
+    state = await AsyncValue.guard(() async {
+      saved = await ref
+          .read(novelWorkshopRepositoryProvider)
+          .saveChapter(id: id, input: input);
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
+    return saved;
+  }
+
+  Future<ChapterGenerationResult> generateChapter({
+    required String projectId,
+    required String chapterPlanId,
+    bool replaceExisting = false,
+  }) async {
+    state = const AsyncLoading();
+    late ChapterGenerationResult result;
+    state = await AsyncValue.guard(() async {
+      result = await ref
+          .read(chapterGenerationPipelineProvider)
+          .generateChapter(
+            projectId: projectId,
+            chapterPlanId: chapterPlanId,
+            replaceExisting: replaceExisting,
+          );
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
+    return result;
+  }
 }

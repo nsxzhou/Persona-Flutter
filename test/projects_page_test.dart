@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:persona_flutter/src/features/projects/application/project_providers.dart';
 import 'package:persona_flutter/src/features/projects/domain/project_repository.dart';
 import 'package:persona_flutter/src/features/projects/domain/writing_project.dart';
@@ -143,6 +144,85 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.text('活动长篇'), findsNothing);
       expect(find.text('尚未创建项目'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'active project menu exposes workshop entry only for active rows',
+    (tester) async {
+      final active = _project(
+        id: 'active-project',
+        title: '活动长篇',
+        status: ProjectStatus.active,
+      );
+      final archived = _project(
+        id: 'archived-project',
+        title: '归档长篇',
+        status: ProjectStatus.archived,
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            writingProjectsProvider.overrideWith(
+              (ref, status) => Stream<List<WritingProject>>.value([
+                if (status == ProjectStatus.active) active,
+                if (status == ProjectStatus.archived) archived,
+              ]),
+            ),
+            providerConfigsProvider.overrideWith(
+              (ref) => Stream<List<ProviderConfig>>.value([_provider()]),
+            ),
+            styleProfilesProvider.overrideWith(
+              (ref) => Stream<List<StyleProfile>>.value(const []),
+            ),
+            plotProfilesProvider.overrideWith(
+              (ref) => Stream<List<PlotProfile>>.value(const []),
+            ),
+          ],
+          child: MaterialApp.router(
+            routerConfig: GoRouter(
+              initialLocation: '/projects',
+              routes: [
+                GoRoute(
+                  path: '/projects',
+                  builder: (context, state) => const ProjectsPage(),
+                  routes: [
+                    GoRoute(
+                      path: ':projectId/workshop',
+                      builder: (context, state) =>
+                          Text('workshop:${state.pathParameters['projectId']}'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('项目操作'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('打开工作台'), findsOneWidget);
+
+      await tester.tap(find.text('打开工作台'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('workshop:active-project'), findsOneWidget);
+
+      GoRouter.of(
+        tester.element(find.text('workshop:active-project')),
+      ).go('/projects');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('归档').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('项目操作'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('打开工作台'), findsNothing);
     },
   );
 
