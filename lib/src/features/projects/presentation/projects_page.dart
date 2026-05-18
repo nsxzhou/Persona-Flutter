@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/ui/glass_container.dart';
 import '../../../core/ui/persona_page.dart';
@@ -31,7 +30,7 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
     return PersonaPage(
       eyebrow: '工作区',
       title: '项目',
-      description: '用于长篇项目、蓝图、章节工作和后续 Zen Editor 写作会话的本地写作工作台。',
+      description: '用于长篇项目、蓝图和本地写作会话的项目管理工作区。',
       actions: [
         FilledButton.icon(
           onPressed: () => _showProjectDialog(context),
@@ -245,7 +244,7 @@ class _ProjectListPanel extends StatelessWidget {
             child: PersonaSectionHeader(
               title: selectedStatus == ProjectStatus.active ? '写作档案' : '归档档案',
               description: selectedStatus == ProjectStatus.active
-                  ? '进入项目详情，维护项目简介，并为后续章节工作台保留入口。'
+                  ? '维护本地写作项目的简介、创作配置和归档状态。'
                   : '归档项目不会出现在默认工作区，可以恢复或永久删除。',
             ),
           ),
@@ -295,7 +294,7 @@ class _EmptyProjectsState extends StatelessWidget {
                 Text(
                   isArchived
                       ? '归档后的项目会保留在这里，方便恢复或永久删除。'
-                      : '创建第一个本地写作档案后，可以进入项目详情维护简介和后续工作台入口。',
+                      : '创建第一个本地写作档案后，可以在这里维护简介和创作配置。',
                   style: textTheme.bodyMedium,
                 ),
               ],
@@ -315,57 +314,54 @@ class _EmptyProjectsState extends StatelessWidget {
   }
 }
 
-class _ProjectRow extends ConsumerWidget {
+class _ProjectRow extends StatelessWidget {
   const _ProjectRow({required this.project});
 
   final WritingProject project;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return InkWell(
-      onTap: () => context.go('/projects/${project.id}'),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: colorScheme.outlineVariant)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final details = _ProjectRowDetails(project: project);
-              final actions = _ProjectRowActions(project: project);
-              final updated = Text(
-                _formatProjectTime(project.updatedAt),
-                style: textTheme.labelMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              );
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: colorScheme.outlineVariant)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final details = _ProjectRowDetails(project: project);
+            final actions = _ProjectRowActions(project: project);
+            final updated = Text(
+              _formatProjectTime(project.updatedAt),
+              style: textTheme.labelMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            );
 
-              if (constraints.maxWidth < 720) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    details,
-                    const SizedBox(height: 12),
-                    Row(children: [updated, const Spacer(), actions]),
-                  ],
-                );
-              }
-
-              return Row(
+            if (constraints.maxWidth < 720) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(child: details),
-                  const SizedBox(width: 18),
-                  SizedBox(width: 92, child: updated),
-                  const SizedBox(width: 10),
-                  actions,
+                  details,
+                  const SizedBox(height: 12),
+                  Row(children: [updated, const Spacer(), actions]),
                 ],
               );
-            },
-          ),
+            }
+
+            return Row(
+              children: [
+                Expanded(child: details),
+                const SizedBox(width: 18),
+                SizedBox(width: 92, child: updated),
+                const SizedBox(width: 10),
+                actions,
+              ],
+            );
+          },
         ),
       ),
     );

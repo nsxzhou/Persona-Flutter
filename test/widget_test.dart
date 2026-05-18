@@ -135,7 +135,7 @@ void main() {
     await tester.pumpWidget(_TestProviderScope(child: const PersonaApp()));
     await tester.pumpAndSettle();
 
-    const projectsDescription = '用于长篇项目、蓝图、章节工作和后续 Zen Editor 写作会话的本地写作工作台。';
+    const projectsDescription = '用于长篇项目、蓝图和本地写作会话的项目管理工作区。';
     const styleLabDescription =
         '管理已保存的 Style Profile 和待保存的 Voice Profile 草稿，追溯来源样本、分析报告与任务日志。';
 
