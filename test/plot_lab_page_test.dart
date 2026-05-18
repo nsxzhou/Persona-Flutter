@@ -66,6 +66,7 @@ void main() {
     expect(find.text('已保存 (1)'), findsOneWidget);
     expect(find.text('待保存 (1)'), findsOneWidget);
     expect(find.text('任务 (1)'), findsOneWidget);
+    expect(find.text('YAML+MD 有效'), findsWidgets);
     expect(find.text('任务活动'), findsOneWidget);
     expect(find.text('模型返回为空。'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -146,7 +147,7 @@ void main() {
 
     expect(find.text('PLOT PROFILE DETAIL'), findsOneWidget);
     expect(find.text('更新 Profile'), findsOneWidget);
-    expect(find.text('YAML+MD 有效'), findsOneWidget);
+    expect(find.text('YAML+MD 有效'), findsWidgets);
     expect(find.text('来源样本'), findsOneWidget);
     expect(find.text('返回档案库'), findsOneWidget);
     expect(tester.takeException(), isNull);

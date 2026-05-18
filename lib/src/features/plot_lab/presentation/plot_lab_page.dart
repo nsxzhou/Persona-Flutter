@@ -901,6 +901,7 @@ class _LibraryAssetRow extends StatelessWidget {
                           icon: _statusIcon(asset.status),
                           color: _statusColor(colorScheme, asset.status),
                         ),
+                        _StoryEngineStatus(markdown: asset.storyEngineMarkdown),
                         _AssetMoreButton(onDelete: onDelete),
                       ],
                     ),
@@ -926,7 +927,19 @@ class _LibraryAssetRow extends StatelessWidget {
                         style: textTheme.bodySmall,
                       ),
                     ),
-                    Expanded(flex: 2, child: _AssetKindPill(kind: asset.kind)),
+                    Expanded(
+                      flex: 2,
+                      child: Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          _AssetKindPill(kind: asset.kind),
+                          _StoryEngineStatus(
+                            markdown: asset.storyEngineMarkdown,
+                          ),
+                        ],
+                      ),
+                    ),
                     SizedBox(
                       width: 104,
                       child: Text(
@@ -2374,6 +2387,7 @@ class _PlotLibraryAsset {
     required this.sourceTitle,
     required this.providerLabel,
     required this.status,
+    required this.storyEngineMarkdown,
     required this.updatedAt,
   });
 
@@ -2383,6 +2397,7 @@ class _PlotLibraryAsset {
   final String sourceTitle;
   final String providerLabel;
   final PlotAnalysisStatus status;
+  final String storyEngineMarkdown;
   final DateTime updatedAt;
 }
 
@@ -2411,6 +2426,7 @@ List<_PlotLibraryAsset> _buildLibraryAssets({
           profile.modelName,
         ),
         status: PlotAnalysisStatus.succeeded,
+        storyEngineMarkdown: profile.storyEngineMarkdown,
         updatedAt: profile.updatedAt,
       ),
     for (final run in runs.where(_isDraftRun))
@@ -2424,6 +2440,7 @@ List<_PlotLibraryAsset> _buildLibraryAssets({
           run.modelName,
         ),
         status: run.status,
+        storyEngineMarkdown: run.storyEngineMarkdown ?? '',
         updatedAt: run.updatedAt,
       ),
   ]..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
