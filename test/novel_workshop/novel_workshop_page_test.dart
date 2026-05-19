@@ -57,7 +57,7 @@ void main() {
   testWidgets('workshop creates chapter plan from chapter planning tab', (
     tester,
   ) async {
-    final fixture = _WorkshopFixture();
+    final fixture = _WorkshopFixture(withDefaultVolume: false);
     addTearDown(fixture.dispose);
 
     await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
@@ -65,6 +65,21 @@ void main() {
 
     await tester.tap(find.text('分卷与章节细纲').last);
     await tester.pumpAndSettle();
+
+    expect(find.text('暂无分卷'), findsOneWidget);
+    expect(find.text('新建分卷'), findsWidgets);
+
+    await tester.tap(find.text('新建分卷').first);
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(find.text('新建分卷'), findsWidgets);
+    await tester.enterText(find.widgetWithText(TextFormField, '分卷标题'), '第一卷');
+    await tester.tap(find.widgetWithText(FilledButton, '保存'));
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(fixture.repository.volumes.single.title, '第一卷');
 
     await tester.tap(find.text('新建章节').first);
     await tester.pump();
@@ -83,6 +98,90 @@ void main() {
 
     expect(find.textContaining('第一章'), findsWidgets);
     expect(fixture.repository.plans.single.chapterIndex, 1);
+    expect(
+      fixture.repository.plans.single.volumeId,
+      fixture.repository.volumes.single.id,
+    );
+    expect(fixture.repository.plans.single.volumeIndex, 1);
+    expect(fixture.repository.plans.single.volumeTitle, '第一卷');
+  });
+
+  testWidgets('workshop edits bible markdown tabs inline', (tester) async {
+    final fixture = _WorkshopFixture();
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('世界观设定').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(OutlinedButton, '编辑'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('edit-bible-worldBuilding')),
+      '潮汐城邦由七个港务家族控制。',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('save-bible-worldBuilding')));
+    await tester.pumpAndSettle();
+
+    expect(fixture.repository.bible.worldBuildingMarkdown, '潮汐城邦由七个港务家族控制。');
+
+    await tester.tap(find.text('角色索引与关系网').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(OutlinedButton, '编辑'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('edit-bible-charactersBlueprint')),
+      '林岚：调查者。',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('save-bible-charactersBlueprint')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(fixture.repository.bible.charactersBlueprintMarkdown, '林岚：调查者。');
+
+    await tester.tap(find.text('总纲').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(OutlinedButton, '编辑'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('edit-bible-outlineMaster')),
+      '失踪案引出港务处阴谋。',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('save-bible-outlineMaster')));
+    await tester.pumpAndSettle();
+
+    expect(fixture.repository.bible.outlineMasterMarkdown, '失踪案引出港务处阴谋。');
+  });
+
+  testWidgets('empty runtime memory is neutral in overview and prompt stack', (
+    tester,
+  ) async {
+    final fixture = _WorkshopFixture(runtimeMemory: const RuntimeMemoryState());
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
+    await tester.pumpAndSettle();
+
+    expect(find.text('运行时记忆为空'), findsNothing);
+    expect(find.text('待完善'), findsNothing);
+
+    await tester.ensureVisible(find.text('Runtime Memory').last);
+    await tester.tap(find.text('Runtime Memory').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('暂无 Runtime Memory'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Prompt 栈').last);
+    await tester.tap(find.text('Prompt 栈').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('暂无运行时记忆，生成时会自动跳过'), findsOneWidget);
+    expect(find.text('可选'), findsOneWidget);
   });
 
   testWidgets('editor loads from workshop sub-route', (tester) async {
@@ -366,11 +465,17 @@ class _WorkshopFixture {
     List<ChapterPlan> plans = const [],
     List<ProjectChapter> chapters = const [],
     List<ChapterGenerationRun> runs = const [],
+    bool withDefaultVolume = true,
+    RuntimeMemoryState runtimeMemory = const RuntimeMemoryState(
+      storySummary: '林岚追查失踪案。',
+    ),
   }) : projectRepository = _FakeProjectRepository(status: projectStatus),
        repository = _FakeNovelWorkshopRepository(
          plans: plans,
          chapters: chapters,
          runs: runs,
+         withDefaultVolume: withDefaultVolume,
+         runtimeMemory: runtimeMemory,
        ),
        styleRepository = _FakeStyleLabRepository(),
        plotRepository = _FakePlotLabRepository() {
@@ -587,24 +692,46 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
     required List<ChapterPlan> plans,
     required List<ProjectChapter> chapters,
     required List<ChapterGenerationRun> runs,
+    required bool withDefaultVolume,
+    required RuntimeMemoryState runtimeMemory,
   }) : plans = [...plans],
        chapters = [...chapters],
        runs = [...runs],
-       volumes = [
-         ChapterVolume(
-           id: 'volume-1',
-           projectId: 'project-1',
-           volumeIndex: 1,
-           title: '第一卷',
-           createdAt: _testCreatedAt,
-           updatedAt: _testUpdatedAt,
-         ),
-       ];
+       volumes = withDefaultVolume
+           ? [
+               ChapterVolume(
+                 id: 'volume-1',
+                 projectId: 'project-1',
+                 volumeIndex: 1,
+                 title: '第一卷',
+                 createdAt: _testCreatedAt,
+                 updatedAt: _testUpdatedAt,
+               ),
+             ]
+           : [],
+       bible = ProjectBible(
+         projectId: 'project-1',
+         descriptionMarkdown: '项目简介',
+         worldBuildingMarkdown: '雾港长期被潮汐封锁。',
+         charactersBlueprintMarkdown: '林岚：调查者。',
+         outlineMasterMarkdown: '失踪案牵出港务处阴谋。',
+         outlineDetailYaml: '',
+         createdAt: _testCreatedAt,
+         updatedAt: _testUpdatedAt,
+       ),
+       memory = ProjectRuntimeMemory(
+         projectId: 'project-1',
+         state: runtimeMemory,
+         createdAt: _testCreatedAt,
+         updatedAt: _testUpdatedAt,
+       );
 
   final List<ChapterPlan> plans;
   final List<ProjectChapter> chapters;
   final List<ChapterGenerationRun> runs;
   final List<ChapterVolume> volumes;
+  ProjectBible bible;
+  ProjectRuntimeMemory memory;
   final _changes = StreamController<void>.broadcast();
 
   void emit() {
@@ -620,16 +747,7 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
 
   @override
   Future<ProjectBible> ensureProjectBible(String projectId) async {
-    return ProjectBible(
-      projectId: projectId,
-      descriptionMarkdown: '项目简介',
-      worldBuildingMarkdown: '雾港长期被潮汐封锁。',
-      charactersBlueprintMarkdown: '林岚：调查者。',
-      outlineMasterMarkdown: '失踪案牵出港务处阴谋。',
-      outlineDetailYaml: '',
-      createdAt: _testCreatedAt,
-      updatedAt: _testUpdatedAt,
-    );
+    return bible;
   }
 
   @override
@@ -673,12 +791,7 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
 
   @override
   Future<ProjectRuntimeMemory> ensureRuntimeMemory(String projectId) async {
-    return ProjectRuntimeMemory(
-      projectId: projectId,
-      state: const RuntimeMemoryState(storySummary: '林岚追查失踪案。'),
-      createdAt: DateTime(2026, 5, 18, 9),
-      updatedAt: DateTime(2026, 5, 18, 10),
-    );
+    return memory;
   }
 
   @override
@@ -774,22 +887,32 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
     String? id,
     required ChapterVolumeInput input,
   }) async {
+    final existingIndex = id == null
+        ? -1
+        : volumes.indexWhere((volume) => volume.id == id);
     final saved = ChapterVolume(
       id: id ?? 'volume-${volumes.length + 1}',
       projectId: input.projectId,
       volumeIndex: input.volumeIndex,
       title: input.title,
-      createdAt: _testCreatedAt,
+      createdAt: existingIndex == -1
+          ? _testCreatedAt
+          : volumes[existingIndex].createdAt,
       updatedAt: _testUpdatedAt,
     );
-    volumes.add(saved);
+    if (existingIndex == -1) {
+      volumes.add(saved);
+    } else {
+      volumes[existingIndex] = saved;
+    }
+    volumes.sort((a, b) => a.volumeIndex.compareTo(b.volumeIndex));
     emit();
     return saved;
   }
 
   @override
   Future<ProjectBible> saveProjectBible(ProjectBibleInput input) async {
-    return ProjectBible(
+    bible = ProjectBible(
       projectId: input.projectId,
       descriptionMarkdown: input.descriptionMarkdown,
       worldBuildingMarkdown: input.worldBuildingMarkdown,
@@ -799,6 +922,8 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
       createdAt: _testCreatedAt,
       updatedAt: _testUpdatedAt,
     );
+    emit();
+    return bible;
   }
 
   @override
@@ -806,16 +931,18 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
     required String projectId,
     required String outlineDetailYaml,
   }) async {
-    return ProjectBible(
-      projectId: projectId,
-      descriptionMarkdown: '项目简介',
-      worldBuildingMarkdown: '雾港长期被潮汐封锁。',
-      charactersBlueprintMarkdown: '林岚：调查者。',
-      outlineMasterMarkdown: '失踪案牵出港务处阴谋。',
+    bible = ProjectBible(
+      projectId: bible.projectId,
+      descriptionMarkdown: bible.descriptionMarkdown,
+      worldBuildingMarkdown: bible.worldBuildingMarkdown,
+      charactersBlueprintMarkdown: bible.charactersBlueprintMarkdown,
+      outlineMasterMarkdown: bible.outlineMasterMarkdown,
       outlineDetailYaml: outlineDetailYaml,
-      createdAt: _testCreatedAt,
+      createdAt: bible.createdAt,
       updatedAt: _testUpdatedAt,
     );
+    emit();
+    return bible;
   }
 
   @override
@@ -863,7 +990,8 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
 
   @override
   Stream<ProjectBible> watchProjectBible(String projectId) async* {
-    yield await ensureProjectBible(projectId);
+    yield bible;
+    yield* _changes.stream.map((_) => bible);
   }
 
   @override

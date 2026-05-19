@@ -94,8 +94,11 @@ Persona Flutter has no remote server in the baseline. Local persisted data is ex
 - Presentation widgets consume `ProjectRepository`, `NovelWorkshopRepository`, `ProjectPromptAssetResolver`, and `ChapterGenerationPipeline` through Riverpod providers/application contracts only.
 - Novel Workshop tabs are: `概览`, `世界观设定`, `角色索引与关系网`, `总纲`, `分卷与章节细纲`, `Voice Profile`, `Story Engine`, `Runtime Memory`, `Prompt 栈`, `设置`.
 - Do not add a standalone `骨架大纲` tab. Plot skeleton content remains an input/reference for outline detail generation only.
+- User-facing Workshop UI calls `ProjectBible` the `项目设定集`. Keep `ProjectBible` as the domain/code name, but do not expose the English label as the primary user-facing editing concept.
+- The `世界观设定`, `角色索引与关系网`, and `总纲` tabs are direct edit surfaces for their corresponding `ProjectBible` fields. Do not make them read-only previews that point users to a separate hidden bible editor.
+- `分卷与章节细纲` is a structured editor: create a `ChapterVolume` first, then create volume-backed `ChapterPlan` records under it. Do not open a chapter-plan form when no volume exists.
 - Voice Profile and Story Engine are `YAML front matter + Markdown body` documents in Workshop. UI must render YAML metadata separately and pass only the body Markdown into `MarkdownBody`; parse failures must show an explicit error with a source preview.
-- Runtime Memory is a first-class Workshop tab, not only an overview widget.
+- Runtime Memory is a first-class Workshop tab, not only an overview widget. Empty Runtime Memory is a neutral optional state, not a warning or incomplete setup item.
 - The editor owns unsaved Markdown text as widget-local state; persisted content continues to flow through `NovelWorkshopRepository.saveChapter`.
 - The editor chapter navigator groups chapters by `ChapterVolume`; chapter creation requires a volume-backed `ChapterPlanInput`.
 - Full Prompt Trace rendering remains owned by Workflow Runs; Novel Workshop may link to `/workflow-runs/:taskId`.

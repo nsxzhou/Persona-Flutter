@@ -76,6 +76,16 @@ class _NovelWorkshopPageState extends ConsumerState<NovelWorkshopPage> {
                       volumes: volumeItems,
                       nextIndex: _nextChapterIndex(planItems),
                     ),
+                    onCreateVolume: () => _showVolumeDialog(
+                      context: context,
+                      projectId: item.id,
+                      nextIndex: _nextVolumeIndex(volumeItems),
+                    ),
+                    onEditVolume: (volume) => _showVolumeDialog(
+                      context: context,
+                      projectId: item.id,
+                      volume: volume,
+                    ),
                     onEditPlan: (plan) => _showPlanDialog(
                       context: context,
                       projectId: item.id,
@@ -100,7 +110,7 @@ class _NovelWorkshopPageState extends ConsumerState<NovelWorkshopPage> {
             loading: () => const _WorkshopLoading(),
           ),
           error: (error, stackTrace) =>
-              _WorkshopError(message: '无法加载 Project Bible：$error'),
+              _WorkshopError(message: '无法加载项目设定集：$error'),
           loading: () => const _WorkshopLoading(),
         );
       },
@@ -408,6 +418,8 @@ class _AssetWorkbenchPage extends StatelessWidget {
     required this.memory,
     required this.onEditProject,
     required this.onCreatePlan,
+    required this.onCreateVolume,
+    required this.onEditVolume,
     required this.onEditPlan,
   });
 
@@ -421,6 +433,8 @@ class _AssetWorkbenchPage extends StatelessWidget {
   final AsyncValue<ProjectRuntimeMemory> memory;
   final VoidCallback onEditProject;
   final VoidCallback onCreatePlan;
+  final VoidCallback onCreateVolume;
+  final ValueChanged<ChapterVolume> onEditVolume;
   final ValueChanged<ChapterPlan> onEditPlan;
 
   @override
@@ -461,6 +475,8 @@ class _AssetWorkbenchPage extends StatelessWidget {
           assets: assets,
           memory: memory,
           onCreatePlan: onCreatePlan,
+          onCreateVolume: onCreateVolume,
+          onEditVolume: onEditVolume,
           onEditPlan: onEditPlan,
         ),
       ],
@@ -479,6 +495,8 @@ class _WorkbenchTabs extends StatefulWidget {
     required this.assets,
     required this.memory,
     required this.onCreatePlan,
+    required this.onCreateVolume,
+    required this.onEditVolume,
     required this.onEditPlan,
   });
 
@@ -491,6 +509,8 @@ class _WorkbenchTabs extends StatefulWidget {
   final AsyncValue<ProjectPromptAssets> assets;
   final AsyncValue<ProjectRuntimeMemory> memory;
   final VoidCallback onCreatePlan;
+  final VoidCallback onCreateVolume;
+  final ValueChanged<ChapterVolume> onEditVolume;
   final ValueChanged<ChapterPlan> onEditPlan;
 
   @override
@@ -556,26 +576,29 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
                   assets: widget.assets,
                   memory: widget.memory,
                 ),
-                _BibleMarkdownTab(
+                _BibleMarkdownEditorTab(
                   title: '世界观设定',
                   description: '承载世界规则、地域组织、技术/魔法边界和不可破坏设定。',
-                  markdown: widget.bible.worldBuildingMarkdown,
+                  bible: widget.bible,
+                  field: _BibleField.worldBuilding,
                   emptyIcon: Icons.public_outlined,
                   emptyTitle: '暂无世界观设定',
-                  emptyDescription: '在 Project Bible 中补齐世界观后，章节生成会使用它作为硬上下文。',
+                  emptyDescription: '补齐世界规则、地域组织和不可破坏设定后，章节生成会使用它作为硬上下文。',
                 ),
-                _BibleMarkdownTab(
+                _BibleMarkdownEditorTab(
                   title: '角色索引与关系网',
                   description: '集中记录核心角色、人际关系、阵营和长期动机。',
-                  markdown: widget.bible.charactersBlueprintMarkdown,
+                  bible: widget.bible,
+                  field: _BibleField.charactersBlueprint,
                   emptyIcon: Icons.groups_2_outlined,
                   emptyTitle: '暂无角色索引',
-                  emptyDescription: '在 Project Bible 中补齐角色蓝图，避免章节生成临时编造关系。',
+                  emptyDescription: '补齐角色、关系和长期动机后，可减少章节生成时临时编造关系。',
                 ),
-                _BibleMarkdownTab(
+                _BibleMarkdownEditorTab(
                   title: '总纲',
                   description: '故事主线、主题推进、卷间结构和结局约束。',
-                  markdown: widget.bible.outlineMasterMarkdown,
+                  bible: widget.bible,
+                  field: _BibleField.outlineMaster,
                   emptyIcon: Icons.route_outlined,
                   emptyTitle: '暂无总纲',
                   emptyDescription: '总纲用于约束分卷和章节细纲，不再展示剧情分析骨架大纲。',
@@ -587,6 +610,8 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
                   runs: widget.runs,
                   outlineDetailYaml: widget.bible.outlineDetailYaml,
                   onCreatePlan: widget.onCreatePlan,
+                  onCreateVolume: widget.onCreateVolume,
+                  onEditVolume: widget.onEditVolume,
                   onEditPlan: widget.onEditPlan,
                 ),
                 _YamlMarkdownAssetTab(
@@ -678,7 +703,7 @@ class _ProjectOverviewTab extends StatelessWidget {
             runSpacing: 12,
             children: [
               _MiniMetric(
-                label: 'Project Bible',
+                label: '项目设定集完成度',
                 value: _bibleCompletenessLabel(bible),
                 icon: Icons.menu_book_outlined,
               ),
@@ -734,11 +759,14 @@ class _ProjectOverviewTab extends StatelessWidget {
   }
 }
 
-class _BibleMarkdownTab extends StatelessWidget {
-  const _BibleMarkdownTab({
+enum _BibleField { worldBuilding, charactersBlueprint, outlineMaster }
+
+class _BibleMarkdownEditorTab extends ConsumerStatefulWidget {
+  const _BibleMarkdownEditorTab({
     required this.title,
     required this.description,
-    required this.markdown,
+    required this.bible,
+    required this.field,
     required this.emptyIcon,
     required this.emptyTitle,
     required this.emptyDescription,
@@ -746,35 +774,168 @@ class _BibleMarkdownTab extends StatelessWidget {
 
   final String title;
   final String description;
-  final String markdown;
+  final ProjectBible bible;
+  final _BibleField field;
   final IconData emptyIcon;
   final String emptyTitle;
   final String emptyDescription;
 
   @override
-  Widget build(BuildContext context) {
-    final trimmed = markdown.trim();
-    if (trimmed.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.all(20),
-        child: PersonaEmptyStateCard(
-          icon: emptyIcon,
-          title: emptyTitle,
-          description: emptyDescription,
-        ),
-      );
+  ConsumerState<_BibleMarkdownEditorTab> createState() =>
+      _BibleMarkdownEditorTabState();
+}
+
+class _BibleMarkdownEditorTabState
+    extends ConsumerState<_BibleMarkdownEditorTab> {
+  late final TextEditingController _controller;
+  late String _loadedMarkdown;
+  bool _editing = false;
+
+  String get _currentMarkdown => _markdownFor(widget.bible, widget.field);
+
+  bool get _isDirty => _controller.text != _loadedMarkdown;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadedMarkdown = _currentMarkdown;
+    _controller = TextEditingController(text: _loadedMarkdown);
+    _controller.addListener(_onTextChanged);
+  }
+
+  @override
+  void didUpdateWidget(_BibleMarkdownEditorTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextMarkdown = _currentMarkdown;
+    if (oldWidget.bible.updatedAt == widget.bible.updatedAt &&
+        oldWidget.field == widget.field) {
+      return;
     }
+    if (_isDirty) {
+      return;
+    }
+    _loadedMarkdown = nextMarkdown;
+    _controller.text = nextMarkdown;
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onTextChanged);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onTextChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final trimmed = _loadedMarkdown.trim();
+    final state = ref.watch(novelWorkshopControllerProvider);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          PersonaSectionHeader(title: title, description: description),
+          PersonaSectionHeader(
+            title: widget.title,
+            description: widget.description,
+            trailing: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (_editing)
+                  TextButton(
+                    onPressed: state.isLoading ? null : _cancelEditing,
+                    child: const Text('取消'),
+                  ),
+                if (_editing)
+                  FilledButton.icon(
+                    key: ValueKey('save-bible-${widget.field.name}'),
+                    onPressed: state.isLoading || !_isDirty ? null : _save,
+                    icon: const Icon(Icons.save_outlined, size: 18),
+                    label: const Text('保存'),
+                  )
+                else
+                  OutlinedButton.icon(
+                    onPressed: () => setState(() => _editing = true),
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    label: Text(trimmed.isEmpty ? '开始编辑' : '编辑'),
+                  ),
+              ],
+            ),
+          ),
           const SizedBox(height: 14),
-          _MarkdownSurface(markdown: trimmed),
+          if (_editing)
+            TextField(
+              key: ValueKey('edit-bible-${widget.field.name}'),
+              controller: _controller,
+              minLines: 16,
+              maxLines: 28,
+              decoration: InputDecoration(
+                labelText: widget.title,
+                alignLabelWithHint: true,
+                hintText: '使用 Markdown 记录${widget.title}。',
+              ),
+            )
+          else if (trimmed.isEmpty)
+            PersonaEmptyStateCard(
+              icon: widget.emptyIcon,
+              title: widget.emptyTitle,
+              description: widget.emptyDescription,
+              action: OutlinedButton.icon(
+                onPressed: () => setState(() => _editing = true),
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                label: const Text('开始编辑'),
+              ),
+            )
+          else
+            _MarkdownSurface(markdown: trimmed),
         ],
       ),
     );
+  }
+
+  Future<void> _save() async {
+    try {
+      final saved = await ref
+          .read(novelWorkshopControllerProvider.notifier)
+          .saveProjectBible(
+            _inputFor(widget.bible, widget.field, _controller.text),
+          );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _loadedMarkdown = _markdownFor(saved, widget.field);
+        _controller.text = _loadedMarkdown;
+        _editing = false;
+      });
+      if (Scaffold.maybeOf(context) != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('${widget.title}已保存。')));
+      }
+    } on Object catch (error) {
+      if (!mounted) {
+        return;
+      }
+      if (Scaffold.maybeOf(context) != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('保存失败：$error')));
+      }
+    }
+  }
+
+  void _cancelEditing() {
+    setState(() {
+      _controller.text = _loadedMarkdown;
+      _editing = false;
+    });
   }
 }
 
@@ -850,20 +1011,32 @@ class _RuntimeMemoryTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return memory.when(
-      data: (item) => SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const PersonaSectionHeader(
-              title: 'Runtime Memory',
-              description: '展示创作过程中需要持续保留的角色状态、运行状态、未解决线索和故事摘要。',
+      data: (item) {
+        if (item.state.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.all(20),
+            child: PersonaEmptyStateCard(
+              icon: Icons.history_toggle_off_outlined,
+              title: '暂无 Runtime Memory',
+              description: '运行时记忆会在章节生成和同步后逐步累积；没有记录时不会影响手动维护项目设定。',
             ),
-            const SizedBox(height: 16),
-            _RuntimeMemoryGrid(memory: item.state),
-          ],
-        ),
-      ),
+          );
+        }
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const PersonaSectionHeader(
+                title: 'Runtime Memory',
+                description: '展示创作过程中需要持续保留的角色状态、运行状态、未解决线索和故事摘要。',
+              ),
+              const SizedBox(height: 16),
+              _RuntimeMemoryGrid(memory: item.state),
+            ],
+          ),
+        );
+      },
       error: (error, stackTrace) => Padding(
         padding: const EdgeInsets.all(20),
         child: Text('无法加载运行时记忆：$error'),
@@ -894,14 +1067,14 @@ class _PromptStackTab extends StatelessWidget {
           const PersonaSectionHeader(
             title: 'Prompt 栈',
             description:
-                '章节生成会组合 Project Bible、章节细纲、Voice Profile、Story Engine 和 Runtime Memory。',
+                '章节生成会组合项目设定集、章节细纲、Voice Profile、Story Engine 和 Runtime Memory。',
           ),
           const SizedBox(height: 16),
           _AssetDetailTile(
-            title: 'Project Bible',
+            title: '项目设定集',
             bound: true,
             ready: !_projectBibleIsEmpty(bible),
-            detail: _projectBibleIsEmpty(bible) ? 'Bible 为空' : '已接入生成上下文',
+            detail: _projectBibleIsEmpty(bible) ? '尚未填写项目设定' : '已接入生成上下文',
           ),
           assets.when(
             data: (asset) => Column(
@@ -941,8 +1114,9 @@ class _PromptStackTab extends StatelessWidget {
             data: (item) => _AssetDetailTile(
               title: 'Runtime Memory',
               bound: true,
-              ready: !item.state.isEmpty,
-              detail: item.state.isEmpty ? '运行时记忆为空' : '已接入运行状态',
+              ready: true,
+              detail: item.state.isEmpty ? '暂无运行时记忆，生成时会自动跳过' : '已接入运行状态',
+              neutralWhenReady: item.state.isEmpty,
             ),
             error: (error, stackTrace) => Text('无法加载 Runtime Memory：$error'),
             loading: () => const SkeletonBox(width: 220, height: 16),
@@ -968,7 +1142,7 @@ class _WorkshopSettingsTab extends StatelessWidget {
         children: [
           const PersonaSectionHeader(
             title: '设置',
-            description: 'Workshop 读取项目默认 Provider、模型、语言、视角与 Project Bible 状态。',
+            description: 'Workshop 读取项目默认 Provider、模型、语言、视角与项目设定集状态。',
           ),
           const SizedBox(height: 16),
           _InfoLine(label: '默认 Provider', value: project.defaultProviderId),
@@ -976,10 +1150,7 @@ class _WorkshopSettingsTab extends StatelessWidget {
           _InfoLine(label: '语言', value: project.language),
           _InfoLine(label: '目标长度', value: '${project.targetLength} 字'),
           _InfoLine(label: '叙事视角', value: project.narrativePerspective),
-          _InfoLine(
-            label: 'Project Bible 更新时间',
-            value: _dateLabel(bible.updatedAt),
-          ),
+          _InfoLine(label: '项目设定集更新时间', value: _dateLabel(bible.updatedAt)),
         ],
       ),
     );
@@ -1089,6 +1260,8 @@ class _ChapterPlanningTab extends StatelessWidget {
     required this.runs,
     required this.outlineDetailYaml,
     required this.onCreatePlan,
+    required this.onCreateVolume,
+    required this.onEditVolume,
     required this.onEditPlan,
   });
 
@@ -1098,6 +1271,8 @@ class _ChapterPlanningTab extends StatelessWidget {
   final List<ChapterGenerationRun> runs;
   final String outlineDetailYaml;
   final VoidCallback onCreatePlan;
+  final VoidCallback onCreateVolume;
+  final ValueChanged<ChapterVolume> onEditVolume;
   final ValueChanged<ChapterPlan> onEditPlan;
 
   @override
@@ -1112,24 +1287,39 @@ class _ChapterPlanningTab extends StatelessWidget {
               const Expanded(
                 child: PersonaSectionHeader(
                   title: '分卷与章节细纲',
-                  description: '章节必须归属分卷；outlineDetailYaml 是结构化细纲来源。',
+                  description: '先创建分卷，再在分卷下维护章节细纲。',
                 ),
               ),
+              OutlinedButton.icon(
+                onPressed: onCreateVolume,
+                icon: const Icon(Icons.view_agenda_outlined),
+                label: const Text('新建分卷'),
+              ),
+              const SizedBox(width: 8),
               FilledButton.icon(
-                onPressed: onCreatePlan,
+                onPressed: volumes.isEmpty ? onCreateVolume : onCreatePlan,
                 icon: const Icon(Icons.add),
-                label: const Text('新建章节'),
+                label: Text(volumes.isEmpty ? '先建分卷' : '新建章节'),
               ),
             ],
           ),
         ),
         const Divider(height: 1),
-        if (plans.isEmpty)
+        if (volumes.isEmpty)
           Expanded(
             child: Center(
               child: Padding(
                 padding: const EdgeInsets.all(20),
-                child: _NavigatorEmptyState(onCreatePlan: onCreatePlan),
+                child: PersonaEmptyStateCard(
+                  icon: Icons.view_agenda_outlined,
+                  title: '暂无分卷',
+                  description: '章节细纲必须归属分卷。先创建第一卷，再为它添加章节目标。',
+                  action: FilledButton.icon(
+                    onPressed: onCreateVolume,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('新建分卷'),
+                  ),
+                ),
               ),
             ),
           )
@@ -1151,6 +1341,7 @@ class _ChapterPlanningTab extends StatelessWidget {
                         .toList(growable: false),
                     chapters: chapters,
                     runs: runs,
+                    onEditVolume: () => onEditVolume(volume),
                     onEditPlan: onEditPlan,
                   ),
                 for (final plan in plans.where(
@@ -1202,6 +1393,7 @@ class _VolumePlanSection extends StatelessWidget {
     required this.plans,
     required this.chapters,
     required this.runs,
+    required this.onEditVolume,
     required this.onEditPlan,
   });
 
@@ -1209,6 +1401,7 @@ class _VolumePlanSection extends StatelessWidget {
   final List<ChapterPlan> plans;
   final List<ProjectChapter> chapters;
   final List<ChapterGenerationRun> runs;
+  final VoidCallback onEditVolume;
   final ValueChanged<ChapterPlan> onEditPlan;
 
   @override
@@ -1220,11 +1413,22 @@ class _VolumePlanSection extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-            child: Text(
-              '第 ${volume.volumeIndex} 卷 · ${volume.title}',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '第 ${volume.volumeIndex} 卷 · ${volume.title}',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: '编辑分卷',
+                  onPressed: onEditVolume,
+                  icon: const Icon(Icons.tune_outlined),
+                ),
+              ],
             ),
           ),
           if (plans.isEmpty)
@@ -1309,18 +1513,22 @@ class _AssetDetailTile extends StatelessWidget {
     required this.bound,
     required this.ready,
     required this.detail,
+    this.neutralWhenReady = false,
   });
 
   final String title;
   final bool bound;
   final bool ready;
   final String detail;
+  final bool neutralWhenReady;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final statusColor = ready
-        ? colorScheme.primary
+        ? neutralWhenReady
+              ? colorScheme.onSurfaceVariant
+              : colorScheme.primary
         : bound
         ? colorScheme.error
         : colorScheme.onSurfaceVariant;
@@ -1337,7 +1545,9 @@ class _AssetDetailTile extends StatelessWidget {
             children: [
               Icon(
                 ready
-                    ? Icons.check_circle_outline
+                    ? neutralWhenReady
+                          ? Icons.radio_button_unchecked
+                          : Icons.check_circle_outline
                     : Icons.warning_amber_outlined,
                 color: statusColor,
               ),
@@ -1352,7 +1562,13 @@ class _AssetDetailTile extends StatelessWidget {
                   ],
                 ),
               ),
-              Text(ready ? '已接入' : '待完善'),
+              Text(
+                ready
+                    ? neutralWhenReady
+                          ? '可选'
+                          : '已接入'
+                    : '待完善',
+              ),
             ],
           ),
         ),
@@ -1528,12 +1744,15 @@ class _RuntimeMemoryPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (memory.state.isEmpty) {
+      return const SizedBox.shrink();
+    }
     return _AssetDetailTile(
       title: 'Runtime Memory',
       bound: true,
       ready: !memory.state.isEmpty,
       detail: memory.state.storySummary.trim().isEmpty
-          ? '运行时记忆为空'
+          ? '已有运行状态'
           : memory.state.storySummary,
     );
   }
@@ -2513,10 +2732,7 @@ class _ContextStatusList extends StatelessWidget {
     return assets.when(
       data: (asset) => memory.when(
         data: (item) {
-          final warnings = <String>[
-            ...asset.warnings,
-            if (item.state.isEmpty) '运行时记忆为空。',
-          ];
+          final warnings = <String>[...asset.warnings];
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -2971,6 +3187,124 @@ class _ChapterPlanDialogState extends ConsumerState<_ChapterPlanDialog> {
   }
 }
 
+class _ChapterVolumeDialog extends ConsumerStatefulWidget {
+  const _ChapterVolumeDialog({
+    required this.projectId,
+    required this.nextIndex,
+    this.volume,
+  });
+
+  final String projectId;
+  final int nextIndex;
+  final ChapterVolume? volume;
+
+  @override
+  ConsumerState<_ChapterVolumeDialog> createState() =>
+      _ChapterVolumeDialogState();
+}
+
+class _ChapterVolumeDialogState extends ConsumerState<_ChapterVolumeDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _indexController;
+  late final TextEditingController _titleController;
+
+  @override
+  void initState() {
+    super.initState();
+    _indexController = TextEditingController(
+      text: '${widget.volume?.volumeIndex ?? widget.nextIndex}',
+    );
+    _titleController = TextEditingController(text: widget.volume?.title ?? '');
+  }
+
+  @override
+  void dispose() {
+    _indexController.dispose();
+    _titleController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(novelWorkshopControllerProvider);
+    return Form(
+      key: _formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.volume == null ? '新建分卷' : '编辑分卷',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 14),
+          TextFormField(
+            controller: _indexController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: '分卷序号'),
+            validator: (value) {
+              final index = int.tryParse(value?.trim() ?? '');
+              return index == null || index <= 0 ? '分卷序号必须大于 0。' : null;
+            },
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _titleController,
+            decoration: const InputDecoration(labelText: '分卷标题'),
+            validator: (value) =>
+                value == null || value.trim().isEmpty ? '分卷标题不能为空。' : null,
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: state.isLoading
+                    ? null
+                    : () => Navigator.of(context).pop(),
+                child: const Text('取消'),
+              ),
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed: state.isLoading ? null : _save,
+                child: const Text('保存'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    try {
+      await ref
+          .read(novelWorkshopControllerProvider.notifier)
+          .saveChapterVolume(
+            id: widget.volume?.id,
+            input: ChapterVolumeInput(
+              projectId: widget.projectId,
+              volumeIndex: int.parse(_indexController.text.trim()),
+              title: _titleController.text,
+            ),
+          );
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    } on Object catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('保存失败：$error')));
+    }
+  }
+}
+
 class _WorkshopLoading extends StatelessWidget {
   const _WorkshopLoading();
 
@@ -3108,6 +3442,23 @@ void _showPlanDialog({
   );
 }
 
+void _showVolumeDialog({
+  required BuildContext context,
+  required String projectId,
+  int nextIndex = 1,
+  ChapterVolume? volume,
+}) {
+  showGlassDialog<void>(
+    context: context,
+    maxWidth: 520,
+    builder: (context) => _ChapterVolumeDialog(
+      projectId: projectId,
+      nextIndex: nextIndex,
+      volume: volume,
+    ),
+  );
+}
+
 ProjectChapter? _chapterForPlan(List<ProjectChapter> chapters, String planId) {
   return chapters
       .where((chapter) => chapter.chapterPlanId == planId)
@@ -3129,6 +3480,16 @@ int _nextChapterIndex(List<ChapterPlan> plans) {
   }
   return plans
           .map((plan) => plan.chapterIndex)
+          .reduce((a, b) => a > b ? a : b) +
+      1;
+}
+
+int _nextVolumeIndex(List<ChapterVolume> volumes) {
+  if (volumes.isEmpty) {
+    return 1;
+  }
+  return volumes
+          .map((volume) => volume.volumeIndex)
           .reduce((a, b) => a > b ? a : b) +
       1;
 }
@@ -3204,6 +3565,35 @@ bool _projectBibleIsEmpty(ProjectBible bible) {
     bible.outlineMasterMarkdown,
     bible.outlineDetailYaml,
   ].every((value) => value.trim().isEmpty);
+}
+
+String _markdownFor(ProjectBible bible, _BibleField field) {
+  return switch (field) {
+    _BibleField.worldBuilding => bible.worldBuildingMarkdown,
+    _BibleField.charactersBlueprint => bible.charactersBlueprintMarkdown,
+    _BibleField.outlineMaster => bible.outlineMasterMarkdown,
+  };
+}
+
+ProjectBibleInput _inputFor(
+  ProjectBible bible,
+  _BibleField field,
+  String markdown,
+) {
+  return ProjectBibleInput(
+    projectId: bible.projectId,
+    descriptionMarkdown: bible.descriptionMarkdown,
+    worldBuildingMarkdown: field == _BibleField.worldBuilding
+        ? markdown
+        : bible.worldBuildingMarkdown,
+    charactersBlueprintMarkdown: field == _BibleField.charactersBlueprint
+        ? markdown
+        : bible.charactersBlueprintMarkdown,
+    outlineMasterMarkdown: field == _BibleField.outlineMaster
+        ? markdown
+        : bible.outlineMasterMarkdown,
+    outlineDetailYaml: bible.outlineDetailYaml,
+  );
 }
 
 String _dateLabel(DateTime value) {
