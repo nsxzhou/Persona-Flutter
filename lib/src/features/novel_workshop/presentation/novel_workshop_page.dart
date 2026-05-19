@@ -527,6 +527,10 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
     super.dispose();
   }
 
+  void _onSwitchTab(int index) {
+    _tabController.animateTo(index);
+  }
+
   @override
   Widget build(BuildContext context) {
     return PersonaPanel(
@@ -574,6 +578,7 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
                   runs: widget.runs,
                   assets: widget.assets,
                   memory: widget.memory,
+                  onSwitchTab: _onSwitchTab,
                 ),
                 _BibleMarkdownEditorTab(
                   title: '世界观设定',
@@ -666,6 +671,7 @@ class _ProjectOverviewTab extends StatelessWidget {
     required this.runs,
     required this.assets,
     required this.memory,
+    required this.onSwitchTab,
   });
 
   final WritingProject project;
@@ -676,6 +682,7 @@ class _ProjectOverviewTab extends StatelessWidget {
   final List<ChapterGenerationRun> runs;
   final AsyncValue<ProjectPromptAssets> assets;
   final AsyncValue<ProjectRuntimeMemory> memory;
+  final ValueChanged<int> onSwitchTab;
 
   @override
   Widget build(BuildContext context) {
@@ -689,64 +696,168 @@ class _ProjectOverviewTab extends StatelessWidget {
               false,
         )
         .length;
+    final succeededRuns = runs
+        .where((r) => r.status == ChapterGenerationStatus.succeeded)
+        .length;
+    final bibleEmpty = _projectBibleIsEmpty(bible);
+    final colorScheme = Theme.of(context).colorScheme;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // --- Top: project description ---
           Text(
-            'Workshop 资产总览。',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            '项目简介',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              _MiniMetric(
-                label: '项目设定集完成度',
-                value: _bibleCompletenessLabel(bible),
-                icon: Icons.menu_book_outlined,
-              ),
-              _MiniMetric(
-                label: '分卷',
-                value: '${volumes.length}',
-                icon: Icons.view_agenda_outlined,
-              ),
-              _MiniMetric(
-                label: '章节细纲',
-                value: '${plans.length}',
-                icon: Icons.format_list_numbered_outlined,
-              ),
-              _MiniMetric(
-                label: '正文',
-                value: '$completed/${plans.length}',
-                icon: Icons.edit_note_outlined,
-              ),
-              _MiniMetric(
-                label: '生成任务',
-                value: '${runs.length}',
-                icon: Icons.auto_awesome_outlined,
-              ),
-            ],
+          const SizedBox(height: 4),
+          Text(
+            bible.descriptionMarkdown.trim().isEmpty
+                ? '暂无简介'
+                : bible.descriptionMarkdown,
+            style: Theme.of(context).textTheme.bodyMedium,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 20),
-          _InfoLine(label: '项目简介', value: bible.descriptionMarkdown),
-          const SizedBox(height: 18),
-          assets.when(
-            data: (item) => _PromptAssetStatusStrip(assets: item),
-            error: (error, stackTrace) => Text('无法加载 Prompt 资产：$error'),
-            loading: () => const SkeletonBox(width: 260, height: 16),
+
+          // --- Section 1: metric cards ---
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 180,
+                  child: _TappableMetric(
+                    label: '设定集完成度',
+                    value: bibleEmpty ? '未配置' : _bibleCompletenessLabel(bible),
+                    detail: '世界观 · 角色 · 总纲',
+                    onTap: () => onSwitchTab(1),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                SizedBox(
+                  width: 160,
+                  child: _TappableMetric(
+                    label: '分卷',
+                    value: '${volumes.length}',
+                    detail: '${volumes.length} 卷已创建',
+                    onTap: () => onSwitchTab(4),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                SizedBox(
+                  width: 160,
+                  child: _TappableMetric(
+                    label: '章节细纲',
+                    value: '${plans.length}',
+                    detail: '${plans.length} 个章节计划',
+                    onTap: () => onSwitchTab(4),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                SizedBox(
+                  width: 160,
+                  child: _TappableMetric(
+                    label: '正文',
+                    value: '$completed/${plans.length}',
+                    detail: completed > 0
+                        ? '$completed 个已完成'
+                        : '开始写作以生成正文',
+                    onTap: () => onSwitchTab(4),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                SizedBox(
+                  width: 160,
+                  child: _TappableMetric(
+                    label: '生成任务',
+                    value: '${runs.length}',
+                    detail: '$succeededRuns 个成功',
+                    onTap: () => onSwitchTab(7),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
-          memory.when(
-            data: (item) => _RuntimeMemoryPreview(memory: item),
-            error: (error, stackTrace) => Text('无法加载运行时记忆：$error'),
-            loading: () => const SkeletonBox(width: 220, height: 16),
+          const SizedBox(height: 20),
+
+          // --- Section 2: Prompt assets panel ---
+          PersonaPanel(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const PersonaSectionHeader(
+                  title: 'Prompt 资产',
+                  description: 'Voice Profile & Story Engine 接入状态',
+                ),
+                const SizedBox(height: 12),
+                assets.when(
+                  data: (item) => _PromptAssetStatusStrip(assets: item),
+                  error: (error, stackTrace) =>
+                      Text('无法加载 Prompt 资产：$error'),
+                  loading: () => const SkeletonBox(width: 260, height: 16),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // --- Section 3: Runtime memory panel ---
+          PersonaPanel(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const PersonaSectionHeader(
+                  title: '运行时记忆',
+                  description: '角色状态、剧情线、故事摘要',
+                ),
+                const SizedBox(height: 12),
+                memory.when(
+                  data: (item) => item.state.isEmpty
+                      ? const PersonaEmptyStateCard(
+                          icon: Icons.memory_outlined,
+                          title: '暂无运行时记忆',
+                          description: '完成正文生成后将自动创建',
+                        )
+                      : _RuntimeMemoryGrid(memory: item.state),
+                  error: (error, stackTrace) =>
+                      Text('无法加载运行时记忆：$error'),
+                  loading: () => const SkeletonBox(width: 220, height: 16),
+                ),
+              ],
+            ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _TappableMetric extends StatelessWidget {
+  const _TappableMetric({
+    required this.label,
+    required this.value,
+    required this.detail,
+    required this.onTap,
+  });
+
+  final String label;
+  final String value;
+  final String detail;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        child: PersonaMetric(label: label, value: value, detail: detail),
       ),
     );
   }
@@ -1854,41 +1965,6 @@ class _AssetDetailTile extends StatelessWidget {
   }
 }
 
-class _MiniMetric extends StatelessWidget {
-  const _MiniMetric({
-    required this.label,
-    required this.value,
-    required this.icon,
-  });
-
-  final String label;
-  final String value;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border.all(color: colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 18, color: colorScheme.primary),
-            const SizedBox(width: 8),
-            Text('$label: ', style: Theme.of(context).textTheme.labelLarge),
-            Text(value),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _PromptAssetStatusStrip extends StatelessWidget {
   const _PromptAssetStatusStrip({required this.assets});
 
@@ -2010,27 +2086,6 @@ class _WarningList extends StatelessWidget {
             ),
         ],
       ),
-    );
-  }
-}
-
-class _RuntimeMemoryPreview extends StatelessWidget {
-  const _RuntimeMemoryPreview({required this.memory});
-
-  final ProjectRuntimeMemory memory;
-
-  @override
-  Widget build(BuildContext context) {
-    if (memory.state.isEmpty) {
-      return const SizedBox.shrink();
-    }
-    return _AssetDetailTile(
-      title: 'Runtime Memory',
-      bound: true,
-      ready: !memory.state.isEmpty,
-      detail: memory.state.storySummary.trim().isEmpty
-          ? '已有运行状态'
-          : memory.state.storySummary,
     );
   }
 }
