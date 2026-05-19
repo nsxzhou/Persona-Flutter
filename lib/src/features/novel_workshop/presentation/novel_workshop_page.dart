@@ -8,7 +8,7 @@ import '../../../core/ui/persona_page.dart';
 import '../../../core/ui/skeleton_loader.dart';
 import '../../projects/application/project_providers.dart';
 import '../../projects/domain/writing_project.dart';
-import '../../projects/presentation/projects_page.dart';
+
 import '../../plot_lab/application/story_engine_normalizer.dart';
 import '../../style_lab/application/voice_profile_front_matter.dart';
 import '../application/novel_workshop_providers.dart';
@@ -68,8 +68,6 @@ class _NovelWorkshopPageState extends ConsumerState<NovelWorkshopPage> {
                     runs: runItems,
                     assets: assets,
                     memory: memory,
-                    onEditProject: () =>
-                        showProjectDialog(context, project: item),
                     onCreatePlan: () => _showPlanDialog(
                       context: context,
                       projectId: item.id,
@@ -416,7 +414,6 @@ class _AssetWorkbenchPage extends StatelessWidget {
     required this.runs,
     required this.assets,
     required this.memory,
-    required this.onEditProject,
     required this.onCreatePlan,
     required this.onCreateVolume,
     required this.onEditVolume,
@@ -431,7 +428,6 @@ class _AssetWorkbenchPage extends StatelessWidget {
   final List<ChapterGenerationRun> runs;
   final AsyncValue<ProjectPromptAssets> assets;
   final AsyncValue<ProjectRuntimeMemory> memory;
-  final VoidCallback onEditProject;
   final VoidCallback onCreatePlan;
   final VoidCallback onCreateVolume;
   final ValueChanged<ChapterVolume> onEditVolume;
@@ -450,11 +446,6 @@ class _AssetWorkbenchPage extends StatelessWidget {
           icon: const Icon(Icons.arrow_back_outlined),
           label: const Text('返回项目'),
         ),
-        OutlinedButton.icon(
-          onPressed: onEditProject,
-          icon: const Icon(Icons.tune_outlined),
-          label: const Text('项目设置'),
-        ),
         FilledButton.icon(
           onPressed: () =>
               context.go('/projects/${project.id}/workshop/editor'),
@@ -463,8 +454,6 @@ class _AssetWorkbenchPage extends StatelessWidget {
         ),
       ],
       children: [
-        _WorkbenchHero(project: project, plans: plans, chapters: chapters),
-        const SizedBox(height: 14),
         _WorkbenchTabs(
           project: project,
           bible: bible,
@@ -731,16 +720,6 @@ class _ProjectOverviewTab extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           _InfoLine(label: '项目简介', value: bible.descriptionMarkdown),
-          _InfoLine(
-            label: '创作配置',
-            value:
-                '${project.defaultProviderId ?? '未配置'} / ${project.defaultModelName ?? '未配置'}',
-          ),
-          _InfoLine(
-            label: '语言 / 目标长度',
-            value: '${project.language} · ${project.targetLength} 字',
-          ),
-          _InfoLine(label: '叙事视角', value: project.narrativePerspective),
           const SizedBox(height: 18),
           assets.when(
             data: (item) => _PromptAssetStatusStrip(assets: item),
@@ -1444,63 +1423,6 @@ class _VolumePlanSection extends StatelessWidget {
                 run: _latestRunForPlan(runs, plan.id),
                 onEdit: () => onEditPlan(plan),
               ),
-        ],
-      ),
-    );
-  }
-}
-
-class _WorkbenchHero extends StatelessWidget {
-  const _WorkbenchHero({
-    required this.project,
-    required this.plans,
-    required this.chapters,
-  });
-
-  final WritingProject project;
-  final List<ChapterPlan> plans;
-  final List<ProjectChapter> chapters;
-
-  @override
-  Widget build(BuildContext context) {
-    final completed = plans
-        .where(
-          (plan) =>
-              _chapterForPlan(
-                chapters,
-                plan.id,
-              )?.contentMarkdown.trim().isNotEmpty ??
-              false,
-        )
-        .length;
-    return PersonaPanel(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-      child: Wrap(
-        spacing: 12,
-        runSpacing: 12,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          PersonaStatusPill(
-            label: _projectStatusLabel(project.status),
-            icon: Icons.circle_outlined,
-          ),
-          PersonaStatusPill(
-            label:
-                '${project.defaultProviderId ?? '未配置 Provider'} / ${project.defaultModelName ?? '未配置模型'}',
-            icon: Icons.memory_outlined,
-          ),
-          PersonaStatusPill(
-            label: '${project.language} · ${project.targetLength} 字',
-            icon: Icons.translate_outlined,
-          ),
-          PersonaStatusPill(
-            label: project.narrativePerspective,
-            icon: Icons.visibility_outlined,
-          ),
-          PersonaStatusPill(
-            label: '$completed/${plans.length} 章有正文',
-            icon: Icons.check_circle_outline,
-          ),
         ],
       ),
     );
@@ -3535,13 +3457,6 @@ String _runStatusLabel(ChapterGenerationStatus status) {
     ChapterGenerationStatus.running => '运行中',
     ChapterGenerationStatus.succeeded => '成功',
     ChapterGenerationStatus.failed => '失败',
-  };
-}
-
-String _projectStatusLabel(ProjectStatus status) {
-  return switch (status) {
-    ProjectStatus.active => '活动',
-    ProjectStatus.archived => '归档',
   };
 }
 
