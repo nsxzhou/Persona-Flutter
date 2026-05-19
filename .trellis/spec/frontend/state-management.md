@@ -75,3 +75,56 @@ Persona Flutter has no remote server in the baseline. Local persisted data is ex
 * Do not store cross-session preferences only in a `Notifier` field or `state`;
   the value will reset when the app restarts.
 * Keep generated provider files in sync with `dart run build_runner build`.
+
+## Scenario: Project-scoped Novel Workshop workspace
+
+### 1. Scope / Trigger
+- Trigger: A writing workspace is opened for one existing `WritingProject` and coordinates project data, chapter plans, chapter content, generation runs, prompt assets, and runtime memory.
+- This is a frontend routing/state contract because the workspace is project-scoped but should not become an always-visible top-level shell destination.
+
+### 2. Signatures
+- Route: `/projects/:projectId/workshop`.
+- Entry point: active project row action labeled `打开工作台`.
+- Page widget: `NovelWorkshopPage(projectId: state.pathParameters['projectId']!)`.
+- Command provider: `NovelWorkshopController` wraps chapter-plan save, chapter save, and generation commands.
+
+### 3. Contracts
+- The workspace lives under the Projects `StatefulShellBranch`; do not add a new `AppRoute` item or sidebar navigation destination for the first workspace iteration.
+- Archived projects must not expose the Projects-row workspace action; if the route is opened directly for an archived project, render a read-only blocked state.
+- Presentation widgets consume `ProjectRepository`, `NovelWorkshopRepository`, `ProjectPromptAssetResolver`, and `ChapterGenerationPipeline` through Riverpod providers/application contracts only.
+- Novel Workshop tabs are: `概览`, `世界观设定`, `角色索引与关系网`, `总纲`, `分卷与章节细纲`, `Voice Profile`, `Story Engine`, `Runtime Memory`, `Prompt 栈`, `设置`.
+- Do not add a standalone `骨架大纲` tab. Plot skeleton content remains an input/reference for outline detail generation only.
+- User-facing Workshop UI calls `ProjectBible` the `项目设定集`. Keep `ProjectBible` as the domain/code name, but do not expose the English label as the primary user-facing editing concept.
+- The `世界观设定`, `角色索引与关系网`, and `总纲` tabs are direct edit surfaces for their corresponding `ProjectBible` fields. Do not make them read-only previews that point users to a separate hidden bible editor.
+- `分卷与章节细纲` is a structured editor: create a `ChapterVolume` first, then create volume-backed `ChapterPlan` records under it. Do not open a chapter-plan form when no volume exists.
+- Voice Profile and Story Engine are `YAML front matter + Markdown body` documents in Workshop. UI must render YAML metadata separately and pass only the body Markdown into `MarkdownBody`; parse failures must show an explicit error with a source preview.
+- Runtime Memory is a first-class Workshop tab, not only an overview widget. Empty Runtime Memory is a neutral optional state, not a warning or incomplete setup item.
+- The editor owns unsaved Markdown text as widget-local state; persisted content continues to flow through `NovelWorkshopRepository.saveChapter`.
+- The editor chapter navigator groups chapters by `ChapterVolume`; chapter creation requires a volume-backed `ChapterPlanInput`.
+- Full Prompt Trace rendering remains owned by Workflow Runs; Novel Workshop may link to `/workflow-runs/:taskId`.
+
+### 4. Validation & Error Matrix
+- Missing project -> render a missing-project page with a return-to-Projects action.
+- Archived project -> render an archived-project blocked state.
+- Empty chapter list -> render an empty state with chapter creation action.
+- Missing volume when creating a chapter -> block save and show a user-visible error.
+- Invalid Voice Profile / Story Engine front matter -> show format error and source preview instead of rendering raw YAML as normal Markdown.
+- Dirty editor before chapter switch or generation -> offer save, discard, or cancel before continuing.
+- Existing saved chapter content before generation -> confirm overwrite before calling `generateChapter(..., replaceExisting: true)`.
+
+### 5. Good/Base/Bad Cases
+- Good: Project row opens `/projects/<id>/workshop`; the page reads project-scoped providers and links generation diagnostics to Workflow Runs.
+- Base: Manual chapter plans are created inside the workspace until automatic splitting exists.
+- Bad: Add a shell sidebar destination that opens an unscoped workspace without a project id.
+- Bad: Let the page import Drift table records or call LLM services directly.
+
+### 6. Tests Required
+- Widget test that active project rows expose `打开工作台` and archived rows do not.
+- Widget test that `/projects/:projectId/workshop` handles empty chapters, plan creation/editing, dirty editor prompts, overwrite confirmation, running generation lockout, and Workflow Runs navigation.
+- Provider/controller tests or widget fakes must avoid live LLM calls.
+
+### 7. Wrong vs Correct
+#### Wrong
+Add `novelWorkshop(path: '/novel-workshop')` to `AppRoute` and make the page infer a current project from global state.
+#### Correct
+Keep the first workspace project-scoped under `/projects/:projectId/workshop` and enter it from an active project row.

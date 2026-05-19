@@ -1,0 +1,7 @@
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Drift schema, migration, repository boundaries, and generated-code requirements for ProjectBible and volume/chapter persistence."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Cross-layer quality, LLM artifact output contracts, and required build/analyze/test verification."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Project-scoped Novel Workshop provider, routing, dirty-editor, and repository-consumption contracts."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Flutter widget composition, shared Persona primitives, async states, and presentation boundaries."}
+{"file": ".trellis/spec/frontend/visual-design-guidelines.md", "reason": "Novel Workshop immersive editor shell, palette, density, and compact-layout rules."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "The task changes data contracts across Drift, repositories, providers, generation pipeline, and UI."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "The task must reuse existing parsers, prompt asset logic, and UI primitives instead of duplicating behavior."}

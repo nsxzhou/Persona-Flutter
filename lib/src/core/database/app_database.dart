@@ -221,7 +221,7 @@ class PlotProfileRecords extends Table {
 }
 
 class ProjectRuntimeMemoryRecords extends Table {
-  TextColumn get projectId => text().references(ProjectRecords, #id)();
+  TextColumn get projectId => text()();
   TextColumn get charactersStatus => text().withDefault(const Constant(''))();
   TextColumn get runtimeState => text().withDefault(const Constant(''))();
   TextColumn get runtimeThreads => text().withDefault(const Constant(''))();
@@ -233,9 +233,48 @@ class ProjectRuntimeMemoryRecords extends Table {
   Set<Column<Object>> get primaryKey => {projectId};
 }
 
+class ProjectBibleRecords extends Table {
+  TextColumn get projectId => text().references(ProjectRecords, #id)();
+  TextColumn get descriptionMarkdown =>
+      text().withDefault(const Constant(''))();
+  TextColumn get worldBuildingMarkdown =>
+      text().withDefault(const Constant(''))();
+  TextColumn get charactersBlueprintMarkdown =>
+      text().withDefault(const Constant(''))();
+  TextColumn get outlineMasterMarkdown =>
+      text().withDefault(const Constant(''))();
+  TextColumn get outlineDetailYaml => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {projectId};
+}
+
+class ChapterVolumeRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get projectId => text().references(ProjectRecords, #id)();
+  IntColumn get volumeIndex => integer()();
+  TextColumn get title => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+
+  @override
+  List<Set<Column<Object>>> get uniqueKeys => [
+    {projectId, volumeIndex},
+  ];
+}
+
 class ChapterPlanRecords extends Table {
   TextColumn get id => text()();
   TextColumn get projectId => text().references(ProjectRecords, #id)();
+  TextColumn get volumeId => text().withDefault(const Constant(''))();
+  IntColumn get volumeIndex => integer().withDefault(const Constant(1))();
+  TextColumn get volumeTitle => text().withDefault(const Constant('未分卷章节'))();
+  IntColumn get chapterLocalIndex => integer().withDefault(const Constant(1))();
   IntColumn get chapterIndex => integer()();
   TextColumn get title => text().withDefault(const Constant(''))();
   TextColumn get objective => text().withDefault(const Constant(''))();
@@ -243,6 +282,10 @@ class ChapterPlanRecords extends Table {
   TextColumn get payoffTarget => text().withDefault(const Constant(''))();
   TextColumn get relationshipShift => text().withDefault(const Constant(''))();
   TextColumn get hookType => text().withDefault(const Constant(''))();
+  TextColumn get coreEvent => text().withDefault(const Constant(''))();
+  TextColumn get emotionArc => text().withDefault(const Constant(''))();
+  TextColumn get chapterHook => text().withDefault(const Constant(''))();
+  TextColumn get outlineMarkdown => text().withDefault(const Constant(''))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
@@ -292,6 +335,31 @@ class ProjectChapterRecords extends Table {
   ];
 }
 
+class ChapterGenerationRunRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get workflowTaskId =>
+      text().references(WorkflowTaskRecords, #id)();
+  TextColumn get projectId => text().references(ProjectRecords, #id)();
+  TextColumn get chapterPlanId => text()();
+  TextColumn get chapterId =>
+      text().nullable().references(ProjectChapterRecords, #id)();
+  TextColumn get providerId => text()();
+  TextColumn get modelName => text()();
+  TextColumn get status => text()();
+  TextColumn get stage => text().nullable()();
+  TextColumn get errorMessage => text().nullable()();
+  TextColumn get logs => text().withDefault(const Constant(''))();
+  TextColumn get contextWarningsMarkdown =>
+      text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  DateTimeColumn get startedAt => dateTime().nullable()();
+  DateTimeColumn get completedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     WorkflowTaskRecords,
@@ -306,15 +374,18 @@ class ProjectChapterRecords extends Table {
     PlotAnalysisRunRecords,
     PlotProfileRecords,
     ProjectRuntimeMemoryRecords,
+    ProjectBibleRecords,
+    ChapterVolumeRecords,
     ChapterPlanRecords,
     ProjectChapterRecords,
+    ChapterGenerationRunRecords,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration {
@@ -420,8 +491,147 @@ class AppDatabase extends _$AppDatabase {
           await migrator.createTable(chapterPlanRecords);
           await migrator.createTable(projectChapterRecords);
         }
+        if (from < 13) {
+          await migrator.createTable(chapterGenerationRunRecords);
+        }
+        if (from < 14) {
+          await migrator.createTable(projectBibleRecords);
+          await migrator.createTable(chapterVolumeRecords);
+          await _migrateWorkshopProjectBibleAndVolumes(migrator);
+        }
       },
     );
+  }
+
+  Future<void> _migrateWorkshopProjectBibleAndVolumes(Migrator migrator) async {
+    if (!await _tableExists('project_records')) {
+      await _addWorkshopChapterPlanColumnsIfTableExists(migrator);
+      return;
+    }
+    await customStatement('''
+      INSERT INTO project_bible_records (
+        project_id,
+        description_markdown,
+        world_building_markdown,
+        characters_blueprint_markdown,
+        outline_master_markdown,
+        outline_detail_yaml,
+        created_at,
+        updated_at
+      )
+      SELECT
+        id,
+        COALESCE(description, ''),
+        '',
+        '',
+        '',
+        '',
+        created_at,
+        updated_at
+      FROM project_records
+      WHERE id NOT IN (SELECT project_id FROM project_bible_records)
+    ''');
+
+    await customStatement('''
+      INSERT INTO chapter_volume_records (
+        id,
+        project_id,
+        volume_index,
+        title,
+        created_at,
+        updated_at
+      )
+      SELECT
+        'legacy-default-volume-' || project_id,
+        project_id,
+        1,
+        '未分卷章节',
+        MIN(created_at),
+        MAX(updated_at)
+      FROM chapter_plan_records
+      GROUP BY project_id
+      HAVING project_id NOT IN (
+        SELECT project_id FROM chapter_volume_records WHERE volume_index = 1
+      )
+    ''');
+
+    await _addWorkshopChapterPlanColumnsIfTableExists(migrator);
+  }
+
+  Future<void> _addWorkshopChapterPlanColumnsIfTableExists(
+    Migrator migrator,
+  ) async {
+    if (!await _tableExists('chapter_plan_records')) {
+      return;
+    }
+    await _addChapterPlanColumnIfMissing(
+      migrator,
+      'volume_id',
+      chapterPlanRecords.volumeId,
+    );
+    await _addChapterPlanColumnIfMissing(
+      migrator,
+      'volume_index',
+      chapterPlanRecords.volumeIndex,
+    );
+    await _addChapterPlanColumnIfMissing(
+      migrator,
+      'volume_title',
+      chapterPlanRecords.volumeTitle,
+    );
+    await _addChapterPlanColumnIfMissing(
+      migrator,
+      'chapter_local_index',
+      chapterPlanRecords.chapterLocalIndex,
+    );
+    await _addChapterPlanColumnIfMissing(
+      migrator,
+      'core_event',
+      chapterPlanRecords.coreEvent,
+    );
+    await _addChapterPlanColumnIfMissing(
+      migrator,
+      'emotion_arc',
+      chapterPlanRecords.emotionArc,
+    );
+    await _addChapterPlanColumnIfMissing(
+      migrator,
+      'chapter_hook',
+      chapterPlanRecords.chapterHook,
+    );
+    await _addChapterPlanColumnIfMissing(
+      migrator,
+      'outline_markdown',
+      chapterPlanRecords.outlineMarkdown,
+    );
+
+    final nowExpression = _sqliteNowMillisecondsExpression;
+    await customStatement('''
+      UPDATE chapter_plan_records
+      SET
+        volume_id = 'legacy-default-volume-' || project_id,
+        volume_index = 1,
+        volume_title = '未分卷章节',
+        chapter_local_index = chapter_index,
+        updated_at = CASE
+          WHEN updated_at > $nowExpression THEN updated_at
+          ELSE $nowExpression
+        END
+      WHERE TRIM(volume_id) = ''
+    ''');
+  }
+
+  String get _sqliteNowMillisecondsExpression =>
+      "(CAST(strftime('%s', 'now') AS INTEGER) * 1000)";
+
+  Future<void> _addChapterPlanColumnIfMissing(
+    Migrator migrator,
+    String columnName,
+    GeneratedColumn column,
+  ) async {
+    if (!await _columnExists('chapter_plan_records', columnName)) {
+      await migrator.addColumn(chapterPlanRecords, column);
+    }
   }
 
   Future<void> _dropNovelWorkshopPersistence() async {
@@ -464,6 +674,11 @@ class AppDatabase extends _$AppDatabase {
       variables: [Variable.withString(tableName)],
     ).get();
     return rows.isNotEmpty;
+  }
+
+  Future<bool> _columnExists(String tableName, String columnName) async {
+    final rows = await customSelect('PRAGMA table_info($tableName)').get();
+    return rows.any((row) => row.data['name'] == columnName);
   }
 }
 

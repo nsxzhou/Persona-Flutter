@@ -13,6 +13,8 @@ class WritingContextAssembler {
     }
 
     _appendObjectiveCard(blocks, sections.chapterObjectiveCard);
+    _appendChapterPlan(blocks, sections.chapterPlan);
+    _appendProjectBible(blocks, sections.projectBible, warnings);
     _appendPromptAsset(
       blocks: blocks,
       title: 'Voice Profile',
@@ -61,6 +63,45 @@ class WritingContextAssembler {
       _fieldLine('Hook Type', card.hookType),
     ].whereType<String>().toList(growable: false);
     blocks.add('## Chapter Objective Card\n\n${lines.join('\n')}');
+  }
+
+  void _appendChapterPlan(List<String> blocks, ChapterPlanPromptContext plan) {
+    final lines = <String>[
+      '- Volume: ${plan.volumeIndex} · ${plan.volumeTitle.trim()}',
+      '- Local Chapter Index: ${plan.chapterLocalIndex}',
+      '- Whole-book Chapter Index: ${plan.chapterIndex}',
+      if (plan.coreEvent.trim().isNotEmpty)
+        '- Core Event: ${plan.coreEvent.trim()}',
+      if (plan.emotionArc.trim().isNotEmpty)
+        '- Emotion Arc: ${plan.emotionArc.trim()}',
+      if (plan.chapterHook.trim().isNotEmpty)
+        '- Chapter Hook: ${plan.chapterHook.trim()}',
+    ];
+    final outline = plan.outlineMarkdown.trim();
+    if (outline.isNotEmpty) {
+      blocks.add('## Chapter Outline Node\n\n${lines.join('\n')}\n\n$outline');
+      return;
+    }
+    blocks.add('## Chapter Outline Node\n\n${lines.join('\n')}');
+  }
+
+  void _appendProjectBible(
+    List<String> blocks,
+    ProjectBiblePromptContext bible,
+    List<String> warnings,
+  ) {
+    if (bible.isEmpty) {
+      warnings.add('Project Bible 为空。');
+      return;
+    }
+    final parts = <String?>[
+      _subsection('Description', bible.descriptionMarkdown),
+      _subsection('World Building', bible.worldBuildingMarkdown),
+      _subsection('Characters Blueprint', bible.charactersBlueprintMarkdown),
+      _subsection('Master Outline', bible.outlineMasterMarkdown),
+      _subsection('Outline Detail YAML', bible.outlineDetailYaml),
+    ].whereType<String>().toList(growable: false);
+    blocks.add('## Project Bible\n\n${parts.join('\n\n')}');
   }
 
   void _appendRuntimeMemory(List<String> blocks, RuntimeMemoryState memory) {

@@ -277,3 +277,95 @@ Keep `WorkflowTaskRepository` read-only and update run/task records together ins
 Append full prompts to task logs or feature run `logs`, where they can mix with lifecycle messages and bypass redaction.
 #### Correct
 Use `PromptTraceRecorder` and `WorkflowTaskRepository.upsertPromptTrace` so prompt diagnostics are explicit, redacted, and queryable by workflow task id.
+
+## Scenario: Novel chapter generation workflow persistence
+
+### 1. Scope / Trigger
+- Trigger: Novel Workshop creates an LLM-backed chapter generation workflow.
+- This is a cross-layer persistence contract because `ChapterGenerationPipeline`, `ChapterGenerationRunRecords`, `ProjectChapterRecords`, `WorkflowTaskRecords`, and `WorkflowPromptTraceRecords` must stay synchronized.
+
+### 2. Signatures
+- Workflow kind: `novel_chapter_generation`.
+- Drift table: `ChapterGenerationRunRecords`.
+- Domain API: `NovelWorkshopRepository.createChapterGenerationRun(...)`, `updateChapterGenerationRunState(...)`, `hasRunningChapterGeneration(...)`, `findChapterByPlan(...)`.
+- Application API: `ChapterGenerationPipeline.generateChapter({required projectId, required chapterPlanId, bool replaceExisting = false})`.
+
+### 3. Contracts
+- A generation run owns one `workflowTaskId`; run state and workflow task state are updated in the same Drift transaction.
+- `ChapterGenerationRunRecords` is diagnostic as well as relational: `projectId`, `chapterPlanId`, `providerId`, and `modelName` preserve requested values so invalid input can still produce a failed run/task.
+- `ProjectChapterRecords` remains the single current chapter body table; regeneration may overwrite the existing row only when `replaceExisting` is true.
+- Prompt diagnostics must go through `PromptTraceRecorder`; do not store full prompts in run logs.
+- Same `chapterPlanId` cannot have another pending/running generation run; different chapters may run independently.
+
+### 4. Validation & Error Matrix
+- Missing project -> create run/task when project id is non-empty, mark failed, and do not call the LLM.
+- Missing chapter plan -> create run/task, mark failed, and do not call the LLM.
+- Missing/default-invalid Provider or model -> mark failed before LLM invocation.
+- Existing chapter content with `replaceExisting == false` -> mark failed and preserve the existing chapter.
+- LLM returns empty content -> mark failed and do not save/overwrite chapter content.
+- New content saved over an existing chapter -> clear stale memory-sync proposal through `saveChapter`.
+
+### 5. Good/Base/Bad Cases
+- Good: `ChapterGenerationPipeline` creates a run/task first, validates context, calls LLM with prompt trace, saves the chapter, and marks both run and task succeeded.
+- Base: missing Voice Profile, Story Engine, or runtime memory records warnings but still generates when project, Provider/model, and Chapter Plan are valid.
+- Bad: update only the run row and leave Workflow Runs showing stale task status.
+- Bad: silently overwrite existing chapter content without explicit replacement.
+
+### 6. Tests Required
+- Repository tests must assert run/task state synchronization and `hasRunningChapterGeneration`.
+- Migration tests must assert `chapter_generation_run_records` is created with schema upgrades.
+- Pipeline tests must assert success path saves chapter content and prompt trace.
+- Pipeline tests must assert validation failures create failed run/task without LLM calls.
+- Pipeline tests must assert replacement clears stale memory-sync proposal.
+- Prompt trace tests must assert provider API keys are redacted.
+
+### 7. Wrong vs Correct
+#### Wrong
+Let UI create a workflow task and call `saveChapter` directly after an LLM response.
+#### Correct
+Route chapter generation through `ChapterGenerationPipeline`, and let `DriftNovelWorkshopRepository` own run/task creation and state synchronization.
+
+## Scenario: Novel Workshop Project Bible and outline persistence
+
+### 1. Scope / Trigger
+- Trigger: Novel Workshop stores long-form fiction context as project bible fields plus volume-scoped chapter outline nodes.
+- This is a cross-layer persistence contract because Drift schema, repository APIs, prompt assembly, and Workshop UI all depend on the same fields.
+
+### 2. Signatures
+- Drift tables: `ProjectBibleRecords`, `ChapterVolumeRecords`, `ChapterPlanRecords`.
+- Domain models: `ProjectBible`, `ChapterVolume`, `ChapterPlan`.
+- Repository APIs: `watchProjectBible`, `ensureProjectBible`, `saveProjectBible`, `watchChapterVolumes`, `saveChapterVolume`, `saveOutlineDetailYaml`, `saveChapterPlan`.
+- Parser: `OutlineDetailParser.parse(String yamlText)` returns `OutlineDetailDocument`.
+
+### 3. Contracts
+- `ProjectBibleRecords.projectId` is the primary key and is created for existing projects during schema migration.
+- `WritingProject.description` migrates into `ProjectBible.descriptionMarkdown`; future Workshop context reads the bible field, not the project list description.
+- `ChapterPlan` must belong to a `ChapterVolume` through `volumeId`; new chapter plans cannot be saved without a valid volume.
+- `outlineDetailYaml` is YAML-only. Saving it parses and projects records into `ChapterVolumeRecords` and `ChapterPlanRecords`.
+- `plotSkeletonMarkdown` from Plot Lab is only reference input for creating outline detail; it is not a first-class Workshop tab.
+- Existing chapter bodies and generation runs keep their `chapterPlanId` association during migration.
+
+### 4. Validation & Error Matrix
+- Missing project -> repository throws `StateError`.
+- Missing volume on `saveChapterPlan` -> repository throws `章节计划需要有效分卷。`.
+- Empty/invalid outline YAML -> `OutlineDetailValidationException`.
+- Missing `volumes`, volume `index/title`, or chapter `index/title` -> explicit parser error with the failing path.
+- Existing schema without Project tables during legacy cleanup migration -> skip bible backfill instead of querying absent tables.
+
+### 5. Good/Base/Bad Cases
+- Good: save a valid outline YAML with one volume and chapters, then assert volume and chapter plan projections are available from repository streams.
+- Base: manually create a `ChapterVolume`, then create a `ChapterPlan` under it.
+- Bad: store a free-text chapter list in UI and infer chapters at generation time.
+- Bad: create a chapter plan with an empty `volumeId`.
+
+### 6. Tests Required
+- Repository tests for `ensureProjectBible`, `saveOutlineDetailYaml`, volume projection, and chapter plan projection.
+- Parser tests for valid outline YAML and required-field failures.
+- Migration tests for legacy default volume creation and guarded old-schema cleanup.
+- Pipeline tests proving prompts include Project Bible, outline node fields, prompt assets, and Runtime Memory.
+
+### 7. Wrong vs Correct
+#### Wrong
+Render or parse `plotSkeletonMarkdown` as the Workshop source of truth for chapters.
+#### Correct
+Keep `plotSkeletonMarkdown` as reference material only, and persist editable structure in `ProjectBible.outlineDetailYaml` plus projected `ChapterVolume` / `ChapterPlan` records.

@@ -1,7 +1,10 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:persona_flutter/src/core/database/app_database.dart';
+import 'package:persona_flutter/src/core/tasks/data/drift_workflow_task_repository.dart';
+import 'package:persona_flutter/src/core/tasks/domain/workflow_task.dart';
 import 'package:persona_flutter/src/features/novel_workshop/data/drift_novel_workshop_repository.dart';
+import 'package:persona_flutter/src/features/novel_workshop/application/outline_detail_parser.dart';
 import 'package:persona_flutter/src/features/novel_workshop/domain/novel_workshop.dart';
 import 'package:persona_flutter/src/features/novel_workshop/domain/writing_context.dart';
 import 'package:persona_flutter/src/features/projects/data/drift_project_repository.dart';
@@ -11,6 +14,77 @@ import 'package:persona_flutter/src/features/settings/domain/provider_config.dar
 import 'package:sqlite3/sqlite3.dart';
 
 void main() {
+  test('project bible initializes from project description', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final project = await _saveProject(database);
+    final repository = DriftNovelWorkshopRepository(database);
+
+    final bible = await repository.ensureProjectBible(project.id);
+
+    expect(bible.projectId, project.id);
+    expect(bible.descriptionMarkdown, project.description);
+    expect(bible.outlineDetailYaml, isEmpty);
+  });
+
+  test('outline detail yaml projects volumes and chapter plans', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final project = await _saveProject(database);
+    final repository = DriftNovelWorkshopRepository(database);
+
+    final bible = await repository.saveOutlineDetailYaml(
+      projectId: project.id,
+      outlineDetailYaml: '''
+volumes:
+  - index: 1
+    title: 第一卷
+    chapters:
+      - index: 1
+        title: 第一章
+        objective: 主角进入雾港。
+        pressureSource: 追兵逼近。
+        payoffTarget: 找到第一条线索。
+        relationshipShift: 主角与向导临时合作。
+        hookType: 信息差钩子。
+        coreEvent: 抵达雾港。
+        emotionArc: 警惕到被迫合作。
+        chapterHook: 港务处灯灭。
+        outlineMarkdown: |
+          - 雾气压住码头。
+          - 向导提出交易。
+''',
+    );
+
+    final volumes = await repository.watchChapterVolumes(project.id).first;
+    final plans = await repository.watchChapterPlans(project.id).first;
+
+    expect(bible.outlineDetailYaml, contains('volumes:'));
+    expect(volumes.single.title, '第一卷');
+    expect(plans.single.volumeId, volumes.single.id);
+    expect(plans.single.chapterLocalIndex, 1);
+    expect(plans.single.objectiveCard.chapterTitle, '第一章');
+    expect(plans.single.coreEvent, '抵达雾港。');
+    expect(plans.single.outlineMarkdown, contains('雾气压住码头'));
+  });
+
+  test('outline parser reports missing required fields', () {
+    expect(
+      () => const OutlineDetailParser().parse('volumes: []'),
+      throwsA(isA<OutlineDetailValidationException>()),
+    );
+    expect(
+      () => const OutlineDetailParser().parse('''
+volumes:
+  - index: 1
+    title: 第一卷
+    chapters:
+      - index: 1
+'''),
+      throwsA(isA<OutlineDetailValidationException>()),
+    );
+  });
+
   test('runtime memory initializes updates and clears per project', () async {
     final database = AppDatabase(NativeDatabase.memory());
     addTearDown(database.close);
@@ -43,10 +117,21 @@ void main() {
     addTearDown(database.close);
     final project = await _saveProject(database);
     final repository = DriftNovelWorkshopRepository(database);
+    final volume = await repository.saveChapterVolume(
+      input: ChapterVolumeInput(
+        projectId: project.id,
+        volumeIndex: 1,
+        title: '第一卷',
+      ),
+    );
 
     final plan = await repository.saveChapterPlan(
       input: ChapterPlanInput(
         projectId: project.id,
+        volumeId: volume.id,
+        volumeIndex: volume.volumeIndex,
+        volumeTitle: volume.title,
+        chapterLocalIndex: 1,
         chapterIndex: 1,
         objectiveCard: const ChapterObjectiveCard(
           chapterTitle: '第一章',
@@ -89,9 +174,20 @@ void main() {
       addTearDown(database.close);
       final project = await _saveProject(database);
       final repository = DriftNovelWorkshopRepository(database);
+      final volume = await repository.saveChapterVolume(
+        input: ChapterVolumeInput(
+          projectId: project.id,
+          volumeIndex: 1,
+          title: '第一卷',
+        ),
+      );
       final plan = await repository.saveChapterPlan(
         input: ChapterPlanInput(
           projectId: project.id,
+          volumeId: volume.id,
+          volumeIndex: volume.volumeIndex,
+          volumeTitle: volume.title,
+          chapterLocalIndex: 1,
           chapterIndex: 1,
           objectiveCard: const ChapterObjectiveCard(objective: '推进调查。'),
         ),
@@ -142,6 +238,81 @@ void main() {
     },
   );
 
+  test('chapter generation run syncs workflow task and prompt trace', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final project = await _saveProject(database);
+    final repository = DriftNovelWorkshopRepository(database);
+    final volume = await repository.saveChapterVolume(
+      input: ChapterVolumeInput(
+        projectId: project.id,
+        volumeIndex: 1,
+        title: '第一卷',
+      ),
+    );
+    final workflowRepository = DriftWorkflowTaskRepository(database);
+    final plan = await repository.saveChapterPlan(
+      input: ChapterPlanInput(
+        projectId: project.id,
+        volumeId: volume.id,
+        volumeIndex: volume.volumeIndex,
+        volumeTitle: volume.title,
+        chapterLocalIndex: 1,
+        chapterIndex: 1,
+        objectiveCard: const ChapterObjectiveCard(
+          chapterTitle: '第一章',
+          objective: '主角进入雾港。',
+        ),
+      ),
+    );
+
+    final run = await repository.createChapterGenerationRun(
+      ChapterGenerationRunInput(
+        projectId: project.id,
+        chapterPlanId: plan.id,
+        providerId: project.defaultProviderId!,
+        modelName: project.defaultModelName!,
+      ),
+    );
+
+    expect(run.status, ChapterGenerationStatus.pending);
+    expect(await repository.hasRunningChapterGeneration(plan.id), isTrue);
+
+    final running = await repository.updateChapterGenerationRunState(
+      id: run.id,
+      status: ChapterGenerationStatus.running,
+      stage: ChapterGenerationStage.generatingDraft,
+      contextWarningsMarkdown: '- 运行时记忆为空。',
+      startedAt: DateTime.now(),
+    );
+    final task = await workflowRepository.findTask(run.workflowTaskId);
+    expect(running.stage, ChapterGenerationStage.generatingDraft);
+    expect(running.contextWarningsMarkdown, contains('运行时记忆'));
+    expect(task!.kind, chapterGenerationWorkflowTaskKind);
+    expect(task.status, WorkflowTaskStatus.running);
+    expect(task.stage, ChapterGenerationStage.generatingDraft.name);
+
+    await workflowRepository.upsertPromptTrace(
+      workflowTaskId: run.workflowTaskId,
+      traceMarkdown: '# Prompt Trace',
+    );
+    final trace = await workflowRepository
+        .watchPromptTrace(run.workflowTaskId)
+        .first;
+    expect(trace!.traceMarkdown, '# Prompt Trace');
+
+    final succeeded = await repository.updateChapterGenerationRunState(
+      id: run.id,
+      status: ChapterGenerationStatus.succeeded,
+      stage: null,
+      completedAt: DateTime.now(),
+    );
+    final completedTask = await workflowRepository.findTask(run.workflowTaskId);
+    expect(succeeded.status, ChapterGenerationStatus.succeeded);
+    expect(completedTask!.status, WorkflowTaskStatus.succeeded);
+    expect(await repository.hasRunningChapterGeneration(plan.id), isFalse);
+  });
+
   test('migration creates novel workshop persistence tables', () async {
     final sqlite = sqlite3.openInMemory();
     addTearDown(sqlite.dispose);
@@ -161,6 +332,10 @@ void main() {
     );
     expect(await _tableExists(sqlite, 'chapter_plan_records'), isTrue);
     expect(await _tableExists(sqlite, 'project_chapter_records'), isTrue);
+    expect(
+      await _tableExists(sqlite, 'chapter_generation_run_records'),
+      isTrue,
+    );
   });
 }
 
