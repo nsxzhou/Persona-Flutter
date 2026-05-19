@@ -25,9 +25,13 @@ import 'package:persona_flutter/src/features/style_lab/domain/style_profile.dart
 
 const _workshopLocation = '/projects/project-1/workshop';
 const _editorLocation = '/projects/project-1/workshop/editor';
+final _testCreatedAt = DateTime(2026, 5, 18, 9);
+final _testUpdatedAt = DateTime(2026, 5, 18, 10);
 
 void main() {
-  testWidgets('workshop shows tabbed workbench with asset tabs', (tester) async {
+  testWidgets('workshop shows tabbed workbench with asset tabs', (
+    tester,
+  ) async {
     final fixture = _WorkshopFixture();
     addTearDown(fixture.dispose);
 
@@ -35,11 +39,17 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('项目工作台'), findsOneWidget);
-    expect(find.text('项目概览'), findsWidgets);
+    expect(find.text('概览'), findsWidgets);
+    expect(find.text('世界观设定'), findsWidgets);
+    expect(find.text('角色索引与关系网'), findsWidgets);
+    expect(find.text('总纲'), findsWidgets);
+    expect(find.text('分卷与章节细纲'), findsWidgets);
     expect(find.text('Voice Profile'), findsWidgets);
     expect(find.text('Story Engine'), findsWidgets);
-    expect(find.text('骨架大纲'), findsWidgets);
-    expect(find.text('章节计划'), findsWidgets);
+    expect(find.text('Runtime Memory'), findsWidgets);
+    expect(find.text('Prompt 栈'), findsWidgets);
+    expect(find.text('设置'), findsWidgets);
+    expect(find.text('骨架大纲'), findsNothing);
     expect(find.text('进入编辑器'), findsOneWidget);
     expect(find.byKey(const ValueKey('novel-workshop-editor')), findsNothing);
   });
@@ -53,8 +63,7 @@ void main() {
     await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
     await tester.pumpAndSettle();
 
-    // Switch to the chapter planning tab first.
-    await tester.tap(find.text('章节计划').last);
+    await tester.tap(find.text('分卷与章节细纲').last);
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('新建章节').first);
@@ -268,35 +277,31 @@ void main() {
     expect(find.text('workflow:task-1'), findsOneWidget);
   });
 
-  testWidgets(
-    'compact editor stacks inspector below editor without overflow',
-    (tester) async {
-      tester.view.physicalSize = const Size(900, 1200);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets('compact editor stacks inspector below editor without overflow', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(900, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
-      final fixture = _WorkshopFixture(
-        plans: [
-          _plan(id: 'plan-1', index: 1, title: '第一章', objective: '主角进入雾港。'),
-        ],
-      );
-      addTearDown(fixture.dispose);
+    final fixture = _WorkshopFixture(
+      plans: [
+        _plan(id: 'plan-1', index: 1, title: '第一章', objective: '主角进入雾港。'),
+      ],
+    );
+    addTearDown(fixture.dispose);
 
-      await tester.pumpWidget(
-        _WorkshopTestApp(fixture: fixture, initialLocation: _editorLocation),
-      );
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      _WorkshopTestApp(fixture: fixture, initialLocation: _editorLocation),
+    );
+    await tester.pumpAndSettle();
 
-      expect(find.text('创作导航'), findsOneWidget);
-      expect(
-        find.byKey(const ValueKey('novel-workshop-editor')),
-        findsOneWidget,
-      );
-      expect(find.text('工作流诊断'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    },
-  );
+    expect(find.text('创作导航'), findsOneWidget);
+    expect(find.byKey(const ValueKey('novel-workshop-editor')), findsOneWidget);
+    expect(find.text('工作流诊断'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }
 
 class _WorkshopTestApp extends StatelessWidget {
@@ -584,11 +589,22 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
     required List<ChapterGenerationRun> runs,
   }) : plans = [...plans],
        chapters = [...chapters],
-       runs = [...runs];
+       runs = [...runs],
+       volumes = [
+         ChapterVolume(
+           id: 'volume-1',
+           projectId: 'project-1',
+           volumeIndex: 1,
+           title: '第一卷',
+           createdAt: _testCreatedAt,
+           updatedAt: _testUpdatedAt,
+         ),
+       ];
 
   final List<ChapterPlan> plans;
   final List<ProjectChapter> chapters;
   final List<ChapterGenerationRun> runs;
+  final List<ChapterVolume> volumes;
   final _changes = StreamController<void>.broadcast();
 
   void emit() {
@@ -601,6 +617,25 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
 
   @override
   Future<void> clearRuntimeMemory(String projectId) async {}
+
+  @override
+  Future<ProjectBible> ensureProjectBible(String projectId) async {
+    return ProjectBible(
+      projectId: projectId,
+      descriptionMarkdown: '项目简介',
+      worldBuildingMarkdown: '雾港长期被潮汐封锁。',
+      charactersBlueprintMarkdown: '林岚：调查者。',
+      outlineMasterMarkdown: '失踪案牵出港务处阴谋。',
+      outlineDetailYaml: '',
+      createdAt: _testCreatedAt,
+      updatedAt: _testUpdatedAt,
+    );
+  }
+
+  @override
+  Future<ProjectBible?> findProjectBible(String projectId) async {
+    return ensureProjectBible(projectId);
+  }
 
   @override
   Future<ChapterGenerationRun> createChapterGenerationRun(
@@ -694,12 +729,20 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
     final saved = ChapterPlan(
       id: id ?? 'plan-${plans.length + 1}',
       projectId: input.projectId,
+      volumeId: input.volumeId,
+      volumeIndex: input.volumeIndex,
+      volumeTitle: input.volumeTitle,
+      chapterLocalIndex: input.chapterLocalIndex,
       chapterIndex: input.chapterIndex,
       objectiveCard: input.objectiveCard,
+      coreEvent: input.coreEvent,
+      emotionArc: input.emotionArc,
+      chapterHook: input.chapterHook,
+      outlineMarkdown: input.outlineMarkdown,
       createdAt: existingIndex == -1
-          ? DateTime(2026, 5, 18, 9)
+          ? _testCreatedAt
           : plans[existingIndex].createdAt,
-      updatedAt: DateTime(2026, 5, 18, 10),
+      updatedAt: _testUpdatedAt,
     );
     if (existingIndex == -1) {
       plans.add(saved);
@@ -724,6 +767,55 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
     required RuntimeMemoryState state,
   }) async {
     throw UnimplementedError();
+  }
+
+  @override
+  Future<ChapterVolume> saveChapterVolume({
+    String? id,
+    required ChapterVolumeInput input,
+  }) async {
+    final saved = ChapterVolume(
+      id: id ?? 'volume-${volumes.length + 1}',
+      projectId: input.projectId,
+      volumeIndex: input.volumeIndex,
+      title: input.title,
+      createdAt: _testCreatedAt,
+      updatedAt: _testUpdatedAt,
+    );
+    volumes.add(saved);
+    emit();
+    return saved;
+  }
+
+  @override
+  Future<ProjectBible> saveProjectBible(ProjectBibleInput input) async {
+    return ProjectBible(
+      projectId: input.projectId,
+      descriptionMarkdown: input.descriptionMarkdown,
+      worldBuildingMarkdown: input.worldBuildingMarkdown,
+      charactersBlueprintMarkdown: input.charactersBlueprintMarkdown,
+      outlineMasterMarkdown: input.outlineMasterMarkdown,
+      outlineDetailYaml: input.outlineDetailYaml,
+      createdAt: _testCreatedAt,
+      updatedAt: _testUpdatedAt,
+    );
+  }
+
+  @override
+  Future<ProjectBible> saveOutlineDetailYaml({
+    required String projectId,
+    required String outlineDetailYaml,
+  }) async {
+    return ProjectBible(
+      projectId: projectId,
+      descriptionMarkdown: '项目简介',
+      worldBuildingMarkdown: '雾港长期被潮汐封锁。',
+      charactersBlueprintMarkdown: '林岚：调查者。',
+      outlineMasterMarkdown: '失踪案牵出港务处阴谋。',
+      outlineDetailYaml: outlineDetailYaml,
+      createdAt: _testCreatedAt,
+      updatedAt: _testUpdatedAt,
+    );
   }
 
   @override
@@ -767,6 +859,27 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
         .toList(growable: false);
     yield snapshot();
     yield* _changes.stream.map((_) => snapshot());
+  }
+
+  @override
+  Stream<ProjectBible> watchProjectBible(String projectId) async* {
+    yield await ensureProjectBible(projectId);
+  }
+
+  @override
+  Stream<List<ChapterVolume>> watchChapterVolumes(String projectId) async* {
+    List<ChapterVolume> snapshot() => volumes
+        .where((volume) => volume.projectId == projectId)
+        .toList(growable: false);
+    yield snapshot();
+    yield* _changes.stream.map((_) => snapshot());
+  }
+
+  @override
+  Future<List<ChapterVolume>> watchChapterVolumesOnce(String projectId) async {
+    return volumes
+        .where((volume) => volume.projectId == projectId)
+        .toList(growable: false);
   }
 
   @override
@@ -831,6 +944,10 @@ ChapterPlan _plan({
   return ChapterPlan(
     id: id,
     projectId: 'project-1',
+    volumeId: 'volume-1',
+    volumeIndex: 1,
+    volumeTitle: '第一卷',
+    chapterLocalIndex: index,
     chapterIndex: index,
     objectiveCard: ChapterObjectiveCard(
       chapterTitle: title,
@@ -840,8 +957,12 @@ ChapterPlan _plan({
       relationshipShift: '主角与向导合作。',
       hookType: '信息差钩子。',
     ),
-    createdAt: DateTime(2026, 5, 18, 9),
-    updatedAt: DateTime(2026, 5, 18, 10),
+    coreEvent: '核心事件。',
+    emotionArc: '情绪推进。',
+    chapterHook: '章末钩子。',
+    outlineMarkdown: '- 章节细纲。',
+    createdAt: _testCreatedAt,
+    updatedAt: _testUpdatedAt,
   );
 }
 

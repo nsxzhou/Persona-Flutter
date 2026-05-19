@@ -9,7 +9,10 @@ import '../../../core/ui/skeleton_loader.dart';
 import '../../projects/application/project_providers.dart';
 import '../../projects/domain/writing_project.dart';
 import '../../projects/presentation/projects_page.dart';
+import '../../plot_lab/application/story_engine_normalizer.dart';
+import '../../style_lab/application/voice_profile_front_matter.dart';
 import '../application/novel_workshop_providers.dart';
+import '../application/outline_detail_parser.dart';
 import '../domain/novel_workshop.dart';
 import '../domain/writing_context.dart';
 
@@ -35,6 +38,8 @@ class _NovelWorkshopPageState extends ConsumerState<NovelWorkshopPage> {
   @override
   Widget build(BuildContext context) {
     final project = ref.watch(writingProjectProvider(widget.projectId));
+    final bible = ref.watch(projectBibleProvider(widget.projectId));
+    final volumes = ref.watch(chapterVolumesProvider(widget.projectId));
     final plans = ref.watch(chapterPlansProvider(widget.projectId));
     final chapters = ref.watch(projectChaptersProvider(widget.projectId));
     final runs = ref.watch(chapterGenerationRunsProvider(widget.projectId));
@@ -49,38 +54,53 @@ class _NovelWorkshopPageState extends ConsumerState<NovelWorkshopPage> {
         if (item.status != ProjectStatus.active) {
           return _ArchivedProjectPage(project: item);
         }
-        return plans.when(
-          data: (planItems) => chapters.when(
-            data: (chapterItems) => runs.when(
-              data: (runItems) => _AssetWorkbenchPage(
-                project: item,
-                plans: planItems,
-                chapters: chapterItems,
-                runs: runItems,
-                assets: assets,
-                memory: memory,
-                onEditProject: () => showProjectDialog(context, project: item),
-                onCreatePlan: () => _showPlanDialog(
-                  context: context,
-                  projectId: item.id,
-                  nextIndex: _nextChapterIndex(planItems),
+        return bible.when(
+          data: (bibleItem) => volumes.when(
+            data: (volumeItems) => plans.when(
+              data: (planItems) => chapters.when(
+                data: (chapterItems) => runs.when(
+                  data: (runItems) => _AssetWorkbenchPage(
+                    project: item,
+                    bible: bibleItem,
+                    volumes: volumeItems,
+                    plans: planItems,
+                    chapters: chapterItems,
+                    runs: runItems,
+                    assets: assets,
+                    memory: memory,
+                    onEditProject: () =>
+                        showProjectDialog(context, project: item),
+                    onCreatePlan: () => _showPlanDialog(
+                      context: context,
+                      projectId: item.id,
+                      volumes: volumeItems,
+                      nextIndex: _nextChapterIndex(planItems),
+                    ),
+                    onEditPlan: (plan) => _showPlanDialog(
+                      context: context,
+                      projectId: item.id,
+                      volumes: volumeItems,
+                      plan: plan,
+                    ),
+                  ),
+                  error: (error, stackTrace) =>
+                      _WorkshopError(message: '无法加载生成任务：$error'),
+                  loading: () => const _WorkshopLoading(),
                 ),
-                onEditPlan: (plan) => _showPlanDialog(
-                  context: context,
-                  projectId: item.id,
-                  plan: plan,
-                ),
+                error: (error, stackTrace) =>
+                    _WorkshopError(message: '无法加载章节正文：$error'),
+                loading: () => const _WorkshopLoading(),
               ),
               error: (error, stackTrace) =>
-                  _WorkshopError(message: '无法加载生成任务：$error'),
+                  _WorkshopError(message: '无法加载章节计划：$error'),
               loading: () => const _WorkshopLoading(),
             ),
             error: (error, stackTrace) =>
-                _WorkshopError(message: '无法加载章节正文：$error'),
+                _WorkshopError(message: '无法加载分卷：$error'),
             loading: () => const _WorkshopLoading(),
           ),
           error: (error, stackTrace) =>
-              _WorkshopError(message: '无法加载章节计划：$error'),
+              _WorkshopError(message: '无法加载 Project Bible：$error'),
           loading: () => const _WorkshopLoading(),
         );
       },
@@ -107,6 +127,7 @@ class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
   @override
   Widget build(BuildContext context) {
     final project = ref.watch(writingProjectProvider(widget.projectId));
+    final volumes = ref.watch(chapterVolumesProvider(widget.projectId));
     final plans = ref.watch(chapterPlansProvider(widget.projectId));
     final chapters = ref.watch(projectChaptersProvider(widget.projectId));
     final runs = ref.watch(chapterGenerationRunsProvider(widget.projectId));
@@ -128,80 +149,88 @@ class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
         if (item.status != ProjectStatus.active) {
           return _ArchivedProjectPage(project: item);
         }
-        return plans.when(
-          data: (planItems) => chapters.when(
-            data: (chapterItems) => runs.when(
-              data: (runItems) {
-                final selectedPlan = _syncSelectedPlan(planItems);
-                final selectedChapter = selectedPlan == null
-                    ? null
-                    : _chapterForPlan(chapterItems, selectedPlan.id);
-                _syncEditor(selectedChapter);
-                final selectedRun = selectedPlan == null
-                    ? null
-                    : _latestRunForPlan(runItems, selectedPlan.id);
-                final selectedRunning =
-                    selectedRun?.status == ChapterGenerationStatus.pending ||
-                    selectedRun?.status == ChapterGenerationStatus.running;
-                final busy = controller.isLoading || selectedRunning;
+        return volumes.when(
+          data: (volumeItems) => plans.when(
+            data: (planItems) => chapters.when(
+              data: (chapterItems) => runs.when(
+                data: (runItems) {
+                  final selectedPlan = _syncSelectedPlan(planItems);
+                  final selectedChapter = selectedPlan == null
+                      ? null
+                      : _chapterForPlan(chapterItems, selectedPlan.id);
+                  _syncEditor(selectedChapter);
+                  final selectedRun = selectedPlan == null
+                      ? null
+                      : _latestRunForPlan(runItems, selectedPlan.id);
+                  final selectedRunning =
+                      selectedRun?.status == ChapterGenerationStatus.pending ||
+                      selectedRun?.status == ChapterGenerationStatus.running;
+                  final busy = controller.isLoading || selectedRunning;
 
-                return _WorkshopScaffold(
-                  project: item,
-                  plans: planItems,
-                  chapters: chapterItems,
-                  runs: runItems,
-                  selectedPlan: selectedPlan,
-                  selectedChapter: selectedChapter,
-                  selectedRun: selectedRun,
-                  editorController: _editorController,
-                  isDirty: _isDirty,
-                  isBusy: busy,
-                  assets: assets,
-                  memory: memory,
-                  onSelectPlan: (plan) => _selectPlan(
-                    nextPlan: plan,
-                    currentProject: item,
-                    currentPlan: selectedPlan,
-                    currentChapter: selectedChapter,
-                  ),
-                  onCreatePlan: () => _showPlanDialog(
-                    context: context,
-                    projectId: item.id,
-                    nextIndex: _nextChapterIndex(planItems),
-                  ),
-                  onEditPlan: selectedPlan == null
-                      ? null
-                      : () => _showPlanDialog(
-                          context: context,
-                          projectId: item.id,
-                          plan: selectedPlan,
-                        ),
-                  onSaveChapter: selectedPlan == null || busy
-                      ? null
-                      : () => _saveChapter(
-                          project: item,
-                          plan: selectedPlan,
-                          chapter: selectedChapter,
-                        ),
-                  onGenerate: selectedPlan == null || busy
-                      ? null
-                      : () => _generateChapter(
-                          project: item,
-                          plan: selectedPlan,
-                          chapter: selectedChapter,
-                        ),
-                );
-              },
+                  return _WorkshopScaffold(
+                    project: item,
+                    volumes: volumeItems,
+                    plans: planItems,
+                    chapters: chapterItems,
+                    runs: runItems,
+                    selectedPlan: selectedPlan,
+                    selectedChapter: selectedChapter,
+                    selectedRun: selectedRun,
+                    editorController: _editorController,
+                    isDirty: _isDirty,
+                    isBusy: busy,
+                    assets: assets,
+                    memory: memory,
+                    onSelectPlan: (plan) => _selectPlan(
+                      nextPlan: plan,
+                      currentProject: item,
+                      currentPlan: selectedPlan,
+                      currentChapter: selectedChapter,
+                    ),
+                    onCreatePlan: () => _showPlanDialog(
+                      context: context,
+                      projectId: item.id,
+                      volumes: volumeItems,
+                      nextIndex: _nextChapterIndex(planItems),
+                    ),
+                    onEditPlan: selectedPlan == null
+                        ? null
+                        : () => _showPlanDialog(
+                            context: context,
+                            projectId: item.id,
+                            volumes: volumeItems,
+                            plan: selectedPlan,
+                          ),
+                    onSaveChapter: selectedPlan == null || busy
+                        ? null
+                        : () => _saveChapter(
+                            project: item,
+                            plan: selectedPlan,
+                            chapter: selectedChapter,
+                          ),
+                    onGenerate: selectedPlan == null || busy
+                        ? null
+                        : () => _generateChapter(
+                            project: item,
+                            plan: selectedPlan,
+                            chapter: selectedChapter,
+                          ),
+                  );
+                },
+                error: (error, stackTrace) =>
+                    _WorkshopError(message: '无法加载生成任务：$error'),
+                loading: () => const _WorkshopLoading(),
+              ),
               error: (error, stackTrace) =>
-                  _WorkshopError(message: '无法加载生成任务：$error'),
+                  _WorkshopError(message: '无法加载章节正文：$error'),
               loading: () => const _WorkshopLoading(),
             ),
             error: (error, stackTrace) =>
-                _WorkshopError(message: '无法加载章节正文：$error'),
+                _WorkshopError(message: '无法加载章节计划：$error'),
             loading: () => const _WorkshopLoading(),
           ),
           error: (error, stackTrace) =>
-              _WorkshopError(message: '无法加载章节计划：$error'),
+              _WorkshopError(message: '无法加载分卷：$error'),
           loading: () => const _WorkshopLoading(),
         );
       },
@@ -370,6 +399,8 @@ class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
 class _AssetWorkbenchPage extends StatelessWidget {
   const _AssetWorkbenchPage({
     required this.project,
+    required this.bible,
+    required this.volumes,
     required this.plans,
     required this.chapters,
     required this.runs,
@@ -381,6 +412,8 @@ class _AssetWorkbenchPage extends StatelessWidget {
   });
 
   final WritingProject project;
+  final ProjectBible bible;
+  final List<ChapterVolume> volumes;
   final List<ChapterPlan> plans;
   final List<ProjectChapter> chapters;
   final List<ChapterGenerationRun> runs;
@@ -420,6 +453,8 @@ class _AssetWorkbenchPage extends StatelessWidget {
         const SizedBox(height: 14),
         _WorkbenchTabs(
           project: project,
+          bible: bible,
+          volumes: volumes,
           plans: plans,
           chapters: chapters,
           runs: runs,
@@ -436,6 +471,8 @@ class _AssetWorkbenchPage extends StatelessWidget {
 class _WorkbenchTabs extends StatefulWidget {
   const _WorkbenchTabs({
     required this.project,
+    required this.bible,
+    required this.volumes,
     required this.plans,
     required this.chapters,
     required this.runs,
@@ -446,6 +483,8 @@ class _WorkbenchTabs extends StatefulWidget {
   });
 
   final WritingProject project;
+  final ProjectBible bible;
+  final List<ChapterVolume> volumes;
   final List<ChapterPlan> plans;
   final List<ProjectChapter> chapters;
   final List<ChapterGenerationRun> runs;
@@ -465,7 +504,7 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 10, vsync: this);
   }
 
   @override
@@ -488,11 +527,16 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
                 controller: _tabController,
                 isScrollable: true,
                 tabs: const [
-                  Tab(text: '项目概览'),
+                  Tab(text: '概览'),
+                  Tab(text: '世界观设定'),
+                  Tab(text: '角色索引与关系网'),
+                  Tab(text: '总纲'),
+                  Tab(text: '分卷与章节细纲'),
                   Tab(text: 'Voice Profile'),
                   Tab(text: 'Story Engine'),
-                  Tab(text: '骨架大纲'),
-                  Tab(text: '章节计划'),
+                  Tab(text: 'Runtime Memory'),
+                  Tab(text: 'Prompt 栈'),
+                  Tab(text: '设置'),
                 ],
               ),
             ),
@@ -504,44 +548,78 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
               children: [
                 _ProjectOverviewTab(
                   project: widget.project,
+                  bible: widget.bible,
+                  volumes: widget.volumes,
+                  plans: widget.plans,
+                  chapters: widget.chapters,
+                  runs: widget.runs,
+                  assets: widget.assets,
                   memory: widget.memory,
                 ),
-                _AssetMarkdownTab(
+                _BibleMarkdownTab(
+                  title: '世界观设定',
+                  description: '承载世界规则、地域组织、技术/魔法边界和不可破坏设定。',
+                  markdown: widget.bible.worldBuildingMarkdown,
+                  emptyIcon: Icons.public_outlined,
+                  emptyTitle: '暂无世界观设定',
+                  emptyDescription: '在 Project Bible 中补齐世界观后，章节生成会使用它作为硬上下文。',
+                ),
+                _BibleMarkdownTab(
+                  title: '角色索引与关系网',
+                  description: '集中记录核心角色、人际关系、阵营和长期动机。',
+                  markdown: widget.bible.charactersBlueprintMarkdown,
+                  emptyIcon: Icons.groups_2_outlined,
+                  emptyTitle: '暂无角色索引',
+                  emptyDescription: '在 Project Bible 中补齐角色蓝图，避免章节生成临时编造关系。',
+                ),
+                _BibleMarkdownTab(
+                  title: '总纲',
+                  description: '故事主线、主题推进、卷间结构和结局约束。',
+                  markdown: widget.bible.outlineMasterMarkdown,
+                  emptyIcon: Icons.route_outlined,
+                  emptyTitle: '暂无总纲',
+                  emptyDescription: '总纲用于约束分卷和章节细纲，不再展示剧情分析骨架大纲。',
+                ),
+                _ChapterPlanningTab(
+                  volumes: widget.volumes,
+                  plans: widget.plans,
+                  chapters: widget.chapters,
+                  runs: widget.runs,
+                  outlineDetailYaml: widget.bible.outlineDetailYaml,
+                  onCreatePlan: widget.onCreatePlan,
+                  onEditPlan: widget.onEditPlan,
+                ),
+                _YamlMarkdownAssetTab(
                   title: 'Voice Profile',
-                  description: '风格档案生成的 Voice Profile markdown 预览。',
+                  description: 'YAML 元数据独立展示，正文只渲染 Markdown body。',
                   markdownAsync: widget.assets.whenData(
                     (a) => a.voiceProfileMarkdown,
                   ),
+                  kind: _PromptDocumentKind.voiceProfile,
                   emptyIcon: Icons.record_voice_over_outlined,
                   emptyTitle: '暂无 Voice Profile',
                   emptyDescription: '请先在项目设置中绑定 Style Profile。',
                 ),
-                _AssetMarkdownTab(
+                _YamlMarkdownAssetTab(
                   title: 'Story Engine',
-                  description: 'Plot Profile 生成的 Story Engine markdown 预览。',
+                  description: 'YAML 元数据独立展示，剧情写作指南只渲染 Markdown body。',
                   markdownAsync: widget.assets.whenData(
                     (a) => a.storyEngineMarkdown,
                   ),
+                  kind: _PromptDocumentKind.storyEngine,
                   emptyIcon: Icons.engineering_outlined,
                   emptyTitle: '暂无 Story Engine',
                   emptyDescription: '请先在项目设置中绑定 Plot Profile。',
                 ),
-                _AssetMarkdownTab(
-                  title: '骨架大纲',
-                  description: 'Plot Profile 提供的 Plot Skeleton markdown 预览。',
-                  markdownAsync: widget.assets.whenData(
-                    (a) => a.plotSkeletonMarkdown,
-                  ),
-                  emptyIcon: Icons.account_tree_outlined,
-                  emptyTitle: '暂无骨架大纲',
-                  emptyDescription: 'Plot Profile 未提供自动拆章素材。',
+                _RuntimeMemoryTab(memory: widget.memory),
+                _PromptStackTab(
+                  assets: widget.assets,
+                  bible: widget.bible,
+                  memory: widget.memory,
                 ),
-                _ChapterPlanningTab(
-                  plans: widget.plans,
-                  chapters: widget.chapters,
-                  runs: widget.runs,
-                  onCreatePlan: widget.onCreatePlan,
-                  onEditPlan: widget.onEditPlan,
+                _WorkshopSettingsTab(
+                  project: widget.project,
+                  bible: widget.bible,
                 ),
               ],
             ),
@@ -555,27 +633,79 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
 class _ProjectOverviewTab extends StatelessWidget {
   const _ProjectOverviewTab({
     required this.project,
+    required this.bible,
+    required this.volumes,
+    required this.plans,
+    required this.chapters,
+    required this.runs,
+    required this.assets,
     required this.memory,
   });
 
   final WritingProject project;
+  final ProjectBible bible;
+  final List<ChapterVolume> volumes;
+  final List<ChapterPlan> plans;
+  final List<ProjectChapter> chapters;
+  final List<ChapterGenerationRun> runs;
+  final AsyncValue<ProjectPromptAssets> assets;
   final AsyncValue<ProjectRuntimeMemory> memory;
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final completed = plans
+        .where(
+          (plan) =>
+              _chapterForPlan(
+                chapters,
+                plan.id,
+              )?.contentMarkdown.trim().isNotEmpty ??
+              false,
+        )
+        .length;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          PersonaSectionHeader(
-            title: '项目概览',
-            description: '项目基本信息和运行时记忆预览。',
+          const PersonaSectionHeader(
+            title: '概览',
+            description: 'Workshop 资产总览。骨架大纲只作为初始化细纲的参考输入，不作为主资产展示。',
           ),
           const SizedBox(height: 16),
-          _InfoLine(label: '项目简介', value: project.description),
-          const SizedBox(height: 8),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _MiniMetric(
+                label: 'Project Bible',
+                value: _bibleCompletenessLabel(bible),
+                icon: Icons.menu_book_outlined,
+              ),
+              _MiniMetric(
+                label: '分卷',
+                value: '${volumes.length}',
+                icon: Icons.view_agenda_outlined,
+              ),
+              _MiniMetric(
+                label: '章节细纲',
+                value: '${plans.length}',
+                icon: Icons.format_list_numbered_outlined,
+              ),
+              _MiniMetric(
+                label: '正文',
+                value: '$completed/${plans.length}',
+                icon: Icons.edit_note_outlined,
+              ),
+              _MiniMetric(
+                label: '生成任务',
+                value: '${runs.length}',
+                icon: Icons.auto_awesome_outlined,
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _InfoLine(label: '项目简介', value: bible.descriptionMarkdown),
           _InfoLine(
             label: '创作配置',
             value:
@@ -585,17 +715,17 @@ class _ProjectOverviewTab extends StatelessWidget {
             label: '语言 / 目标长度',
             value: '${project.language} · ${project.targetLength} 字',
           ),
-          _InfoLine(
-            label: '叙事视角',
-            value: project.narrativePerspective,
-          ),
+          _InfoLine(label: '叙事视角', value: project.narrativePerspective),
           const SizedBox(height: 18),
-          Text('Runtime Memory', style: textTheme.titleMedium),
-          const SizedBox(height: 10),
+          assets.when(
+            data: (item) => _PromptAssetStatusStrip(assets: item),
+            error: (error, stackTrace) => Text('无法加载 Prompt 资产：$error'),
+            loading: () => const SkeletonBox(width: 260, height: 16),
+          ),
+          const SizedBox(height: 12),
           memory.when(
             data: (item) => _RuntimeMemoryPreview(memory: item),
-            error: (error, stackTrace) =>
-                Text('无法加载运行时记忆：$error'),
+            error: (error, stackTrace) => Text('无法加载运行时记忆：$error'),
             loading: () => const SkeletonBox(width: 220, height: 16),
           ),
         ],
@@ -604,11 +734,58 @@ class _ProjectOverviewTab extends StatelessWidget {
   }
 }
 
-class _AssetMarkdownTab extends StatelessWidget {
-  const _AssetMarkdownTab({
+class _BibleMarkdownTab extends StatelessWidget {
+  const _BibleMarkdownTab({
+    required this.title,
+    required this.description,
+    required this.markdown,
+    required this.emptyIcon,
+    required this.emptyTitle,
+    required this.emptyDescription,
+  });
+
+  final String title;
+  final String description;
+  final String markdown;
+  final IconData emptyIcon;
+  final String emptyTitle;
+  final String emptyDescription;
+
+  @override
+  Widget build(BuildContext context) {
+    final trimmed = markdown.trim();
+    if (trimmed.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(20),
+        child: PersonaEmptyStateCard(
+          icon: emptyIcon,
+          title: emptyTitle,
+          description: emptyDescription,
+        ),
+      );
+    }
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PersonaSectionHeader(title: title, description: description),
+          const SizedBox(height: 14),
+          _MarkdownSurface(markdown: trimmed),
+        ],
+      ),
+    );
+  }
+}
+
+enum _PromptDocumentKind { voiceProfile, storyEngine }
+
+class _YamlMarkdownAssetTab extends StatelessWidget {
+  const _YamlMarkdownAssetTab({
     required this.title,
     required this.description,
     required this.markdownAsync,
+    required this.kind,
     required this.emptyIcon,
     required this.emptyTitle,
     required this.emptyDescription,
@@ -617,6 +794,7 @@ class _AssetMarkdownTab extends StatelessWidget {
   final String title;
   final String description;
   final AsyncValue<String> markdownAsync;
+  final _PromptDocumentKind kind;
   final IconData emptyIcon;
   final String emptyTitle;
   final String emptyDescription;
@@ -636,28 +814,21 @@ class _AssetMarkdownTab extends StatelessWidget {
             ),
           );
         }
+        final parsed = _parsePromptDocument(kind, trimmed);
         return SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              PersonaSectionHeader(
-                title: title,
-                description: description,
-              ),
+              PersonaSectionHeader(title: title, description: description),
               const SizedBox(height: 14),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: MarkdownBody(data: trimmed),
-                ),
-              ),
+              if (parsed.error == null) ...[
+                _MetadataSummary(fields: parsed.fields),
+                const SizedBox(height: 14),
+                _MarkdownSurface(markdown: parsed.bodyMarkdown),
+              ] else ...[
+                _FormatErrorPanel(message: parsed.error!, source: trimmed),
+              ],
             ],
           ),
         );
@@ -671,18 +842,261 @@ class _AssetMarkdownTab extends StatelessWidget {
   }
 }
 
+class _RuntimeMemoryTab extends StatelessWidget {
+  const _RuntimeMemoryTab({required this.memory});
+
+  final AsyncValue<ProjectRuntimeMemory> memory;
+
+  @override
+  Widget build(BuildContext context) {
+    return memory.when(
+      data: (item) => SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const PersonaSectionHeader(
+              title: 'Runtime Memory',
+              description: '展示创作过程中需要持续保留的角色状态、运行状态、未解决线索和故事摘要。',
+            ),
+            const SizedBox(height: 16),
+            _RuntimeMemoryGrid(memory: item.state),
+          ],
+        ),
+      ),
+      error: (error, stackTrace) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Text('无法加载运行时记忆：$error'),
+      ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+    );
+  }
+}
+
+class _PromptStackTab extends StatelessWidget {
+  const _PromptStackTab({
+    required this.assets,
+    required this.bible,
+    required this.memory,
+  });
+
+  final AsyncValue<ProjectPromptAssets> assets;
+  final ProjectBible bible;
+  final AsyncValue<ProjectRuntimeMemory> memory;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const PersonaSectionHeader(
+            title: 'Prompt 栈',
+            description:
+                '章节生成会组合 Project Bible、章节细纲、Voice Profile、Story Engine 和 Runtime Memory。',
+          ),
+          const SizedBox(height: 16),
+          _AssetDetailTile(
+            title: 'Project Bible',
+            bound: true,
+            ready: !_projectBibleIsEmpty(bible),
+            detail: _projectBibleIsEmpty(bible) ? 'Bible 为空' : '已接入生成上下文',
+          ),
+          assets.when(
+            data: (asset) => Column(
+              children: [
+                _AssetDetailTile(
+                  title: 'Voice Profile',
+                  bound: true,
+                  ready: asset.voiceProfileMarkdown.trim().isNotEmpty,
+                  detail: asset.voiceProfileMarkdown.trim().isEmpty
+                      ? '未绑定 Style Profile'
+                      : '已接入风格约束',
+                ),
+                _AssetDetailTile(
+                  title: 'Story Engine',
+                  bound: true,
+                  ready: asset.storyEngineMarkdown.trim().isNotEmpty,
+                  detail: asset.storyEngineMarkdown.trim().isEmpty
+                      ? '未绑定 Plot Profile'
+                      : '已接入叙事引擎',
+                ),
+                _AssetDetailTile(
+                  title: 'Plot Skeleton',
+                  bound: true,
+                  ready: asset.plotSkeletonMarkdown.trim().isNotEmpty,
+                  detail: asset.plotSkeletonMarkdown.trim().isEmpty
+                      ? '无参考素材'
+                      : '仅作为初始化分卷与章节细纲的参考输入',
+                ),
+                if (asset.warnings.isNotEmpty)
+                  _WarningList(warnings: asset.warnings),
+              ],
+            ),
+            error: (error, stackTrace) => Text('无法加载 Prompt 资产：$error'),
+            loading: () => const SkeletonBox(width: 260, height: 16),
+          ),
+          memory.when(
+            data: (item) => _AssetDetailTile(
+              title: 'Runtime Memory',
+              bound: true,
+              ready: !item.state.isEmpty,
+              detail: item.state.isEmpty ? '运行时记忆为空' : '已接入运行状态',
+            ),
+            error: (error, stackTrace) => Text('无法加载 Runtime Memory：$error'),
+            loading: () => const SkeletonBox(width: 220, height: 16),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WorkshopSettingsTab extends StatelessWidget {
+  const _WorkshopSettingsTab({required this.project, required this.bible});
+
+  final WritingProject project;
+  final ProjectBible bible;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const PersonaSectionHeader(
+            title: '设置',
+            description: 'Workshop 读取项目默认 Provider、模型、语言、视角与 Project Bible 状态。',
+          ),
+          const SizedBox(height: 16),
+          _InfoLine(label: '默认 Provider', value: project.defaultProviderId),
+          _InfoLine(label: '默认模型', value: project.defaultModelName),
+          _InfoLine(label: '语言', value: project.language),
+          _InfoLine(label: '目标长度', value: '${project.targetLength} 字'),
+          _InfoLine(label: '叙事视角', value: project.narrativePerspective),
+          _InfoLine(
+            label: 'Project Bible 更新时间',
+            value: _dateLabel(bible.updatedAt),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MarkdownSurface extends StatelessWidget {
+  const _MarkdownSurface({required this.markdown});
+
+  final String markdown;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: MarkdownBody(data: markdown),
+      ),
+    );
+  }
+}
+
+class _MetadataSummary extends StatelessWidget {
+  const _MetadataSummary({required this.fields});
+
+  final Map<String, Object?> fields;
+
+  @override
+  Widget build(BuildContext context) {
+    final chips = <Widget>[];
+    for (final key in ['name', 'tags', 'intensity', 'tone', 'plot_summary']) {
+      if (!fields.containsKey(key)) {
+        continue;
+      }
+      chips.add(
+        Chip(
+          label: Text('$key: ${_metadataValue(fields[key])}'),
+          visualDensity: VisualDensity.compact,
+        ),
+      );
+    }
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.28),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Wrap(spacing: 8, runSpacing: 8, children: chips),
+      ),
+    );
+  }
+}
+
+class _FormatErrorPanel extends StatelessWidget {
+  const _FormatErrorPanel({required this.message, required this.source});
+
+  final String message;
+  final String source;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: colorScheme.error.withValues(alpha: 0.5)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '格式错误：$message',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: colorScheme.error),
+            ),
+            const SizedBox(height: 12),
+            SelectableText(
+              source,
+              style: const TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 12,
+                height: 1.45,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ChapterPlanningTab extends StatelessWidget {
   const _ChapterPlanningTab({
+    required this.volumes,
     required this.plans,
     required this.chapters,
     required this.runs,
+    required this.outlineDetailYaml,
     required this.onCreatePlan,
     required this.onEditPlan,
   });
 
+  final List<ChapterVolume> volumes;
   final List<ChapterPlan> plans;
   final List<ProjectChapter> chapters;
   final List<ChapterGenerationRun> runs;
+  final String outlineDetailYaml;
   final VoidCallback onCreatePlan;
   final ValueChanged<ChapterPlan> onEditPlan;
 
@@ -697,8 +1111,8 @@ class _ChapterPlanningTab extends StatelessWidget {
             children: [
               const Expanded(
                 child: PersonaSectionHeader(
-                  title: '章节计划',
-                  description: '先维护章节目标，再进入编辑器生成或手写正文。',
+                  title: '分卷与章节细纲',
+                  description: '章节必须归属分卷；outlineDetailYaml 是结构化细纲来源。',
                 ),
               ),
               FilledButton.icon(
@@ -721,21 +1135,113 @@ class _ChapterPlanningTab extends StatelessWidget {
           )
         else
           Expanded(
-            child: ListView.builder(
+            child: ListView(
               padding: const EdgeInsets.only(bottom: 18),
-              itemCount: plans.length,
-              itemBuilder: (context, index) {
-                final plan = plans[index];
-                return _WorkbenchChapterTile(
-                  plan: plan,
-                  chapter: _chapterForPlan(chapters, plan.id),
-                  run: _latestRunForPlan(runs, plan.id),
-                  onEdit: () => onEditPlan(plan),
-                );
-              },
+              children: [
+                if (outlineDetailYaml.trim().isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
+                    child: _OutlineYamlStatus(yaml: outlineDetailYaml),
+                  ),
+                for (final volume in volumes)
+                  _VolumePlanSection(
+                    volume: volume,
+                    plans: plans
+                        .where((plan) => plan.volumeId == volume.id)
+                        .toList(growable: false),
+                    chapters: chapters,
+                    runs: runs,
+                    onEditPlan: onEditPlan,
+                  ),
+                for (final plan in plans.where(
+                  (plan) =>
+                      !volumes.any((volume) => volume.id == plan.volumeId),
+                ))
+                  _WorkbenchChapterTile(
+                    plan: plan,
+                    chapter: _chapterForPlan(chapters, plan.id),
+                    run: _latestRunForPlan(runs, plan.id),
+                    onEdit: () => onEditPlan(plan),
+                  ),
+              ],
             ),
           ),
       ],
+    );
+  }
+}
+
+class _OutlineYamlStatus extends StatelessWidget {
+  const _OutlineYamlStatus({required this.yaml});
+
+  final String yaml;
+
+  @override
+  Widget build(BuildContext context) {
+    try {
+      final document = const OutlineDetailParser().parse(yaml);
+      return PersonaStatusPill(
+        label:
+            'YAML 有效 · ${document.volumes.length} 卷 / ${document.chapters.length} 章',
+        icon: Icons.verified_outlined,
+        color: const Color(0xFF16825D),
+      );
+    } on Object catch (error) {
+      return PersonaStatusPill(
+        label: 'YAML 异常：$error',
+        icon: Icons.error_outline,
+        color: Theme.of(context).colorScheme.error,
+      );
+    }
+  }
+}
+
+class _VolumePlanSection extends StatelessWidget {
+  const _VolumePlanSection({
+    required this.volume,
+    required this.plans,
+    required this.chapters,
+    required this.runs,
+    required this.onEditPlan,
+  });
+
+  final ChapterVolume volume;
+  final List<ChapterPlan> plans;
+  final List<ProjectChapter> chapters;
+  final List<ChapterGenerationRun> runs;
+  final ValueChanged<ChapterPlan> onEditPlan;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+            child: Text(
+              '第 ${volume.volumeIndex} 卷 · ${volume.title}',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+            ),
+          ),
+          if (plans.isEmpty)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
+              child: Text('该分卷暂无章节细纲。'),
+            )
+          else
+            for (final plan in plans)
+              _WorkbenchChapterTile(
+                plan: plan,
+                chapter: _chapterForPlan(chapters, plan.id),
+                run: _latestRunForPlan(runs, plan.id),
+                onEdit: () => onEditPlan(plan),
+              ),
+        ],
+      ),
     );
   }
 }
@@ -775,7 +1281,8 @@ class _WorkbenchHero extends StatelessWidget {
             icon: Icons.circle_outlined,
           ),
           PersonaStatusPill(
-            label: '${project.defaultProviderId ?? '未配置 Provider'} / ${project.defaultModelName ?? '未配置模型'}',
+            label:
+                '${project.defaultProviderId ?? '未配置 Provider'} / ${project.defaultModelName ?? '未配置模型'}',
             icon: Icons.memory_outlined,
           ),
           PersonaStatusPill(
@@ -854,6 +1361,166 @@ class _AssetDetailTile extends StatelessWidget {
   }
 }
 
+class _MiniMetric extends StatelessWidget {
+  const _MiniMetric({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: colorScheme.primary),
+            const SizedBox(width: 8),
+            Text('$label: ', style: Theme.of(context).textTheme.labelLarge),
+            Text(value),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PromptAssetStatusStrip extends StatelessWidget {
+  const _PromptAssetStatusStrip({required this.assets});
+
+  final ProjectPromptAssets assets;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        PersonaStatusPill(
+          label: assets.voiceProfileMarkdown.trim().isEmpty
+              ? 'Voice Profile 缺失'
+              : 'Voice Profile 已接入',
+          icon: assets.voiceProfileMarkdown.trim().isEmpty
+              ? Icons.warning_amber_outlined
+              : Icons.check_circle_outline,
+        ),
+        PersonaStatusPill(
+          label: assets.storyEngineMarkdown.trim().isEmpty
+              ? 'Story Engine 缺失'
+              : 'Story Engine 已接入',
+          icon: assets.storyEngineMarkdown.trim().isEmpty
+              ? Icons.warning_amber_outlined
+              : Icons.check_circle_outline,
+        ),
+      ],
+    );
+  }
+}
+
+class _RuntimeMemoryGrid extends StatelessWidget {
+  const _RuntimeMemoryGrid({required this.memory});
+
+  final RuntimeMemoryState memory;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= 760;
+        final children = [
+          _MemoryBlock(
+            title: 'charactersStatus',
+            value: memory.charactersStatus,
+          ),
+          _MemoryBlock(title: 'runtimeState', value: memory.runtimeState),
+          _MemoryBlock(title: 'runtimeThreads', value: memory.runtimeThreads),
+          _MemoryBlock(title: 'storySummary', value: memory.storySummary),
+        ];
+        if (!wide) {
+          return Column(children: children);
+        }
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            for (final child in children)
+              SizedBox(width: (constraints.maxWidth - 12) / 2, child: child),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _MemoryBlock extends StatelessWidget {
+  const _MemoryBlock({required this.title, required this.value});
+
+  final String title;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final text = value.trim();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border.all(color: colorScheme.outlineVariant),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.labelLarge),
+              const SizedBox(height: 8),
+              Text(text.isEmpty ? '未记录' : text),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WarningList extends StatelessWidget {
+  const _WarningList({required this.warnings});
+
+  final List<String> warnings;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Warnings', style: Theme.of(context).textTheme.labelLarge),
+          const SizedBox(height: 8),
+          for (final warning in warnings)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text('- $warning'),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _RuntimeMemoryPreview extends StatelessWidget {
   const _RuntimeMemoryPreview({required this.memory});
 
@@ -894,7 +1561,9 @@ class _WorkbenchChapterTile extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+          bottom: BorderSide(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
         ),
       ),
       child: Padding(
@@ -945,6 +1614,7 @@ class _WorkbenchChapterTile extends StatelessWidget {
 class _WorkshopScaffold extends StatelessWidget {
   const _WorkshopScaffold({
     required this.project,
+    required this.volumes,
     required this.plans,
     required this.chapters,
     required this.runs,
@@ -964,6 +1634,7 @@ class _WorkshopScaffold extends StatelessWidget {
   });
 
   final WritingProject project;
+  final List<ChapterVolume> volumes;
   final List<ChapterPlan> plans;
   final List<ProjectChapter> chapters;
   final List<ChapterGenerationRun> runs;
@@ -991,6 +1662,7 @@ class _WorkshopScaffold extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final navigator = _ChapterNavigator(
+            volumes: volumes,
             plans: plans,
             chapters: chapters,
             runs: runs,
@@ -1110,8 +1782,7 @@ class _WorkshopTopBar extends StatelessWidget {
             children: [
               IconButton(
                 tooltip: '返回工作台',
-                onPressed: () =>
-                    context.go('/projects/${project.id}/workshop'),
+                onPressed: () => context.go('/projects/${project.id}/workshop'),
                 icon: const Icon(Icons.arrow_back),
               ),
               const SizedBox(width: 8),
@@ -1135,8 +1806,8 @@ class _WorkshopTopBar extends StatelessWidget {
                       color: isRunning
                           ? colorScheme.primary
                           : isDirty
-                              ? colorScheme.error
-                              : const Color(0xFF16825D),
+                          ? colorScheme.error
+                          : const Color(0xFF16825D),
                     ),
                     if (plan != null)
                       Text(
@@ -1183,6 +1854,7 @@ class _WorkshopTopBar extends StatelessWidget {
 
 class _ChapterNavigator extends StatelessWidget {
   const _ChapterNavigator({
+    required this.volumes,
     required this.plans,
     required this.chapters,
     required this.runs,
@@ -1191,6 +1863,7 @@ class _ChapterNavigator extends StatelessWidget {
     required this.onCreatePlan,
   });
 
+  final List<ChapterVolume> volumes;
   final List<ChapterPlan> plans;
   final List<ProjectChapter> chapters;
   final List<ChapterGenerationRun> runs;
@@ -1247,23 +1920,69 @@ class _ChapterNavigator extends StatelessWidget {
             )
           else
             Expanded(
-              child: ListView.builder(
+              child: ListView(
                 padding: const EdgeInsets.only(bottom: 18),
-                itemCount: plans.length,
-                itemBuilder: (context, index) {
-                  final plan = plans[index];
-                  return _ChapterPlanTile(
-                    plan: plan,
-                    chapter: _chapterForPlan(chapters, plan.id),
-                    run: _latestRunForPlan(runs, plan.id),
-                    selected: selectedPlanId == plan.id,
-                    onTap: () => onSelectPlan(plan),
-                  );
-                },
+                children: [
+                  for (final volume in volumes)
+                    _NavigatorVolumeSection(
+                      volume: volume,
+                      plans: plans
+                          .where((plan) => plan.volumeId == volume.id)
+                          .toList(growable: false),
+                      chapters: chapters,
+                      runs: runs,
+                      selectedPlanId: selectedPlanId,
+                      onSelectPlan: onSelectPlan,
+                    ),
+                ],
               ),
             ),
         ],
       ),
+    );
+  }
+}
+
+class _NavigatorVolumeSection extends StatelessWidget {
+  const _NavigatorVolumeSection({
+    required this.volume,
+    required this.plans,
+    required this.chapters,
+    required this.runs,
+    required this.selectedPlanId,
+    required this.onSelectPlan,
+  });
+
+  final ChapterVolume volume;
+  final List<ChapterPlan> plans;
+  final List<ProjectChapter> chapters;
+  final List<ChapterGenerationRun> runs;
+  final String? selectedPlanId;
+  final ValueChanged<ChapterPlan> onSelectPlan;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 14, 18, 8),
+          child: Text(
+            '第 ${volume.volumeIndex} 卷 · ${volume.title}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+        ),
+        for (final plan in plans)
+          _ChapterPlanTile(
+            plan: plan,
+            chapter: _chapterForPlan(chapters, plan.id),
+            run: _latestRunForPlan(runs, plan.id),
+            selected: selectedPlanId == plan.id,
+            onTap: () => onSelectPlan(plan),
+          ),
+      ],
     );
   }
 }
@@ -2044,11 +2763,13 @@ class _ConfirmOverwriteDialog extends StatelessWidget {
 class _ChapterPlanDialog extends ConsumerStatefulWidget {
   const _ChapterPlanDialog({
     required this.projectId,
+    required this.volumes,
     required this.nextIndex,
     this.plan,
   });
 
   final String projectId;
+  final List<ChapterVolume> volumes;
   final int nextIndex;
   final ChapterPlan? plan;
 
@@ -2064,6 +2785,7 @@ class _ChapterPlanDialogState extends ConsumerState<_ChapterPlanDialog> {
   late final TextEditingController _payoffController;
   late final TextEditingController _relationshipController;
   late final TextEditingController _hookController;
+  String? _volumeId;
 
   int get _chapterIndex => widget.plan?.chapterIndex ?? widget.nextIndex;
 
@@ -2079,6 +2801,7 @@ class _ChapterPlanDialogState extends ConsumerState<_ChapterPlanDialog> {
       text: card.relationshipShift,
     );
     _hookController = TextEditingController(text: card.hookType);
+    _volumeId = widget.plan?.volumeId ?? widget.volumes.firstOrNull?.id;
   }
 
   @override
@@ -2111,6 +2834,23 @@ class _ChapterPlanDialogState extends ConsumerState<_ChapterPlanDialog> {
               initialValue: '第 $_chapterIndex 章',
               readOnly: true,
               decoration: const InputDecoration(labelText: '章节序号'),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: _volumeId,
+              items: [
+                for (final volume in widget.volumes)
+                  DropdownMenuItem(
+                    value: volume.id,
+                    child: Text('第 ${volume.volumeIndex} 卷 · ${volume.title}'),
+                  ),
+              ],
+              onChanged: widget.volumes.isEmpty
+                  ? null
+                  : (value) => setState(() => _volumeId = value),
+              decoration: const InputDecoration(labelText: '所属分卷'),
+              validator: (value) =>
+                  value == null || value.trim().isEmpty ? '请选择分卷。' : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -2181,6 +2921,14 @@ class _ChapterPlanDialogState extends ConsumerState<_ChapterPlanDialog> {
       _showDialogSnack('章节序号必须大于 0。');
       return;
     }
+    final volume = widget.volumes
+        .where((item) => item.id == _volumeId)
+        .firstOrNull;
+    if (volume == null) {
+      _showDialogSnack('新建章节必须先有分卷。');
+      return;
+    }
+    final chapterLocalIndex = widget.plan?.chapterLocalIndex ?? _chapterIndex;
     final card = ChapterObjectiveCard(
       chapterTitle: _titleController.text,
       objective: _objectiveController.text,
@@ -2200,6 +2948,10 @@ class _ChapterPlanDialogState extends ConsumerState<_ChapterPlanDialog> {
             id: widget.plan?.id,
             input: ChapterPlanInput(
               projectId: widget.projectId,
+              volumeId: volume.id,
+              volumeIndex: volume.volumeIndex,
+              volumeTitle: volume.title,
+              chapterLocalIndex: chapterLocalIndex,
               chapterIndex: _chapterIndex,
               objectiveCard: card,
             ),
@@ -2339,6 +3091,7 @@ enum _DirtyEditorAction { save, discard, cancel }
 void _showPlanDialog({
   required BuildContext context,
   required String projectId,
+  required List<ChapterVolume> volumes,
   int nextIndex = 1,
   ChapterPlan? plan,
 }) {
@@ -2348,6 +3101,7 @@ void _showPlanDialog({
     maxHeight: MediaQuery.sizeOf(context).height * 0.9,
     builder: (context) => _ChapterPlanDialog(
       projectId: projectId,
+      volumes: volumes,
       nextIndex: nextIndex,
       plan: plan,
     ),
@@ -2428,6 +3182,84 @@ String _projectStatusLabel(ProjectStatus status) {
     ProjectStatus.active => '活动',
     ProjectStatus.archived => '归档',
   };
+}
+
+String _bibleCompletenessLabel(ProjectBible bible) {
+  final sections = [
+    bible.descriptionMarkdown,
+    bible.worldBuildingMarkdown,
+    bible.charactersBlueprintMarkdown,
+    bible.outlineMasterMarkdown,
+    bible.outlineDetailYaml,
+  ];
+  final filled = sections.where((value) => value.trim().isNotEmpty).length;
+  return '$filled/${sections.length}';
+}
+
+bool _projectBibleIsEmpty(ProjectBible bible) {
+  return [
+    bible.descriptionMarkdown,
+    bible.worldBuildingMarkdown,
+    bible.charactersBlueprintMarkdown,
+    bible.outlineMasterMarkdown,
+    bible.outlineDetailYaml,
+  ].every((value) => value.trim().isEmpty);
+}
+
+String _dateLabel(DateTime value) {
+  return '${value.year.toString().padLeft(4, '0')}-'
+      '${value.month.toString().padLeft(2, '0')}-'
+      '${value.day.toString().padLeft(2, '0')} '
+      '${value.hour.toString().padLeft(2, '0')}:'
+      '${value.minute.toString().padLeft(2, '0')}';
+}
+
+String _metadataValue(Object? value) {
+  if (value == null) {
+    return '';
+  }
+  if (value is Iterable) {
+    return value.map((item) => item.toString()).join(', ');
+  }
+  return value.toString();
+}
+
+_ParsedPromptDocument _parsePromptDocument(
+  _PromptDocumentKind kind,
+  String markdown,
+) {
+  try {
+    return switch (kind) {
+      _PromptDocumentKind.voiceProfile => (() {
+        final document = const VoiceProfileFrontMatterParser().parse(markdown);
+        return _ParsedPromptDocument(
+          fields: document.fields,
+          bodyMarkdown: document.bodyMarkdown,
+        );
+      })(),
+      _PromptDocumentKind.storyEngine => (() {
+        final document = const StoryEngineNormalizer().parse(markdown);
+        return _ParsedPromptDocument(
+          fields: document.fields,
+          bodyMarkdown: document.bodyMarkdown,
+        );
+      })(),
+    };
+  } on Object catch (error) {
+    return _ParsedPromptDocument(error: '$error');
+  }
+}
+
+class _ParsedPromptDocument {
+  const _ParsedPromptDocument({
+    this.fields = const {},
+    this.bodyMarkdown = '',
+    this.error,
+  });
+
+  final Map<String, Object?> fields;
+  final String bodyMarkdown;
+  final String? error;
 }
 
 String _runStageLabel(ChapterGenerationStage? stage) {

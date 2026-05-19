@@ -18,20 +18,106 @@ enum ChapterGenerationStage { preparingContext, generatingDraft, savingChapter }
 
 const chapterGenerationWorkflowTaskKind = 'novel_chapter_generation';
 
-class ChapterPlan {
-  const ChapterPlan({
+class ProjectBible {
+  const ProjectBible({
+    required this.projectId,
+    required this.descriptionMarkdown,
+    required this.worldBuildingMarkdown,
+    required this.charactersBlueprintMarkdown,
+    required this.outlineMasterMarkdown,
+    required this.outlineDetailYaml,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  final String projectId;
+  final String descriptionMarkdown;
+  final String worldBuildingMarkdown;
+  final String charactersBlueprintMarkdown;
+  final String outlineMasterMarkdown;
+  final String outlineDetailYaml;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+}
+
+class ProjectBibleInput {
+  const ProjectBibleInput({
+    required this.projectId,
+    required this.descriptionMarkdown,
+    required this.worldBuildingMarkdown,
+    required this.charactersBlueprintMarkdown,
+    required this.outlineMasterMarkdown,
+    required this.outlineDetailYaml,
+  });
+
+  final String projectId;
+  final String descriptionMarkdown;
+  final String worldBuildingMarkdown;
+  final String charactersBlueprintMarkdown;
+  final String outlineMasterMarkdown;
+  final String outlineDetailYaml;
+}
+
+class ChapterVolume {
+  const ChapterVolume({
     required this.id,
     required this.projectId,
-    required this.chapterIndex,
-    required this.objectiveCard,
+    required this.volumeIndex,
+    required this.title,
     required this.createdAt,
     required this.updatedAt,
   });
 
   final String id;
   final String projectId;
+  final int volumeIndex;
+  final String title;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+}
+
+class ChapterVolumeInput {
+  const ChapterVolumeInput({
+    required this.projectId,
+    required this.volumeIndex,
+    required this.title,
+  });
+
+  final String projectId;
+  final int volumeIndex;
+  final String title;
+}
+
+class ChapterPlan {
+  const ChapterPlan({
+    required this.id,
+    required this.projectId,
+    required this.volumeId,
+    required this.volumeIndex,
+    required this.volumeTitle,
+    required this.chapterLocalIndex,
+    required this.chapterIndex,
+    required this.objectiveCard,
+    required this.coreEvent,
+    required this.emotionArc,
+    required this.chapterHook,
+    required this.outlineMarkdown,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  final String id;
+  final String projectId;
+  final String volumeId;
+  final int volumeIndex;
+  final String volumeTitle;
+  final int chapterLocalIndex;
   final int chapterIndex;
   final ChapterObjectiveCard objectiveCard;
+  final String coreEvent;
+  final String emotionArc;
+  final String chapterHook;
+  final String outlineMarkdown;
   final DateTime createdAt;
   final DateTime updatedAt;
 }
@@ -39,13 +125,29 @@ class ChapterPlan {
 class ChapterPlanInput {
   const ChapterPlanInput({
     required this.projectId,
+    required this.volumeId,
+    required this.volumeIndex,
+    required this.volumeTitle,
+    required this.chapterLocalIndex,
     required this.chapterIndex,
     required this.objectiveCard,
+    this.coreEvent = '',
+    this.emotionArc = '',
+    this.chapterHook = '',
+    this.outlineMarkdown = '',
   });
 
   final String projectId;
+  final String volumeId;
+  final int volumeIndex;
+  final String volumeTitle;
+  final int chapterLocalIndex;
   final int chapterIndex;
   final ChapterObjectiveCard objectiveCard;
+  final String coreEvent;
+  final String emotionArc;
+  final String chapterHook;
+  final String outlineMarkdown;
 }
 
 class ProjectChapter {

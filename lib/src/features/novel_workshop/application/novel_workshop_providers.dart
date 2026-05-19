@@ -13,6 +13,7 @@ import '../domain/novel_workshop.dart';
 import '../domain/novel_workshop_repository.dart';
 import '../domain/writing_context.dart';
 import 'chapter_generation_pipeline.dart';
+import 'outline_detail_parser.dart';
 import 'project_prompt_asset_resolver.dart';
 import 'writing_context_assembler.dart';
 
@@ -27,6 +28,11 @@ NovelWorkshopRepository novelWorkshopRepository(Ref ref) {
 @Riverpod(keepAlive: true)
 WritingContextAssembler writingContextAssembler(Ref ref) {
   return const WritingContextAssembler();
+}
+
+@Riverpod(keepAlive: true)
+OutlineDetailParser outlineDetailParser(Ref ref) {
+  return const OutlineDetailParser();
 }
 
 @Riverpod(keepAlive: true)
@@ -49,6 +55,20 @@ ChapterGenerationPipeline chapterGenerationPipeline(Ref ref) {
     completionService: ref.watch(markdownCompletionServiceProvider),
     workflowTaskRepository: ref.watch(workflowTaskRepositoryProvider),
   );
+}
+
+@riverpod
+Stream<ProjectBible> projectBible(Ref ref, String projectId) {
+  return ref
+      .watch(novelWorkshopRepositoryProvider)
+      .watchProjectBible(projectId);
+}
+
+@riverpod
+Stream<List<ChapterVolume>> chapterVolumes(Ref ref, String projectId) {
+  return ref
+      .watch(novelWorkshopRepositoryProvider)
+      .watchChapterVolumes(projectId);
 }
 
 @riverpod
@@ -110,6 +130,57 @@ class NovelWorkshopController extends _$NovelWorkshopController {
       saved = await ref
           .read(novelWorkshopRepositoryProvider)
           .saveChapterPlan(id: id, input: input);
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
+    return saved;
+  }
+
+  Future<ChapterVolume> saveChapterVolume({
+    String? id,
+    required ChapterVolumeInput input,
+  }) async {
+    state = const AsyncLoading();
+    late ChapterVolume saved;
+    state = await AsyncValue.guard(() async {
+      saved = await ref
+          .read(novelWorkshopRepositoryProvider)
+          .saveChapterVolume(id: id, input: input);
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
+    return saved;
+  }
+
+  Future<ProjectBible> saveProjectBible(ProjectBibleInput input) async {
+    state = const AsyncLoading();
+    late ProjectBible saved;
+    state = await AsyncValue.guard(() async {
+      saved = await ref
+          .read(novelWorkshopRepositoryProvider)
+          .saveProjectBible(input);
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
+    return saved;
+  }
+
+  Future<ProjectBible> saveOutlineDetailYaml({
+    required String projectId,
+    required String outlineDetailYaml,
+  }) async {
+    state = const AsyncLoading();
+    late ProjectBible saved;
+    state = await AsyncValue.guard(() async {
+      saved = await ref
+          .read(novelWorkshopRepositoryProvider)
+          .saveOutlineDetailYaml(
+            projectId: projectId,
+            outlineDetailYaml: outlineDetailYaml,
+          );
     });
     if (state.hasError) {
       Error.throwWithStackTrace(state.error!, state.stackTrace!);

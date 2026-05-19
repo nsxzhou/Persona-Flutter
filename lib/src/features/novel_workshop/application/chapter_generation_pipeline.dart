@@ -125,14 +125,40 @@ class ChapterGenerationPipeline {
       );
 
       final assets = await _promptAssetResolver.resolve(projectId);
+      final bible = await _repository.ensureProjectBible(projectId);
       final runtimeMemory = await _repository.findRuntimeMemory(projectId);
       final contextWarnings = <String>[
         ...assets.warnings,
+        if (ProjectBiblePromptContext(
+          descriptionMarkdown: bible.descriptionMarkdown,
+          worldBuildingMarkdown: bible.worldBuildingMarkdown,
+          charactersBlueprintMarkdown: bible.charactersBlueprintMarkdown,
+          outlineMasterMarkdown: bible.outlineMasterMarkdown,
+          outlineDetailYaml: bible.outlineDetailYaml,
+        ).isEmpty)
+          'Project Bible 为空。',
         if (runtimeMemory == null || runtimeMemory.state.isEmpty) '运行时记忆为空。',
       ];
       final bundle = _contextAssembler.assemble(
         WritingContextSections(
           outputContract: _outputContract,
+          projectBible: ProjectBiblePromptContext(
+            descriptionMarkdown: bible.descriptionMarkdown,
+            worldBuildingMarkdown: bible.worldBuildingMarkdown,
+            charactersBlueprintMarkdown: bible.charactersBlueprintMarkdown,
+            outlineMasterMarkdown: bible.outlineMasterMarkdown,
+            outlineDetailYaml: bible.outlineDetailYaml,
+          ),
+          chapterPlan: ChapterPlanPromptContext(
+            volumeIndex: plan.volumeIndex,
+            volumeTitle: plan.volumeTitle,
+            chapterLocalIndex: plan.chapterLocalIndex,
+            chapterIndex: plan.chapterIndex,
+            coreEvent: plan.coreEvent,
+            emotionArc: plan.emotionArc,
+            chapterHook: plan.chapterHook,
+            outlineMarkdown: plan.outlineMarkdown,
+          ),
           chapterObjectiveCard: plan.objectiveCard,
           voiceProfileMarkdown: assets.voiceProfileMarkdown,
           storyEngineMarkdown: assets.storyEngineMarkdown,
@@ -254,8 +280,6 @@ class ChapterGenerationPipeline {
   String _projectContextMarkdown(WritingProject project) {
     final lines = <String>[
       '- Project Title: ${project.title.trim()}',
-      if (project.description.trim().isNotEmpty)
-        '- Project Description: ${project.description.trim()}',
       '- Language: ${project.language.trim()}',
       '- Target Length: ${project.targetLength} 字左右',
       '- Narrative Perspective: ${project.narrativePerspective.trim()}',

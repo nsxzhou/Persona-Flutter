@@ -105,6 +105,54 @@ final class WritingContextAssemblerProvider
 String _$writingContextAssemblerHash() =>
     r'78c6f7bc4e9615e8ea31a10d6e06ade07f6ecad9';
 
+@ProviderFor(outlineDetailParser)
+final outlineDetailParserProvider = OutlineDetailParserProvider._();
+
+final class OutlineDetailParserProvider
+    extends
+        $FunctionalProvider<
+          OutlineDetailParser,
+          OutlineDetailParser,
+          OutlineDetailParser
+        >
+    with $Provider<OutlineDetailParser> {
+  OutlineDetailParserProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'outlineDetailParserProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$outlineDetailParserHash();
+
+  @$internal
+  @override
+  $ProviderElement<OutlineDetailParser> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  OutlineDetailParser create(Ref ref) {
+    return outlineDetailParser(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(OutlineDetailParser value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<OutlineDetailParser>(value),
+    );
+  }
+}
+
+String _$outlineDetailParserHash() =>
+    r'cf65dbdc7d5c82c7ca8525cd03fed3f3b311ce76';
+
 @ProviderFor(projectPromptAssetResolver)
 final projectPromptAssetResolverProvider =
     ProjectPromptAssetResolverProvider._();
@@ -201,6 +249,158 @@ final class ChapterGenerationPipelineProvider
 
 String _$chapterGenerationPipelineHash() =>
     r'9c43e6a655e508d4ac2977d5dcb78263caf27136';
+
+@ProviderFor(projectBible)
+final projectBibleProvider = ProjectBibleFamily._();
+
+final class ProjectBibleProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<ProjectBible>,
+          ProjectBible,
+          Stream<ProjectBible>
+        >
+    with $FutureModifier<ProjectBible>, $StreamProvider<ProjectBible> {
+  ProjectBibleProvider._({
+    required ProjectBibleFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'projectBibleProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$projectBibleHash();
+
+  @override
+  String toString() {
+    return r'projectBibleProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<ProjectBible> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<ProjectBible> create(Ref ref) {
+    final argument = this.argument as String;
+    return projectBible(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ProjectBibleProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$projectBibleHash() => r'8cd68e016fc4d5e8c3025df44be65214e0f38a86';
+
+final class ProjectBibleFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<ProjectBible>, String> {
+  ProjectBibleFamily._()
+    : super(
+        retry: null,
+        name: r'projectBibleProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  ProjectBibleProvider call(String projectId) =>
+      ProjectBibleProvider._(argument: projectId, from: this);
+
+  @override
+  String toString() => r'projectBibleProvider';
+}
+
+@ProviderFor(chapterVolumes)
+final chapterVolumesProvider = ChapterVolumesFamily._();
+
+final class ChapterVolumesProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<ChapterVolume>>,
+          List<ChapterVolume>,
+          Stream<List<ChapterVolume>>
+        >
+    with
+        $FutureModifier<List<ChapterVolume>>,
+        $StreamProvider<List<ChapterVolume>> {
+  ChapterVolumesProvider._({
+    required ChapterVolumesFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'chapterVolumesProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$chapterVolumesHash();
+
+  @override
+  String toString() {
+    return r'chapterVolumesProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<List<ChapterVolume>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<ChapterVolume>> create(Ref ref) {
+    final argument = this.argument as String;
+    return chapterVolumes(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ChapterVolumesProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$chapterVolumesHash() => r'6a95e04fd5408c3329cb8c27c3b2f61142359aed';
+
+final class ChapterVolumesFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<List<ChapterVolume>>, String> {
+  ChapterVolumesFamily._()
+    : super(
+        retry: null,
+        name: r'chapterVolumesProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  ChapterVolumesProvider call(String projectId) =>
+      ChapterVolumesProvider._(argument: projectId, from: this);
+
+  @override
+  String toString() => r'chapterVolumesProvider';
+}
 
 @ProviderFor(chapterPlans)
 final chapterPlansProvider = ChapterPlansFamily._();
@@ -699,7 +899,7 @@ final class NovelWorkshopControllerProvider
 }
 
 String _$novelWorkshopControllerHash() =>
-    r'ef20db644e1e1901390347030448dd76311ef06e';
+    r'b838c66154c0cb7e791dc58832febb525ab817a0';
 
 abstract class _$NovelWorkshopController extends $AsyncNotifier<void> {
   FutureOr<void> build();

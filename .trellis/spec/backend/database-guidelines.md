@@ -324,3 +324,48 @@ Use `PromptTraceRecorder` and `WorkflowTaskRepository.upsertPromptTrace` so prom
 Let UI create a workflow task and call `saveChapter` directly after an LLM response.
 #### Correct
 Route chapter generation through `ChapterGenerationPipeline`, and let `DriftNovelWorkshopRepository` own run/task creation and state synchronization.
+
+## Scenario: Novel Workshop Project Bible and outline persistence
+
+### 1. Scope / Trigger
+- Trigger: Novel Workshop stores long-form fiction context as project bible fields plus volume-scoped chapter outline nodes.
+- This is a cross-layer persistence contract because Drift schema, repository APIs, prompt assembly, and Workshop UI all depend on the same fields.
+
+### 2. Signatures
+- Drift tables: `ProjectBibleRecords`, `ChapterVolumeRecords`, `ChapterPlanRecords`.
+- Domain models: `ProjectBible`, `ChapterVolume`, `ChapterPlan`.
+- Repository APIs: `watchProjectBible`, `ensureProjectBible`, `saveProjectBible`, `watchChapterVolumes`, `saveChapterVolume`, `saveOutlineDetailYaml`, `saveChapterPlan`.
+- Parser: `OutlineDetailParser.parse(String yamlText)` returns `OutlineDetailDocument`.
+
+### 3. Contracts
+- `ProjectBibleRecords.projectId` is the primary key and is created for existing projects during schema migration.
+- `WritingProject.description` migrates into `ProjectBible.descriptionMarkdown`; future Workshop context reads the bible field, not the project list description.
+- `ChapterPlan` must belong to a `ChapterVolume` through `volumeId`; new chapter plans cannot be saved without a valid volume.
+- `outlineDetailYaml` is YAML-only. Saving it parses and projects records into `ChapterVolumeRecords` and `ChapterPlanRecords`.
+- `plotSkeletonMarkdown` from Plot Lab is only reference input for creating outline detail; it is not a first-class Workshop tab.
+- Existing chapter bodies and generation runs keep their `chapterPlanId` association during migration.
+
+### 4. Validation & Error Matrix
+- Missing project -> repository throws `StateError`.
+- Missing volume on `saveChapterPlan` -> repository throws `章节计划需要有效分卷。`.
+- Empty/invalid outline YAML -> `OutlineDetailValidationException`.
+- Missing `volumes`, volume `index/title`, or chapter `index/title` -> explicit parser error with the failing path.
+- Existing schema without Project tables during legacy cleanup migration -> skip bible backfill instead of querying absent tables.
+
+### 5. Good/Base/Bad Cases
+- Good: save a valid outline YAML with one volume and chapters, then assert volume and chapter plan projections are available from repository streams.
+- Base: manually create a `ChapterVolume`, then create a `ChapterPlan` under it.
+- Bad: store a free-text chapter list in UI and infer chapters at generation time.
+- Bad: create a chapter plan with an empty `volumeId`.
+
+### 6. Tests Required
+- Repository tests for `ensureProjectBible`, `saveOutlineDetailYaml`, volume projection, and chapter plan projection.
+- Parser tests for valid outline YAML and required-field failures.
+- Migration tests for legacy default volume creation and guarded old-schema cleanup.
+- Pipeline tests proving prompts include Project Bible, outline node fields, prompt assets, and Runtime Memory.
+
+### 7. Wrong vs Correct
+#### Wrong
+Render or parse `plotSkeletonMarkdown` as the Workshop source of truth for chapters.
+#### Correct
+Keep `plotSkeletonMarkdown` as reference material only, and persist editable structure in `ProjectBible.outlineDetailYaml` plus projected `ChapterVolume` / `ChapterPlan` records.

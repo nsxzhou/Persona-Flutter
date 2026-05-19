@@ -268,9 +268,20 @@ class _Fixture {
         (await projectRepository.watchProjects(ProjectStatus.active).first)
             .single;
     final novelRepository = DriftNovelWorkshopRepository(database);
+    final volume = await novelRepository.saveChapterVolume(
+      input: ChapterVolumeInput(
+        projectId: project.id,
+        volumeIndex: 1,
+        title: '第一卷',
+      ),
+    );
     final plan = await novelRepository.saveChapterPlan(
       input: ChapterPlanInput(
         projectId: project.id,
+        volumeId: volume.id,
+        volumeIndex: volume.volumeIndex,
+        volumeTitle: volume.title,
+        chapterLocalIndex: 1,
         chapterIndex: 1,
         objectiveCard: const ChapterObjectiveCard(
           chapterTitle: '第一章',

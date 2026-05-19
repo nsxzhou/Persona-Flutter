@@ -1,0 +1,7 @@
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Verify schema migration, generated Drift code, repository boundaries, and persistence tests."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Verify build_runner, formatting, analyze, tests, and LLM artifact contract compliance."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Verify Riverpod/provider boundaries, project-scoped Workshop route behavior, and editor state handling."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Verify widget composition, async branches, no Drift row leakage, and responsive controls."}
+{"file": ".trellis/spec/frontend/visual-design-guidelines.md", "reason": "Verify the Workshop editor shell matches the writing-desk model and compact layouts avoid overflow."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Review changed contracts from database through UI and generation pipeline."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Review parser/helper reuse and avoid duplicated asset parsing or formatting logic."}

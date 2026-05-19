@@ -53,6 +53,8 @@ class RuntimeMemoryState {
 class WritingContextSections {
   const WritingContextSections({
     required this.outputContract,
+    required this.projectBible,
+    required this.chapterPlan,
     required this.chapterObjectiveCard,
     required this.voiceProfileMarkdown,
     required this.storyEngineMarkdown,
@@ -62,12 +64,62 @@ class WritingContextSections {
   });
 
   final String outputContract;
+  final ProjectBiblePromptContext projectBible;
+  final ChapterPlanPromptContext chapterPlan;
   final ChapterObjectiveCard chapterObjectiveCard;
   final String voiceProfileMarkdown;
   final String storyEngineMarkdown;
   final String projectContextMarkdown;
   final RuntimeMemoryState runtimeMemory;
   final String writingRulesMarkdown;
+}
+
+class ProjectBiblePromptContext {
+  const ProjectBiblePromptContext({
+    this.descriptionMarkdown = '',
+    this.worldBuildingMarkdown = '',
+    this.charactersBlueprintMarkdown = '',
+    this.outlineMasterMarkdown = '',
+    this.outlineDetailYaml = '',
+  });
+
+  final String descriptionMarkdown;
+  final String worldBuildingMarkdown;
+  final String charactersBlueprintMarkdown;
+  final String outlineMasterMarkdown;
+  final String outlineDetailYaml;
+
+  bool get isEmpty {
+    return [
+      descriptionMarkdown,
+      worldBuildingMarkdown,
+      charactersBlueprintMarkdown,
+      outlineMasterMarkdown,
+      outlineDetailYaml,
+    ].every((value) => value.trim().isEmpty);
+  }
+}
+
+class ChapterPlanPromptContext {
+  const ChapterPlanPromptContext({
+    required this.volumeIndex,
+    required this.volumeTitle,
+    required this.chapterLocalIndex,
+    required this.chapterIndex,
+    this.coreEvent = '',
+    this.emotionArc = '',
+    this.chapterHook = '',
+    this.outlineMarkdown = '',
+  });
+
+  final int volumeIndex;
+  final String volumeTitle;
+  final int chapterLocalIndex;
+  final int chapterIndex;
+  final String coreEvent;
+  final String emotionArc;
+  final String chapterHook;
+  final String outlineMarkdown;
 }
 
 class WritingContextBundle {

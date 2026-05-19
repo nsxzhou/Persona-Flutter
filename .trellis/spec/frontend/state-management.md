@@ -92,13 +92,20 @@ Persona Flutter has no remote server in the baseline. Local persisted data is ex
 - The workspace lives under the Projects `StatefulShellBranch`; do not add a new `AppRoute` item or sidebar navigation destination for the first workspace iteration.
 - Archived projects must not expose the Projects-row workspace action; if the route is opened directly for an archived project, render a read-only blocked state.
 - Presentation widgets consume `ProjectRepository`, `NovelWorkshopRepository`, `ProjectPromptAssetResolver`, and `ChapterGenerationPipeline` through Riverpod providers/application contracts only.
+- Novel Workshop tabs are: `概览`, `世界观设定`, `角色索引与关系网`, `总纲`, `分卷与章节细纲`, `Voice Profile`, `Story Engine`, `Runtime Memory`, `Prompt 栈`, `设置`.
+- Do not add a standalone `骨架大纲` tab. Plot skeleton content remains an input/reference for outline detail generation only.
+- Voice Profile and Story Engine are `YAML front matter + Markdown body` documents in Workshop. UI must render YAML metadata separately and pass only the body Markdown into `MarkdownBody`; parse failures must show an explicit error with a source preview.
+- Runtime Memory is a first-class Workshop tab, not only an overview widget.
 - The editor owns unsaved Markdown text as widget-local state; persisted content continues to flow through `NovelWorkshopRepository.saveChapter`.
+- The editor chapter navigator groups chapters by `ChapterVolume`; chapter creation requires a volume-backed `ChapterPlanInput`.
 - Full Prompt Trace rendering remains owned by Workflow Runs; Novel Workshop may link to `/workflow-runs/:taskId`.
 
 ### 4. Validation & Error Matrix
 - Missing project -> render a missing-project page with a return-to-Projects action.
 - Archived project -> render an archived-project blocked state.
 - Empty chapter list -> render an empty state with chapter creation action.
+- Missing volume when creating a chapter -> block save and show a user-visible error.
+- Invalid Voice Profile / Story Engine front matter -> show format error and source preview instead of rendering raw YAML as normal Markdown.
 - Dirty editor before chapter switch or generation -> offer save, discard, or cancel before continuing.
 - Existing saved chapter content before generation -> confirm overwrite before calling `generateChapter(..., replaceExisting: true)`.
 

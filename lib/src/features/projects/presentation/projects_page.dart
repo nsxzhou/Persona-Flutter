@@ -463,6 +463,8 @@ class _ProjectRowActions extends ConsumerWidget {
         switch (action) {
           case _ProjectMenuAction.edit:
             _showProjectDialog(context, project: project);
+          case _ProjectMenuAction.openWorkshop:
+            context.go('/projects/${project.id}/workshop');
           case _ProjectMenuAction.archive:
             ref.read(projectControllerProvider.notifier).archive(project.id);
           case _ProjectMenuAction.restore:
@@ -482,6 +484,17 @@ class _ProjectRowActions extends ConsumerWidget {
             ],
           ),
         ),
+        if (project.status == ProjectStatus.active)
+          const PopupMenuItem(
+            value: _ProjectMenuAction.openWorkshop,
+            child: Row(
+              children: [
+                Icon(Icons.edit_note_outlined, size: 18),
+                SizedBox(width: 10),
+                Text('打开工作台'),
+              ],
+            ),
+          ),
         PopupMenuItem(
           value: project.status == ProjectStatus.active
               ? _ProjectMenuAction.archive
@@ -1267,7 +1280,7 @@ Future<void> _confirmDeleteProject(
   }
 }
 
-enum _ProjectMenuAction { edit, archive, restore, delete }
+enum _ProjectMenuAction { edit, openWorkshop, archive, restore, delete }
 
 String? _requiredValidator(String? value) {
   if (value == null || value.trim().isEmpty) {

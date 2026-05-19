@@ -6,6 +6,19 @@ void main() {
   test('assembles writing context sections in stable order', () {
     const sections = WritingContextSections(
       outputContract: '只输出正文。',
+      projectBible: ProjectBiblePromptContext(
+        descriptionMarkdown: '潮湿港城里的长篇悬疑。',
+        worldBuildingMarkdown: '雾港长期被潮汐封锁。',
+        charactersBlueprintMarkdown: '林岚：调查者。',
+        outlineMasterMarkdown: '失踪案牵出港务处阴谋。',
+      ),
+      chapterPlan: ChapterPlanPromptContext(
+        volumeIndex: 1,
+        volumeTitle: '雾港卷',
+        chapterLocalIndex: 1,
+        chapterIndex: 1,
+        coreEvent: '林岚抵达雾港。',
+      ),
       chapterObjectiveCard: ChapterObjectiveCard(
         chapterTitle: '第一章',
         objective: '主角进入雾港。',
@@ -44,6 +57,31 @@ void main() {
 - Payoff Target: 找到第一条线索。
 - Relationship Shift: 主角和向导从互疑转为临时合作。
 - Hook Type: 信息差钩子。
+
+## Chapter Outline Node
+
+- Volume: 1 · 雾港卷
+- Local Chapter Index: 1
+- Whole-book Chapter Index: 1
+- Core Event: 林岚抵达雾港。
+
+## Project Bible
+
+### Description
+
+潮湿港城里的长篇悬疑。
+
+### World Building
+
+雾港长期被潮汐封锁。
+
+### Characters Blueprint
+
+林岚：调查者。
+
+### Master Outline
+
+失踪案牵出港务处阴谋。
 
 ## Voice Profile
 
@@ -92,6 +130,13 @@ void main() {
     () {
       const sections = WritingContextSections(
         outputContract: '只输出正文。',
+        projectBible: ProjectBiblePromptContext(),
+        chapterPlan: ChapterPlanPromptContext(
+          volumeIndex: 1,
+          volumeTitle: '第一卷',
+          chapterLocalIndex: 1,
+          chapterIndex: 1,
+        ),
         chapterObjectiveCard: ChapterObjectiveCard(objective: '推进调查。'),
         voiceProfileMarkdown: '没有标题的文风资产。',
         storyEngineMarkdown: '',
@@ -109,6 +154,7 @@ void main() {
       expect(bundle.promptMarkdown, contains('- Objective: 推进调查。'));
       expect(bundle.promptMarkdown, contains('没有标题的文风资产。'));
       expect(bundle.warnings, [
+        'Project Bible 为空。',
         'Voice Profile 缺少 Markdown 标题。',
         'Story Engine 为空。',
       ]);
