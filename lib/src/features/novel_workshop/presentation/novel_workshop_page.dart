@@ -6,11 +6,16 @@ import 'package:go_router/go_router.dart';
 import '../../../core/ui/glass_container.dart';
 import '../../../core/ui/persona_page.dart';
 import '../../../core/ui/skeleton_loader.dart';
+import '../../plot_lab/application/plot_lab_providers.dart';
+import '../../plot_lab/application/story_engine_normalizer.dart';
+import '../../plot_lab/domain/plot_profile.dart';
 import '../../projects/application/project_providers.dart';
 import '../../projects/domain/writing_project.dart';
-
-import '../../plot_lab/application/story_engine_normalizer.dart';
+import '../../settings/application/provider_config_providers.dart';
+import '../../settings/domain/provider_config.dart';
+import '../../style_lab/application/style_lab_providers.dart';
 import '../../style_lab/application/voice_profile_front_matter.dart';
+import '../../style_lab/domain/style_profile.dart';
 import '../application/novel_workshop_providers.dart';
 import '../application/outline_detail_parser.dart';
 import '../domain/novel_workshop.dart';
@@ -550,9 +555,14 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
               ),
             ),
           ),
-          SizedBox(
-            height: 680,
-            child: TabBarView(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final availableHeight = constraints.maxHeight.isFinite
+                  ? constraints.maxHeight
+                  : MediaQuery.of(context).size.height - 200;
+              return SizedBox(
+                height: availableHeight,
+                child: TabBarView(
               controller: _tabController,
               children: [
                 _ProjectOverviewTab(
@@ -637,6 +647,8 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
                 ),
               ],
             ),
+            );
+          },
           ),
         ],
       ),
@@ -682,9 +694,11 @@ class _ProjectOverviewTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const PersonaSectionHeader(
-            title: '概览',
-            description: 'Workshop 资产总览。骨架大纲只作为初始化细纲的参考输入，不作为主资产展示。',
+          Text(
+            'Workshop 资产总览。',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 16),
           Wrap(
@@ -819,33 +833,35 @@ class _BibleMarkdownEditorTabState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          PersonaSectionHeader(
-            title: widget.title,
-            description: widget.description,
-            trailing: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                if (_editing)
-                  TextButton(
-                    onPressed: state.isLoading ? null : _cancelEditing,
-                    child: const Text('取消'),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  widget.description,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
-                if (_editing)
-                  FilledButton.icon(
-                    key: ValueKey('save-bible-${widget.field.name}'),
-                    onPressed: state.isLoading || !_isDirty ? null : _save,
-                    icon: const Icon(Icons.save_outlined, size: 18),
-                    label: const Text('保存'),
-                  )
-                else
-                  OutlinedButton.icon(
-                    onPressed: () => setState(() => _editing = true),
-                    icon: const Icon(Icons.edit_outlined, size: 18),
-                    label: Text(trimmed.isEmpty ? '开始编辑' : '编辑'),
-                  ),
-              ],
-            ),
+                ),
+              ),
+              if (_editing) ...[
+                TextButton(
+                  onPressed: state.isLoading ? null : _cancelEditing,
+                  child: const Text('取消'),
+                ),
+                const SizedBox(width: 8),
+                FilledButton.icon(
+                  key: ValueKey('save-bible-${widget.field.name}'),
+                  onPressed: state.isLoading || !_isDirty ? null : _save,
+                  icon: const Icon(Icons.save_outlined, size: 18),
+                  label: const Text('保存'),
+                ),
+              ] else if (trimmed.isNotEmpty)
+                OutlinedButton.icon(
+                  onPressed: () => setState(() => _editing = true),
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: const Text('编辑'),
+                ),
+            ],
           ),
           const SizedBox(height: 14),
           if (_editing)
@@ -960,7 +976,12 @@ class _YamlMarkdownAssetTab extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              PersonaSectionHeader(title: title, description: description),
+              Text(
+                description,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
               const SizedBox(height: 14),
               if (parsed.error == null) ...[
                 _MetadataSummary(fields: parsed.fields),
@@ -1006,9 +1027,11 @@ class _RuntimeMemoryTab extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const PersonaSectionHeader(
-                title: 'Runtime Memory',
-                description: '展示创作过程中需要持续保留的角色状态、运行状态、未解决线索和故事摘要。',
+              Text(
+                '展示创作过程中需要持续保留的角色状态、运行状态、未解决线索和故事摘要。',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 16),
               _RuntimeMemoryGrid(memory: item.state),
@@ -1043,10 +1066,11 @@ class _PromptStackTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const PersonaSectionHeader(
-            title: 'Prompt 栈',
-            description:
-                '章节生成会组合项目设定集、章节细纲、Voice Profile、Story Engine 和 Runtime Memory。',
+          Text(
+            '章节生成会组合项目设定集、章节细纲、Voice Profile、Story Engine 和 Runtime Memory。',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 16),
           _AssetDetailTile(
@@ -1074,14 +1098,6 @@ class _PromptStackTab extends StatelessWidget {
                       ? '未绑定 Plot Profile'
                       : '已接入叙事引擎',
                 ),
-                _AssetDetailTile(
-                  title: 'Plot Skeleton',
-                  bound: true,
-                  ready: asset.plotSkeletonMarkdown.trim().isNotEmpty,
-                  detail: asset.plotSkeletonMarkdown.trim().isEmpty
-                      ? '无参考素材'
-                      : '仅作为初始化分卷与章节细纲的参考输入',
-                ),
                 if (asset.warnings.isNotEmpty)
                   _WarningList(warnings: asset.warnings),
               ],
@@ -1106,32 +1122,369 @@ class _PromptStackTab extends StatelessWidget {
   }
 }
 
-class _WorkshopSettingsTab extends StatelessWidget {
+class _WorkshopSettingsTab extends ConsumerStatefulWidget {
   const _WorkshopSettingsTab({required this.project, required this.bible});
 
   final WritingProject project;
   final ProjectBible bible;
 
   @override
+  ConsumerState<_WorkshopSettingsTab> createState() =>
+      _WorkshopSettingsTabState();
+}
+
+class _WorkshopSettingsTabState extends ConsumerState<_WorkshopSettingsTab> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _titleController;
+  late final TextEditingController _descriptionController;
+  late final TextEditingController _languageController;
+  late final TextEditingController _targetLengthController;
+  late final TextEditingController _perspectiveController;
+  late ProjectStatus _status;
+  String? _selectedProviderId;
+  String? _selectedModelName;
+  String? _selectedStyleProfileId;
+  String? _selectedPlotProfileId;
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final p = widget.project;
+    _titleController = TextEditingController(text: p.title);
+    _descriptionController = TextEditingController(text: p.description);
+    _languageController = TextEditingController(text: p.language);
+    _targetLengthController =
+        TextEditingController(text: p.targetLength.toString());
+    _perspectiveController =
+        TextEditingController(text: p.narrativePerspective);
+    _status = p.status;
+    _selectedProviderId = p.defaultProviderId;
+    _selectedModelName = p.defaultModelName;
+    _selectedStyleProfileId = p.styleProfileId;
+    _selectedPlotProfileId = p.plotProfileId;
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    _languageController.dispose();
+    _targetLengthController.dispose();
+    _perspectiveController.dispose();
+    super.dispose();
+  }
+
+  void _syncSelections(
+    List<ProviderConfig> providers,
+    List<StyleProfile> styleProfiles,
+    List<PlotProfile> plotProfiles,
+  ) {
+    if (_initialized) return;
+    _initialized = true;
+    if (_selectedProviderId != null &&
+        providers.every((p) => p.id != _selectedProviderId)) {
+      _selectedProviderId = null;
+      _selectedModelName = null;
+    }
+    if (_selectedStyleProfileId != null &&
+        styleProfiles.every((p) => p.id != _selectedStyleProfileId)) {
+      _selectedStyleProfileId = null;
+    }
+    if (_selectedPlotProfileId != null &&
+        plotProfiles.every((p) => p.id != _selectedPlotProfileId)) {
+      _selectedPlotProfileId = null;
+    }
+  }
+
+  ProviderConfig? _findProvider(List<ProviderConfig> providers) {
+    for (final p in providers) {
+      if (p.id == _selectedProviderId) return p;
+    }
+    return null;
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    final input = WritingProjectInput(
+      title: _titleController.text.trim(),
+      description: _descriptionController.text.trim(),
+      status: _status,
+      defaultProviderId: _selectedProviderId ?? '',
+      defaultModelName: _selectedModelName ?? '',
+      styleProfileId: _selectedStyleProfileId,
+      plotProfileId: _selectedPlotProfileId,
+      language: _languageController.text.trim(),
+      targetLength:
+          int.tryParse(_targetLengthController.text.trim()) ?? 0,
+      narrativePerspective: _perspectiveController.text.trim(),
+    );
+    await ref
+        .read(projectControllerProvider.notifier)
+        .save(id: widget.project.id, input: input);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('设置已保存')),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const PersonaSectionHeader(
-            title: '设置',
-            description: 'Workshop 读取项目默认 Provider、模型、语言、视角与项目设定集状态。',
-          ),
-          const SizedBox(height: 16),
-          _InfoLine(label: '默认 Provider', value: project.defaultProviderId),
-          _InfoLine(label: '默认模型', value: project.defaultModelName),
-          _InfoLine(label: '语言', value: project.language),
-          _InfoLine(label: '目标长度', value: '${project.targetLength} 字'),
-          _InfoLine(label: '叙事视角', value: project.narrativePerspective),
-          _InfoLine(label: '项目设定集更新时间', value: _dateLabel(bible.updatedAt)),
-        ],
+    final state = ref.watch(projectControllerProvider);
+    final providers = ref.watch(providerConfigsProvider);
+    final styleProfiles = ref.watch(styleProfilesProvider);
+    final plotProfiles = ref.watch(plotProfilesProvider);
+    final colorScheme = Theme.of(context).colorScheme;
+
+    ref.listen(projectControllerProvider, (previous, next) {
+      if (next.hasError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('保存失败：${next.error}')),
+        );
+      }
+    });
+
+    return providers.when(
+      data: (providerItems) => styleProfiles.when(
+        data: (styleItems) => plotProfiles.when(
+          data: (plotItems) {
+            _syncSelections(providerItems, styleItems, plotItems);
+            final selectedProvider = _findProvider(providerItems);
+            final selectedModelName =
+                selectedProvider == null ? null : _selectedModelName;
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '修改项目配置和写作参数，保存后立即生效。',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: _titleController,
+                      decoration: const InputDecoration(
+                        labelText: '项目标题',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (v) =>
+                          v == null || v.trim().isEmpty ? '必填' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _descriptionController,
+                      decoration: const InputDecoration(
+                        labelText: '简介 / 一句话概念',
+                        border: OutlineInputBorder(),
+                      ),
+                      minLines: 3,
+                      maxLines: 5,
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      '创作配置',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: _selectedProviderId,
+                      items: [
+                        for (final p in providerItems)
+                          DropdownMenuItem(
+                            value: p.id,
+                            child: Text(
+                              '${p.name} · ${p.defaultModel}',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                      ],
+                      onChanged: providerItems.isEmpty
+                          ? null
+                          : (v) {
+                              if (v != null) {
+                                setState(() {
+                                  _selectedProviderId = v;
+                                  _selectedModelName = null;
+                                });
+                              }
+                            },
+                      decoration: const InputDecoration(
+                        labelText: '默认 Provider',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedModelName,
+                      items: [
+                        for (final name
+                            in selectedProvider?.modelNames ??
+                                const <String>[])
+                          DropdownMenuItem(
+                            value: name,
+                            child: Text(name, overflow: TextOverflow.ellipsis),
+                          ),
+                      ],
+                      onChanged: selectedProvider == null
+                          ? null
+                          : (v) {
+                              if (v != null) {
+                                setState(() => _selectedModelName = v);
+                              }
+                            },
+                      decoration: const InputDecoration(
+                        labelText: '默认模型',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String?>(
+                      initialValue: _selectedStyleProfileId,
+                      items: [
+                        const DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text('不挂载 Style Profile'),
+                        ),
+                        for (final p in styleItems)
+                          DropdownMenuItem<String?>(
+                            value: p.id,
+                            child: Text(
+                              p.styleName,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                      ],
+                      onChanged: (v) =>
+                          setState(() => _selectedStyleProfileId = v),
+                      decoration: const InputDecoration(
+                        labelText: 'Style Profile（可选）',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String?>(
+                      initialValue: _selectedPlotProfileId,
+                      items: [
+                        const DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text('不挂载 Plot Profile'),
+                        ),
+                        for (final p in plotItems)
+                          DropdownMenuItem<String?>(
+                            value: p.id,
+                            child: Text(
+                              p.plotName,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                      ],
+                      onChanged: (v) =>
+                          setState(() => _selectedPlotProfileId = v),
+                      decoration: const InputDecoration(
+                        labelText: 'Plot Profile（可选）',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      '写作参数',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _languageController,
+                            decoration: const InputDecoration(
+                              labelText: '语言',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _targetLengthController,
+                            decoration: const InputDecoration(
+                              labelText: '目标长度',
+                              suffixText: '字',
+                              border: OutlineInputBorder(),
+                            ),
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _perspectiveController,
+                      decoration: const InputDecoration(
+                        labelText: '叙事视角',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      '项目状态',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 8),
+                    RadioGroup<ProjectStatus>(
+                      groupValue: _status,
+                      onChanged: (v) {
+                        if (v != null) setState(() => _status = v);
+                      },
+                      child: Column(
+                        children: [
+                          RadioListTile<ProjectStatus>(
+                            title: const Text('活动项目'),
+                            subtitle: const Text('显示在默认 Projects 工作区。'),
+                            value: ProjectStatus.active,
+                          ),
+                          RadioListTile<ProjectStatus>(
+                            title: const Text('归档项目'),
+                            subtitle:
+                                const Text('从默认工作区隐藏，但保留项目档案。'),
+                            value: ProjectStatus.archived,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _InfoLine(
+                      label: '项目设定集更新时间',
+                      value: _dateLabel(widget.bible.updatedAt),
+                    ),
+                    const SizedBox(height: 20),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: FilledButton.icon(
+                        onPressed: state.isLoading ? null : _save,
+                        icon: const Icon(Icons.save_outlined, size: 18),
+                        label: Text(state.isLoading ? '保存中' : '保存'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Text('无法加载 Plot Profiles：$e'),
+        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Text('无法加载 Style Profiles：$e'),
       ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Text('无法加载 Providers：$e'),
     );
   }
 }
@@ -1263,10 +1616,12 @@ class _ChapterPlanningTab extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
           child: Row(
             children: [
-              const Expanded(
-                child: PersonaSectionHeader(
-                  title: '分卷与章节细纲',
-                  description: '先创建分卷，再在分卷下维护章节细纲。',
+              Expanded(
+                child: Text(
+                  '先创建分卷，再在分卷下维护章节细纲。',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
               OutlinedButton.icon(
@@ -1752,7 +2107,7 @@ class _WorkbenchChapterTile extends StatelessWidget {
   }
 }
 
-class _WorkshopScaffold extends StatelessWidget {
+class _WorkshopScaffold extends StatefulWidget {
   const _WorkshopScaffold({
     required this.project,
     required this.volumes,
@@ -1794,55 +2149,76 @@ class _WorkshopScaffold extends StatelessWidget {
   final VoidCallback? onGenerate;
 
   @override
+  State<_WorkshopScaffold> createState() => _WorkshopScaffoldState();
+}
+
+class _WorkshopScaffoldState extends State<_WorkshopScaffold> {
+  bool _showNavigator = true;
+  bool _showInspector = false;
+
+  void _toggleNavigator() => setState(() => _showNavigator = !_showNavigator);
+  void _toggleInspector() => setState(() => _showInspector = !_showInspector);
+
+  @override
   Widget build(BuildContext context) {
     final selectedRunning =
-        selectedRun?.status == ChapterGenerationStatus.pending ||
-        selectedRun?.status == ChapterGenerationStatus.running;
+        widget.selectedRun?.status == ChapterGenerationStatus.pending ||
+        widget.selectedRun?.status == ChapterGenerationStatus.running;
     return Material(
       color: Colors.transparent,
       child: LayoutBuilder(
         builder: (context, constraints) {
+          final isWide = constraints.maxWidth >= 1120;
+          final isMedium = constraints.maxWidth >= 800;
+
           final navigator = _ChapterNavigator(
-            volumes: volumes,
-            plans: plans,
-            chapters: chapters,
-            runs: runs,
-            selectedPlanId: selectedPlan?.id,
-            onSelectPlan: onSelectPlan,
-            onCreatePlan: onCreatePlan,
+            volumes: widget.volumes,
+            plans: widget.plans,
+            chapters: widget.chapters,
+            runs: widget.runs,
+            selectedPlanId: widget.selectedPlan?.id,
+            onSelectPlan: widget.onSelectPlan,
+            onCreatePlan: widget.onCreatePlan,
           );
           final inspector = _WorkshopInspector(
-            plan: selectedPlan,
-            run: selectedRun,
-            assets: assets,
-            memory: memory,
+            plan: widget.selectedPlan,
+            run: widget.selectedRun,
+            assets: widget.assets,
+            memory: widget.memory,
           );
           final editor = _ManuscriptEditor(
-            plan: selectedPlan,
-            run: selectedRun,
-            controller: editorController,
-            isBusy: isBusy,
-            onEditPlan: onEditPlan,
+            plan: widget.selectedPlan,
+            run: widget.selectedRun,
+            controller: widget.editorController,
+            isBusy: widget.isBusy,
+            onEditPlan: widget.onEditPlan,
           );
-          if (constraints.maxWidth < 1120) {
+
+          if (!isMedium) {
             return Column(
               children: [
                 _WorkshopTopBar(
-                  project: project,
-                  plan: selectedPlan,
-                  isDirty: isDirty,
+                  project: widget.project,
+                  plan: widget.selectedPlan,
+                  isDirty: widget.isDirty,
                   isRunning: selectedRunning,
-                  onCreatePlan: onCreatePlan,
-                  onSaveChapter: onSaveChapter,
-                  onGenerate: onGenerate,
+                  showNavigator: _showNavigator,
+                  showInspector: _showInspector,
+                  onToggleNavigator: _toggleNavigator,
+                  onToggleInspector: _toggleInspector,
+                  onCreatePlan: widget.onCreatePlan,
+                  onSaveChapter: widget.onSaveChapter,
+                  onGenerate: widget.onGenerate,
                 ),
                 Expanded(
                   child: SingleChildScrollView(
                     child: Column(
                       children: [
-                        SizedBox(height: 360, child: navigator),
+                        if (_showNavigator)
+                          SizedBox(height: 360, child: navigator),
                         SizedBox(height: 760, child: editor),
-                        SizedBox(height: 520, child: inspector),
+                        if (_showInspector)
+                          SizedBox(height: 520, child: inspector),
                       ],
                     ),
                   ),
@@ -1850,24 +2226,35 @@ class _WorkshopScaffold extends StatelessWidget {
               ],
             );
           }
+
           return Column(
             children: [
               _WorkshopTopBar(
-                project: project,
-                plan: selectedPlan,
-                isDirty: isDirty,
+                project: widget.project,
+                plan: widget.selectedPlan,
+                isDirty: widget.isDirty,
                 isRunning: selectedRunning,
-                onCreatePlan: onCreatePlan,
-                onSaveChapter: onSaveChapter,
-                onGenerate: onGenerate,
+                showNavigator: _showNavigator,
+                showInspector: _showInspector,
+                onToggleNavigator: _toggleNavigator,
+                onToggleInspector: _toggleInspector,
+                onCreatePlan: widget.onCreatePlan,
+                onSaveChapter: widget.onSaveChapter,
+                onGenerate: widget.onGenerate,
               ),
               Expanded(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    SizedBox(width: 280, child: navigator),
+                    if (_showNavigator)
+                      SizedBox(width: isWide ? 260 : 220, child: navigator),
+                    if (_showNavigator)
+                      VerticalDivider(width: 0.5, color: Theme.of(context).colorScheme.outlineVariant),
                     Expanded(child: editor),
-                    SizedBox(width: 300, child: inspector),
+                    if (_showInspector)
+                      VerticalDivider(width: 0.5, color: Theme.of(context).colorScheme.outlineVariant),
+                    if (_showInspector)
+                      SizedBox(width: 280, child: inspector),
                   ],
                 ),
               ),
@@ -1885,6 +2272,10 @@ class _WorkshopTopBar extends StatelessWidget {
     required this.plan,
     required this.isDirty,
     required this.isRunning,
+    required this.showNavigator,
+    required this.showInspector,
+    required this.onToggleNavigator,
+    required this.onToggleInspector,
     required this.onCreatePlan,
     required this.onSaveChapter,
     required this.onGenerate,
@@ -1894,6 +2285,10 @@ class _WorkshopTopBar extends StatelessWidget {
   final ChapterPlan? plan;
   final bool isDirty;
   final bool isRunning;
+  final bool showNavigator;
+  final bool showInspector;
+  final VoidCallback onToggleNavigator;
+  final VoidCallback onToggleInspector;
   final VoidCallback onCreatePlan;
   final VoidCallback? onSaveChapter;
   final VoidCallback? onGenerate;
@@ -1918,27 +2313,45 @@ class _WorkshopTopBar extends StatelessWidget {
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 10, 18, 10),
+          padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
           child: Row(
             children: [
               IconButton(
                 tooltip: '返回工作台',
                 onPressed: () => context.go('/projects/${project.id}/workshop'),
-                icon: const Icon(Icons.arrow_back),
+                icon: const Icon(Icons.arrow_back, size: 20),
+                iconSize: 20,
+                visualDensity: VisualDensity.compact,
+              ),
+              const SizedBox(width: 4),
+              IconButton(
+                tooltip: showNavigator ? '隐藏章节导航' : '显示章节导航',
+                onPressed: onToggleNavigator,
+                icon: Icon(
+                  showNavigator ? Icons.menu_open : Icons.menu,
+                  size: 20,
+                ),
+                iconSize: 20,
+                visualDensity: VisualDensity.compact,
+                style: IconButton.styleFrom(
+                  backgroundColor: showNavigator
+                      ? colorScheme.primary.withValues(alpha: 0.1)
+                      : Colors.transparent,
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Wrap(
-                  spacing: 12,
-                  runSpacing: 8,
+                  spacing: 10,
+                  runSpacing: 6,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(
                       project.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w900,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                     _CompactStatusPill(
@@ -1962,26 +2375,54 @@ class _WorkshopTopBar extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: 6,
+                runSpacing: 6,
                 alignment: WrapAlignment.end,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   OutlinedButton.icon(
                     onPressed: onCreatePlan,
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('新建章节'),
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('新建'),
+                    style: OutlinedButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
                   ),
                   OutlinedButton.icon(
                     onPressed: onSaveChapter,
-                    icon: const Icon(Icons.save_outlined, size: 18),
-                    label: const Text('保存正文'),
+                    icon: const Icon(Icons.save_outlined, size: 16),
+                    label: const Text('保存'),
+                    style: OutlinedButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
                   ),
                   FilledButton.icon(
                     onPressed: onGenerate,
-                    icon: const Icon(Icons.auto_fix_high_outlined, size: 18),
-                    label: const Text('生成章节'),
+                    icon: const Icon(Icons.auto_fix_high_outlined, size: 16),
+                    label: const Text('生成'),
+                    style: FilledButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: showInspector ? '隐藏诊断面板' : '显示诊断面板',
+                    onPressed: onToggleInspector,
+                    icon: Icon(
+                      showInspector ? Icons.chevron_right : Icons.chevron_left,
+                      size: 20,
+                    ),
+                    iconSize: 20,
+                    visualDensity: VisualDensity.compact,
+                    style: IconButton.styleFrom(
+                      backgroundColor: showInspector
+                          ? colorScheme.primary.withValues(alpha: 0.1)
+                          : Colors.transparent,
+                    ),
                   ),
                 ],
               ),
@@ -2015,46 +2456,44 @@ class _ChapterNavigator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        border: Border(
-          right: BorderSide(color: colorScheme.outlineVariant, width: 0.5),
-        ),
-      ),
+    return ColoredBox(
+      color: colorScheme.surface,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(18, 14, 14, 12),
+            padding: const EdgeInsets.fromLTRB(16, 12, 12, 10),
             child: Row(
               children: [
                 Expanded(
                   child: Text(
-                    '创作导航',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
+                    '章节',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.2,
                     ),
                   ),
                 ),
                 IconButton(
                   tooltip: '新建章节',
                   onPressed: onCreatePlan,
-                  icon: const Icon(Icons.add),
+                  icon: const Icon(Icons.add, size: 18),
+                  iconSize: 18,
+                  visualDensity: VisualDensity.compact,
                 ),
               ],
             ),
           ),
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 12, 18, 10),
-            child: _ChapterProgressStrip(plans: plans, chapters: chapters),
-          ),
+          if (plans.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+              child: _ChapterProgressStrip(plans: plans, chapters: chapters),
+            ),
           if (plans.isEmpty)
             Expanded(
               child: Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(18),
+                  padding: const EdgeInsets.all(16),
                   child: _NavigatorEmptyState(onCreatePlan: onCreatePlan),
                 ),
               ),
@@ -2062,7 +2501,7 @@ class _ChapterNavigator extends StatelessWidget {
           else
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.only(bottom: 18),
+                padding: const EdgeInsets.only(bottom: 16),
                 children: [
                   for (final volume in volumes)
                     _NavigatorVolumeSection(
@@ -2084,7 +2523,7 @@ class _ChapterNavigator extends StatelessWidget {
   }
 }
 
-class _NavigatorVolumeSection extends StatelessWidget {
+class _NavigatorVolumeSection extends StatefulWidget {
   const _NavigatorVolumeSection({
     required this.volume,
     required this.plans,
@@ -2102,27 +2541,77 @@ class _NavigatorVolumeSection extends StatelessWidget {
   final ValueChanged<ChapterPlan> onSelectPlan;
 
   @override
+  State<_NavigatorVolumeSection> createState() => _NavigatorVolumeSectionState();
+}
+
+class _NavigatorVolumeSectionState extends State<_NavigatorVolumeSection> {
+  bool _expanded = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _expanded = widget.selectedPlanId == null ||
+        widget.plans.any((p) => p.id == widget.selectedPlanId);
+  }
+
+  @override
+  void didUpdateWidget(_NavigatorVolumeSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedPlanId != oldWidget.selectedPlanId &&
+        widget.plans.any((p) => p.id == widget.selectedPlanId)) {
+      _expanded = true;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final hasSelected = widget.plans.any((p) => p.id == widget.selectedPlanId);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(18, 14, 18, 8),
-          child: Text(
-            '第 ${volume.volumeIndex} 卷 · ${volume.title}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.labelLarge,
+        InkWell(
+          onTap: () => setState(() => _expanded = !_expanded),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 12, 8),
+            child: Row(
+              children: [
+                Icon(
+                  _expanded ? Icons.expand_more : Icons.chevron_right,
+                  size: 18,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    '第 ${widget.volume.volumeIndex} 卷 · ${widget.volume.title}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      fontWeight: hasSelected ? FontWeight.w800 : FontWeight.w600,
+                      color: hasSelected ? colorScheme.onSurface : colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${widget.plans.length}',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        for (final plan in plans)
-          _ChapterPlanTile(
-            plan: plan,
-            chapter: _chapterForPlan(chapters, plan.id),
-            run: _latestRunForPlan(runs, plan.id),
-            selected: selectedPlanId == plan.id,
-            onTap: () => onSelectPlan(plan),
-          ),
+        if (_expanded)
+          for (final plan in widget.plans)
+            _ChapterPlanTile(
+              plan: plan,
+              chapter: _chapterForPlan(widget.chapters, plan.id),
+              run: _latestRunForPlan(widget.runs, plan.id),
+              selected: widget.selectedPlanId == plan.id,
+              onTap: () => widget.onSelectPlan(plan),
+            ),
       ],
     );
   }
@@ -2153,20 +2642,28 @@ class _ChapterProgressStrip extends StatelessWidget {
       children: [
         Row(
           children: [
-            Text('章节', style: Theme.of(context).textTheme.labelLarge),
+            Text(
+              '$completed/${plans.length}',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const Spacer(),
             Text(
-              '$completed/${plans.length} 已写',
-              style: Theme.of(context).textTheme.labelMedium,
+              '${(progress * 100).round()}%',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         ClipRRect(
           borderRadius: BorderRadius.circular(99),
           child: LinearProgressIndicator(
             value: progress,
-            minHeight: 5,
+            minHeight: 3,
             backgroundColor: colorScheme.surfaceContainerHighest,
           ),
         ),
@@ -2183,34 +2680,31 @@ class _NavigatorEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border.all(color: colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.note_add_outlined, color: colorScheme.primary, size: 30),
-            const SizedBox(height: 12),
-            Text('尚未创建章节', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 6),
-            Text(
-              '先创建章节目标卡，再生成或手写正文。',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 14),
-            OutlinedButton.icon(
-              onPressed: onCreatePlan,
-              icon: const Icon(Icons.add),
-              label: const Text('新建章节'),
-            ),
-          ],
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.note_add_outlined,
+          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+          size: 32,
         ),
-      ),
+        const SizedBox(height: 12),
+        Text(
+          '暂无章节',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+          ),
+        ),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: onCreatePlan,
+          icon: const Icon(Icons.add, size: 16),
+          label: const Text('新建章节'),
+          style: OutlinedButton.styleFrom(
+            visualDensity: VisualDensity.compact,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -2238,77 +2732,74 @@ class _ChapterPlanTile extends StatelessWidget {
         run?.status == ChapterGenerationStatus.pending ||
         run?.status == ChapterGenerationStatus.running;
     final completed = chapter?.contentMarkdown.trim().isNotEmpty ?? false;
-    return DecoratedBox(
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
       decoration: BoxDecoration(
         color: selected
-            ? colorScheme.primary.withValues(alpha: 0.1)
+            ? colorScheme.primary.withValues(alpha: 0.08)
             : Colors.transparent,
         border: Border(
-          bottom: BorderSide(color: colorScheme.outlineVariant),
           left: BorderSide(
             color: selected ? colorScheme.primary : Colors.transparent,
-            width: 3,
+            width: 2.5,
           ),
         ),
       ),
       child: InkWell(
         onTap: onTap,
+        hoverColor: colorScheme.primary.withValues(alpha: 0.04),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(15, 10, 16, 10),
-          child: Column(
+          padding: const EdgeInsets.fromLTRB(14, 8, 12, 8),
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Icon(
-                      running
-                          ? Icons.sync
-                          : completed
-                          ? Icons.check
-                          : Icons.circle_outlined,
-                      size: 17,
-                      color: selected
-                          ? colorScheme.primary
-                          : running
-                          ? colorScheme.primary
-                          : completed
-                          ? Colors.green
-                          : colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Icon(
+                  running
+                      ? Icons.sync
+                      : completed
+                      ? Icons.check_circle_outline
+                      : Icons.radio_button_unchecked,
+                  size: 16,
+                  color: selected
+                      ? colorScheme.primary
+                      : running
+                      ? colorScheme.primary
+                      : completed
+                      ? const Color(0xFF16825D)
+                      : colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _chapterTitle(plan),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodyMedium?.copyWith(
+                        fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                        color: selected ? colorScheme.onSurface : colorScheme.onSurface,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '第 ${plan.chapterIndex} 章 · ${_chapterTitle(plan)}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: textTheme.titleMedium?.copyWith(
-                            fontWeight: selected
-                                ? FontWeight.w900
-                                : FontWeight.w700,
-                          ),
+                    if (selected &&
+                        plan.objectiveCard.objective.trim().isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        plan.objectiveCard.objective,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
                         ),
-                        const SizedBox(height: 5),
-                        Text(
-                          plan.objectiveCard.objective.trim().isEmpty
-                              ? '未填写章节目标。'
-                              : plan.objectiveCard.objective,
-                          maxLines: selected ? 3 : 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ],
           ),
@@ -2338,71 +2829,76 @@ class _ManuscriptEditor extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     if (plan == null) {
       return ColoredBox(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.12),
-        child: const Center(
-          child: PersonaEmptyStateCard(
-            icon: Icons.menu_book_outlined,
-            title: '选择章节后开始写作',
-            description: '左侧章节列表为空时，请先创建章节目标卡。',
+        color: colorScheme.surface,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.menu_book_outlined,
+                size: 48,
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '选择章节后开始写作',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '左侧章节列表为空时，请先创建章节目标卡',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                ),
+              ),
+            ],
           ),
         ),
       );
     }
     return ColoredBox(
-      color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.08),
+      color: colorScheme.surface,
       child: Column(
         children: [
-          _ChapterBanner(plan: plan!, run: run, onEditPlan: onEditPlan),
           if (run?.errorMessage != null)
             _EditorNotice(message: '最近生成失败：${run!.errorMessage}'),
+          _InlineChapterHeader(
+            plan: plan!,
+            run: run,
+            onEditPlan: onEditPlan,
+          ),
           Expanded(
             child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 940),
+                constraints: const BoxConstraints(maxWidth: 860),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: colorScheme.surface,
-                      border: Border.all(
-                        color: colorScheme.outlineVariant.withValues(
-                          alpha: 0.6,
-                        ),
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: [
-                        BoxShadow(
-                          color: colorScheme.shadow.withValues(alpha: 0.04),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+                  padding: const EdgeInsets.fromLTRB(32, 8, 32, 32),
+                  child: TextField(
+                    key: const ValueKey('novel-workshop-editor'),
+                    controller: controller,
+                    enabled: !isBusy,
+                    expands: true,
+                    maxLines: null,
+                    minLines: null,
+                    keyboardType: TextInputType.multiline,
+                    textAlignVertical: TextAlignVertical.top,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontSize: 17,
+                      height: 1.8,
+                      color: colorScheme.onSurface,
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: TextField(
-                        key: const ValueKey('novel-workshop-editor'),
-                        controller: controller,
-                        enabled: !isBusy,
-                        expands: true,
-                        maxLines: null,
-                        minLines: null,
-                        keyboardType: TextInputType.multiline,
-                        textAlignVertical: TextAlignVertical.top,
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontSize: 17,
-                          height: 1.75,
-                          color: colorScheme.onSurface,
-                        ),
-                        decoration: const InputDecoration(
-                          hintText: '在这里写入当前章节正文...',
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          filled: false,
-                          contentPadding: EdgeInsets.fromLTRB(32, 28, 32, 28),
-                        ),
+                    decoration: InputDecoration(
+                      hintText: '开始写第 ${plan!.chapterIndex} 章...',
+                      hintStyle: TextStyle(
+                        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.35),
                       ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      filled: false,
+                      contentPadding: const EdgeInsets.fromLTRB(4, 12, 4, 12),
                     ),
                   ),
                 ),
@@ -2415,8 +2911,8 @@ class _ManuscriptEditor extends StatelessWidget {
   }
 }
 
-class _ChapterBanner extends StatelessWidget {
-  const _ChapterBanner({
+class _InlineChapterHeader extends StatelessWidget {
+  const _InlineChapterHeader({
     required this.plan,
     required this.run,
     required this.onEditPlan,
@@ -2429,67 +2925,71 @@ class _ChapterBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        border: Border(
-          bottom: BorderSide(
-            color: colorScheme.outlineVariant.withValues(alpha: 0.6),
+    final running =
+        run?.status == ChapterGenerationStatus.pending ||
+        run?.status == ChapterGenerationStatus.running;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(36, 12, 24, 0),
+      child: Row(
+        children: [
+          Text(
+            '第 ${plan.chapterIndex} 章',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.3,
+            ),
           ),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 12, 20, 12),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _chapterTitle(plan),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: colorScheme.onSurface,
+              ),
+            ),
+          ),
+          if (running) ...[
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: colorScheme.primary,
+              ),
+            ),
+          ],
+          const SizedBox(width: 8),
+          InkWell(
+            onTap: onEditPlan,
+            borderRadius: BorderRadius.circular(6),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
+                  Icon(
+                    Icons.tune_outlined,
+                    size: 14,
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                  ),
+                  const SizedBox(width: 4),
                   Text(
-                    '当前章节',
+                    '目标',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '第 ${plan.chapterIndex} 章 · ${_chapterTitle(plan)}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _objectiveSummary(plan.objectiveCard),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+                      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 12),
-            if (run != null) ...[
-              _CompactStatusPill(
-                label: _runStatusLabel(run!.status),
-                icon: _runIcon(run!.status),
-                color: _runColor(context, run!.status),
-              ),
-              const SizedBox(width: 8),
-            ],
-            OutlinedButton.icon(
-              onPressed: onEditPlan,
-              icon: const Icon(Icons.tune_outlined, size: 18),
-              label: const Text('编辑目标'),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -2503,23 +3003,22 @@ class _EditorNotice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.errorContainer.withValues(alpha: 0.32),
-        border: Border(bottom: BorderSide(color: colorScheme.outlineVariant)),
-      ),
+    return ColoredBox(
+      color: colorScheme.errorContainer.withValues(alpha: 0.15),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 10, 24, 10),
+        padding: const EdgeInsets.fromLTRB(36, 8, 24, 8),
         child: Row(
           children: [
-            Icon(Icons.error_outline, size: 18, color: colorScheme.error),
+            Icon(Icons.error_outline, size: 15, color: colorScheme.error),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 message,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: colorScheme.error),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colorScheme.error,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -2545,40 +3044,40 @@ class _WorkshopInspector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        border: Border(
-          left: BorderSide(color: colorScheme.outlineVariant, width: 0.5),
-        ),
-      ),
+    return ColoredBox(
+      color: colorScheme.surface,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(18, 14, 18, 12),
+            padding: const EdgeInsets.fromLTRB(16, 12, 12, 10),
             child: Text(
-              '工作流诊断',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+              '诊断',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.2,
+              ),
             ),
           ),
-          const Divider(height: 1),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(18, 16, 18, 24),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _InspectorSection(
                     title: '章节目标',
                     child: plan == null
-                        ? const Text('未选择章节。')
+                        ? Text(
+                            '未选择章节',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                            ),
+                          )
                         : _ObjectiveCardView(card: plan!.objectiveCard),
                   ),
                   _InspectorSection(
-                    title: '上下文状态',
+                    title: '上下文',
                     child: _ContextStatusList(assets: assets, memory: memory),
                   ),
                   _InspectorSection(
@@ -2603,19 +3102,21 @@ class _InspectorSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.2,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: colorScheme.onSurfaceVariant,
+              letterSpacing: 0.3,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           child,
         ],
       ),
@@ -2630,14 +3131,54 @@ class _ObjectiveCardView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final fields = [
+      ('目标', card.objective),
+      ('压力源', card.pressureSource),
+      ('兑现', card.payoffTarget),
+      ('关系', card.relationshipShift),
+      ('钩子', card.hookType),
+    ];
+    final filled = fields.where((f) => f.$2.trim().isNotEmpty).toList();
+    if (filled.isEmpty) {
+      return Text(
+        '未填写目标',
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+        ),
+      );
+    }
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _InfoLine(label: '标题', value: card.chapterTitle),
-        _InfoLine(label: '目标', value: card.objective),
-        _InfoLine(label: '压力源', value: card.pressureSource),
-        _InfoLine(label: '兑现目标', value: card.payoffTarget),
-        _InfoLine(label: '关系变化', value: card.relationshipShift),
-        _InfoLine(label: '钩子类型', value: card.hookType),
+        for (final field in filled)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 36,
+                  child: Text(
+                    field.$1,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    field.$2,
+                    style: Theme.of(context).textTheme.bodySmall,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }
@@ -2697,20 +3238,33 @@ class _AssetStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
           Icon(
-            ready ? Icons.check_circle_outline : Icons.warning_amber_outlined,
-            size: 18,
+            ready ? Icons.check_circle_outline : Icons.radio_button_unchecked,
+            size: 16,
             color: ready
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).colorScheme.error,
+                ? colorScheme.primary
+                : colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
           ),
           const SizedBox(width: 8),
-          Expanded(child: Text(label)),
-          Text(ready ? '已接入' : '缺失'),
+          Expanded(
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+          Text(
+            ready ? '已接入' : '未接入',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: ready
+                  ? colorScheme.primary
+                  : colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+            ),
+          ),
         ],
       ),
     );
@@ -2724,23 +3278,79 @@ class _RunSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final item = run;
     if (item == null) {
-      return const Text('当前章节暂无生成任务。');
+      return Text(
+        '暂无生成任务',
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+        ),
+      );
     }
+    final running =
+        item.status == ChapterGenerationStatus.pending ||
+        item.status == ChapterGenerationStatus.running;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _InfoLine(label: '状态', value: _runStatusLabel(item.status)),
-        _InfoLine(label: '阶段', value: _runStageLabel(item.stage)),
+        Row(
+          children: [
+            Icon(
+              _runIcon(item.status),
+              size: 14,
+              color: _runColor(context, item.status),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              _runStatusLabel(item.status),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: _runColor(context, item.status),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (running) ...[
+              const SizedBox(width: 6),
+              SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(
+                  strokeWidth: 1.5,
+                  color: colorScheme.primary,
+                ),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 6),
         _InfoLine(label: '模型', value: item.modelName),
         if (item.contextWarningsMarkdown.trim().isNotEmpty)
-          _InfoLine(label: 'Warnings', value: item.contextWarningsMarkdown),
-        const SizedBox(height: 10),
-        OutlinedButton.icon(
-          onPressed: () => context.go('/workflow-runs/${item.workflowTaskId}'),
-          icon: const Icon(Icons.open_in_new_outlined),
-          label: const Text('查看 Prompt Trace'),
+          _InfoLine(label: '提示', value: item.contextWarningsMarkdown),
+        const SizedBox(height: 8),
+        InkWell(
+          onTap: () => context.go('/workflow-runs/${item.workflowTaskId}'),
+          borderRadius: BorderRadius.circular(6),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.open_in_new_outlined,
+                  size: 13,
+                  color: colorScheme.primary,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'Prompt Trace',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ],
     );
@@ -2755,15 +3365,30 @@ class _InfoLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final text = value?.trim();
+    if (text == null || text.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Column(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: Theme.of(context).textTheme.labelLarge),
-          const SizedBox(height: 3),
-          Text(text == null || text.isEmpty ? '未填写' : text),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              text,
+              style: Theme.of(context).textTheme.bodySmall,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ],
       ),
     );
@@ -2785,22 +3410,21 @@ class _CompactStatusPill extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        border: Border.all(color: color.withValues(alpha: 0.28)),
-        borderRadius: BorderRadius.circular(8),
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 15, color: color),
-            const SizedBox(width: 6),
+            Icon(icon, size: 13, color: color),
+            const SizedBox(width: 5),
             Text(
               label,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: color,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ],

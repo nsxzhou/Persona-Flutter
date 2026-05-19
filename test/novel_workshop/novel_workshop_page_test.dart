@@ -198,7 +198,7 @@ void main() {
     await tester.tap(find.text('进入编辑器'));
     await tester.pumpAndSettle();
 
-    expect(find.text('创作导航'), findsOneWidget);
+    expect(find.text('章节'), findsOneWidget);
     expect(find.byKey(const ValueKey('novel-workshop-editor')), findsOneWidget);
   });
 
@@ -215,7 +215,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('创作导航'), findsOneWidget);
+    expect(find.text('章节'), findsOneWidget);
 
     await tester.tap(find.byTooltip('返回工作台'));
     await tester.pumpAndSettle();
@@ -238,7 +238,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('编辑目标'));
+    await tester.tap(find.text('目标'));
     await tester.pumpAndSettle();
 
     final indexField = tester.widget<TextField>(
@@ -266,7 +266,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('生成章节'));
+    await tester.tap(find.text('生成'));
     await tester.pumpAndSettle();
 
     expect(find.text('覆盖已有正文'), findsOneWidget);
@@ -304,7 +304,7 @@ void main() {
 
     expect(find.text('正文尚未保存'), findsOneWidget);
 
-    await tester.tap(find.text('保存'));
+    await tester.tap(find.widgetWithText(FilledButton, '保存'));
     await tester.pumpAndSettle();
 
     expect(
@@ -330,17 +330,18 @@ void main() {
       await tester.pumpWidget(
         _WorkshopTestApp(fixture: fixture, initialLocation: _editorLocation),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       expect(
         tester
-            .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '保存正文'))
+            .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '保存'))
             .onPressed,
         isNull,
       );
       expect(
         tester
-            .widget<FilledButton>(find.widgetWithText(FilledButton, '生成章节'))
+            .widget<FilledButton>(find.widgetWithText(FilledButton, '生成'))
             .onPressed,
         isNull,
       );
@@ -369,14 +370,17 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.text('查看 Prompt Trace'));
-    await tester.tap(find.text('查看 Prompt Trace'));
+    await tester.tap(find.byTooltip('显示诊断面板'));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Prompt Trace'));
+    await tester.tap(find.text('Prompt Trace'));
     await tester.pumpAndSettle();
 
     expect(find.text('workflow:task-1'), findsOneWidget);
   });
 
-  testWidgets('compact editor stacks inspector below editor without overflow', (
+  testWidgets('compact editor stacks panels below editor without overflow', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(900, 1200);
@@ -396,9 +400,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('创作导航'), findsOneWidget);
     expect(find.byKey(const ValueKey('novel-workshop-editor')), findsOneWidget);
-    expect(find.text('工作流诊断'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
