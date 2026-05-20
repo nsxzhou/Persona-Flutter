@@ -68,6 +68,13 @@ void main() {
 
     expect(find.text('暂无分卷'), findsOneWidget);
     expect(find.text('新建分卷'), findsWidgets);
+    expect(find.text('先建分卷'), findsNothing);
+    expect(find.text('分卷'), findsWidgets);
+    expect(find.text('章节目标'), findsOneWidget);
+    expect(find.text('已成文'), findsOneWidget);
+    expect(find.text('创建分卷'), findsOneWidget);
+    expect(find.text('添加章节目标'), findsOneWidget);
+    expect(find.text('进入编辑器写正文'), findsOneWidget);
 
     await tester.tap(find.text('新建分卷').first);
     await tester.pump();
@@ -80,6 +87,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(fixture.repository.volumes.single.title, '第一卷');
+    expect(find.text('该分卷暂无章节细纲。'), findsOneWidget);
 
     await tester.tap(find.text('新建章节').first);
     await tester.pump();
