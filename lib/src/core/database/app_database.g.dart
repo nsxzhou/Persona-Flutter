@@ -924,6 +924,21 @@ class $ProviderConfigRecordsTable extends ProviderConfigRecords
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _isSystemPromptEnabledMeta =
+      const VerificationMeta('isSystemPromptEnabled');
+  @override
+  late final GeneratedColumn<bool> isSystemPromptEnabled =
+      GeneratedColumn<bool>(
+        'is_system_prompt_enabled',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("is_system_prompt_enabled" IN (0, 1))',
+        ),
+        defaultValue: const Constant(true),
+      );
   static const VerificationMeta _isEnabledMeta = const VerificationMeta(
     'isEnabled',
   );
@@ -1002,6 +1017,7 @@ class $ProviderConfigRecordsTable extends ProviderConfigRecords
     apiKey,
     defaultModel,
     systemPrompt,
+    isSystemPromptEnabled,
     isEnabled,
     testStatus,
     lastTestedAt,
@@ -1067,6 +1083,15 @@ class $ProviderConfigRecordsTable extends ProviderConfigRecords
         systemPrompt.isAcceptableOrUnknown(
           data['system_prompt']!,
           _systemPromptMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_system_prompt_enabled')) {
+      context.handle(
+        _isSystemPromptEnabledMeta,
+        isSystemPromptEnabled.isAcceptableOrUnknown(
+          data['is_system_prompt_enabled']!,
+          _isSystemPromptEnabledMeta,
         ),
       );
     }
@@ -1151,6 +1176,10 @@ class $ProviderConfigRecordsTable extends ProviderConfigRecords
         DriftSqlType.string,
         data['${effectivePrefix}system_prompt'],
       )!,
+      isSystemPromptEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_system_prompt_enabled'],
+      )!,
       isEnabled: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_enabled'],
@@ -1192,6 +1221,7 @@ class ProviderConfigRecord extends DataClass
   final String apiKey;
   final String defaultModel;
   final String systemPrompt;
+  final bool isSystemPromptEnabled;
   final bool isEnabled;
   final String testStatus;
   final DateTime? lastTestedAt;
@@ -1205,6 +1235,7 @@ class ProviderConfigRecord extends DataClass
     required this.apiKey,
     required this.defaultModel,
     required this.systemPrompt,
+    required this.isSystemPromptEnabled,
     required this.isEnabled,
     required this.testStatus,
     this.lastTestedAt,
@@ -1221,6 +1252,7 @@ class ProviderConfigRecord extends DataClass
     map['api_key'] = Variable<String>(apiKey);
     map['default_model'] = Variable<String>(defaultModel);
     map['system_prompt'] = Variable<String>(systemPrompt);
+    map['is_system_prompt_enabled'] = Variable<bool>(isSystemPromptEnabled);
     map['is_enabled'] = Variable<bool>(isEnabled);
     map['test_status'] = Variable<String>(testStatus);
     if (!nullToAbsent || lastTestedAt != null) {
@@ -1242,6 +1274,7 @@ class ProviderConfigRecord extends DataClass
       apiKey: Value(apiKey),
       defaultModel: Value(defaultModel),
       systemPrompt: Value(systemPrompt),
+      isSystemPromptEnabled: Value(isSystemPromptEnabled),
       isEnabled: Value(isEnabled),
       testStatus: Value(testStatus),
       lastTestedAt: lastTestedAt == null && nullToAbsent
@@ -1267,6 +1300,9 @@ class ProviderConfigRecord extends DataClass
       apiKey: serializer.fromJson<String>(json['apiKey']),
       defaultModel: serializer.fromJson<String>(json['defaultModel']),
       systemPrompt: serializer.fromJson<String>(json['systemPrompt']),
+      isSystemPromptEnabled: serializer.fromJson<bool>(
+        json['isSystemPromptEnabled'],
+      ),
       isEnabled: serializer.fromJson<bool>(json['isEnabled']),
       testStatus: serializer.fromJson<String>(json['testStatus']),
       lastTestedAt: serializer.fromJson<DateTime?>(json['lastTestedAt']),
@@ -1285,6 +1321,7 @@ class ProviderConfigRecord extends DataClass
       'apiKey': serializer.toJson<String>(apiKey),
       'defaultModel': serializer.toJson<String>(defaultModel),
       'systemPrompt': serializer.toJson<String>(systemPrompt),
+      'isSystemPromptEnabled': serializer.toJson<bool>(isSystemPromptEnabled),
       'isEnabled': serializer.toJson<bool>(isEnabled),
       'testStatus': serializer.toJson<String>(testStatus),
       'lastTestedAt': serializer.toJson<DateTime?>(lastTestedAt),
@@ -1301,6 +1338,7 @@ class ProviderConfigRecord extends DataClass
     String? apiKey,
     String? defaultModel,
     String? systemPrompt,
+    bool? isSystemPromptEnabled,
     bool? isEnabled,
     String? testStatus,
     Value<DateTime?> lastTestedAt = const Value.absent(),
@@ -1314,6 +1352,7 @@ class ProviderConfigRecord extends DataClass
     apiKey: apiKey ?? this.apiKey,
     defaultModel: defaultModel ?? this.defaultModel,
     systemPrompt: systemPrompt ?? this.systemPrompt,
+    isSystemPromptEnabled: isSystemPromptEnabled ?? this.isSystemPromptEnabled,
     isEnabled: isEnabled ?? this.isEnabled,
     testStatus: testStatus ?? this.testStatus,
     lastTestedAt: lastTestedAt.present ? lastTestedAt.value : this.lastTestedAt,
@@ -1335,6 +1374,9 @@ class ProviderConfigRecord extends DataClass
       systemPrompt: data.systemPrompt.present
           ? data.systemPrompt.value
           : this.systemPrompt,
+      isSystemPromptEnabled: data.isSystemPromptEnabled.present
+          ? data.isSystemPromptEnabled.value
+          : this.isSystemPromptEnabled,
       isEnabled: data.isEnabled.present ? data.isEnabled.value : this.isEnabled,
       testStatus: data.testStatus.present
           ? data.testStatus.value
@@ -1359,6 +1401,7 @@ class ProviderConfigRecord extends DataClass
           ..write('apiKey: $apiKey, ')
           ..write('defaultModel: $defaultModel, ')
           ..write('systemPrompt: $systemPrompt, ')
+          ..write('isSystemPromptEnabled: $isSystemPromptEnabled, ')
           ..write('isEnabled: $isEnabled, ')
           ..write('testStatus: $testStatus, ')
           ..write('lastTestedAt: $lastTestedAt, ')
@@ -1377,6 +1420,7 @@ class ProviderConfigRecord extends DataClass
     apiKey,
     defaultModel,
     systemPrompt,
+    isSystemPromptEnabled,
     isEnabled,
     testStatus,
     lastTestedAt,
@@ -1394,6 +1438,7 @@ class ProviderConfigRecord extends DataClass
           other.apiKey == this.apiKey &&
           other.defaultModel == this.defaultModel &&
           other.systemPrompt == this.systemPrompt &&
+          other.isSystemPromptEnabled == this.isSystemPromptEnabled &&
           other.isEnabled == this.isEnabled &&
           other.testStatus == this.testStatus &&
           other.lastTestedAt == this.lastTestedAt &&
@@ -1410,6 +1455,7 @@ class ProviderConfigRecordsCompanion
   final Value<String> apiKey;
   final Value<String> defaultModel;
   final Value<String> systemPrompt;
+  final Value<bool> isSystemPromptEnabled;
   final Value<bool> isEnabled;
   final Value<String> testStatus;
   final Value<DateTime?> lastTestedAt;
@@ -1424,6 +1470,7 @@ class ProviderConfigRecordsCompanion
     this.apiKey = const Value.absent(),
     this.defaultModel = const Value.absent(),
     this.systemPrompt = const Value.absent(),
+    this.isSystemPromptEnabled = const Value.absent(),
     this.isEnabled = const Value.absent(),
     this.testStatus = const Value.absent(),
     this.lastTestedAt = const Value.absent(),
@@ -1439,6 +1486,7 @@ class ProviderConfigRecordsCompanion
     required String apiKey,
     required String defaultModel,
     this.systemPrompt = const Value.absent(),
+    this.isSystemPromptEnabled = const Value.absent(),
     this.isEnabled = const Value.absent(),
     required String testStatus,
     this.lastTestedAt = const Value.absent(),
@@ -1461,6 +1509,7 @@ class ProviderConfigRecordsCompanion
     Expression<String>? apiKey,
     Expression<String>? defaultModel,
     Expression<String>? systemPrompt,
+    Expression<bool>? isSystemPromptEnabled,
     Expression<bool>? isEnabled,
     Expression<String>? testStatus,
     Expression<DateTime>? lastTestedAt,
@@ -1476,6 +1525,8 @@ class ProviderConfigRecordsCompanion
       if (apiKey != null) 'api_key': apiKey,
       if (defaultModel != null) 'default_model': defaultModel,
       if (systemPrompt != null) 'system_prompt': systemPrompt,
+      if (isSystemPromptEnabled != null)
+        'is_system_prompt_enabled': isSystemPromptEnabled,
       if (isEnabled != null) 'is_enabled': isEnabled,
       if (testStatus != null) 'test_status': testStatus,
       if (lastTestedAt != null) 'last_tested_at': lastTestedAt,
@@ -1493,6 +1544,7 @@ class ProviderConfigRecordsCompanion
     Value<String>? apiKey,
     Value<String>? defaultModel,
     Value<String>? systemPrompt,
+    Value<bool>? isSystemPromptEnabled,
     Value<bool>? isEnabled,
     Value<String>? testStatus,
     Value<DateTime?>? lastTestedAt,
@@ -1508,6 +1560,8 @@ class ProviderConfigRecordsCompanion
       apiKey: apiKey ?? this.apiKey,
       defaultModel: defaultModel ?? this.defaultModel,
       systemPrompt: systemPrompt ?? this.systemPrompt,
+      isSystemPromptEnabled:
+          isSystemPromptEnabled ?? this.isSystemPromptEnabled,
       isEnabled: isEnabled ?? this.isEnabled,
       testStatus: testStatus ?? this.testStatus,
       lastTestedAt: lastTestedAt ?? this.lastTestedAt,
@@ -1538,6 +1592,11 @@ class ProviderConfigRecordsCompanion
     }
     if (systemPrompt.present) {
       map['system_prompt'] = Variable<String>(systemPrompt.value);
+    }
+    if (isSystemPromptEnabled.present) {
+      map['is_system_prompt_enabled'] = Variable<bool>(
+        isSystemPromptEnabled.value,
+      );
     }
     if (isEnabled.present) {
       map['is_enabled'] = Variable<bool>(isEnabled.value);
@@ -1572,6 +1631,7 @@ class ProviderConfigRecordsCompanion
           ..write('apiKey: $apiKey, ')
           ..write('defaultModel: $defaultModel, ')
           ..write('systemPrompt: $systemPrompt, ')
+          ..write('isSystemPromptEnabled: $isSystemPromptEnabled, ')
           ..write('isEnabled: $isEnabled, ')
           ..write('testStatus: $testStatus, ')
           ..write('lastTestedAt: $lastTestedAt, ')
@@ -13946,6 +14006,7 @@ typedef $$ProviderConfigRecordsTableCreateCompanionBuilder =
       required String apiKey,
       required String defaultModel,
       Value<String> systemPrompt,
+      Value<bool> isSystemPromptEnabled,
       Value<bool> isEnabled,
       required String testStatus,
       Value<DateTime?> lastTestedAt,
@@ -13962,6 +14023,7 @@ typedef $$ProviderConfigRecordsTableUpdateCompanionBuilder =
       Value<String> apiKey,
       Value<String> defaultModel,
       Value<String> systemPrompt,
+      Value<bool> isSystemPromptEnabled,
       Value<bool> isEnabled,
       Value<String> testStatus,
       Value<DateTime?> lastTestedAt,
@@ -14156,6 +14218,11 @@ class $$ProviderConfigRecordsTableFilterComposer
 
   ColumnFilters<String> get systemPrompt => $composableBuilder(
     column: $table.systemPrompt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSystemPromptEnabled => $composableBuilder(
+    column: $table.isSystemPromptEnabled,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -14356,6 +14423,11 @@ class $$ProviderConfigRecordsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isSystemPromptEnabled => $composableBuilder(
+    column: $table.isSystemPromptEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isEnabled => $composableBuilder(
     column: $table.isEnabled,
     builder: (column) => ColumnOrderings(column),
@@ -14415,6 +14487,11 @@ class $$ProviderConfigRecordsTableAnnotationComposer
 
   GeneratedColumn<String> get systemPrompt => $composableBuilder(
     column: $table.systemPrompt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isSystemPromptEnabled => $composableBuilder(
+    column: $table.isSystemPromptEnabled,
     builder: (column) => column,
   );
 
@@ -14625,6 +14702,7 @@ class $$ProviderConfigRecordsTableTableManager
                 Value<String> apiKey = const Value.absent(),
                 Value<String> defaultModel = const Value.absent(),
                 Value<String> systemPrompt = const Value.absent(),
+                Value<bool> isSystemPromptEnabled = const Value.absent(),
                 Value<bool> isEnabled = const Value.absent(),
                 Value<String> testStatus = const Value.absent(),
                 Value<DateTime?> lastTestedAt = const Value.absent(),
@@ -14639,6 +14717,7 @@ class $$ProviderConfigRecordsTableTableManager
                 apiKey: apiKey,
                 defaultModel: defaultModel,
                 systemPrompt: systemPrompt,
+                isSystemPromptEnabled: isSystemPromptEnabled,
                 isEnabled: isEnabled,
                 testStatus: testStatus,
                 lastTestedAt: lastTestedAt,
@@ -14655,6 +14734,7 @@ class $$ProviderConfigRecordsTableTableManager
                 required String apiKey,
                 required String defaultModel,
                 Value<String> systemPrompt = const Value.absent(),
+                Value<bool> isSystemPromptEnabled = const Value.absent(),
                 Value<bool> isEnabled = const Value.absent(),
                 required String testStatus,
                 Value<DateTime?> lastTestedAt = const Value.absent(),
@@ -14669,6 +14749,7 @@ class $$ProviderConfigRecordsTableTableManager
                 apiKey: apiKey,
                 defaultModel: defaultModel,
                 systemPrompt: systemPrompt,
+                isSystemPromptEnabled: isSystemPromptEnabled,
                 isEnabled: isEnabled,
                 testStatus: testStatus,
                 lastTestedAt: lastTestedAt,

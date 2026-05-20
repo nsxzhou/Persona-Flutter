@@ -672,6 +672,7 @@ class _FakeProviderConfigRepository implements ProviderConfigRepository {
   Future<void> updateSystemPrompt({
     required String id,
     required String systemPrompt,
+    bool? isSystemPromptEnabled,
   }) async {}
 
   @override

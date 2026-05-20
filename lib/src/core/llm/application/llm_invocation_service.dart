@@ -29,6 +29,7 @@ class LlmInvocationService {
     final systemPrompt = _promptComposer.compose(
       businessSystemPrompt: businessSystemPrompt,
       providerSystemPrompt: provider.systemPrompt,
+      isProviderPromptEnabled: provider.isSystemPromptEnabled,
     );
     final requestMessages = [
       if (systemPrompt.trim().isNotEmpty) LlmMessage.system(systemPrompt),

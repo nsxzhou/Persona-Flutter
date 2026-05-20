@@ -49,6 +49,7 @@ class DriftProviderConfigRepository implements ProviderConfigRepository {
               apiKey: Value(input.apiKey.trim()),
               defaultModel: Value(modelNames.first),
               systemPrompt: Value(input.systemPrompt.trim()),
+              isSystemPromptEnabled: Value(input.isSystemPromptEnabled),
               isEnabled: Value(input.isEnabled),
               testStatus: Value(ProviderTestStatus.untested.name),
               lastTestedAt: const Value(null),
@@ -132,12 +133,16 @@ class DriftProviderConfigRepository implements ProviderConfigRepository {
   Future<void> updateSystemPrompt({
     required String id,
     required String systemPrompt,
+    bool? isSystemPromptEnabled,
   }) {
     return (_database.update(
       _database.providerConfigRecords,
     )..where((provider) => provider.id.equals(id))).write(
       ProviderConfigRecordsCompanion(
         systemPrompt: Value(systemPrompt.trim()),
+        isSystemPromptEnabled: isSystemPromptEnabled != null
+            ? Value(isSystemPromptEnabled)
+            : const Value.absent(),
         updatedAt: Value(DateTime.now()),
       ),
     );
@@ -176,6 +181,7 @@ class DriftProviderConfigRepository implements ProviderConfigRepository {
       defaultModel: row.defaultModel,
       modelNames: normalizedModels,
       systemPrompt: row.systemPrompt,
+      isSystemPromptEnabled: row.isSystemPromptEnabled,
       isEnabled: row.isEnabled,
       testStatus: ProviderTestStatus.values.byName(row.testStatus),
       lastTestedAt: row.lastTestedAt,

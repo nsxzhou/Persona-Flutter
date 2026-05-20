@@ -701,6 +701,7 @@ class _ProviderDialogState extends ConsumerState<_ProviderDialog> {
             defaultModel: _modelController.text,
             modelNames: _parseModelNames(_modelsController.text),
             systemPrompt: widget.provider?.systemPrompt ?? '',
+            isSystemPromptEnabled: widget.provider?.isSystemPromptEnabled ?? true,
             isEnabled: _isEnabled,
           ),
         );

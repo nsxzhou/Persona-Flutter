@@ -378,7 +378,7 @@ final class ProviderConfigControllerProvider
 }
 
 String _$providerConfigControllerHash() =>
-    r'49b8d80f8453e5d65b54565ba4a0e619bc380e71';
+    r'cfa091cb1ea3273ad7f51b9c6365d48b59b44b1a';
 
 abstract class _$ProviderConfigController extends $AsyncNotifier<void> {
   FutureOr<void> build();

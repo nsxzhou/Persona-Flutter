@@ -93,6 +93,7 @@ class _ProviderDetailContentState
   int _inspectorIndex = 0;
   String? _selectedModelName;
   String? _lastActualModelName;
+  late bool _isSystemPromptEnabled;
   final List<_ChatTranscriptMessage> _messages = [];
   List<LlmMessage> _lastActualRequest = const [];
   StreamSubscription<LlmStreamEvent>? _subscription;
@@ -131,6 +132,7 @@ class _ProviderDetailContentState
     );
     _draftController = TextEditingController();
     _selectedModelName = _initialModelName(widget.provider);
+    _isSystemPromptEnabled = widget.provider.isSystemPromptEnabled;
   }
 
   @override
@@ -145,11 +147,13 @@ class _ProviderDetailContentState
       _errorMessage = null;
       _inspectorIndex = 0;
       _selectedModelName = _initialModelName(widget.provider);
+      _isSystemPromptEnabled = widget.provider.isSystemPromptEnabled;
       unawaited(_subscription?.cancel());
       _subscription = null;
       _streamingAssistantId = null;
     } else if (!_promptHasLocalChanges(oldWidget.provider.systemPrompt)) {
       _promptController.text = widget.provider.systemPrompt;
+      _isSystemPromptEnabled = widget.provider.isSystemPromptEnabled;
     }
     final selected = _selectedModelName?.trim();
     if (selected != null &&
@@ -213,6 +217,7 @@ class _ProviderDetailContentState
               actualRequest: _lastActualRequest,
               isStreaming: _isStreaming,
               selectedIndex: _inspectorIndex,
+              isSystemPromptEnabled: _isSystemPromptEnabled,
               onSelectedIndexChanged: (value) {
                 setState(() => _inspectorIndex = value);
               },
@@ -223,6 +228,10 @@ class _ProviderDetailContentState
                 setState(() => _selectedModelName = value);
               },
               onSavePrompt: _savePrompt,
+              onSystemPromptEnabledChanged: (value) {
+                setState(() => _isSystemPromptEnabled = value);
+                _savePrompt();
+              },
             );
 
             if (constraints.maxWidth < 980) {
@@ -251,6 +260,7 @@ class _ProviderDetailContentState
         .updateSystemPrompt(
           id: widget.provider.id,
           systemPrompt: _promptController.text,
+          isSystemPromptEnabled: _isSystemPromptEnabled,
         );
 
     if (!mounted) {
@@ -302,6 +312,7 @@ class _ProviderDetailContentState
         .streamChat(
           provider: widget.provider.copyWith(
             systemPrompt: _promptController.text,
+            isSystemPromptEnabled: _isSystemPromptEnabled,
           ),
           businessSystemPrompt: _promptController.text.trim().isEmpty
               ? _defaultProviderChatSystemPrompt
@@ -465,8 +476,19 @@ class _ProviderCommandBar extends StatelessWidget {
               PersonaStatusPill(
                 label: provider.systemPrompt.trim().isEmpty
                     ? 'Prompt 未配置'
-                    : 'Prompt 已配置',
-                icon: Icons.notes_outlined,
+                    : provider.isSystemPromptEnabled
+                        ? 'Prompt 已启用'
+                        : 'Prompt 已禁用',
+                icon: provider.systemPrompt.trim().isEmpty
+                    ? Icons.notes_outlined
+                    : provider.isSystemPromptEnabled
+                        ? Icons.check_circle_outline
+                        : Icons.pause_circle_outline,
+                color: provider.systemPrompt.trim().isEmpty
+                    ? null
+                    : provider.isSystemPromptEnabled
+                        ? const Color(0xFF16825D)
+                        : colorScheme.onSurfaceVariant,
               ),
             ],
           );
@@ -753,10 +775,12 @@ class _ProviderInspectorPanel extends ConsumerWidget {
     required this.actualRequest,
     required this.isStreaming,
     required this.selectedIndex,
+    required this.isSystemPromptEnabled,
     required this.onSelectedIndexChanged,
     required this.onTemperatureChanged,
     required this.onModelSelected,
     required this.onSavePrompt,
+    required this.onSystemPromptEnabledChanged,
   });
 
   final ProviderConfig provider;
@@ -767,10 +791,12 @@ class _ProviderInspectorPanel extends ConsumerWidget {
   final List<LlmMessage> actualRequest;
   final bool isStreaming;
   final int selectedIndex;
+  final bool isSystemPromptEnabled;
   final ValueChanged<int> onSelectedIndexChanged;
   final ValueChanged<double> onTemperatureChanged;
   final ValueChanged<String> onModelSelected;
   final Future<void> Function() onSavePrompt;
+  final ValueChanged<bool> onSystemPromptEnabledChanged;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -839,7 +865,9 @@ class _ProviderInspectorPanel extends ConsumerWidget {
                   provider: provider,
                   promptController: promptController,
                   controllerIsLoading: controllerState.isLoading,
+                  isSystemPromptEnabled: isSystemPromptEnabled,
                   onSavePrompt: onSavePrompt,
+                  onSystemPromptEnabledChanged: onSystemPromptEnabledChanged,
                 ),
                 1 => _ParameterInspectorTab(
                   provider: provider,
@@ -868,17 +896,22 @@ class _PromptInspectorTab extends StatelessWidget {
     required this.provider,
     required this.promptController,
     required this.controllerIsLoading,
+    required this.isSystemPromptEnabled,
     required this.onSavePrompt,
+    required this.onSystemPromptEnabledChanged,
   });
 
   final ProviderConfig provider;
   final TextEditingController promptController;
   final bool controllerIsLoading;
+  final bool isSystemPromptEnabled;
   final Future<void> Function() onSavePrompt;
+  final ValueChanged<bool> onSystemPromptEnabledChanged;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -892,16 +925,52 @@ class _PromptInspectorTab extends StatelessWidget {
           '作为该 Provider 的全局系统约束，正式生成时追加到业务 Prompt 后面。',
           style: textTheme.bodyMedium,
         ),
-        const SizedBox(height: 14),
-        TextField(
-          controller: promptController,
-          minLines: 11,
-          maxLines: 16,
-          style: textTheme.bodyMedium,
-          decoration: const InputDecoration(
-            alignLabelWithHint: true,
-            labelText: 'System Prompt',
-            hintText: _defaultProviderChatSystemPrompt,
+        const SizedBox(height: 10),
+        Container(
+          decoration: BoxDecoration(
+            color: isSystemPromptEnabled
+                ? colorScheme.primaryContainer.withValues(alpha: 0.25)
+                : colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSystemPromptEnabled
+                  ? colorScheme.primary.withValues(alpha: 0.3)
+                  : colorScheme.outlineVariant,
+            ),
+          ),
+          child: SwitchListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+            title: Text(
+              '启用 Provider Prompt',
+              style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            subtitle: Text(
+              isSystemPromptEnabled
+                  ? '已启用 · 正式生成时追加到业务 Prompt 后面'
+                  : '已禁用 · 正式生成时忽略此 Prompt',
+              style: textTheme.bodySmall?.copyWith(
+                color: isSystemPromptEnabled
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant,
+              ),
+            ),
+            value: isSystemPromptEnabled,
+            onChanged: onSystemPromptEnabledChanged,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Opacity(
+          opacity: isSystemPromptEnabled ? 1.0 : 0.5,
+          child: TextField(
+            controller: promptController,
+            minLines: 11,
+            maxLines: 16,
+            style: textTheme.bodyMedium,
+            decoration: const InputDecoration(
+              alignLabelWithHint: true,
+              labelText: 'System Prompt',
+              hintText: _defaultProviderChatSystemPrompt,
+            ),
           ),
         ),
         const SizedBox(height: 12),

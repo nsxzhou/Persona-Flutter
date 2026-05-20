@@ -80,12 +80,17 @@ class ProviderConfigController extends _$ProviderConfigController {
   Future<void> updateSystemPrompt({
     required String id,
     required String systemPrompt,
+    bool? isSystemPromptEnabled,
   }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       await ref
           .read(providerConfigRepositoryProvider)
-          .updateSystemPrompt(id: id, systemPrompt: systemPrompt);
+          .updateSystemPrompt(
+            id: id,
+            systemPrompt: systemPrompt,
+            isSystemPromptEnabled: isSystemPromptEnabled,
+          );
     });
   }
 

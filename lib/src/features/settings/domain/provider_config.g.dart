@@ -19,6 +19,7 @@ _ProviderConfig _$ProviderConfigFromJson(Map<String, dynamic> json) =>
               .toList() ??
           const <String>[],
       systemPrompt: json['systemPrompt'] as String? ?? '',
+      isSystemPromptEnabled: json['isSystemPromptEnabled'] as bool? ?? true,
       isEnabled: json['isEnabled'] as bool,
       testStatus: $enumDecode(_$ProviderTestStatusEnumMap, json['testStatus']),
       lastTestedAt: json['lastTestedAt'] == null
@@ -38,6 +39,7 @@ Map<String, dynamic> _$ProviderConfigToJson(_ProviderConfig instance) =>
       'defaultModel': instance.defaultModel,
       'modelNames': instance.modelNames,
       'systemPrompt': instance.systemPrompt,
+      'isSystemPromptEnabled': instance.isSystemPromptEnabled,
       'isEnabled': instance.isEnabled,
       'testStatus': _$ProviderTestStatusEnumMap[instance.testStatus]!,
       'lastTestedAt': instance.lastTestedAt?.toIso8601String(),

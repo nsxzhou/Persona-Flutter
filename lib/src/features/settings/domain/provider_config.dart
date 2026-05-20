@@ -15,6 +15,7 @@ abstract class ProviderConfig with _$ProviderConfig {
     required String defaultModel,
     @Default(<String>[]) List<String> modelNames,
     @Default('') String systemPrompt,
+    @Default(true) bool isSystemPromptEnabled,
     required bool isEnabled,
     required ProviderTestStatus testStatus,
     DateTime? lastTestedAt,
@@ -35,6 +36,7 @@ class ProviderConfigInput {
     required this.defaultModel,
     this.modelNames = const <String>[],
     required this.systemPrompt,
+    this.isSystemPromptEnabled = true,
     required this.isEnabled,
   });
 
@@ -44,5 +46,6 @@ class ProviderConfigInput {
   final String defaultModel;
   final List<String> modelNames;
   final String systemPrompt;
+  final bool isSystemPromptEnabled;
   final bool isEnabled;
 }

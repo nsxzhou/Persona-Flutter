@@ -39,6 +39,8 @@ class ProviderConfigRecords extends Table {
   TextColumn get apiKey => text()();
   TextColumn get defaultModel => text()();
   TextColumn get systemPrompt => text().withDefault(const Constant(''))();
+  BoolColumn get isSystemPromptEnabled =>
+      boolean().withDefault(const Constant(true))();
   BoolColumn get isEnabled => boolean().withDefault(const Constant(true))();
   TextColumn get testStatus => text()();
   DateTimeColumn get lastTestedAt => dateTime().nullable()();
@@ -385,7 +387,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration {
@@ -498,6 +500,14 @@ class AppDatabase extends _$AppDatabase {
           await migrator.createTable(projectBibleRecords);
           await migrator.createTable(chapterVolumeRecords);
           await _migrateWorkshopProjectBibleAndVolumes(migrator);
+        }
+        if (from < 15) {
+          if (await _tableExists('provider_config_records')) {
+            await migrator.addColumn(
+              providerConfigRecords,
+              providerConfigRecords.isSystemPromptEnabled,
+            );
+          }
         }
       },
     );
