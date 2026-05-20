@@ -12,6 +12,7 @@ import '../data/drift_novel_workshop_repository.dart';
 import '../domain/novel_workshop.dart';
 import '../domain/novel_workshop_repository.dart';
 import '../domain/writing_context.dart';
+import 'asset_generation_pipeline.dart';
 import 'chapter_generation_pipeline.dart';
 import 'outline_detail_parser.dart';
 import 'project_prompt_asset_resolver.dart';
@@ -41,6 +42,18 @@ ProjectPromptAssetResolver projectPromptAssetResolver(Ref ref) {
     projectRepository: ref.watch(projectRepositoryProvider),
     styleLabRepository: ref.watch(styleLabRepositoryProvider),
     plotLabRepository: ref.watch(plotLabRepositoryProvider),
+  );
+}
+
+@Riverpod(keepAlive: true)
+AssetGenerationPipeline assetGenerationPipeline(Ref ref) {
+  return AssetGenerationPipeline(
+    repository: ref.watch(novelWorkshopRepositoryProvider),
+    projectRepository: ref.watch(projectRepositoryProvider),
+    providerRepository: ref.watch(providerConfigRepositoryProvider),
+    promptAssetResolver: ref.watch(projectPromptAssetResolverProvider),
+    completionService: ref.watch(markdownCompletionServiceProvider),
+    workflowTaskRepository: ref.watch(workflowTaskRepositoryProvider),
   );
 }
 
@@ -91,6 +104,16 @@ Stream<List<ChapterGenerationRun>> chapterGenerationRuns(
   return ref
       .watch(novelWorkshopRepositoryProvider)
       .watchChapterGenerationRuns(projectId);
+}
+
+@riverpod
+Stream<List<AssetGenerationRun>> assetGenerationRuns(
+  Ref ref,
+  String projectId,
+) {
+  return ref
+      .watch(novelWorkshopRepositoryProvider)
+      .watchAssetGenerationRuns(projectId);
 }
 
 @riverpod
@@ -220,6 +243,37 @@ class NovelWorkshopController extends _$NovelWorkshopController {
       Error.throwWithStackTrace(state.error!, state.stackTrace!);
     }
     ref.invalidate(projectRuntimeMemoryProvider(projectId));
+    return saved;
+  }
+
+  Future<AssetGenerationResult> generateAsset({
+    required String projectId,
+    required AssetGenerationKind kind,
+  }) async {
+    state = const AsyncLoading();
+    late AssetGenerationResult result;
+    state = await AsyncValue.guard(() async {
+      result = await ref
+          .read(assetGenerationPipelineProvider)
+          .generateAsset(projectId: projectId, kind: kind);
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
+    return result;
+  }
+
+  Future<ProjectBible> applyAssetDraft(String runId) async {
+    state = const AsyncLoading();
+    late ProjectBible saved;
+    state = await AsyncValue.guard(() async {
+      saved = await ref
+          .read(novelWorkshopRepositoryProvider)
+          .applyAssetGenerationDraft(runId);
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
     return saved;
   }
 

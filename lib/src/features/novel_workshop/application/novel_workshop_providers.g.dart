@@ -202,6 +202,54 @@ final class ProjectPromptAssetResolverProvider
 String _$projectPromptAssetResolverHash() =>
     r'c7a83ecc1900528b7101d0e564234e227ba9eae9';
 
+@ProviderFor(assetGenerationPipeline)
+final assetGenerationPipelineProvider = AssetGenerationPipelineProvider._();
+
+final class AssetGenerationPipelineProvider
+    extends
+        $FunctionalProvider<
+          AssetGenerationPipeline,
+          AssetGenerationPipeline,
+          AssetGenerationPipeline
+        >
+    with $Provider<AssetGenerationPipeline> {
+  AssetGenerationPipelineProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'assetGenerationPipelineProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$assetGenerationPipelineHash();
+
+  @$internal
+  @override
+  $ProviderElement<AssetGenerationPipeline> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  AssetGenerationPipeline create(Ref ref) {
+    return assetGenerationPipeline(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(AssetGenerationPipeline value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<AssetGenerationPipeline>(value),
+    );
+  }
+}
+
+String _$assetGenerationPipelineHash() =>
+    r'a2d34947184c75b139de59ca21b4029b6df0bce1';
+
 @ProviderFor(chapterGenerationPipeline)
 final chapterGenerationPipelineProvider = ChapterGenerationPipelineProvider._();
 
@@ -634,6 +682,84 @@ final class ChapterGenerationRunsFamily extends $Family
   String toString() => r'chapterGenerationRunsProvider';
 }
 
+@ProviderFor(assetGenerationRuns)
+final assetGenerationRunsProvider = AssetGenerationRunsFamily._();
+
+final class AssetGenerationRunsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<AssetGenerationRun>>,
+          List<AssetGenerationRun>,
+          Stream<List<AssetGenerationRun>>
+        >
+    with
+        $FutureModifier<List<AssetGenerationRun>>,
+        $StreamProvider<List<AssetGenerationRun>> {
+  AssetGenerationRunsProvider._({
+    required AssetGenerationRunsFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'assetGenerationRunsProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$assetGenerationRunsHash();
+
+  @override
+  String toString() {
+    return r'assetGenerationRunsProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<List<AssetGenerationRun>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<AssetGenerationRun>> create(Ref ref) {
+    final argument = this.argument as String;
+    return assetGenerationRuns(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is AssetGenerationRunsProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$assetGenerationRunsHash() =>
+    r'68d52a2405c93624a7c893ecfac4b0efc418f866';
+
+final class AssetGenerationRunsFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<List<AssetGenerationRun>>, String> {
+  AssetGenerationRunsFamily._()
+    : super(
+        retry: null,
+        name: r'assetGenerationRunsProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  AssetGenerationRunsProvider call(String projectId) =>
+      AssetGenerationRunsProvider._(argument: projectId, from: this);
+
+  @override
+  String toString() => r'assetGenerationRunsProvider';
+}
+
 @ProviderFor(chapterGenerationRunByWorkflowTask)
 final chapterGenerationRunByWorkflowTaskProvider =
     ChapterGenerationRunByWorkflowTaskFamily._();
@@ -899,7 +1025,7 @@ final class NovelWorkshopControllerProvider
 }
 
 String _$novelWorkshopControllerHash() =>
-    r'b838c66154c0cb7e791dc58832febb525ab817a0';
+    r'6f8fdb375cf9c460486a9b8c8d02bdbf82aa65cc';
 
 abstract class _$NovelWorkshopController extends $AsyncNotifier<void> {
   FutureOr<void> build();
