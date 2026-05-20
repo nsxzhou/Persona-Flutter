@@ -14,6 +14,8 @@ abstract interface class NovelWorkshopRepository {
     String projectId,
   );
 
+  Stream<List<AssetGenerationRun>> watchAssetGenerationRuns(String projectId);
+
   Stream<ChapterGenerationRun?> watchChapterGenerationRunByWorkflowTask(
     String workflowTaskId,
   );
@@ -33,6 +35,8 @@ abstract interface class NovelWorkshopRepository {
   Future<ProjectChapter?> findChapterByPlan(String chapterPlanId);
 
   Future<ChapterGenerationRun?> findChapterGenerationRun(String id);
+
+  Future<AssetGenerationRun?> findAssetGenerationRun(String id);
 
   Future<bool> hasRunningChapterGeneration(String chapterPlanId);
 
@@ -68,6 +72,25 @@ abstract interface class NovelWorkshopRepository {
   });
 
   Future<ProjectChapter> saveMemorySyncProposal(MemorySyncProposalInput input);
+
+  Future<AssetGenerationRun> createAssetGenerationRun(
+    AssetGenerationRunInput input,
+  );
+
+  Future<AssetGenerationRun> updateAssetGenerationRunState({
+    required String id,
+    required AssetGenerationStatus status,
+    AssetGenerationStage? stage,
+    String? providerId,
+    String? modelName,
+    String? errorMessage,
+    String? logs,
+    String? draftMarkdown,
+    DateTime? startedAt,
+    DateTime? completedAt,
+  });
+
+  Future<ProjectBible> applyAssetGenerationDraft(String runId);
 
   Future<ChapterGenerationRun> createChapterGenerationRun(
     ChapterGenerationRunInput input,

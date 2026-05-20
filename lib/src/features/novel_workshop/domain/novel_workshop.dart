@@ -16,7 +16,19 @@ enum ChapterGenerationStatus { pending, running, succeeded, failed }
 
 enum ChapterGenerationStage { preparingContext, generatingDraft, savingChapter }
 
+enum AssetGenerationKind {
+  worldBuilding,
+  charactersBlueprint,
+  outlineMaster,
+  outlineDetailYaml,
+}
+
+enum AssetGenerationStatus { pending, running, succeeded, failed, applied }
+
+enum AssetGenerationStage { preparingContext, generatingDraft, savingDraft }
+
 const chapterGenerationWorkflowTaskKind = 'novel_chapter_generation';
+const assetGenerationWorkflowTaskKind = 'novel_asset_generation';
 
 class ProjectBible {
   const ProjectBible({
@@ -299,5 +311,65 @@ class ChapterGenerationResult {
   final ChapterGenerationRun run;
   final ProjectChapter chapter;
   final List<String> contextWarnings;
+  final String workflowTaskId;
+}
+
+class AssetGenerationRun {
+  const AssetGenerationRun({
+    required this.id,
+    required this.workflowTaskId,
+    required this.projectId,
+    required this.kind,
+    required this.providerId,
+    required this.modelName,
+    required this.status,
+    required this.stage,
+    required this.errorMessage,
+    required this.logs,
+    required this.draftMarkdown,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.startedAt,
+    required this.completedAt,
+  });
+
+  final String id;
+  final String workflowTaskId;
+  final String projectId;
+  final AssetGenerationKind kind;
+  final String providerId;
+  final String modelName;
+  final AssetGenerationStatus status;
+  final AssetGenerationStage? stage;
+  final String? errorMessage;
+  final String logs;
+  final String draftMarkdown;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? startedAt;
+  final DateTime? completedAt;
+}
+
+class AssetGenerationRunInput {
+  const AssetGenerationRunInput({
+    required this.projectId,
+    required this.kind,
+    required this.providerId,
+    required this.modelName,
+  });
+
+  final String projectId;
+  final AssetGenerationKind kind;
+  final String providerId;
+  final String modelName;
+}
+
+class AssetGenerationResult {
+  const AssetGenerationResult({
+    required this.run,
+    required this.workflowTaskId,
+  });
+
+  final AssetGenerationRun run;
   final String workflowTaskId;
 }

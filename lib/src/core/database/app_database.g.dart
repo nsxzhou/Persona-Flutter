@@ -12877,6 +12877,881 @@ class ChapterGenerationRunRecordsCompanion
   }
 }
 
+class $AssetGenerationRunRecordsTable extends AssetGenerationRunRecords
+    with TableInfo<$AssetGenerationRunRecordsTable, AssetGenerationRunRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AssetGenerationRunRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _workflowTaskIdMeta = const VerificationMeta(
+    'workflowTaskId',
+  );
+  @override
+  late final GeneratedColumn<String> workflowTaskId = GeneratedColumn<String>(
+    'workflow_task_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES workflow_task_records (id)',
+    ),
+  );
+  static const VerificationMeta _projectIdMeta = const VerificationMeta(
+    'projectId',
+  );
+  @override
+  late final GeneratedColumn<String> projectId = GeneratedColumn<String>(
+    'project_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES project_records (id)',
+    ),
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _providerIdMeta = const VerificationMeta(
+    'providerId',
+  );
+  @override
+  late final GeneratedColumn<String> providerId = GeneratedColumn<String>(
+    'provider_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _modelNameMeta = const VerificationMeta(
+    'modelName',
+  );
+  @override
+  late final GeneratedColumn<String> modelName = GeneratedColumn<String>(
+    'model_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _stageMeta = const VerificationMeta('stage');
+  @override
+  late final GeneratedColumn<String> stage = GeneratedColumn<String>(
+    'stage',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _errorMessageMeta = const VerificationMeta(
+    'errorMessage',
+  );
+  @override
+  late final GeneratedColumn<String> errorMessage = GeneratedColumn<String>(
+    'error_message',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _logsMeta = const VerificationMeta('logs');
+  @override
+  late final GeneratedColumn<String> logs = GeneratedColumn<String>(
+    'logs',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _draftMarkdownMeta = const VerificationMeta(
+    'draftMarkdown',
+  );
+  @override
+  late final GeneratedColumn<String> draftMarkdown = GeneratedColumn<String>(
+    'draft_markdown',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _startedAtMeta = const VerificationMeta(
+    'startedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startedAt = GeneratedColumn<DateTime>(
+    'started_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _completedAtMeta = const VerificationMeta(
+    'completedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> completedAt = GeneratedColumn<DateTime>(
+    'completed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    workflowTaskId,
+    projectId,
+    kind,
+    providerId,
+    modelName,
+    status,
+    stage,
+    errorMessage,
+    logs,
+    draftMarkdown,
+    createdAt,
+    updatedAt,
+    startedAt,
+    completedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'asset_generation_run_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AssetGenerationRunRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('workflow_task_id')) {
+      context.handle(
+        _workflowTaskIdMeta,
+        workflowTaskId.isAcceptableOrUnknown(
+          data['workflow_task_id']!,
+          _workflowTaskIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_workflowTaskIdMeta);
+    }
+    if (data.containsKey('project_id')) {
+      context.handle(
+        _projectIdMeta,
+        projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_projectIdMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('provider_id')) {
+      context.handle(
+        _providerIdMeta,
+        providerId.isAcceptableOrUnknown(data['provider_id']!, _providerIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_providerIdMeta);
+    }
+    if (data.containsKey('model_name')) {
+      context.handle(
+        _modelNameMeta,
+        modelName.isAcceptableOrUnknown(data['model_name']!, _modelNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_modelNameMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('stage')) {
+      context.handle(
+        _stageMeta,
+        stage.isAcceptableOrUnknown(data['stage']!, _stageMeta),
+      );
+    }
+    if (data.containsKey('error_message')) {
+      context.handle(
+        _errorMessageMeta,
+        errorMessage.isAcceptableOrUnknown(
+          data['error_message']!,
+          _errorMessageMeta,
+        ),
+      );
+    }
+    if (data.containsKey('logs')) {
+      context.handle(
+        _logsMeta,
+        logs.isAcceptableOrUnknown(data['logs']!, _logsMeta),
+      );
+    }
+    if (data.containsKey('draft_markdown')) {
+      context.handle(
+        _draftMarkdownMeta,
+        draftMarkdown.isAcceptableOrUnknown(
+          data['draft_markdown']!,
+          _draftMarkdownMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('started_at')) {
+      context.handle(
+        _startedAtMeta,
+        startedAt.isAcceptableOrUnknown(data['started_at']!, _startedAtMeta),
+      );
+    }
+    if (data.containsKey('completed_at')) {
+      context.handle(
+        _completedAtMeta,
+        completedAt.isAcceptableOrUnknown(
+          data['completed_at']!,
+          _completedAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AssetGenerationRunRecord map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AssetGenerationRunRecord(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      workflowTaskId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}workflow_task_id'],
+      )!,
+      projectId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}project_id'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      providerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}provider_id'],
+      )!,
+      modelName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model_name'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      stage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stage'],
+      ),
+      errorMessage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}error_message'],
+      ),
+      logs: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}logs'],
+      )!,
+      draftMarkdown: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}draft_markdown'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      startedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}started_at'],
+      ),
+      completedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}completed_at'],
+      ),
+    );
+  }
+
+  @override
+  $AssetGenerationRunRecordsTable createAlias(String alias) {
+    return $AssetGenerationRunRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class AssetGenerationRunRecord extends DataClass
+    implements Insertable<AssetGenerationRunRecord> {
+  final String id;
+  final String workflowTaskId;
+  final String projectId;
+  final String kind;
+  final String providerId;
+  final String modelName;
+  final String status;
+  final String? stage;
+  final String? errorMessage;
+  final String logs;
+  final String draftMarkdown;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? startedAt;
+  final DateTime? completedAt;
+  const AssetGenerationRunRecord({
+    required this.id,
+    required this.workflowTaskId,
+    required this.projectId,
+    required this.kind,
+    required this.providerId,
+    required this.modelName,
+    required this.status,
+    this.stage,
+    this.errorMessage,
+    required this.logs,
+    required this.draftMarkdown,
+    required this.createdAt,
+    required this.updatedAt,
+    this.startedAt,
+    this.completedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['workflow_task_id'] = Variable<String>(workflowTaskId);
+    map['project_id'] = Variable<String>(projectId);
+    map['kind'] = Variable<String>(kind);
+    map['provider_id'] = Variable<String>(providerId);
+    map['model_name'] = Variable<String>(modelName);
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || stage != null) {
+      map['stage'] = Variable<String>(stage);
+    }
+    if (!nullToAbsent || errorMessage != null) {
+      map['error_message'] = Variable<String>(errorMessage);
+    }
+    map['logs'] = Variable<String>(logs);
+    map['draft_markdown'] = Variable<String>(draftMarkdown);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || startedAt != null) {
+      map['started_at'] = Variable<DateTime>(startedAt);
+    }
+    if (!nullToAbsent || completedAt != null) {
+      map['completed_at'] = Variable<DateTime>(completedAt);
+    }
+    return map;
+  }
+
+  AssetGenerationRunRecordsCompanion toCompanion(bool nullToAbsent) {
+    return AssetGenerationRunRecordsCompanion(
+      id: Value(id),
+      workflowTaskId: Value(workflowTaskId),
+      projectId: Value(projectId),
+      kind: Value(kind),
+      providerId: Value(providerId),
+      modelName: Value(modelName),
+      status: Value(status),
+      stage: stage == null && nullToAbsent
+          ? const Value.absent()
+          : Value(stage),
+      errorMessage: errorMessage == null && nullToAbsent
+          ? const Value.absent()
+          : Value(errorMessage),
+      logs: Value(logs),
+      draftMarkdown: Value(draftMarkdown),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      startedAt: startedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(startedAt),
+      completedAt: completedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(completedAt),
+    );
+  }
+
+  factory AssetGenerationRunRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AssetGenerationRunRecord(
+      id: serializer.fromJson<String>(json['id']),
+      workflowTaskId: serializer.fromJson<String>(json['workflowTaskId']),
+      projectId: serializer.fromJson<String>(json['projectId']),
+      kind: serializer.fromJson<String>(json['kind']),
+      providerId: serializer.fromJson<String>(json['providerId']),
+      modelName: serializer.fromJson<String>(json['modelName']),
+      status: serializer.fromJson<String>(json['status']),
+      stage: serializer.fromJson<String?>(json['stage']),
+      errorMessage: serializer.fromJson<String?>(json['errorMessage']),
+      logs: serializer.fromJson<String>(json['logs']),
+      draftMarkdown: serializer.fromJson<String>(json['draftMarkdown']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      startedAt: serializer.fromJson<DateTime?>(json['startedAt']),
+      completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'workflowTaskId': serializer.toJson<String>(workflowTaskId),
+      'projectId': serializer.toJson<String>(projectId),
+      'kind': serializer.toJson<String>(kind),
+      'providerId': serializer.toJson<String>(providerId),
+      'modelName': serializer.toJson<String>(modelName),
+      'status': serializer.toJson<String>(status),
+      'stage': serializer.toJson<String?>(stage),
+      'errorMessage': serializer.toJson<String?>(errorMessage),
+      'logs': serializer.toJson<String>(logs),
+      'draftMarkdown': serializer.toJson<String>(draftMarkdown),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'startedAt': serializer.toJson<DateTime?>(startedAt),
+      'completedAt': serializer.toJson<DateTime?>(completedAt),
+    };
+  }
+
+  AssetGenerationRunRecord copyWith({
+    String? id,
+    String? workflowTaskId,
+    String? projectId,
+    String? kind,
+    String? providerId,
+    String? modelName,
+    String? status,
+    Value<String?> stage = const Value.absent(),
+    Value<String?> errorMessage = const Value.absent(),
+    String? logs,
+    String? draftMarkdown,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Value<DateTime?> startedAt = const Value.absent(),
+    Value<DateTime?> completedAt = const Value.absent(),
+  }) => AssetGenerationRunRecord(
+    id: id ?? this.id,
+    workflowTaskId: workflowTaskId ?? this.workflowTaskId,
+    projectId: projectId ?? this.projectId,
+    kind: kind ?? this.kind,
+    providerId: providerId ?? this.providerId,
+    modelName: modelName ?? this.modelName,
+    status: status ?? this.status,
+    stage: stage.present ? stage.value : this.stage,
+    errorMessage: errorMessage.present ? errorMessage.value : this.errorMessage,
+    logs: logs ?? this.logs,
+    draftMarkdown: draftMarkdown ?? this.draftMarkdown,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    startedAt: startedAt.present ? startedAt.value : this.startedAt,
+    completedAt: completedAt.present ? completedAt.value : this.completedAt,
+  );
+  AssetGenerationRunRecord copyWithCompanion(
+    AssetGenerationRunRecordsCompanion data,
+  ) {
+    return AssetGenerationRunRecord(
+      id: data.id.present ? data.id.value : this.id,
+      workflowTaskId: data.workflowTaskId.present
+          ? data.workflowTaskId.value
+          : this.workflowTaskId,
+      projectId: data.projectId.present ? data.projectId.value : this.projectId,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      providerId: data.providerId.present
+          ? data.providerId.value
+          : this.providerId,
+      modelName: data.modelName.present ? data.modelName.value : this.modelName,
+      status: data.status.present ? data.status.value : this.status,
+      stage: data.stage.present ? data.stage.value : this.stage,
+      errorMessage: data.errorMessage.present
+          ? data.errorMessage.value
+          : this.errorMessage,
+      logs: data.logs.present ? data.logs.value : this.logs,
+      draftMarkdown: data.draftMarkdown.present
+          ? data.draftMarkdown.value
+          : this.draftMarkdown,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      startedAt: data.startedAt.present ? data.startedAt.value : this.startedAt,
+      completedAt: data.completedAt.present
+          ? data.completedAt.value
+          : this.completedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AssetGenerationRunRecord(')
+          ..write('id: $id, ')
+          ..write('workflowTaskId: $workflowTaskId, ')
+          ..write('projectId: $projectId, ')
+          ..write('kind: $kind, ')
+          ..write('providerId: $providerId, ')
+          ..write('modelName: $modelName, ')
+          ..write('status: $status, ')
+          ..write('stage: $stage, ')
+          ..write('errorMessage: $errorMessage, ')
+          ..write('logs: $logs, ')
+          ..write('draftMarkdown: $draftMarkdown, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('completedAt: $completedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    workflowTaskId,
+    projectId,
+    kind,
+    providerId,
+    modelName,
+    status,
+    stage,
+    errorMessage,
+    logs,
+    draftMarkdown,
+    createdAt,
+    updatedAt,
+    startedAt,
+    completedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AssetGenerationRunRecord &&
+          other.id == this.id &&
+          other.workflowTaskId == this.workflowTaskId &&
+          other.projectId == this.projectId &&
+          other.kind == this.kind &&
+          other.providerId == this.providerId &&
+          other.modelName == this.modelName &&
+          other.status == this.status &&
+          other.stage == this.stage &&
+          other.errorMessage == this.errorMessage &&
+          other.logs == this.logs &&
+          other.draftMarkdown == this.draftMarkdown &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.startedAt == this.startedAt &&
+          other.completedAt == this.completedAt);
+}
+
+class AssetGenerationRunRecordsCompanion
+    extends UpdateCompanion<AssetGenerationRunRecord> {
+  final Value<String> id;
+  final Value<String> workflowTaskId;
+  final Value<String> projectId;
+  final Value<String> kind;
+  final Value<String> providerId;
+  final Value<String> modelName;
+  final Value<String> status;
+  final Value<String?> stage;
+  final Value<String?> errorMessage;
+  final Value<String> logs;
+  final Value<String> draftMarkdown;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> startedAt;
+  final Value<DateTime?> completedAt;
+  final Value<int> rowid;
+  const AssetGenerationRunRecordsCompanion({
+    this.id = const Value.absent(),
+    this.workflowTaskId = const Value.absent(),
+    this.projectId = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.providerId = const Value.absent(),
+    this.modelName = const Value.absent(),
+    this.status = const Value.absent(),
+    this.stage = const Value.absent(),
+    this.errorMessage = const Value.absent(),
+    this.logs = const Value.absent(),
+    this.draftMarkdown = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.startedAt = const Value.absent(),
+    this.completedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AssetGenerationRunRecordsCompanion.insert({
+    required String id,
+    required String workflowTaskId,
+    required String projectId,
+    required String kind,
+    required String providerId,
+    required String modelName,
+    required String status,
+    this.stage = const Value.absent(),
+    this.errorMessage = const Value.absent(),
+    this.logs = const Value.absent(),
+    this.draftMarkdown = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.startedAt = const Value.absent(),
+    this.completedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       workflowTaskId = Value(workflowTaskId),
+       projectId = Value(projectId),
+       kind = Value(kind),
+       providerId = Value(providerId),
+       modelName = Value(modelName),
+       status = Value(status),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<AssetGenerationRunRecord> custom({
+    Expression<String>? id,
+    Expression<String>? workflowTaskId,
+    Expression<String>? projectId,
+    Expression<String>? kind,
+    Expression<String>? providerId,
+    Expression<String>? modelName,
+    Expression<String>? status,
+    Expression<String>? stage,
+    Expression<String>? errorMessage,
+    Expression<String>? logs,
+    Expression<String>? draftMarkdown,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? startedAt,
+    Expression<DateTime>? completedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (workflowTaskId != null) 'workflow_task_id': workflowTaskId,
+      if (projectId != null) 'project_id': projectId,
+      if (kind != null) 'kind': kind,
+      if (providerId != null) 'provider_id': providerId,
+      if (modelName != null) 'model_name': modelName,
+      if (status != null) 'status': status,
+      if (stage != null) 'stage': stage,
+      if (errorMessage != null) 'error_message': errorMessage,
+      if (logs != null) 'logs': logs,
+      if (draftMarkdown != null) 'draft_markdown': draftMarkdown,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (startedAt != null) 'started_at': startedAt,
+      if (completedAt != null) 'completed_at': completedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AssetGenerationRunRecordsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? workflowTaskId,
+    Value<String>? projectId,
+    Value<String>? kind,
+    Value<String>? providerId,
+    Value<String>? modelName,
+    Value<String>? status,
+    Value<String?>? stage,
+    Value<String?>? errorMessage,
+    Value<String>? logs,
+    Value<String>? draftMarkdown,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? startedAt,
+    Value<DateTime?>? completedAt,
+    Value<int>? rowid,
+  }) {
+    return AssetGenerationRunRecordsCompanion(
+      id: id ?? this.id,
+      workflowTaskId: workflowTaskId ?? this.workflowTaskId,
+      projectId: projectId ?? this.projectId,
+      kind: kind ?? this.kind,
+      providerId: providerId ?? this.providerId,
+      modelName: modelName ?? this.modelName,
+      status: status ?? this.status,
+      stage: stage ?? this.stage,
+      errorMessage: errorMessage ?? this.errorMessage,
+      logs: logs ?? this.logs,
+      draftMarkdown: draftMarkdown ?? this.draftMarkdown,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      startedAt: startedAt ?? this.startedAt,
+      completedAt: completedAt ?? this.completedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (workflowTaskId.present) {
+      map['workflow_task_id'] = Variable<String>(workflowTaskId.value);
+    }
+    if (projectId.present) {
+      map['project_id'] = Variable<String>(projectId.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (providerId.present) {
+      map['provider_id'] = Variable<String>(providerId.value);
+    }
+    if (modelName.present) {
+      map['model_name'] = Variable<String>(modelName.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (stage.present) {
+      map['stage'] = Variable<String>(stage.value);
+    }
+    if (errorMessage.present) {
+      map['error_message'] = Variable<String>(errorMessage.value);
+    }
+    if (logs.present) {
+      map['logs'] = Variable<String>(logs.value);
+    }
+    if (draftMarkdown.present) {
+      map['draft_markdown'] = Variable<String>(draftMarkdown.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (startedAt.present) {
+      map['started_at'] = Variable<DateTime>(startedAt.value);
+    }
+    if (completedAt.present) {
+      map['completed_at'] = Variable<DateTime>(completedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AssetGenerationRunRecordsCompanion(')
+          ..write('id: $id, ')
+          ..write('workflowTaskId: $workflowTaskId, ')
+          ..write('projectId: $projectId, ')
+          ..write('kind: $kind, ')
+          ..write('providerId: $providerId, ')
+          ..write('modelName: $modelName, ')
+          ..write('status: $status, ')
+          ..write('stage: $stage, ')
+          ..write('errorMessage: $errorMessage, ')
+          ..write('logs: $logs, ')
+          ..write('draftMarkdown: $draftMarkdown, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -12913,6 +13788,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $ProjectChapterRecordsTable(this);
   late final $ChapterGenerationRunRecordsTable chapterGenerationRunRecords =
       $ChapterGenerationRunRecordsTable(this);
+  late final $AssetGenerationRunRecordsTable assetGenerationRunRecords =
+      $AssetGenerationRunRecordsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -12935,6 +13812,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     chapterPlanRecords,
     projectChapterRecords,
     chapterGenerationRunRecords,
+    assetGenerationRunRecords,
   ];
 }
 
@@ -13082,6 +13960,34 @@ final class $$WorkflowTaskRecordsTableReferences
 
     final cache = $_typedResult.readTableOrNull(
       _chapterGenerationRunRecordsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $AssetGenerationRunRecordsTable,
+    List<AssetGenerationRunRecord>
+  >
+  _assetGenerationRunRecordsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.assetGenerationRunRecords,
+        aliasName: $_aliasNameGenerator(
+          db.workflowTaskRecords.id,
+          db.assetGenerationRunRecords.workflowTaskId,
+        ),
+      );
+
+  $$AssetGenerationRunRecordsTableProcessedTableManager
+  get assetGenerationRunRecordsRefs {
+    final manager = $$AssetGenerationRunRecordsTableTableManager(
+      $_db,
+      $_db.assetGenerationRunRecords,
+    ).filter((f) => f.workflowTaskId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _assetGenerationRunRecordsRefsTable($_db),
     );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
@@ -13237,6 +14143,33 @@ class $$WorkflowTaskRecordsTableFilterComposer
               }) => $$ChapterGenerationRunRecordsTableFilterComposer(
                 $db: $db,
                 $table: $db.chapterGenerationRunRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<bool> assetGenerationRunRecordsRefs(
+    Expression<bool> Function($$AssetGenerationRunRecordsTableFilterComposer f)
+    f,
+  ) {
+    final $$AssetGenerationRunRecordsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.assetGenerationRunRecords,
+          getReferencedColumn: (t) => t.workflowTaskId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$AssetGenerationRunRecordsTableFilterComposer(
+                $db: $db,
+                $table: $db.assetGenerationRunRecords,
                 $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
                 joinBuilder: joinBuilder,
                 $removeJoinBuilderFromRootComposer:
@@ -13442,6 +14375,33 @@ class $$WorkflowTaskRecordsTableAnnotationComposer
         );
     return f(composer);
   }
+
+  Expression<T> assetGenerationRunRecordsRefs<T extends Object>(
+    Expression<T> Function($$AssetGenerationRunRecordsTableAnnotationComposer a)
+    f,
+  ) {
+    final $$AssetGenerationRunRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.assetGenerationRunRecords,
+          getReferencedColumn: (t) => t.workflowTaskId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$AssetGenerationRunRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.assetGenerationRunRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$WorkflowTaskRecordsTableTableManager
@@ -13462,6 +14422,7 @@ class $$WorkflowTaskRecordsTableTableManager
             bool styleAnalysisRunRecordsRefs,
             bool plotAnalysisRunRecordsRefs,
             bool chapterGenerationRunRecordsRefs,
+            bool assetGenerationRunRecordsRefs,
           })
         > {
   $$WorkflowTaskRecordsTableTableManager(
@@ -13541,6 +14502,7 @@ class $$WorkflowTaskRecordsTableTableManager
                 styleAnalysisRunRecordsRefs = false,
                 plotAnalysisRunRecordsRefs = false,
                 chapterGenerationRunRecordsRefs = false,
+                assetGenerationRunRecordsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -13551,6 +14513,8 @@ class $$WorkflowTaskRecordsTableTableManager
                     if (plotAnalysisRunRecordsRefs) db.plotAnalysisRunRecords,
                     if (chapterGenerationRunRecordsRefs)
                       db.chapterGenerationRunRecords,
+                    if (assetGenerationRunRecordsRefs)
+                      db.assetGenerationRunRecords,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -13639,6 +14603,27 @@ class $$WorkflowTaskRecordsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (assetGenerationRunRecordsRefs)
+                        await $_getPrefetchedData<
+                          WorkflowTaskRecord,
+                          $WorkflowTaskRecordsTable,
+                          AssetGenerationRunRecord
+                        >(
+                          currentTable: table,
+                          referencedTable: $$WorkflowTaskRecordsTableReferences
+                              ._assetGenerationRunRecordsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$WorkflowTaskRecordsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).assetGenerationRunRecordsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.workflowTaskId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -13664,6 +14649,7 @@ typedef $$WorkflowTaskRecordsTableProcessedTableManager =
         bool styleAnalysisRunRecordsRefs,
         bool plotAnalysisRunRecordsRefs,
         bool chapterGenerationRunRecordsRefs,
+        bool assetGenerationRunRecordsRefs,
       })
     >;
 typedef $$WorkflowPromptTraceRecordsTableCreateCompanionBuilder =
@@ -15600,6 +16586,34 @@ final class $$ProjectRecordsTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<
+    $AssetGenerationRunRecordsTable,
+    List<AssetGenerationRunRecord>
+  >
+  _assetGenerationRunRecordsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.assetGenerationRunRecords,
+        aliasName: $_aliasNameGenerator(
+          db.projectRecords.id,
+          db.assetGenerationRunRecords.projectId,
+        ),
+      );
+
+  $$AssetGenerationRunRecordsTableProcessedTableManager
+  get assetGenerationRunRecordsRefs {
+    final manager = $$AssetGenerationRunRecordsTableTableManager(
+      $_db,
+      $_db.assetGenerationRunRecords,
+    ).filter((f) => f.projectId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _assetGenerationRunRecordsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$ProjectRecordsTableFilterComposer
@@ -15949,6 +16963,33 @@ class $$ProjectRecordsTableFilterComposer
               }) => $$ChapterGenerationRunRecordsTableFilterComposer(
                 $db: $db,
                 $table: $db.chapterGenerationRunRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<bool> assetGenerationRunRecordsRefs(
+    Expression<bool> Function($$AssetGenerationRunRecordsTableFilterComposer f)
+    f,
+  ) {
+    final $$AssetGenerationRunRecordsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.assetGenerationRunRecords,
+          getReferencedColumn: (t) => t.projectId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$AssetGenerationRunRecordsTableFilterComposer(
+                $db: $db,
+                $table: $db.assetGenerationRunRecords,
                 $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
                 joinBuilder: joinBuilder,
                 $removeJoinBuilderFromRootComposer:
@@ -16385,6 +17426,33 @@ class $$ProjectRecordsTableAnnotationComposer
         );
     return f(composer);
   }
+
+  Expression<T> assetGenerationRunRecordsRefs<T extends Object>(
+    Expression<T> Function($$AssetGenerationRunRecordsTableAnnotationComposer a)
+    f,
+  ) {
+    final $$AssetGenerationRunRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.assetGenerationRunRecords,
+          getReferencedColumn: (t) => t.projectId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$AssetGenerationRunRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.assetGenerationRunRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$ProjectRecordsTableTableManager
@@ -16412,6 +17480,7 @@ class $$ProjectRecordsTableTableManager
             bool chapterPlanRecordsRefs,
             bool projectChapterRecordsRefs,
             bool chapterGenerationRunRecordsRefs,
+            bool assetGenerationRunRecordsRefs,
           })
         > {
   $$ProjectRecordsTableTableManager(
@@ -16512,6 +17581,7 @@ class $$ProjectRecordsTableTableManager
                 chapterPlanRecordsRefs = false,
                 projectChapterRecordsRefs = false,
                 chapterGenerationRunRecordsRefs = false,
+                assetGenerationRunRecordsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -16528,6 +17598,8 @@ class $$ProjectRecordsTableTableManager
                     if (projectChapterRecordsRefs) db.projectChapterRecords,
                     if (chapterGenerationRunRecordsRefs)
                       db.chapterGenerationRunRecords,
+                    if (assetGenerationRunRecordsRefs)
+                      db.assetGenerationRunRecords,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -16763,6 +17835,27 @@ class $$ProjectRecordsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (assetGenerationRunRecordsRefs)
+                        await $_getPrefetchedData<
+                          ProjectRecord,
+                          $ProjectRecordsTable,
+                          AssetGenerationRunRecord
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ProjectRecordsTableReferences
+                              ._assetGenerationRunRecordsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ProjectRecordsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).assetGenerationRunRecordsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.projectId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -16795,6 +17888,7 @@ typedef $$ProjectRecordsTableProcessedTableManager =
         bool chapterPlanRecordsRefs,
         bool projectChapterRecordsRefs,
         bool chapterGenerationRunRecordsRefs,
+        bool assetGenerationRunRecordsRefs,
       })
     >;
 typedef $$StyleSampleRecordsTableCreateCompanionBuilder =
@@ -25286,6 +26380,646 @@ typedef $$ChapterGenerationRunRecordsTableProcessedTableManager =
         bool chapterId,
       })
     >;
+typedef $$AssetGenerationRunRecordsTableCreateCompanionBuilder =
+    AssetGenerationRunRecordsCompanion Function({
+      required String id,
+      required String workflowTaskId,
+      required String projectId,
+      required String kind,
+      required String providerId,
+      required String modelName,
+      required String status,
+      Value<String?> stage,
+      Value<String?> errorMessage,
+      Value<String> logs,
+      Value<String> draftMarkdown,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<DateTime?> startedAt,
+      Value<DateTime?> completedAt,
+      Value<int> rowid,
+    });
+typedef $$AssetGenerationRunRecordsTableUpdateCompanionBuilder =
+    AssetGenerationRunRecordsCompanion Function({
+      Value<String> id,
+      Value<String> workflowTaskId,
+      Value<String> projectId,
+      Value<String> kind,
+      Value<String> providerId,
+      Value<String> modelName,
+      Value<String> status,
+      Value<String?> stage,
+      Value<String?> errorMessage,
+      Value<String> logs,
+      Value<String> draftMarkdown,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> startedAt,
+      Value<DateTime?> completedAt,
+      Value<int> rowid,
+    });
+
+final class $$AssetGenerationRunRecordsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $AssetGenerationRunRecordsTable,
+          AssetGenerationRunRecord
+        > {
+  $$AssetGenerationRunRecordsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $WorkflowTaskRecordsTable _workflowTaskIdTable(_$AppDatabase db) =>
+      db.workflowTaskRecords.createAlias(
+        $_aliasNameGenerator(
+          db.assetGenerationRunRecords.workflowTaskId,
+          db.workflowTaskRecords.id,
+        ),
+      );
+
+  $$WorkflowTaskRecordsTableProcessedTableManager get workflowTaskId {
+    final $_column = $_itemColumn<String>('workflow_task_id')!;
+
+    final manager = $$WorkflowTaskRecordsTableTableManager(
+      $_db,
+      $_db.workflowTaskRecords,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_workflowTaskIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $ProjectRecordsTable _projectIdTable(_$AppDatabase db) =>
+      db.projectRecords.createAlias(
+        $_aliasNameGenerator(
+          db.assetGenerationRunRecords.projectId,
+          db.projectRecords.id,
+        ),
+      );
+
+  $$ProjectRecordsTableProcessedTableManager get projectId {
+    final $_column = $_itemColumn<String>('project_id')!;
+
+    final manager = $$ProjectRecordsTableTableManager(
+      $_db,
+      $_db.projectRecords,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_projectIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$AssetGenerationRunRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $AssetGenerationRunRecordsTable> {
+  $$AssetGenerationRunRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get providerId => $composableBuilder(
+    column: $table.providerId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get modelName => $composableBuilder(
+    column: $table.modelName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get stage => $composableBuilder(
+    column: $table.stage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get errorMessage => $composableBuilder(
+    column: $table.errorMessage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get logs => $composableBuilder(
+    column: $table.logs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get draftMarkdown => $composableBuilder(
+    column: $table.draftMarkdown,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$WorkflowTaskRecordsTableFilterComposer get workflowTaskId {
+    final $$WorkflowTaskRecordsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.workflowTaskId,
+      referencedTable: $db.workflowTaskRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkflowTaskRecordsTableFilterComposer(
+            $db: $db,
+            $table: $db.workflowTaskRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ProjectRecordsTableFilterComposer get projectId {
+    final $$ProjectRecordsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.projectId,
+      referencedTable: $db.projectRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProjectRecordsTableFilterComposer(
+            $db: $db,
+            $table: $db.projectRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AssetGenerationRunRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $AssetGenerationRunRecordsTable> {
+  $$AssetGenerationRunRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get providerId => $composableBuilder(
+    column: $table.providerId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get modelName => $composableBuilder(
+    column: $table.modelName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get stage => $composableBuilder(
+    column: $table.stage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get errorMessage => $composableBuilder(
+    column: $table.errorMessage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get logs => $composableBuilder(
+    column: $table.logs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get draftMarkdown => $composableBuilder(
+    column: $table.draftMarkdown,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$WorkflowTaskRecordsTableOrderingComposer get workflowTaskId {
+    final $$WorkflowTaskRecordsTableOrderingComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.workflowTaskId,
+          referencedTable: $db.workflowTaskRecords,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$WorkflowTaskRecordsTableOrderingComposer(
+                $db: $db,
+                $table: $db.workflowTaskRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+
+  $$ProjectRecordsTableOrderingComposer get projectId {
+    final $$ProjectRecordsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.projectId,
+      referencedTable: $db.projectRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProjectRecordsTableOrderingComposer(
+            $db: $db,
+            $table: $db.projectRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AssetGenerationRunRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AssetGenerationRunRecordsTable> {
+  $$AssetGenerationRunRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get providerId => $composableBuilder(
+    column: $table.providerId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get modelName =>
+      $composableBuilder(column: $table.modelName, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get stage =>
+      $composableBuilder(column: $table.stage, builder: (column) => column);
+
+  GeneratedColumn<String> get errorMessage => $composableBuilder(
+    column: $table.errorMessage,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get logs =>
+      $composableBuilder(column: $table.logs, builder: (column) => column);
+
+  GeneratedColumn<String> get draftMarkdown => $composableBuilder(
+    column: $table.draftMarkdown,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startedAt =>
+      $composableBuilder(column: $table.startedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => column,
+  );
+
+  $$WorkflowTaskRecordsTableAnnotationComposer get workflowTaskId {
+    final $$WorkflowTaskRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.workflowTaskId,
+          referencedTable: $db.workflowTaskRecords,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$WorkflowTaskRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.workflowTaskRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+
+  $$ProjectRecordsTableAnnotationComposer get projectId {
+    final $$ProjectRecordsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.projectId,
+      referencedTable: $db.projectRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProjectRecordsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.projectRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AssetGenerationRunRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AssetGenerationRunRecordsTable,
+          AssetGenerationRunRecord,
+          $$AssetGenerationRunRecordsTableFilterComposer,
+          $$AssetGenerationRunRecordsTableOrderingComposer,
+          $$AssetGenerationRunRecordsTableAnnotationComposer,
+          $$AssetGenerationRunRecordsTableCreateCompanionBuilder,
+          $$AssetGenerationRunRecordsTableUpdateCompanionBuilder,
+          (
+            AssetGenerationRunRecord,
+            $$AssetGenerationRunRecordsTableReferences,
+          ),
+          AssetGenerationRunRecord,
+          PrefetchHooks Function({bool workflowTaskId, bool projectId})
+        > {
+  $$AssetGenerationRunRecordsTableTableManager(
+    _$AppDatabase db,
+    $AssetGenerationRunRecordsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AssetGenerationRunRecordsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$AssetGenerationRunRecordsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$AssetGenerationRunRecordsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> workflowTaskId = const Value.absent(),
+                Value<String> projectId = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<String> providerId = const Value.absent(),
+                Value<String> modelName = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String?> stage = const Value.absent(),
+                Value<String?> errorMessage = const Value.absent(),
+                Value<String> logs = const Value.absent(),
+                Value<String> draftMarkdown = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> startedAt = const Value.absent(),
+                Value<DateTime?> completedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AssetGenerationRunRecordsCompanion(
+                id: id,
+                workflowTaskId: workflowTaskId,
+                projectId: projectId,
+                kind: kind,
+                providerId: providerId,
+                modelName: modelName,
+                status: status,
+                stage: stage,
+                errorMessage: errorMessage,
+                logs: logs,
+                draftMarkdown: draftMarkdown,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                startedAt: startedAt,
+                completedAt: completedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String workflowTaskId,
+                required String projectId,
+                required String kind,
+                required String providerId,
+                required String modelName,
+                required String status,
+                Value<String?> stage = const Value.absent(),
+                Value<String?> errorMessage = const Value.absent(),
+                Value<String> logs = const Value.absent(),
+                Value<String> draftMarkdown = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<DateTime?> startedAt = const Value.absent(),
+                Value<DateTime?> completedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AssetGenerationRunRecordsCompanion.insert(
+                id: id,
+                workflowTaskId: workflowTaskId,
+                projectId: projectId,
+                kind: kind,
+                providerId: providerId,
+                modelName: modelName,
+                status: status,
+                stage: stage,
+                errorMessage: errorMessage,
+                logs: logs,
+                draftMarkdown: draftMarkdown,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                startedAt: startedAt,
+                completedAt: completedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$AssetGenerationRunRecordsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({workflowTaskId = false, projectId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (workflowTaskId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.workflowTaskId,
+                                referencedTable:
+                                    $$AssetGenerationRunRecordsTableReferences
+                                        ._workflowTaskIdTable(db),
+                                referencedColumn:
+                                    $$AssetGenerationRunRecordsTableReferences
+                                        ._workflowTaskIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+                    if (projectId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.projectId,
+                                referencedTable:
+                                    $$AssetGenerationRunRecordsTableReferences
+                                        ._projectIdTable(db),
+                                referencedColumn:
+                                    $$AssetGenerationRunRecordsTableReferences
+                                        ._projectIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$AssetGenerationRunRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AssetGenerationRunRecordsTable,
+      AssetGenerationRunRecord,
+      $$AssetGenerationRunRecordsTableFilterComposer,
+      $$AssetGenerationRunRecordsTableOrderingComposer,
+      $$AssetGenerationRunRecordsTableAnnotationComposer,
+      $$AssetGenerationRunRecordsTableCreateCompanionBuilder,
+      $$AssetGenerationRunRecordsTableUpdateCompanionBuilder,
+      (AssetGenerationRunRecord, $$AssetGenerationRunRecordsTableReferences),
+      AssetGenerationRunRecord,
+      PrefetchHooks Function({bool workflowTaskId, bool projectId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -25341,5 +27075,10 @@ class $AppDatabaseManager {
       $$ChapterGenerationRunRecordsTableTableManager(
         _db,
         _db.chapterGenerationRunRecords,
+      );
+  $$AssetGenerationRunRecordsTableTableManager get assetGenerationRunRecords =>
+      $$AssetGenerationRunRecordsTableTableManager(
+        _db,
+        _db.assetGenerationRunRecords,
       );
 }

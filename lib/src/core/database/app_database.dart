@@ -362,6 +362,28 @@ class ChapterGenerationRunRecords extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+class AssetGenerationRunRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get workflowTaskId =>
+      text().references(WorkflowTaskRecords, #id)();
+  TextColumn get projectId => text().references(ProjectRecords, #id)();
+  TextColumn get kind => text()();
+  TextColumn get providerId => text()();
+  TextColumn get modelName => text()();
+  TextColumn get status => text()();
+  TextColumn get stage => text().nullable()();
+  TextColumn get errorMessage => text().nullable()();
+  TextColumn get logs => text().withDefault(const Constant(''))();
+  TextColumn get draftMarkdown => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  DateTimeColumn get startedAt => dateTime().nullable()();
+  DateTimeColumn get completedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     WorkflowTaskRecords,
@@ -381,13 +403,14 @@ class ChapterGenerationRunRecords extends Table {
     ChapterPlanRecords,
     ProjectChapterRecords,
     ChapterGenerationRunRecords,
+    AssetGenerationRunRecords,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration {
@@ -508,6 +531,9 @@ class AppDatabase extends _$AppDatabase {
               providerConfigRecords.isSystemPromptEnabled,
             );
           }
+        }
+        if (from < 16) {
+          await migrator.createTable(assetGenerationRunRecords);
         }
       },
     );
