@@ -75,6 +75,19 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
   }
 
   @override
+  Stream<List<AssetGenerationRun>> watchAssetGenerationRuns(String projectId) {
+    final query = _database.select(_database.assetGenerationRunRecords)
+      ..where((run) => run.projectId.equals(projectId))
+      ..orderBy([
+        (run) =>
+            OrderingTerm(expression: run.updatedAt, mode: OrderingMode.desc),
+      ]);
+    return query.watch().map(
+      (rows) => rows.map(_mapAssetGenerationRun).toList(growable: false),
+    );
+  }
+
+  @override
   Stream<ChapterGenerationRun?> watchChapterGenerationRunByWorkflowTask(
     String workflowTaskId,
   ) {
@@ -120,6 +133,15 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       ..limit(1);
     final row = await query.getSingleOrNull();
     return row == null ? null : _mapGenerationRun(row);
+  }
+
+  @override
+  Future<AssetGenerationRun?> findAssetGenerationRun(String id) async {
+    final query = _database.select(_database.assetGenerationRunRecords)
+      ..where((run) => run.id.equals(id))
+      ..limit(1);
+    final row = await query.getSingleOrNull();
+    return row == null ? null : _mapAssetGenerationRun(row);
   }
 
   @override
@@ -532,6 +554,188 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
   }
 
   @override
+  Future<AssetGenerationRun> createAssetGenerationRun(
+    AssetGenerationRunInput input,
+  ) async {
+    if (input.projectId.trim().isEmpty) {
+      throw StateError('资产生成任务需要 Project。');
+    }
+    await _requireProject(input.projectId);
+    final now = DateTime.now();
+    final runId = _uuid.v4();
+    final taskId = _uuid.v4();
+
+    await _database.transaction(() async {
+      await _database
+          .into(_database.workflowTaskRecords)
+          .insert(
+            WorkflowTaskRecordsCompanion.insert(
+              id: taskId,
+              kind: assetGenerationWorkflowTaskKind,
+              status: WorkflowTaskStatus.pending.name,
+              title: _assetGenerationTaskTitle(input.kind),
+              stage: const Value('queued'),
+              errorMessage: const Value(null),
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+      await _database
+          .into(_database.assetGenerationRunRecords)
+          .insert(
+            AssetGenerationRunRecordsCompanion.insert(
+              id: runId,
+              workflowTaskId: taskId,
+              projectId: input.projectId,
+              kind: input.kind.name,
+              providerId: input.providerId.trim(),
+              modelName: input.modelName.trim(),
+              status: AssetGenerationStatus.pending.name,
+              stage: const Value(null),
+              errorMessage: const Value(null),
+              logs: const Value(''),
+              draftMarkdown: const Value(''),
+              createdAt: now,
+              updatedAt: now,
+              startedAt: const Value(null),
+              completedAt: const Value(null),
+            ),
+          );
+    });
+
+    final saved = await findAssetGenerationRun(runId);
+    if (saved == null) {
+      throw StateError('Asset generation run was not created.');
+    }
+    return saved;
+  }
+
+  @override
+  Future<AssetGenerationRun> updateAssetGenerationRunState({
+    required String id,
+    required AssetGenerationStatus status,
+    AssetGenerationStage? stage,
+    String? providerId,
+    String? modelName,
+    String? errorMessage,
+    String? logs,
+    String? draftMarkdown,
+    DateTime? startedAt,
+    DateTime? completedAt,
+  }) async {
+    final run = await findAssetGenerationRun(id);
+    if (run == null) {
+      throw StateError('Asset generation run does not exist: $id');
+    }
+    final now = DateTime.now();
+
+    await _database.transaction(() async {
+      await (_database.update(
+        _database.assetGenerationRunRecords,
+      )..where((row) => row.id.equals(id))).write(
+        AssetGenerationRunRecordsCompanion(
+          status: Value(status.name),
+          stage: Value(stage?.name),
+          providerId: providerId == null
+              ? const Value.absent()
+              : Value(providerId.trim()),
+          modelName: modelName == null
+              ? const Value.absent()
+              : Value(modelName.trim()),
+          errorMessage: Value(errorMessage),
+          logs: logs == null ? const Value.absent() : Value(logs),
+          draftMarkdown: draftMarkdown == null
+              ? const Value.absent()
+              : Value(draftMarkdown.trim()),
+          startedAt: startedAt == null
+              ? const Value.absent()
+              : Value(startedAt),
+          completedAt: completedAt == null
+              ? const Value.absent()
+              : Value(completedAt),
+          updatedAt: Value(now),
+        ),
+      );
+      await _updateWorkflowTaskForAssetGenerationRun(
+        workflowTaskId: run.workflowTaskId,
+        status: status,
+        stage: stage,
+        errorMessage: errorMessage,
+        updatedAt: now,
+      );
+    });
+
+    final saved = await findAssetGenerationRun(id);
+    if (saved == null) {
+      throw StateError('Asset generation run was not updated.');
+    }
+    return saved;
+  }
+
+  @override
+  Future<ProjectBible> applyAssetGenerationDraft(String runId) async {
+    final run = await findAssetGenerationRun(runId);
+    if (run == null) {
+      throw StateError('Asset generation run does not exist: $runId');
+    }
+    if (run.status != AssetGenerationStatus.succeeded &&
+        run.status != AssetGenerationStatus.applied) {
+      throw StateError('只有已生成的资产草稿可以应用。');
+    }
+    final draft = run.draftMarkdown.trim();
+    if (draft.isEmpty) {
+      throw StateError('资产草稿为空，无法应用。');
+    }
+
+    final bible = await ensureProjectBible(run.projectId);
+    final saved = switch (run.kind) {
+      AssetGenerationKind.worldBuilding => await saveProjectBible(
+        ProjectBibleInput(
+          projectId: run.projectId,
+          descriptionMarkdown: bible.descriptionMarkdown,
+          worldBuildingMarkdown: draft,
+          charactersBlueprintMarkdown: bible.charactersBlueprintMarkdown,
+          outlineMasterMarkdown: bible.outlineMasterMarkdown,
+          outlineDetailYaml: bible.outlineDetailYaml,
+        ),
+      ),
+      AssetGenerationKind.charactersBlueprint => await saveProjectBible(
+        ProjectBibleInput(
+          projectId: run.projectId,
+          descriptionMarkdown: bible.descriptionMarkdown,
+          worldBuildingMarkdown: bible.worldBuildingMarkdown,
+          charactersBlueprintMarkdown: draft,
+          outlineMasterMarkdown: bible.outlineMasterMarkdown,
+          outlineDetailYaml: bible.outlineDetailYaml,
+        ),
+      ),
+      AssetGenerationKind.outlineMaster => await saveProjectBible(
+        ProjectBibleInput(
+          projectId: run.projectId,
+          descriptionMarkdown: bible.descriptionMarkdown,
+          worldBuildingMarkdown: bible.worldBuildingMarkdown,
+          charactersBlueprintMarkdown: bible.charactersBlueprintMarkdown,
+          outlineMasterMarkdown: draft,
+          outlineDetailYaml: bible.outlineDetailYaml,
+        ),
+      ),
+      AssetGenerationKind.outlineDetailYaml => await saveOutlineDetailYaml(
+        projectId: run.projectId,
+        outlineDetailYaml: draft,
+      ),
+    };
+
+    await updateAssetGenerationRunState(
+      id: run.id,
+      status: AssetGenerationStatus.applied,
+      stage: null,
+      errorMessage: null,
+      completedAt: run.completedAt,
+    );
+    return saved;
+  }
+
+  @override
   Future<ChapterGenerationRun> createChapterGenerationRun(
     ChapterGenerationRunInput input,
   ) async {
@@ -844,6 +1048,28 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     );
   }
 
+  AssetGenerationRun _mapAssetGenerationRun(AssetGenerationRunRecord row) {
+    return AssetGenerationRun(
+      id: row.id,
+      workflowTaskId: row.workflowTaskId,
+      projectId: row.projectId,
+      kind: AssetGenerationKind.values.byName(row.kind),
+      providerId: row.providerId,
+      modelName: row.modelName,
+      status: AssetGenerationStatus.values.byName(row.status),
+      stage: row.stage == null
+          ? null
+          : AssetGenerationStage.values.byName(row.stage!),
+      errorMessage: row.errorMessage,
+      logs: row.logs,
+      draftMarkdown: row.draftMarkdown,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      startedAt: row.startedAt,
+      completedAt: row.completedAt,
+    );
+  }
+
   String _generationTaskTitle(ChapterPlan? plan) {
     final title = plan?.objectiveCard.chapterTitle.trim();
     if (title == null || title.isEmpty) {
@@ -852,12 +1078,35 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     return '章节生成：$title';
   }
 
+  String _assetGenerationTaskTitle(AssetGenerationKind kind) {
+    return '资产生成：${_assetKindLabel(kind)}';
+  }
+
+  String _assetKindLabel(AssetGenerationKind kind) {
+    return switch (kind) {
+      AssetGenerationKind.worldBuilding => '世界观设定',
+      AssetGenerationKind.charactersBlueprint => '角色索引与关系网',
+      AssetGenerationKind.outlineMaster => '总纲',
+      AssetGenerationKind.outlineDetailYaml => '分卷与章节细纲',
+    };
+  }
+
   WorkflowTaskStatus _workflowStatus(ChapterGenerationStatus status) {
     return switch (status) {
       ChapterGenerationStatus.pending => WorkflowTaskStatus.pending,
       ChapterGenerationStatus.running => WorkflowTaskStatus.running,
       ChapterGenerationStatus.succeeded => WorkflowTaskStatus.succeeded,
       ChapterGenerationStatus.failed => WorkflowTaskStatus.failed,
+    };
+  }
+
+  WorkflowTaskStatus _assetWorkflowStatus(AssetGenerationStatus status) {
+    return switch (status) {
+      AssetGenerationStatus.pending => WorkflowTaskStatus.pending,
+      AssetGenerationStatus.running => WorkflowTaskStatus.running,
+      AssetGenerationStatus.succeeded => WorkflowTaskStatus.succeeded,
+      AssetGenerationStatus.failed => WorkflowTaskStatus.failed,
+      AssetGenerationStatus.applied => WorkflowTaskStatus.succeeded,
     };
   }
 
@@ -873,6 +1122,25 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     )..where((task) => task.id.equals(workflowTaskId))).write(
       WorkflowTaskRecordsCompanion(
         status: Value(_workflowStatus(status).name),
+        stage: Value(stage?.name),
+        errorMessage: Value(errorMessage),
+        updatedAt: Value(updatedAt),
+      ),
+    );
+  }
+
+  Future<void> _updateWorkflowTaskForAssetGenerationRun({
+    required String workflowTaskId,
+    required AssetGenerationStatus status,
+    required AssetGenerationStage? stage,
+    required String? errorMessage,
+    required DateTime updatedAt,
+  }) {
+    return (_database.update(
+      _database.workflowTaskRecords,
+    )..where((task) => task.id.equals(workflowTaskId))).write(
+      WorkflowTaskRecordsCompanion(
+        status: Value(_assetWorkflowStatus(status).name),
         stage: Value(stage?.name),
         errorMessage: Value(errorMessage),
         updatedAt: Value(updatedAt),
