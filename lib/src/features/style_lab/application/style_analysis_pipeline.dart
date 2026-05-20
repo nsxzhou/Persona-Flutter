@@ -5,7 +5,7 @@ import '../../../core/tasks/application/workflow_task_repository.dart';
 import '../../settings/domain/provider_config.dart';
 import '../domain/style_analysis_run.dart';
 import '../domain/style_lab_repository.dart';
-import 'style_input_classification.dart';
+
 import 'style_lab_prompts.dart';
 import 'voice_profile_front_matter.dart';
 
@@ -94,9 +94,10 @@ class StyleAnalysisPipeline {
       if (chunks.isEmpty) {
         throw StateError('样本文本没有可分析的有效内容。');
       }
-      final classification = StyleInputClassification.detect(
+      final classification = InputClassification.detect(
         text: sample.content,
         chunkCount: chunks.length,
+        sampleLineLimit: 200,
       );
       await transition(
         StyleAnalysisStatus.running,

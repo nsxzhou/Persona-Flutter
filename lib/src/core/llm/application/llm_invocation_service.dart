@@ -1,19 +1,14 @@
 import '../../../features/settings/domain/provider_config.dart';
 import '../domain/llm_client.dart';
+import '../domain/llm_error_utils.dart';
 import '../domain/llm_message.dart';
 import '../domain/llm_request.dart';
 import '../domain/llm_stream_event.dart';
-import 'provider_prompt_composer.dart';
 
 class LlmInvocationService {
-  const LlmInvocationService({
-    required LlmClient client,
-    ProviderPromptComposer promptComposer = const ProviderPromptComposer(),
-  }) : _client = client,
-       _promptComposer = promptComposer;
+  const LlmInvocationService({required LlmClient client}) : _client = client;
 
   final LlmClient _client;
-  final ProviderPromptComposer _promptComposer;
 
   Stream<LlmStreamEvent> streamChat({
     required ProviderConfig provider,
@@ -26,7 +21,7 @@ class LlmInvocationService {
     final resolvedModelName = modelName?.trim().isNotEmpty == true
         ? modelName!.trim()
         : provider.defaultModel;
-    final systemPrompt = _promptComposer.compose(
+    final systemPrompt = _composeSystemPrompt(
       businessSystemPrompt: businessSystemPrompt,
       providerSystemPrompt: provider.systemPrompt,
       isProviderPromptEnabled: provider.isSystemPromptEnabled,
@@ -96,10 +91,19 @@ class LlmInvocationService {
   }
 
   String _truncateError(String message) {
-    if (message.length <= 220) {
-      return message;
-    }
-    return '${message.substring(0, 217)}...';
+    return sanitizeLlmError(message, '');
+  }
+
+  String _composeSystemPrompt({
+    required String businessSystemPrompt,
+    required String providerSystemPrompt,
+    bool isProviderPromptEnabled = true,
+  }) {
+    final business = businessSystemPrompt.trim();
+    final provider = providerSystemPrompt.trim();
+    if (!isProviderPromptEnabled || provider.isEmpty) return business;
+    if (business.isEmpty) return provider;
+    return '$business\n\n$provider';
   }
 }
 

@@ -6,8 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/analysis_lab_widgets.dart';
 import '../../../core/ui/glass_container.dart';
 import '../../../core/ui/persona_page.dart';
+import '../../../core/utils/markdown_utils.dart';
 import '../../projects/application/project_providers.dart';
 import '../../projects/domain/writing_project.dart';
 import '../../settings/application/provider_config_providers.dart';
@@ -55,7 +57,7 @@ class _StyleLabPageState extends ConsumerState<StyleLabPage> {
         controller.when(
           data: (_) => const SizedBox.shrink(),
           loading: () => const LinearProgressIndicator(minHeight: 2),
-          error: (error, stackTrace) => _InlineError(message: '$error'),
+          error: (error, stackTrace) => InlineError(message: '$error'),
         ),
         _asyncLibrary(
           samples: samples,
@@ -102,16 +104,16 @@ class _StyleLabPageState extends ConsumerState<StyleLabPage> {
               );
             },
             loading: _loadingPanel,
-            error: (error, stackTrace) => _InlineError(message: '$error'),
+            error: (error, stackTrace) => InlineError(message: '$error'),
           ),
           loading: _loadingPanel,
-          error: (error, stackTrace) => _InlineError(message: '$error'),
+          error: (error, stackTrace) => InlineError(message: '$error'),
         ),
         loading: _loadingPanel,
-        error: (error, stackTrace) => _InlineError(message: '$error'),
+        error: (error, stackTrace) => InlineError(message: '$error'),
       ),
       loading: _loadingPanel,
-      error: (error, stackTrace) => _InlineError(message: '$error'),
+      error: (error, stackTrace) => InlineError(message: '$error'),
     );
   }
 
@@ -478,19 +480,19 @@ class _CreateProfileDialogState extends ConsumerState<_CreateProfileDialog> {
               data: (providerItems) => projects.when(
                 data: (projectItems) {
                   _syncDefaults(sampleItems, providerItems, projectItems);
-                  final selectedSample = _findOrNull(
+                  final selectedSample = findOrNull(
                     sampleItems,
                     _selectedSampleId,
                     (item) => item.id,
                   );
-                  final selectedProvider = _findOrNull(
+                  final selectedProvider = findOrNull(
                     providerItems,
                     _selectedProviderId,
                     (item) => item.id,
                   );
                   final selectedModelName =
                       _selectedModelName ?? selectedProvider?.defaultModel;
-                  final selectedProject = _findOrNull(
+                  final selectedProject = findOrNull(
                     projectItems,
                     _selectedProjectId,
                     (item) => item.id,
@@ -509,7 +511,7 @@ class _CreateProfileDialogState extends ConsumerState<_CreateProfileDialog> {
                     onSampleSelected: (id) => setState(() {
                       _selectedSampleId = id;
                       _styleNameController.text =
-                          _findOrNull(
+                          findOrNull(
                             sampleItems,
                             id,
                             (item) => item.id,
@@ -518,7 +520,7 @@ class _CreateProfileDialogState extends ConsumerState<_CreateProfileDialog> {
                     }),
                     onProviderSelected: (id) => setState(() {
                       _selectedProviderId = id;
-                      final provider = _findOrNull(
+                      final provider = findOrNull(
                         providerItems,
                         id,
                         (item) => item.id,
@@ -542,19 +544,19 @@ class _CreateProfileDialogState extends ConsumerState<_CreateProfileDialog> {
                   height: 260,
                   child: Center(child: CircularProgressIndicator()),
                 ),
-                error: (error, stackTrace) => _InlineError(message: '$error'),
+                error: (error, stackTrace) => InlineError(message: '$error'),
               ),
               loading: () => const SizedBox(
                 height: 260,
                 child: Center(child: CircularProgressIndicator()),
               ),
-              error: (error, stackTrace) => _InlineError(message: '$error'),
+              error: (error, stackTrace) => InlineError(message: '$error'),
             ),
             loading: () => const SizedBox(
               height: 260,
               child: Center(child: CircularProgressIndicator()),
             ),
-            error: (error, stackTrace) => _InlineError(message: '$error'),
+            error: (error, stackTrace) => InlineError(message: '$error'),
           ),
         ),
       ),
@@ -588,7 +590,7 @@ class _CreateProfileDialogState extends ConsumerState<_CreateProfileDialog> {
           ? null
           : providers.first.defaultModel;
     }
-    final selectedProvider = _findOrNull(
+    final selectedProvider = findOrNull(
       providers,
       _selectedProviderId,
       (item) => item.id,
@@ -823,7 +825,7 @@ class _CreateProfileForm extends StatelessWidget {
           ),
           if (providers.isEmpty) ...[
             const SizedBox(height: 12),
-            const _InlineError(message: '请先在 Settings 配置 Provider。'),
+            const InlineError(message: '请先在 Settings 配置 Provider。'),
           ],
           if (selectedSample != null) ...[
             const SizedBox(height: 14),
@@ -983,9 +985,9 @@ class _LibraryAssetRow extends StatelessWidget {
                         _AssetKindPill(kind: asset.kind),
                         _YamlPill(markdown: asset.profileMarkdown),
                         PersonaStatusPill(
-                          label: _statusLabel(asset.status),
-                          icon: _statusIcon(asset.status),
-                          color: _statusColor(colorScheme, asset.status),
+                          label: statusLabel(asset.status.name),
+                          icon: statusIcon(asset.status.name),
+                          color: statusColor(colorScheme, asset.status.name),
                         ),
                         _AssetMoreButton(onDelete: onDelete),
                       ],
@@ -1246,9 +1248,9 @@ class _ActivityRunRow extends StatelessWidget {
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             PersonaStatusPill(
-                              label: _statusLabel(run.status),
-                              icon: _statusIcon(run.status),
-                              color: _statusColor(colorScheme, run.status),
+                              label: statusLabel(run.status.name),
+                              icon: statusIcon(run.status.name),
+                              color: statusColor(colorScheme, run.status.name),
                             ),
                             PersonaStatusPill(
                               label: _stageLabel(run.stage),
@@ -1316,7 +1318,7 @@ class _ActivityRunRow extends StatelessWidget {
                         child: LinearProgressIndicator(
                           value: progressValue,
                           minHeight: 6,
-                          color: _statusColor(colorScheme, run.status),
+                          color: statusColor(colorScheme, run.status.name),
                           backgroundColor: colorScheme.outlineVariant
                               .withValues(alpha: 0.55),
                         ),
@@ -1956,9 +1958,9 @@ class _DetailHeader extends StatelessWidget {
             _ValidationStatus(markdown: profileMarkdown),
             if (currentRun != null)
               PersonaStatusPill(
-                label: _statusLabel(currentRun.status),
-                icon: _statusIcon(currentRun.status),
-                color: _statusColor(colorScheme, currentRun.status),
+                label: statusLabel(currentRun.status.name),
+                icon: statusIcon(currentRun.status.name),
+                color: statusColor(colorScheme, currentRun.status.name),
               ),
             FilledButton.icon(
               onPressed: primaryActionEnabled ? onPrimaryAction : null,
@@ -2116,7 +2118,7 @@ class _SampleTab extends StatelessWidget {
               const SizedBox(height: 14),
               Text(item.title, style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 12),
-              _CodeBlock(text: item.content),
+              CodeBlock(text: item.content),
             ],
           ),
         );
@@ -2124,7 +2126,7 @@ class _SampleTab extends StatelessWidget {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stackTrace) => Padding(
         padding: const EdgeInsets.all(18),
-        child: _InlineError(message: '$error'),
+        child: InlineError(message: '$error'),
       ),
     );
   }
@@ -2161,11 +2163,11 @@ class _RunLogTab extends StatelessWidget {
                   runSpacing: 8,
                   children: [
                     PersonaStatusPill(
-                      label: _statusLabel(item.status),
-                      icon: _statusIcon(item.status),
-                      color: _statusColor(
+                      label: statusLabel(item.status.name),
+                      icon: statusIcon(item.status.name),
+                      color: statusColor(
                         Theme.of(context).colorScheme,
-                        item.status,
+                        item.status.name,
                       ),
                     ),
                     if (item.stage != null)
@@ -2184,13 +2186,13 @@ class _RunLogTab extends StatelessWidget {
               _RunProgressOverview(run: item),
               if (item.errorMessage != null) ...[
                 const SizedBox(height: 12),
-                _InlineError(message: item.errorMessage!),
+                InlineError(message: item.errorMessage!),
               ],
               const SizedBox(height: 14),
               Text('完整日志', style: Theme.of(context).textTheme.labelMedium),
               const SizedBox(height: 8),
               Expanded(
-                child: _CodeBlock(
+                child: CodeBlock(
                   key: const ValueKey('style-lab-run-log-code-block'),
                   text: item.logs.trim().isEmpty ? '暂无日志。' : item.logs,
                   expand: true,
@@ -2203,7 +2205,7 @@ class _RunLogTab extends StatelessWidget {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stackTrace) => Padding(
         padding: const EdgeInsets.all(18),
-        child: _InlineError(message: '$error'),
+        child: InlineError(message: '$error'),
       ),
     );
   }
@@ -2218,7 +2220,7 @@ class _RunProgressOverview extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final progress = _progressForRun(run);
-    final statusColor = _statusColor(colorScheme, run.status);
+    final runStatusColor = statusColor(colorScheme, run.status.name);
     final progressValue = _visibleProgressValue(run, progress);
 
     return Column(
@@ -2232,7 +2234,7 @@ class _RunProgressOverview extends StatelessWidget {
                 child: LinearProgressIndicator(
                   value: progressValue,
                   minHeight: 7,
-                  color: statusColor,
+                  color: runStatusColor,
                   backgroundColor: colorScheme.outlineVariant.withValues(
                     alpha: 0.5,
                   ),
@@ -2254,57 +2256,13 @@ class _RunProgressOverview extends StatelessWidget {
           runSpacing: 8,
           children: [
             for (final step in _styleAnalysisSteps)
-              _StageStepPill(
+              StageStepPill(
                 label: step.label,
                 state: _stageStepState(run, step),
               ),
           ],
         ),
       ],
-    );
-  }
-}
-
-class _StageStepPill extends StatelessWidget {
-  const _StageStepPill({required this.label, required this.state});
-
-  final String label;
-  final _StageStepState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final (icon, color) = switch (state) {
-      _StageStepState.done => (Icons.check, const Color(0xFF16825D)),
-      _StageStepState.active => (Icons.sync, colorScheme.primary),
-      _StageStepState.failed => (Icons.error_outline, colorScheme.error),
-      _StageStepState.waiting => (
-        Icons.radio_button_unchecked,
-        colorScheme.onSurfaceVariant,
-      ),
-    };
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.24)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 13, color: color),
-            const SizedBox(width: 5),
-            Text(
-              label,
-              style: Theme.of(
-                context,
-              ).textTheme.labelMedium?.copyWith(color: color),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -2326,7 +2284,7 @@ class _ProfileEditor extends StatelessWidget {
         ),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(14),
-          child: MarkdownBody(data: _stripFrontMatter(controller.text)),
+          child: MarkdownBody(data: stripFrontMatter(controller.text)),
         ),
       );
     }
@@ -2437,77 +2395,6 @@ class _StyleLabMissingDetail extends StatelessWidget {
   }
 }
 
-class _CodeBlock extends StatelessWidget {
-  const _CodeBlock({required this.text, this.expand = false, super.key});
-
-  final String text;
-  final bool expand;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final content = DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.34),
-        borderRadius: BorderRadius.circular(kPanelRadius),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
-      child: expand
-          ? SingleChildScrollView(
-              padding: const EdgeInsets.all(12),
-              child: SelectableText(
-                text,
-                style: const TextStyle(fontFamily: 'monospace', fontSize: 12.5),
-              ),
-            )
-          : ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 220, maxHeight: 520),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(12),
-                child: SelectableText(
-                  text,
-                  style: const TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 12.5,
-                  ),
-                ),
-              ),
-            ),
-    );
-    return SizedBox(width: double.infinity, child: content);
-  }
-}
-
-class _InlineError extends StatelessWidget {
-  const _InlineError({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.error.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: colorScheme.error.withValues(alpha: 0.24)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Row(
-          children: [
-            Icon(Icons.error_outline, color: colorScheme.error, size: 18),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(message, style: TextStyle(color: colorScheme.error)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 Future<bool> _confirmDeleteStyleItem({
   required BuildContext context,
   required String title,
@@ -2562,8 +2449,6 @@ enum _StyleLibraryFilter { all, saved, drafts, activity }
 enum _StyleLibraryAssetKind { saved, draft }
 
 enum _StyleAssetMenuAction { delete }
-
-enum _StageStepState { waiting, active, done, failed }
 
 class _RunActivitySummary {
   const _RunActivitySummary({
@@ -2645,8 +2530,8 @@ List<_StyleLibraryAsset> _buildLibraryAssets({
             profile.sourceTitle ??
             sampleById[profile.sourceSampleId]?.title ??
             '来源样本不可用',
-        providerLabel: _providerLabel(
-          providerById[profile.providerId],
+        providerLabel: providerLabel(
+          providerById[profile.providerId]?.name,
           profile.modelName,
         ),
         profileMarkdown: profile.profileMarkdown,
@@ -2659,8 +2544,8 @@ List<_StyleLibraryAsset> _buildLibraryAssets({
         kind: _StyleLibraryAssetKind.draft,
         title: run.styleName,
         sourceTitle: sampleById[run.sampleId]?.title ?? '来源样本不可用',
-        providerLabel: _providerLabel(
-          providerById[run.providerId],
+        providerLabel: providerLabel(
+          providerById[run.providerId]?.name,
           run.modelName,
         ),
         profileMarkdown: run.voiceProfileMarkdown!,
@@ -2706,29 +2591,10 @@ bool _isActivityRun(StyleAnalysisRun run) {
 }
 
 String _taskDetailSubtitle(StyleAnalysisRun run) {
-  final status = _statusLabel(run.status);
+  final status = statusLabel(run.status.name);
   final stage = _stageLabel(run.stage);
   final chunks = _chunkProgressLabel(run);
   return '$status · $stage · $chunks · ${run.modelName}';
-}
-
-T? _findOrNull<T>(List<T> items, String? id, String Function(T item) getId) {
-  if (id == null) {
-    return null;
-  }
-  for (final item in items) {
-    if (getId(item) == id) {
-      return item;
-    }
-  }
-  return null;
-}
-
-String _providerLabel(ProviderConfig? provider, String modelName) {
-  if (provider == null) {
-    return modelName;
-  }
-  return '${provider.name} · $modelName';
 }
 
 String _sourceLabel(StyleSample sample) {
@@ -2747,33 +2613,6 @@ String _stageLabel(StyleAnalysisStage? stage) {
     StyleAnalysisStage.buildingVoiceProfile => '生成 Voice Profile',
     StyleAnalysisStage.persistingResult => '保存结果',
     null => '等待阶段',
-  };
-}
-
-String _statusLabel(StyleAnalysisStatus status) {
-  return switch (status) {
-    StyleAnalysisStatus.pending => 'pending',
-    StyleAnalysisStatus.running => 'running',
-    StyleAnalysisStatus.succeeded => 'succeeded',
-    StyleAnalysisStatus.failed => 'failed',
-  };
-}
-
-IconData _statusIcon(StyleAnalysisStatus status) {
-  return switch (status) {
-    StyleAnalysisStatus.pending => Icons.schedule,
-    StyleAnalysisStatus.running => Icons.sync,
-    StyleAnalysisStatus.succeeded => Icons.check_circle_outline,
-    StyleAnalysisStatus.failed => Icons.error_outline,
-  };
-}
-
-Color _statusColor(ColorScheme colorScheme, StyleAnalysisStatus status) {
-  return switch (status) {
-    StyleAnalysisStatus.pending => colorScheme.tertiary,
-    StyleAnalysisStatus.running => colorScheme.primary,
-    StyleAnalysisStatus.succeeded => const Color(0xFF16825D),
-    StyleAnalysisStatus.failed => colorScheme.error,
   };
 }
 
@@ -2915,41 +2754,28 @@ double _chunkStageProgress(StyleAnalysisRun run) {
   return 0.18 + (0.42 * completed / chunkCount);
 }
 
-_StageStepState _stageStepState(StyleAnalysisRun run, _StyleAnalysisStep step) {
+StageStepState _stageStepState(StyleAnalysisRun run, _StyleAnalysisStep step) {
   if (run.status == StyleAnalysisStatus.failed &&
       (step.stage == run.stage || (run.stage == null && step.stage == null))) {
-    return _StageStepState.failed;
+    return StageStepState.failed;
   }
   if (run.status == StyleAnalysisStatus.succeeded) {
-    return _StageStepState.done;
+    return StageStepState.done;
   }
   if (step.stage == run.stage) {
-    return _StageStepState.active;
+    return StageStepState.active;
   }
   final currentIndex = _stageIndex(run.stage);
   final stepIndex = _stageIndex(step.stage);
   if (currentIndex != null && stepIndex != null && stepIndex < currentIndex) {
-    return _StageStepState.done;
+    return StageStepState.done;
   }
-  return _StageStepState.waiting;
+  return StageStepState.waiting;
 }
 
 int? _stageIndex(StyleAnalysisStage? stage) {
   final index = _styleAnalysisSteps.indexWhere((step) => step.stage == stage);
   return index < 0 ? null : index;
-}
-
-String _stripFrontMatter(String markdown) {
-  final normalized = markdown.trimLeft();
-  if (!normalized.startsWith('---\n')) {
-    return markdown;
-  }
-  final end = normalized.indexOf('\n---', 4);
-  if (end < 0) {
-    return markdown;
-  }
-  final bodyStart = normalized.indexOf('\n', end + 4);
-  return bodyStart < 0 ? '' : normalized.substring(bodyStart).trim();
 }
 
 String _formatDate(DateTime value) {

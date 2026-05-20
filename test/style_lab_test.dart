@@ -8,7 +8,7 @@ import 'package:persona_flutter/src/core/llm/domain/llm_stream_event.dart';
 import 'package:persona_flutter/src/core/tasks/data/drift_workflow_task_repository.dart';
 import 'package:persona_flutter/src/features/settings/data/drift_provider_config_repository.dart';
 import 'package:persona_flutter/src/features/settings/domain/provider_config.dart';
-import 'package:persona_flutter/src/features/style_lab/application/style_input_classification.dart';
+import 'package:persona_flutter/src/core/analysis/analysis_text_tools.dart';
 import 'package:persona_flutter/src/features/style_lab/application/style_analysis_pipeline.dart';
 import 'package:persona_flutter/src/features/style_lab/application/style_lab_prompts.dart';
 import 'package:persona_flutter/src/features/style_lab/application/voice_profile_front_matter.dart';
@@ -142,7 +142,7 @@ void main() {
 
   test('style lab prompts preserve old Persona sections and YAML contract', () {
     const builder = StyleLabPromptBuilder();
-    const classification = StyleInputClassification(
+    const classification = InputClassification(
       textType: '混合文本',
       hasTimestamps: false,
       hasSpeakerLabels: true,

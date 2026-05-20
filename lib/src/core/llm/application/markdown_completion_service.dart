@@ -1,3 +1,4 @@
+import '../domain/llm_error_utils.dart';
 import '../domain/llm_message.dart';
 import '../domain/llm_stream_event.dart';
 import 'llm_invocation_service.dart';
@@ -44,22 +45,9 @@ class MarkdownCompletionService {
     }
 
     final message = lastError?.toString() ?? '模型没有返回 Markdown 内容。';
-    throw EmptyMarkdownCompletionException(_sanitize(message, provider));
-  }
-
-  String _sanitize(String message, ProviderConfig provider) {
-    final apiKey = provider.apiKey.trim();
-    if (apiKey.isEmpty) {
-      return _truncate(message);
-    }
-    return _truncate(message.replaceAll(apiKey, '[REDACTED]'));
-  }
-
-  String _truncate(String message) {
-    if (message.length <= 220) {
-      return message;
-    }
-    return '${message.substring(0, 217)}...';
+    throw EmptyMarkdownCompletionException(
+      sanitizeLlmError(message, provider.apiKey),
+    );
   }
 }
 

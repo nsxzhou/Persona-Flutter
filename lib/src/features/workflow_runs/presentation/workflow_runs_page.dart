@@ -10,6 +10,7 @@ import '../../../core/tasks/domain/workflow_prompt_trace.dart';
 import '../../../core/tasks/domain/workflow_task.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/persona_page.dart';
+import '../../../core/utils/markdown_utils.dart';
 import '../../../core/ui/skeleton_loader.dart';
 import '../../plot_lab/application/plot_lab_providers.dart';
 import '../../plot_lab/domain/plot_analysis_run.dart';
@@ -746,7 +747,7 @@ class _PromptTraceTab extends StatelessWidget {
         return Padding(
           padding: const EdgeInsets.all(18),
           child: _TraceCodeSurface(
-            text: _stripYamlFrontMatter(markdown),
+            text: stripFrontMatter(markdown),
             renderMarkdown: true,
           ),
         );
@@ -1168,22 +1169,6 @@ AsyncValue<String> _logsForTask(
     plotAnalysisWorkflowTaskKind => plotRun.whenData((run) => run?.logs ?? ''),
     _ => const AsyncValue.data(''),
   };
-}
-
-String _stripYamlFrontMatter(String markdown) {
-  final normalized = markdown.trimLeft();
-  if (!normalized.startsWith('---\n')) {
-    return markdown;
-  }
-  final end = normalized.indexOf('\n---', 4);
-  if (end < 0) {
-    return markdown;
-  }
-  final bodyStart = normalized.indexOf('\n', end + 4);
-  if (bodyStart < 0) {
-    return '';
-  }
-  return normalized.substring(bodyStart).trimLeft();
 }
 
 _ParsedPromptTrace? _parsePromptTraceMarkdown(String markdown) {

@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'plot_input_classification.dart';
+import '../../../core/analysis/analysis_text_tools.dart';
 
 const plotAnalysisSections = [
   '3.1 阶段划分与字数节奏',
@@ -153,7 +153,7 @@ class PlotLabPromptBuilder {
     required String chunk,
     required int chunkIndex,
     required int chunkCount,
-    required PlotInputClassification classification,
+    required InputClassification classification,
   }) {
     return '''
 $_sketchRules
@@ -238,7 +238,7 @@ $invalidSketchMarkdown
 
   String buildSkeletonPrompt({
     required List<Map<String, Object?>> sketches,
-    required PlotInputClassification classification,
+    required InputClassification classification,
     required int chunkCount,
   }) {
     return '''
@@ -267,7 +267,7 @@ ${jsonEncode(sketches)}
     required List<Map<String, Object?>> groupSketches,
     required int groupIndex,
     required int groupCount,
-    required PlotInputClassification classification,
+    required InputClassification classification,
   }) {
     return '''
 $_sharedAnalysisRules
@@ -288,7 +288,7 @@ ${jsonEncode(groupSketches)}
 
   String buildReportPrompt({
     required String plotSkeletonMarkdown,
-    required PlotInputClassification classification,
+    required InputClassification classification,
   }) {
     return '''
 $_sharedAnalysisRules

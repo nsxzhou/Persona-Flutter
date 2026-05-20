@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'style_input_classification.dart';
+import '../../../core/analysis/analysis_text_tools.dart';
 
 const styleAnalysisSections = [
   '3.1 口头禅与常用表达',
@@ -116,7 +116,7 @@ class StyleLabPromptBuilder {
     required String chunk,
     required int chunkIndex,
     required int chunkCount,
-    required StyleInputClassification classification,
+    required InputClassification classification,
   }) {
     return '''
 $_sharedRules
@@ -140,7 +140,7 @@ $chunk
 
   String buildMergePrompt({
     required List<String> chunkAnalyses,
-    required StyleInputClassification classification,
+    required InputClassification classification,
   }) {
     return '''
 $_sharedRules
@@ -164,7 +164,7 @@ ${jsonEncode(chunkAnalyses)}
 
   String buildReportPrompt({
     required String mergedAnalysisMarkdown,
-    required StyleInputClassification classification,
+    required InputClassification classification,
   }) {
     return '''
 $_sharedRules

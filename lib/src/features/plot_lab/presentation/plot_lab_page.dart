@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/analysis_lab_widgets.dart';
 import '../../../core/ui/persona_page.dart';
+import '../../../core/utils/markdown_utils.dart';
 import '../../projects/application/project_providers.dart';
 import '../../projects/domain/writing_project.dart';
 import '../../settings/application/provider_config_providers.dart';
@@ -57,7 +59,7 @@ class _PlotLabPageState extends ConsumerState<PlotLabPage> {
         controller.when(
           data: (_) => const SizedBox.shrink(),
           loading: () => const LinearProgressIndicator(minHeight: 2),
-          error: (error, stackTrace) => _InlineError(message: '$error'),
+          error: (error, stackTrace) => InlineError(message: '$error'),
         ),
         samples.when(
           data: (sampleItems) => providers.when(
@@ -85,16 +87,16 @@ class _PlotLabPageState extends ConsumerState<PlotLabPage> {
                   );
                 },
                 loading: _loadingPanel,
-                error: (error, stackTrace) => _InlineError(message: '$error'),
+                error: (error, stackTrace) => InlineError(message: '$error'),
               ),
               loading: _loadingPanel,
-              error: (error, stackTrace) => _InlineError(message: '$error'),
+              error: (error, stackTrace) => InlineError(message: '$error'),
             ),
             loading: _loadingPanel,
-            error: (error, stackTrace) => _InlineError(message: '$error'),
+            error: (error, stackTrace) => InlineError(message: '$error'),
           ),
           loading: _loadingPanel,
-          error: (error, stackTrace) => _InlineError(message: '$error'),
+          error: (error, stackTrace) => InlineError(message: '$error'),
         ),
       ],
     );
@@ -395,19 +397,19 @@ class _CreatePlotProfileDialogState
               data: (providerItems) => projects.when(
                 data: (projectItems) {
                   _syncDefaults(sampleItems, providerItems, projectItems);
-                  final selectedSample = _findOrNull(
+                  final selectedSample = findOrNull(
                     sampleItems,
                     _selectedSampleId,
                     (item) => item.id,
                   );
-                  final selectedProvider = _findOrNull(
+                  final selectedProvider = findOrNull(
                     providerItems,
                     _selectedProviderId,
                     (item) => item.id,
                   );
                   final selectedModelName =
                       _selectedModelName ?? selectedProvider?.defaultModel;
-                  final selectedProject = _findOrNull(
+                  final selectedProject = findOrNull(
                     projectItems,
                     _selectedProjectId,
                     (item) => item.id,
@@ -426,7 +428,7 @@ class _CreatePlotProfileDialogState
                     onSampleSelected: (id) => setState(() {
                       _selectedSampleId = id;
                       _plotNameController.text =
-                          _findOrNull(
+                          findOrNull(
                             sampleItems,
                             id,
                             (item) => item.id,
@@ -435,7 +437,7 @@ class _CreatePlotProfileDialogState
                     }),
                     onProviderSelected: (id) => setState(() {
                       _selectedProviderId = id;
-                      final provider = _findOrNull(
+                      final provider = findOrNull(
                         providerItems,
                         id,
                         (item) => item.id,
@@ -459,19 +461,19 @@ class _CreatePlotProfileDialogState
                   height: 260,
                   child: Center(child: CircularProgressIndicator()),
                 ),
-                error: (error, stackTrace) => _InlineError(message: '$error'),
+                error: (error, stackTrace) => InlineError(message: '$error'),
               ),
               loading: () => const SizedBox(
                 height: 260,
                 child: Center(child: CircularProgressIndicator()),
               ),
-              error: (error, stackTrace) => _InlineError(message: '$error'),
+              error: (error, stackTrace) => InlineError(message: '$error'),
             ),
             loading: () => const SizedBox(
               height: 260,
               child: Center(child: CircularProgressIndicator()),
             ),
-            error: (error, stackTrace) => _InlineError(message: '$error'),
+            error: (error, stackTrace) => InlineError(message: '$error'),
           ),
         ),
       ),
@@ -505,7 +507,7 @@ class _CreatePlotProfileDialogState
           ? null
           : providers.first.defaultModel;
     }
-    final selectedProvider = _findOrNull(
+    final selectedProvider = findOrNull(
       providers,
       _selectedProviderId,
       (item) => item.id,
@@ -738,7 +740,7 @@ class _CreatePlotProfileForm extends StatelessWidget {
           ),
           if (providers.isEmpty) ...[
             const SizedBox(height: 12),
-            const _InlineError(message: '请先在 Settings 配置 Provider。'),
+            const InlineError(message: '请先在 Settings 配置 Provider。'),
           ],
           if (selectedSample != null) ...[
             const SizedBox(height: 14),
@@ -897,9 +899,9 @@ class _LibraryAssetRow extends StatelessWidget {
                       children: [
                         _AssetKindPill(kind: asset.kind),
                         PersonaStatusPill(
-                          label: _statusLabel(asset.status),
-                          icon: _statusIcon(asset.status),
-                          color: _statusColor(colorScheme, asset.status),
+                          label: statusLabel(asset.status.name),
+                          icon: statusIcon(asset.status.name),
+                          color: statusColor(colorScheme, asset.status.name),
                         ),
                         _StoryEngineStatus(markdown: asset.storyEngineMarkdown),
                         _AssetMoreButton(onDelete: onDelete),
@@ -1139,9 +1141,9 @@ class _ActivityRunRow extends StatelessWidget {
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             PersonaStatusPill(
-                              label: _statusLabel(run.status),
-                              icon: _statusIcon(run.status),
-                              color: _statusColor(colorScheme, run.status),
+                              label: statusLabel(run.status.name),
+                              icon: statusIcon(run.status.name),
+                              color: statusColor(colorScheme, run.status.name),
                             ),
                             PersonaStatusPill(
                               label: _stageLabel(run.stage),
@@ -1209,7 +1211,7 @@ class _ActivityRunRow extends StatelessWidget {
                         child: LinearProgressIndicator(
                           value: progressValue,
                           minHeight: 6,
-                          color: _statusColor(colorScheme, run.status),
+                          color: statusColor(colorScheme, run.status.name),
                           backgroundColor: colorScheme.outlineVariant
                               .withValues(alpha: 0.55),
                         ),
@@ -1742,9 +1744,9 @@ class _DetailHeader extends StatelessWidget {
             _StoryEngineStatus(markdown: storyEngineMarkdown),
             if (currentRun != null)
               PersonaStatusPill(
-                label: _statusLabel(currentRun.status),
-                icon: _statusIcon(currentRun.status),
-                color: _statusColor(colorScheme, currentRun.status),
+                label: statusLabel(currentRun.status.name),
+                icon: statusIcon(currentRun.status.name),
+                color: statusColor(colorScheme, currentRun.status.name),
               ),
             FilledButton.icon(
               onPressed: primaryActionEnabled ? onPrimaryAction : null,
@@ -1951,7 +1953,7 @@ class _SampleTab extends StatelessWidget {
               const SizedBox(height: 14),
               Text(item.title, style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 12),
-              _CodeBlock(text: item.content),
+              CodeBlock(text: item.content),
             ],
           ),
         );
@@ -1959,7 +1961,7 @@ class _SampleTab extends StatelessWidget {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stackTrace) => Padding(
         padding: const EdgeInsets.all(18),
-        child: _InlineError(message: '$error'),
+        child: InlineError(message: '$error'),
       ),
     );
   }
@@ -1996,11 +1998,11 @@ class _RunLogTab extends StatelessWidget {
                   runSpacing: 8,
                   children: [
                     PersonaStatusPill(
-                      label: _statusLabel(item.status),
-                      icon: _statusIcon(item.status),
-                      color: _statusColor(
+                      label: statusLabel(item.status.name),
+                      icon: statusIcon(item.status.name),
+                      color: statusColor(
                         Theme.of(context).colorScheme,
-                        item.status,
+                        item.status.name,
                       ),
                     ),
                     if (item.stage != null)
@@ -2019,13 +2021,13 @@ class _RunLogTab extends StatelessWidget {
               _RunProgressOverview(run: item),
               if (item.errorMessage != null) ...[
                 const SizedBox(height: 12),
-                _InlineError(message: item.errorMessage!),
+                InlineError(message: item.errorMessage!),
               ],
               const SizedBox(height: 14),
               Text('完整日志', style: Theme.of(context).textTheme.labelMedium),
               const SizedBox(height: 8),
               Expanded(
-                child: _CodeBlock(
+                child: CodeBlock(
                   key: const ValueKey('plot-lab-run-log-code-block'),
                   text: item.logs.trim().isEmpty ? '暂无日志。' : item.logs,
                   expand: true,
@@ -2038,7 +2040,7 @@ class _RunLogTab extends StatelessWidget {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stackTrace) => Padding(
         padding: const EdgeInsets.all(18),
-        child: _InlineError(message: '$error'),
+        child: InlineError(message: '$error'),
       ),
     );
   }
@@ -2054,7 +2056,7 @@ class _RunProgressOverview extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final progress = _progressForRun(run);
     final progressValue = _visibleProgressValue(run, progress);
-    final statusColor = _statusColor(colorScheme, run.status);
+    final statusColorValue = statusColor(colorScheme, run.status.name);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2067,7 +2069,7 @@ class _RunProgressOverview extends StatelessWidget {
                 child: LinearProgressIndicator(
                   value: progressValue,
                   minHeight: 7,
-                  color: statusColor,
+                  color: statusColorValue,
                   backgroundColor: colorScheme.outlineVariant.withValues(
                     alpha: 0.5,
                   ),
@@ -2089,57 +2091,13 @@ class _RunProgressOverview extends StatelessWidget {
           runSpacing: 8,
           children: [
             for (final step in _plotAnalysisSteps)
-              _StageStepPill(
+              StageStepPill(
                 label: step.label,
                 state: _stageStepState(run, step),
               ),
           ],
         ),
       ],
-    );
-  }
-}
-
-class _StageStepPill extends StatelessWidget {
-  const _StageStepPill({required this.label, required this.state});
-
-  final String label;
-  final _StageStepState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final (icon, color) = switch (state) {
-      _StageStepState.done => (Icons.check, const Color(0xFF16825D)),
-      _StageStepState.active => (Icons.sync, colorScheme.primary),
-      _StageStepState.failed => (Icons.error_outline, colorScheme.error),
-      _StageStepState.waiting => (
-        Icons.radio_button_unchecked,
-        colorScheme.onSurfaceVariant,
-      ),
-    };
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.24)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 13, color: color),
-            const SizedBox(width: 5),
-            Text(
-              label,
-              style: Theme.of(
-                context,
-              ).textTheme.labelMedium?.copyWith(color: color),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -2229,77 +2187,6 @@ class _PlotLabMissingDetail extends StatelessWidget {
   }
 }
 
-class _CodeBlock extends StatelessWidget {
-  const _CodeBlock({required this.text, this.expand = false, super.key});
-
-  final String text;
-  final bool expand;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final content = DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.34),
-        borderRadius: BorderRadius.circular(kPanelRadius),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
-      child: expand
-          ? SingleChildScrollView(
-              padding: const EdgeInsets.all(12),
-              child: SelectableText(
-                text,
-                style: const TextStyle(fontFamily: 'monospace', fontSize: 12.5),
-              ),
-            )
-          : ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 220, maxHeight: 520),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(12),
-                child: SelectableText(
-                  text,
-                  style: const TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 12.5,
-                  ),
-                ),
-              ),
-            ),
-    );
-    return SizedBox(width: double.infinity, child: content);
-  }
-}
-
-class _InlineError extends StatelessWidget {
-  const _InlineError({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.error.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: colorScheme.error.withValues(alpha: 0.24)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Row(
-          children: [
-            Icon(Icons.error_outline, color: colorScheme.error, size: 18),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(message, style: TextStyle(color: colorScheme.error)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 Future<bool> _confirmDeletePlotItem({
   required BuildContext context,
   required String title,
@@ -2343,8 +2230,6 @@ enum _PlotLibraryFilter { all, saved, drafts, activity }
 enum _PlotLibraryAssetKind { saved, draft }
 
 enum _PlotAssetMenuAction { delete }
-
-enum _StageStepState { waiting, active, done, failed }
 
 class _RunActivitySummary {
   const _RunActivitySummary({required this.text, required this.icon});
@@ -2421,8 +2306,8 @@ List<_PlotLibraryAsset> _buildLibraryAssets({
             profile.sourceTitle ??
             sampleById[profile.sourceSampleId]?.title ??
             '来源样本不可用',
-        providerLabel: _providerLabel(
-          providerById[profile.providerId],
+        providerLabel: providerLabel(
+          providerById[profile.providerId]?.name,
           profile.modelName,
         ),
         status: PlotAnalysisStatus.succeeded,
@@ -2435,8 +2320,8 @@ List<_PlotLibraryAsset> _buildLibraryAssets({
         kind: _PlotLibraryAssetKind.draft,
         title: run.plotName,
         sourceTitle: sampleById[run.sampleId]?.title ?? '来源样本不可用',
-        providerLabel: _providerLabel(
-          providerById[run.providerId],
+        providerLabel: providerLabel(
+          providerById[run.providerId]?.name,
           run.modelName,
         ),
         status: run.status,
@@ -2488,48 +2373,16 @@ String _storyEnginePreviewMarkdown(String markdown) {
   try {
     return const StoryEngineNormalizer().parse(markdown).bodyMarkdown;
   } on Object {
-    final stripped = _stripFrontMatter(markdown).trim();
+    final stripped = stripFrontMatter(markdown).trim();
     return stripped.isEmpty ? '暂无内容。' : stripped;
   }
 }
 
-String _stripFrontMatter(String markdown) {
-  final normalized = markdown.trimLeft();
-  if (!normalized.startsWith('---\n')) {
-    return markdown;
-  }
-  final end = normalized.indexOf('\n---', 4);
-  if (end < 0) {
-    return markdown;
-  }
-  final bodyStart = normalized.indexOf('\n', end + 4);
-  return bodyStart < 0 ? '' : normalized.substring(bodyStart);
-}
-
 String _taskDetailSubtitle(PlotAnalysisRun run) {
-  final status = _statusLabel(run.status);
+  final status = statusLabel(run.status.name);
   final stage = _stageLabel(run.stage);
   final chunks = _chunkProgressLabel(run);
   return '$status · $stage · $chunks · ${run.modelName}';
-}
-
-T? _findOrNull<T>(List<T> items, String? id, String Function(T item) getId) {
-  if (id == null) {
-    return null;
-  }
-  for (final item in items) {
-    if (getId(item) == id) {
-      return item;
-    }
-  }
-  return null;
-}
-
-String _providerLabel(ProviderConfig? provider, String modelName) {
-  if (provider == null) {
-    return modelName;
-  }
-  return '${provider.name} · $modelName';
 }
 
 String _sourceLabel(PlotSample sample) {
@@ -2547,33 +2400,6 @@ String _stageLabel(PlotAnalysisStage? stage) {
     PlotAnalysisStage.reporting => '生成报告',
     PlotAnalysisStage.postprocessing => '生成 Story Engine',
     null => '等待阶段',
-  };
-}
-
-String _statusLabel(PlotAnalysisStatus status) {
-  return switch (status) {
-    PlotAnalysisStatus.pending => 'pending',
-    PlotAnalysisStatus.running => 'running',
-    PlotAnalysisStatus.succeeded => 'succeeded',
-    PlotAnalysisStatus.failed => 'failed',
-  };
-}
-
-IconData _statusIcon(PlotAnalysisStatus status) {
-  return switch (status) {
-    PlotAnalysisStatus.pending => Icons.schedule,
-    PlotAnalysisStatus.running => Icons.sync,
-    PlotAnalysisStatus.succeeded => Icons.check_circle_outline,
-    PlotAnalysisStatus.failed => Icons.error_outline,
-  };
-}
-
-Color _statusColor(ColorScheme colorScheme, PlotAnalysisStatus status) {
-  return switch (status) {
-    PlotAnalysisStatus.pending => colorScheme.tertiary,
-    PlotAnalysisStatus.running => colorScheme.primary,
-    PlotAnalysisStatus.succeeded => const Color(0xFF16825D),
-    PlotAnalysisStatus.failed => colorScheme.error,
   };
 }
 
@@ -2618,27 +2444,27 @@ double? _visibleProgressValue(PlotAnalysisRun run, _RunProgress progress) {
   return progress.value;
 }
 
-_StageStepState _stageStepState(PlotAnalysisRun run, _PlotAnalysisStep step) {
+StageStepState _stageStepState(PlotAnalysisRun run, _PlotAnalysisStep step) {
   if (run.status == PlotAnalysisStatus.failed) {
     if (step.stage == run.stage || step.stage == null) {
-      return _StageStepState.failed;
+      return StageStepState.failed;
     }
     return _stageIndex(step.stage) < _stageIndex(run.stage)
-        ? _StageStepState.done
-        : _StageStepState.waiting;
+        ? StageStepState.done
+        : StageStepState.waiting;
   }
   if (run.status == PlotAnalysisStatus.succeeded) {
-    return _StageStepState.done;
+    return StageStepState.done;
   }
   if (run.status == PlotAnalysisStatus.pending) {
-    return _StageStepState.waiting;
+    return StageStepState.waiting;
   }
   if (step.stage == run.stage) {
-    return _StageStepState.active;
+    return StageStepState.active;
   }
   return _stageIndex(step.stage) < _stageIndex(run.stage)
-      ? _StageStepState.done
-      : _StageStepState.waiting;
+      ? StageStepState.done
+      : StageStepState.waiting;
 }
 
 int _stageIndex(PlotAnalysisStage? stage) {

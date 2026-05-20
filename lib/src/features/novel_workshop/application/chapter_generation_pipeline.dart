@@ -1,4 +1,5 @@
 import '../../../core/llm/application/markdown_completion_service.dart';
+import '../../../core/llm/domain/llm_error_utils.dart';
 import '../../../core/tasks/application/prompt_trace_recorder.dart';
 import '../../../core/tasks/application/workflow_task_repository.dart';
 import '../../projects/domain/project_repository.dart';
@@ -451,15 +452,7 @@ ${chapter.contentMarkdown}
   }
 
   String _sanitizeError(Object error, ProviderConfig? provider) {
-    final apiKey = provider?.apiKey.trim() ?? '';
-    var message = error.toString();
-    if (apiKey.isNotEmpty) {
-      message = message.replaceAll(apiKey, '[REDACTED]');
-    }
-    if (message.length <= 220) {
-      return message;
-    }
-    return '${message.substring(0, 217)}...';
+    return sanitizeLlmError(error, provider?.apiKey ?? '');
   }
 
   void _appendLog(StringBuffer buffer, String message) {

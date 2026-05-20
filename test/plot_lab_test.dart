@@ -10,7 +10,7 @@ import 'package:persona_flutter/src/core/llm/domain/llm_stream_event.dart';
 import 'package:persona_flutter/src/core/tasks/data/drift_workflow_task_repository.dart';
 import 'package:persona_flutter/src/core/tasks/domain/workflow_task.dart';
 import 'package:persona_flutter/src/features/plot_lab/application/plot_analysis_pipeline.dart';
-import 'package:persona_flutter/src/features/plot_lab/application/plot_input_classification.dart';
+import 'package:persona_flutter/src/core/analysis/analysis_text_tools.dart';
 import 'package:persona_flutter/src/features/plot_lab/application/plot_lab_prompts.dart';
 import 'package:persona_flutter/src/features/plot_lab/application/story_engine_normalizer.dart';
 import 'package:persona_flutter/src/features/plot_lab/data/drift_plot_lab_repository.dart';
@@ -126,7 +126,7 @@ void main() {
 
   test('plot prompts preserve required sketch and Story Engine contracts', () {
     const builder = PlotLabPromptBuilder();
-    const classification = PlotInputClassification(
+    const classification = InputClassification(
       textType: '章节正文',
       hasTimestamps: false,
       hasSpeakerLabels: false,

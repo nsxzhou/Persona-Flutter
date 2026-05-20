@@ -1,4 +1,5 @@
 import '../../../core/llm/application/markdown_completion_service.dart';
+import '../../../core/llm/domain/llm_error_utils.dart';
 import '../../../core/tasks/application/prompt_trace_recorder.dart';
 import '../../../core/tasks/application/workflow_task_repository.dart';
 import '../../projects/domain/project_repository.dart';
@@ -263,15 +264,7 @@ class AssetGenerationPipeline {
   }
 
   String _sanitizeError(Object error, ProviderConfig? provider) {
-    var message = error.toString();
-    final apiKey = provider?.apiKey.trim() ?? '';
-    if (apiKey.isNotEmpty) {
-      message = message.replaceAll(apiKey, '[REDACTED]');
-    }
-    if (message.length <= 220) {
-      return message;
-    }
-    return '${message.substring(0, 217)}...';
+    return sanitizeLlmError(error, provider?.apiKey ?? '');
   }
 
   String _kindLabel(AssetGenerationKind kind) {

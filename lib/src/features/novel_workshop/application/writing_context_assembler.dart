@@ -1,3 +1,4 @@
+import '../../../core/utils/markdown_utils.dart';
 import '../domain/writing_context.dart';
 
 class WritingContextAssembler {
@@ -155,7 +156,5 @@ class WritingContextAssembler {
     return '### $title\n\n$trimmed';
   }
 
-  bool _hasMarkdownHeading(String markdown) {
-    return markdown.split('\n').any((line) => line.trimLeft().startsWith('# '));
-  }
+  bool _hasMarkdownHeading(String markdown) => hasMarkdownHeading(markdown);
 }

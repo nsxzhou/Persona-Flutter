@@ -8,7 +8,6 @@ import 'package:langchain_core/prompts.dart';
 import 'package:langchain_core/tools.dart';
 import 'package:persona_flutter/src/core/database/app_database.dart';
 import 'package:persona_flutter/src/core/llm/application/llm_invocation_service.dart';
-import 'package:persona_flutter/src/core/llm/application/provider_prompt_composer.dart';
 import 'package:persona_flutter/src/core/llm/data/langchain_llm_client.dart';
 import 'package:persona_flutter/src/core/llm/domain/llm_client.dart';
 import 'package:persona_flutter/src/core/llm/domain/llm_message.dart';
@@ -113,35 +112,6 @@ void main() {
     await repository.deleteProvider(saved.id);
     expect(await repository.findProvider(saved.id), isNull);
   });
-
-  test(
-    'provider prompt composer appends provider prompt after business prompt',
-    () {
-      const composer = ProviderPromptComposer();
-
-      expect(
-        composer.compose(
-          businessSystemPrompt: 'Business prompt',
-          providerSystemPrompt: 'Provider prompt',
-        ),
-        'Business prompt\n\nProvider prompt',
-      );
-      expect(
-        composer.compose(
-          businessSystemPrompt: 'Business prompt',
-          providerSystemPrompt: '   ',
-        ),
-        'Business prompt',
-      );
-      expect(
-        composer.compose(
-          businessSystemPrompt: '   ',
-          providerSystemPrompt: 'Provider prompt',
-        ),
-        'Provider prompt',
-      );
-    },
-  );
 
   test('llm invocation service sends composed system prompt first', () async {
     final provider = ProviderConfig(

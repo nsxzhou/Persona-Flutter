@@ -5,6 +5,7 @@ import 'package:langchain_openai/langchain_openai.dart' as openai;
 
 import '../../../features/settings/domain/provider_config.dart';
 import '../domain/llm_client.dart';
+import '../domain/llm_error_utils.dart';
 import '../domain/llm_message.dart';
 import '../domain/llm_request.dart';
 import '../domain/llm_stream_event.dart';
@@ -83,15 +84,7 @@ class LangChainLlmClient implements LlmClient {
   }
 
   String _sanitizeError(Object error, ProviderConfig provider) {
-    var message = error.toString();
-    final apiKey = provider.apiKey.trim();
-    if (apiKey.isNotEmpty) {
-      message = message.replaceAll(apiKey, '[REDACTED]');
-    }
-    if (message.length <= 180) {
-      return message;
-    }
-    return '${message.substring(0, 177)}...';
+    return sanitizeLlmError(error, provider.apiKey, maxLength: 180);
   }
 }
 

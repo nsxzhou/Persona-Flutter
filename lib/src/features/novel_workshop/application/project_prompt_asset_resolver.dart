@@ -1,3 +1,4 @@
+import '../../../core/utils/markdown_utils.dart';
 import '../../plot_lab/domain/plot_lab_repository.dart';
 import '../../projects/domain/project_repository.dart';
 import '../../style_lab/domain/style_lab_repository.dart';
@@ -90,9 +91,7 @@ class ProjectPromptAssetResolver {
     return warnings;
   }
 
-  bool _hasMarkdownHeading(String markdown) {
-    return markdown.split('\n').any((line) => line.trimLeft().startsWith('# '));
-  }
+  bool _hasMarkdownHeading(String markdown) => hasMarkdownHeading(markdown);
 
   bool _startsFrontMatter(String markdown) {
     return markdown.startsWith('---\n') || markdown == '---';

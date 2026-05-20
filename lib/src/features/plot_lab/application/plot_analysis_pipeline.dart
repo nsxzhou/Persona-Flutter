@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../../../core/analysis/analysis_text_tools.dart';
+import '../../../core/utils/markdown_utils.dart';
 import '../../../core/llm/application/markdown_completion_service.dart';
 import '../../../core/tasks/application/prompt_trace_recorder.dart';
 import '../../../core/tasks/application/workflow_task_repository.dart';
@@ -9,7 +10,7 @@ import '../domain/plot_analysis_run.dart';
 import '../domain/plot_chunk_sketch.dart';
 import '../domain/plot_lab_repository.dart';
 import 'plot_chunk_sketch_document.dart';
-import 'plot_input_classification.dart';
+
 import 'plot_lab_prompts.dart';
 import 'story_engine_normalizer.dart';
 
@@ -106,9 +107,10 @@ class PlotAnalysisPipeline {
       if (chunks.isEmpty) {
         throw StateError('样本文本没有可分析的有效内容。');
       }
-      final classification = PlotInputClassification.detect(
+      final classification = InputClassification.detect(
         text: sample.content,
         chunkCount: chunks.length,
+        sampleLineLimit: 240,
       );
 
       await transition(
@@ -284,7 +286,7 @@ class PlotAnalysisPipeline {
     required ProviderConfig provider,
     required String modelName,
     required List<PlotChunkSketch> sketches,
-    required PlotInputClassification classification,
+    required InputClassification classification,
     required int chunkCount,
     required PromptTraceRecorder traceRecorder,
   }) async {
@@ -321,7 +323,7 @@ class PlotAnalysisPipeline {
     required ProviderConfig provider,
     required String modelName,
     required List<Map<String, Object?>> sketchPayload,
-    required PlotInputClassification classification,
+    required InputClassification classification,
     required int chunkCount,
     required PromptTraceRecorder traceRecorder,
   }) async {
@@ -373,14 +375,7 @@ class PlotAnalysisPipeline {
     );
   }
 
-  String _stripMarkdownFence(String raw) {
-    final trimmed = raw.trim();
-    final match = RegExp(
-      r'^```(?:markdown|md)?\s*([\s\S]*?)\s*```$',
-      caseSensitive: false,
-    ).firstMatch(trimmed);
-    return match?.group(1)?.trim() ?? trimmed;
-  }
+  String _stripMarkdownFence(String raw) => stripMarkdownFence(raw);
 
   void _appendLog(StringBuffer buffer, String message) {
     final timestamp = DateTime.now().toIso8601String();

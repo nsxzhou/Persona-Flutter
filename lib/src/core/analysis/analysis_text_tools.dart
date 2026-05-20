@@ -1,4 +1,5 @@
 import '../../features/settings/domain/provider_config.dart';
+import '../llm/domain/llm_error_utils.dart';
 
 const defaultAnalysisChunkSize = 12000;
 
@@ -84,20 +85,66 @@ AnalysisInputSignals detectAnalysisInputSignals({
   );
 }
 
+/// Delegates to [sanitizeLlmError] for consistent error sanitization.
 String sanitizeAnalysisError(
   Object error,
   ProviderConfig provider, {
   int maxLength = 220,
 }) {
-  var message = error.toString();
-  final apiKey = provider.apiKey.trim();
-  if (apiKey.isNotEmpty) {
-    message = message.replaceAll(apiKey, '[REDACTED]');
+  return sanitizeLlmError(error, provider.apiKey, maxLength: maxLength);
+}
+
+class InputClassification {
+  const InputClassification({
+    required this.textType,
+    required this.hasTimestamps,
+    required this.hasSpeakerLabels,
+    required this.hasNoiseMarkers,
+    required this.usesBatchProcessing,
+    required this.locationIndexing,
+    required this.noiseNotes,
+  });
+
+  final String textType;
+  final bool hasTimestamps;
+  final bool hasSpeakerLabels;
+  final bool hasNoiseMarkers;
+  final bool usesBatchProcessing;
+  final String locationIndexing;
+  final String noiseNotes;
+
+  factory InputClassification.detect({
+    required String text,
+    required int chunkCount,
+    int sampleLineLimit = 220,
+  }) {
+    final signals = detectAnalysisInputSignals(
+      text: text,
+      chunkCount: chunkCount,
+      sampleLineLimit: sampleLineLimit,
+    );
+    return InputClassification(
+      textType: signals.textType,
+      hasTimestamps: signals.hasTimestamps,
+      hasSpeakerLabels: signals.hasSpeakerLabels,
+      hasNoiseMarkers: signals.hasNoiseMarkers,
+      usesBatchProcessing: signals.usesBatchProcessing,
+      locationIndexing: signals.locationIndexing,
+      noiseNotes: signals.noiseNotes,
+    );
   }
-  if (message.length <= maxLength) {
-    return message;
+
+  Map<String, Object?> toJson() {
+    return {
+      'text_type': textType,
+      'has_timestamps': hasTimestamps,
+      'has_speaker_labels': hasSpeakerLabels,
+      'has_noise_markers': hasNoiseMarkers,
+      'uses_batch_processing': usesBatchProcessing,
+      'location_indexing': locationIndexing,
+      'noise_notes': noiseNotes,
+    };
   }
-  return '${message.substring(0, maxLength - 3)}...';
 }
 
 class AnalysisInputSignals {

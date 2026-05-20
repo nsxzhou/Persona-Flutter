@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 import 'hoverable_widget.dart';
-import 'staggered_list.dart';
 
 class PersonaPage extends StatelessWidget {
   const PersonaPage({
@@ -90,7 +89,7 @@ class PersonaPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 28),
                 ],
-                StaggeredList(animate: animateChildren, children: children),
+                _StaggeredList(animate: animateChildren, children: children),
               ],
             ),
           ),
@@ -241,99 +240,59 @@ class PersonaMetric extends StatelessWidget {
   }
 }
 
-class PersonaActionTile extends StatelessWidget {
-  const PersonaActionTile({
-    required this.icon,
-    required this.title,
-    required this.description,
-    this.accent = false,
-    super.key,
+class _StaggeredList extends StatefulWidget {
+  const _StaggeredList({
+    required this.children,
+    this.animate = false,
   });
 
-  final IconData icon;
-  final String title;
-  final String description;
-  final bool accent;
+  final List<Widget> children;
+  final bool animate;
+
+  @override
+  State<_StaggeredList> createState() => _StaggeredListState();
+}
+
+class _StaggeredListState extends State<_StaggeredList> {
+  bool _animate = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.animate) {
+      _animate = true;
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _animate = true);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return HoverableWidget(
-      builder: (context, isHovered, _) {
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOutCubic,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(kPanelRadius),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isHovered ? 0.08 : 0.035),
-                offset: Offset(0, isHovered ? 14 : 10),
-                blurRadius: isHovered ? 32 : 24,
-              ),
-            ],
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(kPanelRadius),
-              onTap: () {},
-              hoverColor: colorScheme.primary.withValues(alpha: 0.04),
-              child: PersonaPanel(
-                padding: const EdgeInsets.all(16),
-                backgroundColor: accent
-                    ? colorScheme.primary.withValues(
-                        alpha: isHovered ? 0.12 : 0.08,
-                      )
-                    : (isHovered
-                          ? colorScheme.surfaceContainerHighest.withValues(
-                              alpha: 0.5,
-                            )
-                          : null),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: accent
-                            ? colorScheme.primary
-                            : colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(kButtonRadius),
-                      ),
-                      child: Icon(
-                        icon,
-                        color: accent
-                            ? colorScheme.onPrimary
-                            : colorScheme.onSurfaceVariant,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(title, style: textTheme.titleMedium),
-                          const SizedBox(height: 3),
-                          Text(description, style: textTheme.bodyMedium),
-                        ],
-                      ),
-                    ),
-                    Icon(
-                      Icons.arrow_forward,
-                      color: colorScheme.onSurfaceVariant,
-                      size: 18,
-                    ),
-                  ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (int i = 0; i < widget.children.length; i++)
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: _animate ? 1.0 : 0.0),
+            duration: widget.animate
+                ? const Duration(milliseconds: 350)
+                : Duration.zero,
+            curve: Curves.easeOutCubic,
+            builder: (context, value, child) {
+              final delayedValue = (value - (i * 0.08)).clamp(0.0, 1.0);
+              return Opacity(
+                opacity: delayedValue,
+                child: Transform.translate(
+                  offset: Offset(0, 16.0 * (1 - delayedValue)),
+                  child: child,
                 ),
-              ),
-            ),
+              );
+            },
+            child: widget.children[i],
           ),
-        );
-      },
+      ],
     );
   }
 }
