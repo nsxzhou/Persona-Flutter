@@ -82,6 +82,7 @@ void main() {
 
     expect(find.text('新建分卷'), findsWidgets);
     await tester.enterText(find.widgetWithText(TextFormField, '分卷标题'), '第一卷');
+    await tester.ensureVisible(find.widgetWithText(FilledButton, '保存'));
     await tester.tap(find.widgetWithText(FilledButton, '保存'));
     await tester.pump();
     await tester.pumpAndSettle();
@@ -137,19 +138,12 @@ void main() {
 
     await tester.tap(find.text('角色索引与关系网').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(OutlinedButton, '编辑'));
-    await tester.pumpAndSettle();
-    await tester.enterText(
+    expect(find.text('旧角色索引参考'), findsOneWidget);
+    expect(find.text('林岚：调查者。'), findsOneWidget);
+    expect(
       find.byKey(const ValueKey('edit-bible-charactersBlueprint')),
-      '林岚：调查者。',
+      findsNothing,
     );
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(const ValueKey('save-bible-charactersBlueprint')),
-    );
-    await tester.pumpAndSettle();
-
-    expect(fixture.repository.bible.charactersBlueprintMarkdown, '林岚：调查者。');
 
     await tester.tap(find.text('总纲').last);
     await tester.pumpAndSettle();
@@ -781,6 +775,8 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   final List<ProjectChapter> chapters;
   final List<ChapterGenerationRun> runs;
   final List<AssetGenerationRun> assetRuns = [];
+  final List<NovelCharacter> characters = [];
+  final List<NovelRelationship> relationships = [];
   final List<ChapterVolume> volumes;
   ProjectBible bible;
   ProjectRuntimeMemory memory;
@@ -830,6 +826,22 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   }
 
   @override
+  Future<AssetGenerationRun> createVolumeDetailGenerationRun({
+    required String projectId,
+    required String volumeId,
+  }) async {
+    final run = _assetRun(
+      id: 'asset-run-${assetRuns.length + 1}',
+      projectId: projectId,
+      kind: AssetGenerationKind.outlineDetailYaml,
+      status: AssetGenerationStatus.pending,
+    );
+    assetRuns.add(run);
+    emit();
+    return run;
+  }
+
+  @override
   Future<ChapterPlan?> findChapterPlan(String id) async {
     return plans.where((plan) => plan.id == id).firstOrNull;
   }
@@ -843,6 +855,18 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   Future<ProjectChapter?> findChapterByPlan(String chapterPlanId) async {
     return chapters
         .where((chapter) => chapter.chapterPlanId == chapterPlanId)
+        .firstOrNull;
+  }
+
+  @override
+  Future<NovelCharacter?> findCharacter(String id) async {
+    return characters.where((character) => character.id == id).firstOrNull;
+  }
+
+  @override
+  Future<NovelRelationship?> findRelationship(String id) async {
+    return relationships
+        .where((relationship) => relationship.id == id)
         .firstOrNull;
   }
 
@@ -943,7 +967,64 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   Future<ProjectChapter> saveMemorySyncProposal(
     MemorySyncProposalInput input,
   ) async {
-    throw UnimplementedError();
+    final index = chapters.indexWhere(
+      (chapter) => chapter.id == input.chapterId,
+    );
+    final current = chapters[index];
+    final saved = ProjectChapter(
+      id: current.id,
+      projectId: current.projectId,
+      chapterPlanId: current.chapterPlanId,
+      chapterIndex: current.chapterIndex,
+      title: current.title,
+      contentMarkdown: current.contentMarkdown,
+      contentHash: current.contentHash,
+      continuityVerdict: current.continuityVerdict,
+      continuityReportMarkdown: current.continuityReportMarkdown,
+      memorySyncStatus: MemorySyncStatus.pendingReview,
+      memorySyncContentHash: input.contentHash,
+      memorySyncProposedCharactersStatus: input.proposedMemory.charactersStatus,
+      memorySyncProposedRuntimeState: input.proposedMemory.runtimeState,
+      memorySyncProposedRuntimeThreads: input.proposedMemory.runtimeThreads,
+      memorySyncProposedStorySummary: input.proposedMemory.storySummary,
+      memorySyncPatchYaml: input.patchYaml,
+      createdAt: current.createdAt,
+      updatedAt: _testUpdatedAt,
+    );
+    chapters[index] = saved;
+    emit();
+    return saved;
+  }
+
+  @override
+  Future<ProjectChapter> applyMemorySyncPatch(String chapterId) async {
+    final index = chapters.indexWhere((chapter) => chapter.id == chapterId);
+    final current = chapters[index];
+    final saved = ProjectChapter(
+      id: current.id,
+      projectId: current.projectId,
+      chapterPlanId: current.chapterPlanId,
+      chapterIndex: current.chapterIndex,
+      title: current.title,
+      contentMarkdown: current.contentMarkdown,
+      contentHash: current.contentHash,
+      continuityVerdict: current.continuityVerdict,
+      continuityReportMarkdown: current.continuityReportMarkdown,
+      memorySyncStatus: MemorySyncStatus.synced,
+      memorySyncContentHash: current.memorySyncContentHash,
+      memorySyncProposedCharactersStatus:
+          current.memorySyncProposedCharactersStatus,
+      memorySyncProposedRuntimeState: current.memorySyncProposedRuntimeState,
+      memorySyncProposedRuntimeThreads:
+          current.memorySyncProposedRuntimeThreads,
+      memorySyncProposedStorySummary: current.memorySyncProposedStorySummary,
+      memorySyncPatchYaml: current.memorySyncPatchYaml,
+      createdAt: current.createdAt,
+      updatedAt: _testUpdatedAt,
+    );
+    chapters[index] = saved;
+    emit();
+    return saved;
   }
 
   @override
@@ -951,7 +1032,63 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
     required String projectId,
     required RuntimeMemoryState state,
   }) async {
-    throw UnimplementedError();
+    memory = ProjectRuntimeMemory(
+      projectId: projectId,
+      state: state,
+      createdAt: memory.createdAt,
+      updatedAt: _testUpdatedAt,
+    );
+    emit();
+    return memory;
+  }
+
+  @override
+  Future<NovelCharacter> saveCharacter({
+    String? id,
+    required NovelCharacterInput input,
+  }) async {
+    final saved = NovelCharacter(
+      id: id ?? 'character-${characters.length + 1}',
+      projectId: input.projectId,
+      name: input.name,
+      aliases: input.aliases,
+      tags: input.tags,
+      faction: input.faction,
+      role: input.role,
+      longTermGoal: input.longTermGoal,
+      currentStatus: input.currentStatus,
+      secrets: input.secrets,
+      firstChapterIndex: input.firstChapterIndex,
+      lastChapterIndex: input.lastChapterIndex,
+      createdAt: _testCreatedAt,
+      updatedAt: _testUpdatedAt,
+    );
+    characters.add(saved);
+    emit();
+    return saved;
+  }
+
+  @override
+  Future<NovelRelationship> saveRelationship({
+    String? id,
+    required NovelRelationshipInput input,
+  }) async {
+    final saved = NovelRelationship(
+      id: id ?? 'relationship-${relationships.length + 1}',
+      projectId: input.projectId,
+      fromCharacterId: input.fromCharacterId,
+      toCharacterId: input.toCharacterId,
+      relationshipType: input.relationshipType,
+      strength: input.strength,
+      status: input.status,
+      description: input.description,
+      lastChangedChapterIndex: input.lastChangedChapterIndex,
+      createdAt: _testCreatedAt,
+      updatedAt: _testUpdatedAt,
+    );
+    relationships.add(saved);
+    emit();
+    return saved;
   }
 
   @override
@@ -967,6 +1104,11 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
       projectId: input.projectId,
       volumeIndex: input.volumeIndex,
       title: input.title,
+      targetLength: input.targetLength,
+      summary: input.summary,
+      centralConflict: input.centralConflict,
+      characterProgression: input.characterProgression,
+      endingHook: input.endingHook,
       createdAt: existingIndex == -1
           ? _testCreatedAt
           : volumes[existingIndex].createdAt,
@@ -1032,16 +1174,7 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
           outlineDetailYaml: bible.outlineDetailYaml,
         ),
       ),
-      AssetGenerationKind.charactersBlueprint => await saveProjectBible(
-        ProjectBibleInput(
-          projectId: bible.projectId,
-          descriptionMarkdown: bible.descriptionMarkdown,
-          worldBuildingMarkdown: bible.worldBuildingMarkdown,
-          charactersBlueprintMarkdown: draft,
-          outlineMasterMarkdown: bible.outlineMasterMarkdown,
-          outlineDetailYaml: bible.outlineDetailYaml,
-        ),
-      ),
+      AssetGenerationKind.charactersBlueprint => bible,
       AssetGenerationKind.outlineMaster => await saveProjectBible(
         ProjectBibleInput(
           projectId: bible.projectId,
@@ -1052,6 +1185,7 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
           outlineDetailYaml: bible.outlineDetailYaml,
         ),
       ),
+      AssetGenerationKind.volumeBlueprintYaml => bible,
       AssetGenerationKind.outlineDetailYaml => await saveOutlineDetailYaml(
         projectId: bible.projectId,
         outlineDetailYaml: draft,
@@ -1169,6 +1303,30 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
     yield snapshot();
     yield* _changes.stream.map((_) => snapshot());
   }
+
+  @override
+  Stream<List<NovelCharacter>> watchCharacters(String projectId) async* {
+    List<NovelCharacter> snapshot() => characters
+        .where((character) => character.projectId == projectId)
+        .toList(growable: false);
+    yield snapshot();
+    yield* _changes.stream.map((_) => snapshot());
+  }
+
+  @override
+  Stream<List<NovelRelationship>> watchRelationships(String projectId) async* {
+    List<NovelRelationship> snapshot() => relationships
+        .where((relationship) => relationship.projectId == projectId)
+        .toList(growable: false);
+    yield snapshot();
+    yield* _changes.stream.map((_) => snapshot());
+  }
+
+  @override
+  Future<void> applyCharactersYaml({
+    required String projectId,
+    required String charactersYaml,
+  }) async {}
 
   @override
   Future<List<ChapterVolume>> watchChapterVolumesOnce(String projectId) async {
@@ -1331,6 +1489,7 @@ AssetGenerationRun _assetRun({
     id: id,
     workflowTaskId: 'task-$id',
     projectId: projectId,
+    targetVolumeId: null,
     kind: kind,
     providerId: 'provider-1',
     modelName: 'gpt-4.1-mini',

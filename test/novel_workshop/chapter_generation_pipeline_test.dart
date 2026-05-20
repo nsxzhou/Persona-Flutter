@@ -33,9 +33,13 @@ void main() {
     addTearDown(database.close);
     final fixture = await _Fixture.create(
       database,
-      llmClient: _StaticLlmClient('```markdown\n雾气贴着码头爬上来。\n```'),
+      llmClient: _StaticLlmClient([
+        '```markdown\n雾气贴着码头爬上来。\n```',
+        'characters:\n  - name: 林岚\n    currentStatus: 抵达雾港。',
+      ]),
       withPromptAssets: true,
       withRuntimeMemory: true,
+      withCharacterGraph: true,
     );
 
     final result = await fixture.pipeline.generateChapter(
@@ -48,12 +52,13 @@ void main() {
     expect(result.run.status, ChapterGenerationStatus.succeeded);
     expect(result.workflowTaskId, result.run.workflowTaskId);
     expect(result.contextWarnings, isEmpty);
-    expect(fixture.llmClient.invocationCount, 1);
-    expect(fixture.llmClient.lastPrompt, contains('## Output Contract'));
-    expect(fixture.llmClient.lastPrompt, contains('# Voice Profile'));
-    expect(fixture.llmClient.lastPrompt, contains('# Plot Writing Guide'));
-    expect(fixture.llmClient.lastPrompt, contains('- Project Title: 雾港纪事'));
-    expect(fixture.llmClient.lastPrompt, contains('只写当前章节正文'));
+    expect(fixture.llmClient.invocationCount, 2);
+    expect(fixture.llmClient.prompts.first, contains('## Output Contract'));
+    expect(fixture.llmClient.prompts.first, contains('# Voice Profile'));
+    expect(fixture.llmClient.prompts.first, contains('# Plot Writing Guide'));
+    expect(fixture.llmClient.prompts.first, contains('- Project Title: 雾港纪事'));
+    expect(fixture.llmClient.prompts.first, contains('只写当前章节正文'));
+    expect(fixture.llmClient.prompts.last, contains('结构化记忆 Patch'));
 
     final task = await fixture.workflowRepository.findTask(
       result.workflowTaskId,
@@ -65,6 +70,7 @@ void main() {
         .watchPromptTrace(result.workflowTaskId)
         .first;
     expect(trace!.traceMarkdown, contains('generate_chapter_draft'));
+    expect(trace.traceMarkdown, contains('propose_memory_patch'));
     expect(trace.traceMarkdown, contains('雾气贴着码头爬上来'));
     expect(trace.traceMarkdown, isNot(contains('sk-secret-test-key')));
     expect(trace.traceMarkdown, contains('[REDACTED]'));
@@ -77,7 +83,7 @@ void main() {
       addTearDown(database.close);
       final fixture = await _Fixture.create(
         database,
-        llmClient: _StaticLlmClient('正文。'),
+        llmClient: _StaticLlmClient(['正文。', 'characters: []']),
       );
 
       final result = await fixture.pipeline.generateChapter(
@@ -100,7 +106,7 @@ void main() {
     addTearDown(database.close);
     final fixture = await _Fixture.create(
       database,
-      llmClient: _StaticLlmClient('新正文。'),
+      llmClient: _StaticLlmClient(['新正文。', 'characters: []']),
     );
     final existing = await fixture.novelRepository.saveChapter(
       input: ProjectChapterInput(
@@ -223,6 +229,7 @@ class _Fixture {
     required _StaticLlmClient llmClient,
     bool withPromptAssets = false,
     bool withRuntimeMemory = false,
+    bool withCharacterGraph = false,
   }) async {
     final providerRepository = DriftProviderConfigRepository(database);
     await providerRepository.saveProvider(
@@ -293,6 +300,17 @@ class _Fixture {
         ),
       ),
     );
+    if (withCharacterGraph) {
+      await novelRepository.saveCharacter(
+        input: NovelCharacterInput(
+          projectId: project.id,
+          name: '林岚',
+          tags: '主角,调查者',
+          role: '调查失踪案的外来者',
+          currentStatus: '刚抵达雾港。',
+        ),
+      );
+    }
     if (withRuntimeMemory) {
       await novelRepository.saveRuntimeMemory(
         projectId: project.id,
@@ -403,11 +421,15 @@ Future<PlotProfile> _savePlotProfile({
 }
 
 class _StaticLlmClient implements LlmClient {
-  _StaticLlmClient(this.output);
+  _StaticLlmClient(Object output)
+    : outputs = output is List<String>
+          ? List<String>.from(output)
+          : [output as String];
 
-  final String output;
+  final List<String> outputs;
   int invocationCount = 0;
   String? lastPrompt;
+  final prompts = <String>[];
 
   @override
   Stream<LlmStreamEvent> streamChat({
@@ -416,6 +438,8 @@ class _StaticLlmClient implements LlmClient {
   }) async* {
     invocationCount += 1;
     lastPrompt = request.messages.map((message) => message.content).join('\n');
+    prompts.add(lastPrompt!);
+    final output = outputs[(invocationCount - 1).clamp(0, outputs.length - 1)];
     yield LlmStreamDelta(output);
     yield const LlmStreamDone();
   }
