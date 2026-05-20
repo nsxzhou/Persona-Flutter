@@ -3,6 +3,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/glass_container.dart';
 import '../../../core/ui/persona_page.dart';
 import '../../../core/ui/skeleton_loader.dart';
@@ -567,93 +568,93 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
               return SizedBox(
                 height: availableHeight,
                 child: TabBarView(
-              controller: _tabController,
-              children: [
-                _ProjectOverviewTab(
-                  project: widget.project,
-                  bible: widget.bible,
-                  volumes: widget.volumes,
-                  plans: widget.plans,
-                  chapters: widget.chapters,
-                  runs: widget.runs,
-                  assets: widget.assets,
-                  memory: widget.memory,
-                  onSwitchTab: _onSwitchTab,
+                  controller: _tabController,
+                  children: [
+                    _ProjectOverviewTab(
+                      project: widget.project,
+                      bible: widget.bible,
+                      volumes: widget.volumes,
+                      plans: widget.plans,
+                      chapters: widget.chapters,
+                      runs: widget.runs,
+                      assets: widget.assets,
+                      memory: widget.memory,
+                      onSwitchTab: _onSwitchTab,
+                    ),
+                    _BibleMarkdownEditorTab(
+                      title: '世界观设定',
+                      description: '承载世界规则、地域组织、技术/魔法边界和不可破坏设定。',
+                      bible: widget.bible,
+                      field: _BibleField.worldBuilding,
+                      emptyIcon: Icons.public_outlined,
+                      emptyTitle: '暂无世界观设定',
+                      emptyDescription: '补齐世界规则、地域组织和不可破坏设定后，章节生成会使用它作为硬上下文。',
+                    ),
+                    _BibleMarkdownEditorTab(
+                      title: '角色索引与关系网',
+                      description: '集中记录核心角色、人际关系、阵营和长期动机。',
+                      bible: widget.bible,
+                      field: _BibleField.charactersBlueprint,
+                      emptyIcon: Icons.groups_2_outlined,
+                      emptyTitle: '暂无角色索引',
+                      emptyDescription: '补齐角色、关系和长期动机后，可减少章节生成时临时编造关系。',
+                    ),
+                    _BibleMarkdownEditorTab(
+                      title: '总纲',
+                      description: '故事主线、主题推进、卷间结构和结局约束。',
+                      bible: widget.bible,
+                      field: _BibleField.outlineMaster,
+                      emptyIcon: Icons.route_outlined,
+                      emptyTitle: '暂无总纲',
+                      emptyDescription: '总纲用于约束分卷和章节细纲，不再展示剧情分析骨架大纲。',
+                    ),
+                    _ChapterPlanningTab(
+                      volumes: widget.volumes,
+                      plans: widget.plans,
+                      chapters: widget.chapters,
+                      runs: widget.runs,
+                      outlineDetailYaml: widget.bible.outlineDetailYaml,
+                      onCreatePlan: widget.onCreatePlan,
+                      onCreateVolume: widget.onCreateVolume,
+                      onEditVolume: widget.onEditVolume,
+                      onEditPlan: widget.onEditPlan,
+                    ),
+                    _YamlMarkdownAssetTab(
+                      title: 'Voice Profile',
+                      description: 'YAML 元数据独立展示，正文只渲染 Markdown body。',
+                      markdownAsync: widget.assets.whenData(
+                        (a) => a.voiceProfileMarkdown,
+                      ),
+                      kind: _PromptDocumentKind.voiceProfile,
+                      emptyIcon: Icons.record_voice_over_outlined,
+                      emptyTitle: '暂无 Voice Profile',
+                      emptyDescription: '请先在项目设置中绑定 Style Profile。',
+                    ),
+                    _YamlMarkdownAssetTab(
+                      title: 'Story Engine',
+                      description: 'YAML 元数据独立展示，剧情写作指南只渲染 Markdown body。',
+                      markdownAsync: widget.assets.whenData(
+                        (a) => a.storyEngineMarkdown,
+                      ),
+                      kind: _PromptDocumentKind.storyEngine,
+                      emptyIcon: Icons.engineering_outlined,
+                      emptyTitle: '暂无 Story Engine',
+                      emptyDescription: '请先在项目设置中绑定 Plot Profile。',
+                    ),
+                    _RuntimeMemoryTab(memory: widget.memory),
+                    _PromptStackTab(
+                      assets: widget.assets,
+                      bible: widget.bible,
+                      memory: widget.memory,
+                    ),
+                    _WorkshopSettingsTab(
+                      project: widget.project,
+                      bible: widget.bible,
+                    ),
+                  ],
                 ),
-                _BibleMarkdownEditorTab(
-                  title: '世界观设定',
-                  description: '承载世界规则、地域组织、技术/魔法边界和不可破坏设定。',
-                  bible: widget.bible,
-                  field: _BibleField.worldBuilding,
-                  emptyIcon: Icons.public_outlined,
-                  emptyTitle: '暂无世界观设定',
-                  emptyDescription: '补齐世界规则、地域组织和不可破坏设定后，章节生成会使用它作为硬上下文。',
-                ),
-                _BibleMarkdownEditorTab(
-                  title: '角色索引与关系网',
-                  description: '集中记录核心角色、人际关系、阵营和长期动机。',
-                  bible: widget.bible,
-                  field: _BibleField.charactersBlueprint,
-                  emptyIcon: Icons.groups_2_outlined,
-                  emptyTitle: '暂无角色索引',
-                  emptyDescription: '补齐角色、关系和长期动机后，可减少章节生成时临时编造关系。',
-                ),
-                _BibleMarkdownEditorTab(
-                  title: '总纲',
-                  description: '故事主线、主题推进、卷间结构和结局约束。',
-                  bible: widget.bible,
-                  field: _BibleField.outlineMaster,
-                  emptyIcon: Icons.route_outlined,
-                  emptyTitle: '暂无总纲',
-                  emptyDescription: '总纲用于约束分卷和章节细纲，不再展示剧情分析骨架大纲。',
-                ),
-                _ChapterPlanningTab(
-                  volumes: widget.volumes,
-                  plans: widget.plans,
-                  chapters: widget.chapters,
-                  runs: widget.runs,
-                  outlineDetailYaml: widget.bible.outlineDetailYaml,
-                  onCreatePlan: widget.onCreatePlan,
-                  onCreateVolume: widget.onCreateVolume,
-                  onEditVolume: widget.onEditVolume,
-                  onEditPlan: widget.onEditPlan,
-                ),
-                _YamlMarkdownAssetTab(
-                  title: 'Voice Profile',
-                  description: 'YAML 元数据独立展示，正文只渲染 Markdown body。',
-                  markdownAsync: widget.assets.whenData(
-                    (a) => a.voiceProfileMarkdown,
-                  ),
-                  kind: _PromptDocumentKind.voiceProfile,
-                  emptyIcon: Icons.record_voice_over_outlined,
-                  emptyTitle: '暂无 Voice Profile',
-                  emptyDescription: '请先在项目设置中绑定 Style Profile。',
-                ),
-                _YamlMarkdownAssetTab(
-                  title: 'Story Engine',
-                  description: 'YAML 元数据独立展示，剧情写作指南只渲染 Markdown body。',
-                  markdownAsync: widget.assets.whenData(
-                    (a) => a.storyEngineMarkdown,
-                  ),
-                  kind: _PromptDocumentKind.storyEngine,
-                  emptyIcon: Icons.engineering_outlined,
-                  emptyTitle: '暂无 Story Engine',
-                  emptyDescription: '请先在项目设置中绑定 Plot Profile。',
-                ),
-                _RuntimeMemoryTab(memory: widget.memory),
-                _PromptStackTab(
-                  assets: widget.assets,
-                  bible: widget.bible,
-                  memory: widget.memory,
-                ),
-                _WorkshopSettingsTab(
-                  project: widget.project,
-                  bible: widget.bible,
-                ),
-              ],
-            ),
-            );
-          },
+              );
+            },
           ),
         ],
       ),
@@ -765,9 +766,7 @@ class _ProjectOverviewTab extends StatelessWidget {
                   child: _TappableMetric(
                     label: '正文',
                     value: '$completed/${plans.length}',
-                    detail: completed > 0
-                        ? '$completed 个已完成'
-                        : '开始写作以生成正文',
+                    detail: completed > 0 ? '$completed 个已完成' : '开始写作以生成正文',
                     onTap: () => onSwitchTab(4),
                   ),
                 ),
@@ -798,8 +797,7 @@ class _ProjectOverviewTab extends StatelessWidget {
                 const SizedBox(height: 12),
                 assets.when(
                   data: (item) => _PromptAssetStatusStrip(assets: item),
-                  error: (error, stackTrace) =>
-                      Text('无法加载 Prompt 资产：$error'),
+                  error: (error, stackTrace) => Text('无法加载 Prompt 资产：$error'),
                   loading: () => const SkeletonBox(width: 260, height: 16),
                 ),
               ],
@@ -825,8 +823,7 @@ class _ProjectOverviewTab extends StatelessWidget {
                           description: '完成正文生成后将自动创建',
                         )
                       : _RuntimeMemoryGrid(memory: item.state),
-                  error: (error, stackTrace) =>
-                      Text('无法加载运行时记忆：$error'),
+                  error: (error, stackTrace) => Text('无法加载运行时记忆：$error'),
                   loading: () => const SkeletonBox(width: 220, height: 16),
                 ),
               ],
@@ -1265,10 +1262,12 @@ class _WorkshopSettingsTabState extends ConsumerState<_WorkshopSettingsTab> {
     _titleController = TextEditingController(text: p.title);
     _descriptionController = TextEditingController(text: p.description);
     _languageController = TextEditingController(text: p.language);
-    _targetLengthController =
-        TextEditingController(text: p.targetLength.toString());
-    _perspectiveController =
-        TextEditingController(text: p.narrativePerspective);
+    _targetLengthController = TextEditingController(
+      text: p.targetLength.toString(),
+    );
+    _perspectiveController = TextEditingController(
+      text: p.narrativePerspective,
+    );
     _status = p.status;
     _selectedProviderId = p.defaultProviderId;
     _selectedModelName = p.defaultModelName;
@@ -1326,17 +1325,16 @@ class _WorkshopSettingsTabState extends ConsumerState<_WorkshopSettingsTab> {
       styleProfileId: _selectedStyleProfileId,
       plotProfileId: _selectedPlotProfileId,
       language: _languageController.text.trim(),
-      targetLength:
-          int.tryParse(_targetLengthController.text.trim()) ?? 0,
+      targetLength: int.tryParse(_targetLengthController.text.trim()) ?? 0,
       narrativePerspective: _perspectiveController.text.trim(),
     );
     await ref
         .read(projectControllerProvider.notifier)
         .save(id: widget.project.id, input: input);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('设置已保存')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('设置已保存')));
     }
   }
 
@@ -1350,9 +1348,9 @@ class _WorkshopSettingsTabState extends ConsumerState<_WorkshopSettingsTab> {
 
     ref.listen(projectControllerProvider, (previous, next) {
       if (next.hasError) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('保存失败：${next.error}')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('保存失败：${next.error}')));
       }
     });
 
@@ -1362,8 +1360,9 @@ class _WorkshopSettingsTabState extends ConsumerState<_WorkshopSettingsTab> {
           data: (plotItems) {
             _syncSelections(providerItems, styleItems, plotItems);
             final selectedProvider = _findProvider(providerItems);
-            final selectedModelName =
-                selectedProvider == null ? null : _selectedModelName;
+            final selectedModelName = selectedProvider == null
+                ? null
+                : _selectedModelName;
 
             return SingleChildScrollView(
               padding: const EdgeInsets.all(20),
@@ -1399,10 +1398,7 @@ class _WorkshopSettingsTabState extends ConsumerState<_WorkshopSettingsTab> {
                       maxLines: 5,
                     ),
                     const SizedBox(height: 20),
-                    Text(
-                      '创作配置',
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
+                    Text('创作配置', style: Theme.of(context).textTheme.titleSmall),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       initialValue: _selectedProviderId,
@@ -1436,8 +1432,7 @@ class _WorkshopSettingsTabState extends ConsumerState<_WorkshopSettingsTab> {
                       initialValue: selectedModelName,
                       items: [
                         for (final name
-                            in selectedProvider?.modelNames ??
-                                const <String>[])
+                            in selectedProvider?.modelNames ?? const <String>[])
                           DropdownMenuItem(
                             value: name,
                             child: Text(name, overflow: TextOverflow.ellipsis),
@@ -1504,10 +1499,7 @@ class _WorkshopSettingsTabState extends ConsumerState<_WorkshopSettingsTab> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    Text(
-                      '写作参数',
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
+                    Text('写作参数', style: Theme.of(context).textTheme.titleSmall),
                     const SizedBox(height: 12),
                     Row(
                       children: [
@@ -1543,10 +1535,7 @@ class _WorkshopSettingsTabState extends ConsumerState<_WorkshopSettingsTab> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    Text(
-                      '项目状态',
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
+                    Text('项目状态', style: Theme.of(context).textTheme.titleSmall),
                     const SizedBox(height: 8),
                     RadioGroup<ProjectStatus>(
                       groupValue: _status,
@@ -1562,8 +1551,7 @@ class _WorkshopSettingsTabState extends ConsumerState<_WorkshopSettingsTab> {
                           ),
                           RadioListTile<ProjectStatus>(
                             title: const Text('归档项目'),
-                            subtitle:
-                                const Text('从默认工作区隐藏，但保留项目档案。'),
+                            subtitle: const Text('从默认工作区隐藏，但保留项目档案。'),
                             value: ProjectStatus.archived,
                           ),
                         ],
@@ -1720,62 +1708,58 @@ class _ChapterPlanningTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final completedChapterCount = plans
+        .where(
+          (plan) => chapters.any(
+            (chapter) =>
+                chapter.chapterPlanId == plan.id &&
+                chapter.contentMarkdown.trim().isNotEmpty,
+          ),
+        )
+        .length;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '先创建分卷，再在分卷下维护章节细纲。',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-              OutlinedButton.icon(
-                onPressed: onCreateVolume,
-                icon: const Icon(Icons.view_agenda_outlined),
-                label: const Text('新建分卷'),
-              ),
-              const SizedBox(width: 8),
-              FilledButton.icon(
-                onPressed: volumes.isEmpty ? onCreateVolume : onCreatePlan,
-                icon: const Icon(Icons.add),
-                label: Text(volumes.isEmpty ? '先建分卷' : '新建章节'),
-              ),
-            ],
-          ),
+        _ChapterPlanningToolbar(
+          volumeCount: volumes.length,
+          planCount: plans.length,
+          completedChapterCount: completedChapterCount,
+          hasVolumes: volumes.isNotEmpty,
+          onCreateVolume: onCreateVolume,
+          onCreatePlan: onCreatePlan,
         ),
         const Divider(height: 1),
         if (volumes.isEmpty)
           Expanded(
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: PersonaEmptyStateCard(
-                  icon: Icons.view_agenda_outlined,
-                  title: '暂无分卷',
-                  description: '章节细纲必须归属分卷。先创建第一卷，再为它添加章节目标。',
-                  action: FilledButton.icon(
-                    onPressed: onCreateVolume,
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('新建分卷'),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final minHeight = (constraints.maxHeight - 48).clamp(
+                  0.0,
+                  double.infinity,
+                );
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: minHeight),
+                    child: Center(
+                      child: _ChapterPlanningEmptyState(
+                        onCreateVolume: onCreateVolume,
+                      ),
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
           )
         else
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.only(bottom: 18),
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 22),
               children: [
                 if (outlineDetailYaml.trim().isNotEmpty)
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
+                    padding: const EdgeInsets.only(bottom: 12),
                     child: _OutlineYamlStatus(yaml: outlineDetailYaml),
                   ),
                 for (final volume in volumes)
@@ -1787,22 +1771,282 @@ class _ChapterPlanningTab extends StatelessWidget {
                     chapters: chapters,
                     runs: runs,
                     onEditVolume: () => onEditVolume(volume),
+                    onCreatePlan: onCreatePlan,
                     onEditPlan: onEditPlan,
                   ),
                 for (final plan in plans.where(
                   (plan) =>
                       !volumes.any((volume) => volume.id == plan.volumeId),
                 ))
-                  _WorkbenchChapterTile(
-                    plan: plan,
-                    chapter: _chapterForPlan(chapters, plan.id),
-                    run: _latestRunForPlan(runs, plan.id),
-                    onEdit: () => onEditPlan(plan),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: _WorkbenchChapterTile(
+                      plan: plan,
+                      chapter: _chapterForPlan(chapters, plan.id),
+                      run: _latestRunForPlan(runs, plan.id),
+                      onEdit: () => onEditPlan(plan),
+                    ),
                   ),
               ],
             ),
           ),
       ],
+    );
+  }
+}
+
+class _ChapterPlanningToolbar extends StatelessWidget {
+  const _ChapterPlanningToolbar({
+    required this.volumeCount,
+    required this.planCount,
+    required this.completedChapterCount,
+    required this.hasVolumes,
+    required this.onCreateVolume,
+    required this.onCreatePlan,
+  });
+
+  final int volumeCount;
+  final int planCount;
+  final int completedChapterCount;
+  final bool hasVolumes;
+  final VoidCallback onCreateVolume;
+  final VoidCallback onCreatePlan;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 820;
+          final summary = Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _PlanningMetricPill(label: '分卷', value: '$volumeCount'),
+              _PlanningMetricPill(label: '章节目标', value: '$planCount'),
+              _PlanningMetricPill(
+                label: '已成文',
+                value: '$completedChapterCount',
+              ),
+            ],
+          );
+          final actions = Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.end,
+            children: hasVolumes
+                ? [
+                    OutlinedButton.icon(
+                      onPressed: onCreateVolume,
+                      icon: const Icon(Icons.view_agenda_outlined, size: 18),
+                      label: const Text('新建分卷'),
+                    ),
+                    FilledButton.icon(
+                      onPressed: onCreatePlan,
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('新建章节'),
+                    ),
+                  ]
+                : [
+                    FilledButton.icon(
+                      onPressed: onCreateVolume,
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('新建分卷'),
+                    ),
+                  ],
+          );
+
+          final header = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('分卷与章节细纲', style: textTheme.titleMedium),
+              const SizedBox(height: 4),
+              Text(
+                '按分卷组织章节目标，正文创作前先把推进顺序和关键转折定清楚。',
+                style: textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 10),
+              summary,
+            ],
+          );
+
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [header, const SizedBox(height: 12), actions],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: header),
+              const SizedBox(width: 20),
+              actions,
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _PlanningMetricPill extends StatelessWidget {
+  const _PlanningMetricPill({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.42),
+        borderRadius: BorderRadius.circular(kButtonRadius),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              value,
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(color: colorScheme.onSurface),
+            ),
+            const SizedBox(width: 6),
+            Text(label, style: Theme.of(context).textTheme.labelMedium),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ChapterPlanningEmptyState extends StatelessWidget {
+  const _ChapterPlanningEmptyState({required this.onCreateVolume});
+
+  final VoidCallback onCreateVolume;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 620),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(kPanelRadius),
+          border: Border.all(color: colorScheme.outlineVariant),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(28, 26, 28, 26),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: colorScheme.primary.withValues(alpha: 0.22),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Icon(
+                    Icons.view_agenda_outlined,
+                    color: colorScheme.primary,
+                    size: 30,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text('暂无分卷', style: textTheme.titleLarge),
+              const SizedBox(height: 8),
+              Text(
+                '章节细纲必须归属分卷。先创建第一卷，再为它添加章节目标。',
+                textAlign: TextAlign.center,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 22),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
+                children: const [
+                  _PlanningStepPill(index: '1', label: '创建分卷'),
+                  _PlanningStepPill(index: '2', label: '添加章节目标'),
+                  _PlanningStepPill(index: '3', label: '进入编辑器写正文'),
+                ],
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: onCreateVolume,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('新建分卷'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PlanningStepPill extends StatelessWidget {
+  const _PlanningStepPill({required this.index, required this.label});
+
+  final String index;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.36),
+        borderRadius: BorderRadius.circular(kButtonRadius),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 6, 10, 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: colorScheme.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                child: Text(
+                  index,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelMedium?.copyWith(color: colorScheme.primary),
+                ),
+              ),
+            ),
+            const SizedBox(width: 7),
+            Text(label, style: Theme.of(context).textTheme.labelMedium),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1839,6 +2083,7 @@ class _VolumePlanSection extends StatelessWidget {
     required this.chapters,
     required this.runs,
     required this.onEditVolume,
+    required this.onCreatePlan,
     required this.onEditPlan,
   });
 
@@ -1847,49 +2092,150 @@ class _VolumePlanSection extends StatelessWidget {
   final List<ProjectChapter> chapters;
   final List<ChapterGenerationRun> runs;
   final VoidCallback onEditVolume;
+  final VoidCallback onCreatePlan;
   final ValueChanged<ChapterPlan> onEditPlan;
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final completedCount = plans
+        .where(
+          (plan) => chapters.any(
+            (chapter) =>
+                chapter.chapterPlanId == plan.id &&
+                chapter.contentMarkdown.trim().isNotEmpty,
+          ),
+        )
+        .length;
+
     return Padding(
-      padding: const EdgeInsets.only(top: 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-            child: Row(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(kPanelRadius),
+          border: Border.all(color: colorScheme.outlineVariant),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '第 ${volume.volumeIndex} 卷 · ${volume.title}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w900),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${plans.length} 个章节目标 · $completedCount 个已成文',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: '编辑分卷',
+                    onPressed: onEditVolume,
+                    icon: const Icon(Icons.tune_outlined),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (plans.isEmpty)
+                _EmptyVolumeNotice(onCreatePlan: onCreatePlan)
+              else
+                Column(
+                  children: [
+                    for (final plan in plans) ...[
+                      _WorkbenchChapterTile(
+                        plan: plan,
+                        chapter: _chapterForPlan(chapters, plan.id),
+                        run: _latestRunForPlan(runs, plan.id),
+                        onEdit: () => onEditPlan(plan),
+                      ),
+                      if (plan != plans.last) const SizedBox(height: 8),
+                    ],
+                  ],
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyVolumeNotice extends StatelessWidget {
+  const _EmptyVolumeNotice({required this.onCreatePlan});
+
+  final VoidCallback onCreatePlan;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.28),
+        borderRadius: BorderRadius.circular(kButtonRadius),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 420;
+            final message = Row(
               children: [
+                Icon(
+                  Icons.note_add_outlined,
+                  color: colorScheme.onSurfaceVariant,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    '第 ${volume.volumeIndex} 卷 · ${volume.title}',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
+                    '该分卷暂无章节细纲。',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
-                IconButton(
-                  tooltip: '编辑分卷',
-                  onPressed: onEditVolume,
-                  icon: const Icon(Icons.tune_outlined),
-                ),
               ],
-            ),
-          ),
-          if (plans.isEmpty)
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
-              child: Text('该分卷暂无章节细纲。'),
-            )
-          else
-            for (final plan in plans)
-              _WorkbenchChapterTile(
-                plan: plan,
-                chapter: _chapterForPlan(chapters, plan.id),
-                run: _latestRunForPlan(runs, plan.id),
-                onEdit: () => onEditPlan(plan),
+            );
+            final action = OutlinedButton.icon(
+              onPressed: onCreatePlan,
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('新建章节'),
+              style: OutlinedButton.styleFrom(
+                visualDensity: VisualDensity.compact,
               ),
-        ],
+            );
+
+            if (compact) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [message, const SizedBox(height: 10), action],
+              );
+            }
+
+            return Row(
+              children: [
+                Expanded(child: message),
+                const SizedBox(width: 10),
+                action,
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -2109,53 +2455,114 @@ class _WorkbenchChapterTile extends StatelessWidget {
     final running =
         run?.status == ChapterGenerationStatus.pending ||
         run?.status == ChapterGenerationStatus.running;
+    final colorScheme = Theme.of(context).colorScheme;
+    final statusColor = running
+        ? colorScheme.primary
+        : hasContent
+        ? const Color(0xFF16825D)
+        : colorScheme.onSurfaceVariant;
+    final statusIcon = running
+        ? Icons.sync
+        : hasContent
+        ? Icons.check_circle_outline
+        : Icons.radio_button_unchecked;
+    final statusLabel = running
+        ? '生成中'
+        : hasContent
+        ? '已成文'
+        : '待撰写';
+
     return DecoratedBox(
       decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: Theme.of(context).colorScheme.outlineVariant,
-          ),
-        ),
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.22),
+        borderRadius: BorderRadius.circular(kButtonRadius),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
-        child: Row(
-          children: [
-            Icon(
-              running
-                  ? Icons.sync
-                  : hasContent
-                  ? Icons.check_circle_outline
-                  : Icons.radio_button_unchecked,
-              size: 20,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
+        padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 560;
+            final statusMark = DecoratedBox(
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Icon(statusIcon, size: 18, color: statusColor),
+              ),
+            );
+            final content = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '第 ${plan.chapterIndex} 章 · ${_chapterTitle(plan)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      statusLabel,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.labelMedium?.copyWith(color: statusColor),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _objectiveSummary(plan.objectiveCard),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            );
+            final action = OutlinedButton.icon(
+              onPressed: onEdit,
+              icon: const Icon(Icons.tune_outlined, size: 16),
+              label: const Text('编辑目标'),
+              style: OutlinedButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+              ),
+            );
+
+            if (compact) {
+              return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '第 ${plan.chapterIndex} 章 · ${_chapterTitle(plan)}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      statusMark,
+                      const SizedBox(width: 12),
+                      Expanded(child: content),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _objectiveSummary(plan.objectiveCard),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  const SizedBox(height: 10),
+                  action,
                 ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            OutlinedButton.icon(
-              onPressed: onEdit,
-              icon: const Icon(Icons.tune_outlined),
-              label: const Text('编辑目标'),
-            ),
-          ],
+              );
+            }
+
+            return Row(
+              children: [
+                statusMark,
+                const SizedBox(width: 12),
+                Expanded(child: content),
+                const SizedBox(width: 10),
+                action,
+              ],
+            );
+          },
         ),
       ),
     );
@@ -2304,12 +2711,17 @@ class _WorkshopScaffoldState extends State<_WorkshopScaffold> {
                     if (_showNavigator)
                       SizedBox(width: isWide ? 260 : 220, child: navigator),
                     if (_showNavigator)
-                      VerticalDivider(width: 0.5, color: Theme.of(context).colorScheme.outlineVariant),
+                      VerticalDivider(
+                        width: 0.5,
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
                     Expanded(child: editor),
                     if (_showInspector)
-                      VerticalDivider(width: 0.5, color: Theme.of(context).colorScheme.outlineVariant),
-                    if (_showInspector)
-                      SizedBox(width: 280, child: inspector),
+                      VerticalDivider(
+                        width: 0.5,
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
+                    if (_showInspector) SizedBox(width: 280, child: inspector),
                   ],
                 ),
               ),
@@ -2443,7 +2855,10 @@ class _WorkshopTopBar extends StatelessWidget {
                     label: const Text('新建'),
                     style: OutlinedButton.styleFrom(
                       visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                     ),
                   ),
                   OutlinedButton.icon(
@@ -2452,7 +2867,10 @@ class _WorkshopTopBar extends StatelessWidget {
                     label: const Text('保存'),
                     style: OutlinedButton.styleFrom(
                       visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                     ),
                   ),
                   FilledButton.icon(
@@ -2461,7 +2879,10 @@ class _WorkshopTopBar extends StatelessWidget {
                     label: const Text('生成'),
                     style: FilledButton.styleFrom(
                       visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
                     ),
                   ),
                   IconButton(
@@ -2596,7 +3017,8 @@ class _NavigatorVolumeSection extends StatefulWidget {
   final ValueChanged<ChapterPlan> onSelectPlan;
 
   @override
-  State<_NavigatorVolumeSection> createState() => _NavigatorVolumeSectionState();
+  State<_NavigatorVolumeSection> createState() =>
+      _NavigatorVolumeSectionState();
 }
 
 class _NavigatorVolumeSectionState extends State<_NavigatorVolumeSection> {
@@ -2605,7 +3027,8 @@ class _NavigatorVolumeSectionState extends State<_NavigatorVolumeSection> {
   @override
   void initState() {
     super.initState();
-    _expanded = widget.selectedPlanId == null ||
+    _expanded =
+        widget.selectedPlanId == null ||
         widget.plans.any((p) => p.id == widget.selectedPlanId);
   }
 
@@ -2643,8 +3066,12 @@ class _NavigatorVolumeSectionState extends State<_NavigatorVolumeSection> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: hasSelected ? FontWeight.w800 : FontWeight.w600,
-                      color: hasSelected ? colorScheme.onSurface : colorScheme.onSurfaceVariant,
+                      fontWeight: hasSelected
+                          ? FontWeight.w800
+                          : FontWeight.w600,
+                      color: hasSelected
+                          ? colorScheme.onSurface
+                          : colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -2755,9 +3182,7 @@ class _NavigatorEmptyState extends StatelessWidget {
           onPressed: onCreatePlan,
           icon: const Icon(Icons.add, size: 16),
           label: const Text('新建章节'),
-          style: OutlinedButton.styleFrom(
-            visualDensity: VisualDensity.compact,
-          ),
+          style: OutlinedButton.styleFrom(visualDensity: VisualDensity.compact),
         ),
       ],
     );
@@ -2837,8 +3262,12 @@ class _ChapterPlanTile extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: textTheme.bodyMedium?.copyWith(
-                        fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                        color: selected ? colorScheme.onSurface : colorScheme.onSurface,
+                        fontWeight: selected
+                            ? FontWeight.w800
+                            : FontWeight.w600,
+                        color: selected
+                            ? colorScheme.onSurface
+                            : colorScheme.onSurface,
                       ),
                     ),
                     if (selected &&
@@ -2919,11 +3348,7 @@ class _ManuscriptEditor extends StatelessWidget {
         children: [
           if (run?.errorMessage != null)
             _EditorNotice(message: '最近生成失败：${run!.errorMessage}'),
-          _InlineChapterHeader(
-            plan: plan!,
-            run: run,
-            onEditPlan: onEditPlan,
-          ),
+          _InlineChapterHeader(plan: plan!, run: run, onEditPlan: onEditPlan),
           Expanded(
             child: Center(
               child: ConstrainedBox(
@@ -2947,7 +3372,9 @@ class _ManuscriptEditor extends StatelessWidget {
                     decoration: InputDecoration(
                       hintText: '开始写第 ${plan!.chapterIndex} 章...',
                       hintStyle: TextStyle(
-                        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.35),
+                        color: colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.35,
+                        ),
                       ),
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
@@ -3037,7 +3464,9 @@ class _InlineChapterHeader extends StatelessWidget {
                   Text(
                     '目标',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                      color: colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.6,
+                      ),
                     ),
                   ),
                 ],
@@ -3069,9 +3498,9 @@ class _EditorNotice extends StatelessWidget {
             Expanded(
               child: Text(
                 message,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: colorScheme.error,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: colorScheme.error),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -3125,9 +3554,11 @@ class _WorkshopInspector extends StatelessWidget {
                     child: plan == null
                         ? Text(
                             '未选择章节',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: colorScheme.onSurfaceVariant
+                                      .withValues(alpha: 0.5),
+                                ),
                           )
                         : _ObjectiveCardView(card: plan!.objectiveCard),
                   ),
@@ -3217,7 +3648,9 @@ class _ObjectiveCardView extends StatelessWidget {
                   child: Text(
                     field.$1,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                      color: colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.6,
+                      ),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -3307,10 +3740,7 @@ class _AssetStatus extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+            child: Text(label, style: Theme.of(context).textTheme.bodySmall),
           ),
           Text(
             ready ? '已接入' : '未接入',
@@ -4244,13 +4674,4 @@ class _ParsedPromptDocument {
   final Map<String, Object?> fields;
   final String bodyMarkdown;
   final String? error;
-}
-
-String _runStageLabel(ChapterGenerationStage? stage) {
-  return switch (stage) {
-    ChapterGenerationStage.preparingContext => '准备上下文',
-    ChapterGenerationStage.generatingDraft => '生成正文',
-    ChapterGenerationStage.savingChapter => '保存正文',
-    null => '未运行',
-  };
 }
