@@ -49,6 +49,7 @@ class _NovelWorkshopPageState extends ConsumerState<NovelWorkshopPage> {
     final plans = ref.watch(chapterPlansProvider(widget.projectId));
     final chapters = ref.watch(projectChaptersProvider(widget.projectId));
     final runs = ref.watch(chapterGenerationRunsProvider(widget.projectId));
+    final assetRuns = ref.watch(assetGenerationRunsProvider(widget.projectId));
     final memory = ref.watch(projectRuntimeMemoryProvider(widget.projectId));
     final assets = ref.watch(projectPromptAssetsProvider(widget.projectId));
 
@@ -65,37 +66,43 @@ class _NovelWorkshopPageState extends ConsumerState<NovelWorkshopPage> {
             data: (volumeItems) => plans.when(
               data: (planItems) => chapters.when(
                 data: (chapterItems) => runs.when(
-                  data: (runItems) => _AssetWorkbenchPage(
-                    project: item,
-                    bible: bibleItem,
-                    volumes: volumeItems,
-                    plans: planItems,
-                    chapters: chapterItems,
-                    runs: runItems,
-                    assets: assets,
-                    memory: memory,
-                    onCreatePlan: () => _showPlanDialog(
-                      context: context,
-                      projectId: item.id,
+                  data: (runItems) => assetRuns.when(
+                    data: (assetRunItems) => _AssetWorkbenchPage(
+                      project: item,
+                      bible: bibleItem,
                       volumes: volumeItems,
-                      nextIndex: _nextChapterIndex(planItems),
+                      plans: planItems,
+                      chapters: chapterItems,
+                      runs: runItems,
+                      assetRuns: assetRunItems,
+                      assets: assets,
+                      memory: memory,
+                      onCreatePlan: () => _showPlanDialog(
+                        context: context,
+                        projectId: item.id,
+                        volumes: volumeItems,
+                        nextIndex: _nextChapterIndex(planItems),
+                      ),
+                      onCreateVolume: () => _showVolumeDialog(
+                        context: context,
+                        projectId: item.id,
+                        nextIndex: _nextVolumeIndex(volumeItems),
+                      ),
+                      onEditVolume: (volume) => _showVolumeDialog(
+                        context: context,
+                        projectId: item.id,
+                        volume: volume,
+                      ),
+                      onEditPlan: (plan) => _showPlanDialog(
+                        context: context,
+                        projectId: item.id,
+                        volumes: volumeItems,
+                        plan: plan,
+                      ),
                     ),
-                    onCreateVolume: () => _showVolumeDialog(
-                      context: context,
-                      projectId: item.id,
-                      nextIndex: _nextVolumeIndex(volumeItems),
-                    ),
-                    onEditVolume: (volume) => _showVolumeDialog(
-                      context: context,
-                      projectId: item.id,
-                      volume: volume,
-                    ),
-                    onEditPlan: (plan) => _showPlanDialog(
-                      context: context,
-                      projectId: item.id,
-                      volumes: volumeItems,
-                      plan: plan,
-                    ),
+                    error: (error, stackTrace) =>
+                        _WorkshopError(message: '无法加载资产生成任务：$error'),
+                    loading: () => const _WorkshopLoading(),
                   ),
                   error: (error, stackTrace) =>
                       _WorkshopError(message: '无法加载生成任务：$error'),
@@ -418,6 +425,7 @@ class _AssetWorkbenchPage extends StatelessWidget {
     required this.plans,
     required this.chapters,
     required this.runs,
+    required this.assetRuns,
     required this.assets,
     required this.memory,
     required this.onCreatePlan,
@@ -432,6 +440,7 @@ class _AssetWorkbenchPage extends StatelessWidget {
   final List<ChapterPlan> plans;
   final List<ProjectChapter> chapters;
   final List<ChapterGenerationRun> runs;
+  final List<AssetGenerationRun> assetRuns;
   final AsyncValue<ProjectPromptAssets> assets;
   final AsyncValue<ProjectRuntimeMemory> memory;
   final VoidCallback onCreatePlan;
@@ -467,6 +476,7 @@ class _AssetWorkbenchPage extends StatelessWidget {
           plans: plans,
           chapters: chapters,
           runs: runs,
+          assetRuns: assetRuns,
           assets: assets,
           memory: memory,
           onCreatePlan: onCreatePlan,
@@ -487,6 +497,7 @@ class _WorkbenchTabs extends StatefulWidget {
     required this.plans,
     required this.chapters,
     required this.runs,
+    required this.assetRuns,
     required this.assets,
     required this.memory,
     required this.onCreatePlan,
@@ -501,6 +512,7 @@ class _WorkbenchTabs extends StatefulWidget {
   final List<ChapterPlan> plans;
   final List<ProjectChapter> chapters;
   final List<ChapterGenerationRun> runs;
+  final List<AssetGenerationRun> assetRuns;
   final AsyncValue<ProjectPromptAssets> assets;
   final AsyncValue<ProjectRuntimeMemory> memory;
   final VoidCallback onCreatePlan;
@@ -586,6 +598,10 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
                       description: '承载世界规则、地域组织、技术/魔法边界和不可破坏设定。',
                       bible: widget.bible,
                       field: _BibleField.worldBuilding,
+                      latestRun: _latestAssetRun(
+                        widget.assetRuns,
+                        AssetGenerationKind.worldBuilding,
+                      ),
                       emptyIcon: Icons.public_outlined,
                       emptyTitle: '暂无世界观设定',
                       emptyDescription: '补齐世界规则、地域组织和不可破坏设定后，章节生成会使用它作为硬上下文。',
@@ -595,6 +611,10 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
                       description: '集中记录核心角色、人际关系、阵营和长期动机。',
                       bible: widget.bible,
                       field: _BibleField.charactersBlueprint,
+                      latestRun: _latestAssetRun(
+                        widget.assetRuns,
+                        AssetGenerationKind.charactersBlueprint,
+                      ),
                       emptyIcon: Icons.groups_2_outlined,
                       emptyTitle: '暂无角色索引',
                       emptyDescription: '补齐角色、关系和长期动机后，可减少章节生成时临时编造关系。',
@@ -604,6 +624,10 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
                       description: '故事主线、主题推进、卷间结构和结局约束。',
                       bible: widget.bible,
                       field: _BibleField.outlineMaster,
+                      latestRun: _latestAssetRun(
+                        widget.assetRuns,
+                        AssetGenerationKind.outlineMaster,
+                      ),
                       emptyIcon: Icons.route_outlined,
                       emptyTitle: '暂无总纲',
                       emptyDescription: '总纲用于约束分卷和章节细纲，不再展示剧情分析骨架大纲。',
@@ -613,6 +637,11 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
                       plans: widget.plans,
                       chapters: widget.chapters,
                       runs: widget.runs,
+                      projectId: widget.project.id,
+                      assetRun: _latestAssetRun(
+                        widget.assetRuns,
+                        AssetGenerationKind.outlineDetailYaml,
+                      ),
                       outlineDetailYaml: widget.bible.outlineDetailYaml,
                       onCreatePlan: widget.onCreatePlan,
                       onCreateVolume: widget.onCreateVolume,
@@ -871,6 +900,7 @@ class _BibleMarkdownEditorTab extends ConsumerStatefulWidget {
     required this.description,
     required this.bible,
     required this.field,
+    required this.latestRun,
     required this.emptyIcon,
     required this.emptyTitle,
     required this.emptyDescription,
@@ -880,6 +910,7 @@ class _BibleMarkdownEditorTab extends ConsumerStatefulWidget {
   final String description;
   final ProjectBible bible;
   final _BibleField field;
+  final AssetGenerationRun? latestRun;
   final IconData emptyIcon;
   final String emptyTitle;
   final String emptyDescription;
@@ -939,6 +970,9 @@ class _BibleMarkdownEditorTabState
   Widget build(BuildContext context) {
     final trimmed = _loadedMarkdown.trim();
     final state = ref.watch(novelWorkshopControllerProvider);
+    final generating =
+        widget.latestRun?.status == AssetGenerationStatus.pending ||
+        widget.latestRun?.status == AssetGenerationStatus.running;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -966,12 +1000,40 @@ class _BibleMarkdownEditorTabState
                   icon: const Icon(Icons.save_outlined, size: 18),
                   label: const Text('保存'),
                 ),
-              ] else if (trimmed.isNotEmpty)
+              ] else ...[
                 OutlinedButton.icon(
-                  onPressed: () => setState(() => _editing = true),
-                  icon: const Icon(Icons.edit_outlined, size: 18),
-                  label: const Text('编辑'),
+                  key: ValueKey('generate-asset-${widget.field.name}'),
+                  onPressed: state.isLoading || generating
+                      ? null
+                      : () => _generateAsset(trimmed),
+                  icon: generating
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.auto_fix_high_outlined, size: 18),
+                  label: Text(generating ? '生成中' : '生成草稿'),
                 ),
+                if (_canReview(widget.latestRun)) ...[
+                  const SizedBox(width: 8),
+                  TextButton.icon(
+                    onPressed: state.isLoading
+                        ? null
+                        : () => _reviewDraft(widget.latestRun!, trimmed),
+                    icon: const Icon(Icons.rate_review_outlined, size: 18),
+                    label: const Text('查看草稿'),
+                  ),
+                ],
+                if (trimmed.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    onPressed: () => setState(() => _editing = true),
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    label: const Text('编辑'),
+                  ),
+                ],
+              ],
             ],
           ),
           const SizedBox(height: 14),
@@ -1033,6 +1095,60 @@ class _BibleMarkdownEditorTabState
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('保存失败：$error')));
+      }
+    }
+  }
+
+  Future<void> _generateAsset(String currentMarkdown) async {
+    try {
+      final result = await ref
+          .read(novelWorkshopControllerProvider.notifier)
+          .generateAsset(
+            projectId: widget.bible.projectId,
+            kind: _assetKindForField(widget.field),
+          );
+      if (!mounted) return;
+      await _reviewDraft(result.run, currentMarkdown);
+    } on Object {
+      // The controller listener renders the error where available.
+    }
+  }
+
+  Future<void> _reviewDraft(
+    AssetGenerationRun run,
+    String currentMarkdown,
+  ) async {
+    final shouldApply = await showGlassDialog<bool>(
+      context: context,
+      maxWidth: 860,
+      builder: (context) => _AssetDraftReviewDialog(
+        title: '${widget.title}草稿',
+        run: run,
+        hasExistingContent: currentMarkdown.trim().isNotEmpty,
+      ),
+    );
+    if (shouldApply != true) return;
+    try {
+      final saved = await ref
+          .read(novelWorkshopControllerProvider.notifier)
+          .applyAssetDraft(run.id);
+      if (!mounted) return;
+      setState(() {
+        _loadedMarkdown = _markdownFor(saved, widget.field);
+        _controller.text = _loadedMarkdown;
+        _editing = false;
+      });
+      if (Scaffold.maybeOf(context) != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('${widget.title}草稿已应用。')));
+      }
+    } on Object catch (error) {
+      if (!mounted) return;
+      if (Scaffold.maybeOf(context) != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('应用失败：$error')));
       }
     }
   }
@@ -1115,10 +1231,7 @@ class _YamlMarkdownAssetTab extends StatelessWidget {
 }
 
 class _RuntimeMemoryTab extends ConsumerStatefulWidget {
-  const _RuntimeMemoryTab({
-    required this.projectId,
-    required this.memory,
-  });
+  const _RuntimeMemoryTab({required this.projectId, required this.memory});
 
   final String projectId;
   final AsyncValue<ProjectRuntimeMemory> memory;
@@ -1220,8 +1333,9 @@ class _RuntimeMemoryTabState extends ConsumerState<_RuntimeMemoryTab> {
                   ),
                   if (_editing) ...[
                     TextButton(
-                      onPressed:
-                          controllerState.isLoading ? null : _cancelEditing,
+                      onPressed: controllerState.isLoading
+                          ? null
+                          : _cancelEditing,
                       child: const Text('取消'),
                     ),
                     const SizedBox(width: 8),
@@ -1957,6 +2071,8 @@ class _ChapterPlanningTab extends StatelessWidget {
     required this.plans,
     required this.chapters,
     required this.runs,
+    required this.projectId,
+    required this.assetRun,
     required this.outlineDetailYaml,
     required this.onCreatePlan,
     required this.onCreateVolume,
@@ -1968,6 +2084,8 @@ class _ChapterPlanningTab extends StatelessWidget {
   final List<ChapterPlan> plans;
   final List<ProjectChapter> chapters;
   final List<ChapterGenerationRun> runs;
+  final String projectId;
+  final AssetGenerationRun? assetRun;
   final String outlineDetailYaml;
   final VoidCallback onCreatePlan;
   final VoidCallback onCreateVolume;
@@ -1994,6 +2112,9 @@ class _ChapterPlanningTab extends StatelessWidget {
           planCount: plans.length,
           completedChapterCount: completedChapterCount,
           hasVolumes: volumes.isNotEmpty,
+          projectId: projectId,
+          assetRun: assetRun,
+          outlineDetailYaml: outlineDetailYaml,
           onCreateVolume: onCreateVolume,
           onCreatePlan: onCreatePlan,
         ),
@@ -2069,6 +2190,9 @@ class _ChapterPlanningToolbar extends StatelessWidget {
     required this.planCount,
     required this.completedChapterCount,
     required this.hasVolumes,
+    required this.projectId,
+    required this.assetRun,
+    required this.outlineDetailYaml,
     required this.onCreateVolume,
     required this.onCreatePlan,
   });
@@ -2077,6 +2201,9 @@ class _ChapterPlanningToolbar extends StatelessWidget {
   final int planCount;
   final int completedChapterCount;
   final bool hasVolumes;
+  final String projectId;
+  final AssetGenerationRun? assetRun;
+  final String outlineDetailYaml;
   final VoidCallback onCreateVolume;
   final VoidCallback onCreatePlan;
 
@@ -2102,12 +2229,21 @@ class _ChapterPlanningToolbar extends StatelessWidget {
               ),
             ],
           );
+          final generating =
+              assetRun?.status == AssetGenerationStatus.pending ||
+              assetRun?.status == AssetGenerationStatus.running;
           final actions = Wrap(
             spacing: 8,
             runSpacing: 8,
             alignment: WrapAlignment.end,
             children: hasVolumes
                 ? [
+                    _OutlineAssetGenerationButton(
+                      projectId: projectId,
+                      assetRun: assetRun,
+                      outlineDetailYaml: outlineDetailYaml,
+                      generating: generating,
+                    ),
                     OutlinedButton.icon(
                       onPressed: onCreateVolume,
                       icon: const Icon(Icons.view_agenda_outlined, size: 18),
@@ -2120,6 +2256,12 @@ class _ChapterPlanningToolbar extends StatelessWidget {
                     ),
                   ]
                 : [
+                    _OutlineAssetGenerationButton(
+                      projectId: projectId,
+                      assetRun: assetRun,
+                      outlineDetailYaml: outlineDetailYaml,
+                      generating: generating,
+                    ),
                     FilledButton.icon(
                       onPressed: onCreateVolume,
                       icon: const Icon(Icons.add, size: 18),
@@ -2197,6 +2339,104 @@ class _PlanningMetricPill extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _OutlineAssetGenerationButton extends ConsumerWidget {
+  const _OutlineAssetGenerationButton({
+    required this.projectId,
+    required this.assetRun,
+    required this.outlineDetailYaml,
+    required this.generating,
+  });
+
+  final String projectId;
+  final AssetGenerationRun? assetRun;
+  final String outlineDetailYaml;
+  final bool generating;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(novelWorkshopControllerProvider);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        OutlinedButton.icon(
+          key: const ValueKey('generate-asset-outlineDetailYaml'),
+          onPressed: state.isLoading || generating
+              ? null
+              : () => _generateDraft(context, ref),
+          icon: generating
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.auto_fix_high_outlined, size: 18),
+          label: Text(generating ? '生成中' : '生成细纲'),
+        ),
+        if (_canReview(assetRun)) ...[
+          const SizedBox(width: 8),
+          TextButton.icon(
+            onPressed: state.isLoading
+                ? null
+                : () => _reviewDraft(context, ref, assetRun!),
+            icon: const Icon(Icons.rate_review_outlined, size: 18),
+            label: const Text('查看草稿'),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _generateDraft(BuildContext context, WidgetRef ref) async {
+    try {
+      final result = await ref
+          .read(novelWorkshopControllerProvider.notifier)
+          .generateAsset(
+            projectId: projectId,
+            kind: AssetGenerationKind.outlineDetailYaml,
+          );
+      if (!context.mounted) return;
+      await _reviewDraft(context, ref, result.run);
+    } on Object {
+      // The controller listener renders the error where available.
+    }
+  }
+
+  Future<void> _reviewDraft(
+    BuildContext context,
+    WidgetRef ref,
+    AssetGenerationRun run,
+  ) async {
+    final shouldApply = await showGlassDialog<bool>(
+      context: context,
+      maxWidth: 860,
+      builder: (context) => _AssetDraftReviewDialog(
+        title: '分卷与章节细纲草稿',
+        run: run,
+        hasExistingContent: outlineDetailYaml.trim().isNotEmpty,
+      ),
+    );
+    if (shouldApply != true) return;
+    try {
+      await ref
+          .read(novelWorkshopControllerProvider.notifier)
+          .applyAssetDraft(run.id);
+      if (!context.mounted) return;
+      if (Scaffold.maybeOf(context) != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('细纲草稿已应用。')));
+      }
+    } on Object catch (error) {
+      if (!context.mounted) return;
+      if (Scaffold.maybeOf(context) != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('应用失败：$error')));
+      }
+    }
   }
 }
 
@@ -4483,6 +4723,107 @@ class _ConfirmOverwriteDialog extends StatelessWidget {
   }
 }
 
+class _AssetDraftReviewDialog extends StatelessWidget {
+  const _AssetDraftReviewDialog({
+    required this.title,
+    required this.run,
+    required this.hasExistingContent,
+  });
+
+  final String title;
+  final AssetGenerationRun run;
+  final bool hasExistingContent;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxHeight: 720),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.rate_review_outlined),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+            ],
+          ),
+          if (hasExistingContent) ...[
+            const SizedBox(height: 12),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: colorScheme.errorContainer.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: colorScheme.error.withValues(alpha: 0.28),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_outlined,
+                      color: colorScheme.error,
+                    ),
+                    const SizedBox(width: 8),
+                    const Expanded(child: Text('应用草稿会覆盖当前已保存内容。')),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 14),
+          Flexible(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border.all(color: colorScheme.outlineVariant),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(14),
+                child: SelectableText(
+                  run.draftMarkdown.trim().isEmpty
+                      ? '草稿为空。'
+                      : run.draftMarkdown,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(height: 1.55),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('取消'),
+              ),
+              const SizedBox(width: 8),
+              FilledButton.icon(
+                onPressed: run.draftMarkdown.trim().isEmpty
+                    ? null
+                    : () => Navigator.of(context).pop(true),
+                icon: const Icon(Icons.check_outlined, size: 18),
+                label: Text(hasExistingContent ? '确认覆盖并应用' : '应用草稿'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ChapterPlanDialog extends ConsumerStatefulWidget {
   const _ChapterPlanDialog({
     required this.projectId,
@@ -4979,6 +5320,30 @@ ChapterGenerationRun? _latestRunForPlan(
   final matches = runs.where((run) => run.chapterPlanId == planId).toList()
     ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
   return matches.firstOrNull;
+}
+
+AssetGenerationRun? _latestAssetRun(
+  List<AssetGenerationRun> runs,
+  AssetGenerationKind kind,
+) {
+  final matches = runs.where((run) => run.kind == kind).toList()
+    ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+  return matches.firstOrNull;
+}
+
+bool _canReview(AssetGenerationRun? run) {
+  if (run == null) return false;
+  return (run.status == AssetGenerationStatus.succeeded ||
+          run.status == AssetGenerationStatus.applied) &&
+      run.draftMarkdown.trim().isNotEmpty;
+}
+
+AssetGenerationKind _assetKindForField(_BibleField field) {
+  return switch (field) {
+    _BibleField.worldBuilding => AssetGenerationKind.worldBuilding,
+    _BibleField.charactersBlueprint => AssetGenerationKind.charactersBlueprint,
+    _BibleField.outlineMaster => AssetGenerationKind.outlineMaster,
+  };
 }
 
 int _nextChapterIndex(List<ChapterPlan> plans) {
