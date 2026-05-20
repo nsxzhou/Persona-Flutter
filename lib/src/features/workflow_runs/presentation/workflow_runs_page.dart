@@ -450,27 +450,16 @@ class _WorkflowRunDetailScaffoldState
     final logs = _logsForTask(task, styleRun, plotRun);
 
     return PersonaPage(
-      eyebrow: 'Prompt Trace',
-      title: task.title,
-      description: task.stage == null
-          ? task.kind
-          : '${task.kind} - ${task.stage}',
+      eyebrow: '',
+      title: '',
+      description: '',
       maxWidth: 1280,
-      actions: [
-        OutlinedButton.icon(
-          onPressed: () => context.go('/workflow-runs'),
-          icon: const Icon(Icons.arrow_back_outlined),
-          label: const Text('返回任务列表'),
-        ),
-        if (businessDetailPath != null)
-          FilledButton.icon(
-            onPressed: () => context.go(businessDetailPath),
-            icon: const Icon(Icons.open_in_new_outlined),
-            label: const Text('业务详情'),
-          ),
-      ],
       children: [
-        _WorkflowDetailSummary(task: task, statusColor: statusColor),
+        _WorkflowDetailHeader(
+          task: task,
+          statusColor: statusColor,
+          businessDetailPath: businessDetailPath,
+        ),
         PersonaPanel(
           padding: EdgeInsets.zero,
           child: Column(
@@ -552,87 +541,170 @@ class _WorkflowRunDetailScaffoldState
 
 enum _TraceMode { rendered, raw }
 
-class _WorkflowDetailSummary extends StatelessWidget {
-  const _WorkflowDetailSummary({required this.task, required this.statusColor});
+class _WorkflowDetailHeader extends StatelessWidget {
+  const _WorkflowDetailHeader({
+    required this.task,
+    required this.statusColor,
+    required this.businessDetailPath,
+  });
 
   final WorkflowTask task;
   final Color statusColor;
+  final String? businessDetailPath;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
     final hasErrorMessage = task.errorMessage?.trim().isNotEmpty == true;
-    final stage = task.stage?.trim().isNotEmpty == true ? task.stage! : '未记录阶段';
-    final detail = hasErrorMessage
-        ? task.errorMessage!.trim()
-        : '任务 ID：${task.id}';
+    final stage =
+        task.stage?.trim().isNotEmpty == true ? task.stage! : '未记录阶段';
 
     return PersonaPanel(
-      padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
-      child: Wrap(
-        spacing: 18,
-        runSpacing: 12,
-        crossAxisAlignment: WrapCrossAlignment.center,
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          PersonaStatusPill(
-            label: _statusLabel(task.status),
-            icon: _statusIcon(task.status),
-            color: statusColor,
+          // -- Top row: eyebrow + status (left) | action buttons (right)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                'PROMPT TRACE',
+                style: textTheme.labelMedium?.copyWith(
+                  color: colorScheme.primary,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(width: 12),
+              PersonaStatusPill(
+                label: _statusLabel(task.status),
+                icon: _statusIcon(task.status),
+                color: statusColor,
+              ),
+              const Spacer(),
+              OutlinedButton.icon(
+                onPressed: () => context.go('/workflow-runs'),
+                icon: const Icon(Icons.arrow_back_outlined),
+                label: const Text('返回任务列表'),
+              ),
+              if (businessDetailPath != null) ...[
+                const SizedBox(width: 10),
+                FilledButton.icon(
+                  onPressed: () => context.go(businessDetailPath!),
+                  icon: const Icon(Icons.open_in_new_outlined),
+                  label: const Text('业务详情'),
+                ),
+              ],
+            ],
           ),
-          _SummaryTextPair(label: '阶段', value: stage),
-          _SummaryTextPair(label: '类型', value: task.kind),
-          _SummaryTextPair(label: '更新', value: _formatRunTime(task.updatedAt)),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: Text(
-              detail,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: textTheme.bodySmall?.copyWith(
-                color: hasErrorMessage
-                    ? colorScheme.error
-                    : colorScheme.onSurfaceVariant,
+          const SizedBox(height: 14),
+          // -- Title
+          Text(task.title, style: textTheme.headlineMedium),
+          const SizedBox(height: 10),
+          // -- Metadata row
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              _MetadataChip(label: stage),
+              _MetaDot(color: colorScheme.onSurfaceVariant),
+              _MetadataChip(label: task.kind),
+              _MetaDot(color: colorScheme.onSurfaceVariant),
+              _MetadataChip(label: _formatRunTime(task.updatedAt)),
+            ],
+          ),
+          // -- Error / task ID
+          if (hasErrorMessage) ...[
+            const SizedBox(height: 12),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: colorScheme.errorContainer.withValues(alpha: 0.35),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: colorScheme.error.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 15,
+                      color: colorScheme.error,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        task.errorMessage!.trim(),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.error,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
+          ] else ...[
+            const SizedBox(height: 8),
+            Text(
+              '任务 ID：${task.id}',
+              style: textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-class _SummaryTextPair extends StatelessWidget {
-  const _SummaryTextPair({required this.label, required this.value});
+class _MetadataChip extends StatelessWidget {
+  const _MetadataChip({required this.label});
 
   final String label;
-  final String value;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        child: Text(
           label,
-          style: textTheme.labelSmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          value,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
           style: textTheme.labelMedium?.copyWith(
-            color: colorScheme.onSurface,
-            fontWeight: FontWeight.w600,
+            color: colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w500,
           ),
         ),
-      ],
+      ),
+    );
+  }
+}
+
+class _MetaDot extends StatelessWidget {
+  const _MetaDot({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Icon(Icons.circle, size: 4, color: color.withValues(alpha: 0.4)),
     );
   }
 }

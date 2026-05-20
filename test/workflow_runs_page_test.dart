@@ -40,9 +40,8 @@ void main() {
 
     expect(find.text('运行时 Prompt Trace'), findsOneWidget);
     expect(find.text('业务详情'), findsOneWidget);
-    expect(find.text('阶段'), findsOneWidget);
-    expect(find.text('类型'), findsOneWidget);
-    expect(find.text('更新'), findsOneWidget);
+    expect(find.text('未记录阶段'), findsOneWidget);
+    expect(find.text(plotAnalysisWorkflowTaskKind), findsWidgets);
     expect(find.text('任务状态'), findsNothing);
     expect(find.text('结构化'), findsOneWidget);
     expect(find.text('1 calls'), findsOneWidget);
