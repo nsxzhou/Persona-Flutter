@@ -28,6 +28,10 @@ class PersonaPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
+    final hasHeader = eyebrow.isNotEmpty ||
+        title.isNotEmpty ||
+        description.isNotEmpty ||
+        actions.isNotEmpty;
 
     return ColoredBox(
       color: Theme.of(context).scaffoldBackgroundColor,
@@ -39,41 +43,53 @@ class PersonaPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            eyebrow.toUpperCase(),
-                            style: textTheme.labelMedium?.copyWith(
-                              color: colorScheme.primary,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(title, style: textTheme.headlineMedium),
-                          const SizedBox(height: 10),
-                          ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 700),
-                            child: Text(
-                              description,
-                              style: textTheme.bodyLarge?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
+                if (hasHeader) ...[
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (eyebrow.isNotEmpty)
+                              Text(
+                                eyebrow.toUpperCase(),
+                                style: textTheme.labelMedium?.copyWith(
+                                  color: colorScheme.primary,
+                                ),
                               ),
-                            ),
-                          ),
-                        ],
+                            if (eyebrow.isNotEmpty && title.isNotEmpty)
+                              const SizedBox(height: 10),
+                            if (title.isNotEmpty)
+                              Text(title, style: textTheme.headlineMedium),
+                            if (title.isNotEmpty && description.isNotEmpty)
+                              const SizedBox(height: 10),
+                            if (description.isNotEmpty)
+                              ConstrainedBox(
+                                constraints:
+                                    const BoxConstraints(maxWidth: 700),
+                                child: Text(
+                                  description,
+                                  style: textTheme.bodyLarge?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
-                    if (actions.isNotEmpty) ...[
-                      const SizedBox(width: 24),
-                      Wrap(spacing: 10, runSpacing: 10, children: actions),
+                      if (actions.isNotEmpty) ...[
+                        const SizedBox(width: 24),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: actions,
+                        ),
+                      ],
                     ],
-                  ],
-                ),
-                const SizedBox(height: 28),
+                  ),
+                  const SizedBox(height: 28),
+                ],
                 StaggeredList(animate: animateChildren, children: children),
               ],
             ),
