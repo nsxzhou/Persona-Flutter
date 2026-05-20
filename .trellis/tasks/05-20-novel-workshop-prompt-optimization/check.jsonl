@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Verify LLM artifact output contracts, analyzer, and focused tests."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Check prompt constant changes stayed scoped and did not introduce avoidable duplication."}

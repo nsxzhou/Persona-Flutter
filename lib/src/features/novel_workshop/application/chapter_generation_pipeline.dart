@@ -364,16 +364,25 @@ class ChapterGenerationPipeline {
   }) async {
     final prompt =
         '''
-你是长篇小说项目的连续性编辑。阅读当前章节正文后，只输出 YAML，用作待审阅的结构化记忆 Patch。
+你是长篇小说项目的连续性档案编辑。你的任务是把刚写完的章节转化为待审阅的结构化记忆 Patch，让下一章能准确继承人物、关系、线索和世界状态。
 
 ## 输出契约
 - 只输出 YAML。
 - 不要输出 Markdown、代码围栏、解释。
 - 根节点允许 `characters`、`relationships`、`runtimeMemory`。
-- 只包含本章确实发生变化的角色和关系，不要输出全量快照。
 - `characters` 中每项必须有 `name`，可更新 `aliases`、`tags`、`faction`、`role`、`longTermGoal`、`currentStatus`、`secrets`、`firstChapterIndex`、`lastChapterIndex`。
 - `relationships` 中每项必须有 `from`、`to`，可更新 `type`、`strength`、`status`、`description`、`lastChangedChapterIndex`。
 - `runtimeMemory` 可包含 `runtimeState`、`runtimeThreads`、`storySummary`。
+
+## 更新原则
+只记录本章正文明确发生或明确确认的变化，不补全、不推测、不替作者规划未来。不要输出全量快照；没有变化的角色和关系不要重复写入。
+
+`runtimeMemory` 用来服务下一章承接：
+- `runtimeState` 记录章节结束后的地点、资源、伤势、任务状态和世界规则变化。
+- `runtimeThreads` 记录未解决悬念、伏笔债务、承诺、威胁、追踪线索和待回收信息。
+- `storySummary` 用 3-6 句更新全局故事摘要，保留因果链和本章对下一章的直接影响。
+
+如果本章没有结构化变化，可以输出空列表或空对象；不要为了填字段编造变化。
 
 ## 项目
 - 标题：${project.title}
@@ -414,11 +423,16 @@ ${chapter.contentMarkdown}
 
   String _writingRulesMarkdown(WritingProject project) {
     return [
-      '- 使用项目语言：${project.language.trim()}。',
-      '- 使用叙事视角：${project.narrativePerspective.trim()}。',
-      '- 正文长度尽量接近 ${project.targetLength} 字；不要为了凑字数牺牲节奏。',
-      '- 只写当前章节正文，不输出分析、解释、前言、后记或元信息。',
-      '- 不要输出 Markdown 代码围栏。',
+      '- 写作语言：${project.language.trim()}。',
+      '- 叙事视角：${project.narrativePerspective.trim()}。',
+      '- 篇幅目标：尽量接近 ${project.targetLength} 字；节奏优先，不为凑字数拖长场景。',
+      '- 只写当前章节正文，不写分析、解释、前言、后记、标题或元信息；不要输出 Markdown 代码围栏。',
+      '- 上下文优先级：Chapter Objective Card 和 Chapter Outline Node 决定本章任务；Project Bible 决定设定边界；Voice Profile 决定文风；Story Engine 决定剧情推进方式；Runtime Memory 决定开篇状态。',
+      '- 开篇承接 Runtime Memory 中的当前位置、压力、未解决悬念或上一章余波，不无故重置人物、地点、关系、资源和伤势。',
+      '- 本章至少推进目标、压力、兑现点、关系变化、章末钩子中的三项；每个推进都要落到行动、对话、选择或代价。',
+      '- 角色可以变化，但变化必须由本章事件触发；保持性格、能力、秘密、伤势和关系强度的连续性。',
+      '- 同类冲突再次出现时必须带来新信息、新代价或新关系变化，避免复读旧章节模式。',
+      '- 伏笔要处在可追踪状态：埋设、强化、半兑现、回收或反噬；不要制造无法承接的随机悬念。',
     ].join('\n');
   }
 
@@ -468,4 +482,6 @@ const _outputContract = '''
 只输出当前章节正文。
 输出必须是纯 Markdown 正文，不要 JSON，不要代码围栏，不要解释生成过程。
 不要重复章节标题，章节标题由系统保存。
+正文从当前上下文出发，完成本章目标，并为下一章留下可承接状态。
+不得改写已确认设定、角色状态或关系；确需变化时，必须在正文中写出清晰因果和代价。
 ''';

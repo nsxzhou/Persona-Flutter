@@ -58,7 +58,15 @@ void main() {
     expect(fixture.llmClient.prompts.first, contains('# Plot Writing Guide'));
     expect(fixture.llmClient.prompts.first, contains('- Project Title: 雾港纪事'));
     expect(fixture.llmClient.prompts.first, contains('只写当前章节正文'));
+    expect(fixture.llmClient.prompts.first, contains('上下文优先级'));
+    expect(fixture.llmClient.prompts.first, contains('Runtime Memory 决定开篇状态'));
+    expect(fixture.llmClient.prompts.first, contains('避免复读旧章节模式'));
+    expect(fixture.llmClient.prompts.first, contains('伏笔'));
     expect(fixture.llmClient.prompts.last, contains('结构化记忆 Patch'));
+    expect(fixture.llmClient.prompts.last, contains('只记录本章正文明确发生'));
+    expect(fixture.llmClient.prompts.last, contains('未解决悬念'));
+    expect(fixture.llmClient.prompts.last, contains('伏笔债务'));
+    expect(fixture.llmClient.prompts.last, contains('storySummary'));
 
     final task = await fixture.workflowRepository.findTask(
       result.workflowTaskId,

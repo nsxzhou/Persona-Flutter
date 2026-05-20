@@ -60,12 +60,42 @@ void main() {
         storyEngineMarkdown: '# Plot Writing Guide',
       ),
     );
+    final charactersPrompt = builder.buildPrompt(
+      kind: AssetGenerationKind.charactersBlueprint,
+      project: project,
+      bible: bible,
+      assets: const ProjectPromptAssets(),
+    );
+    final volumePrompt = builder.buildPrompt(
+      kind: AssetGenerationKind.volumeBlueprintYaml,
+      project: project,
+      bible: bible,
+      assets: const ProjectPromptAssets(
+        storyEngineMarkdown: '# Plot Writing Guide',
+      ),
+    );
 
     expect(worldPrompt, contains('只输出 Markdown 文档'));
     expect(worldPrompt, contains('雾港纪事'));
     expect(worldPrompt, contains('不要输出代码围栏'));
+    expect(worldPrompt, contains('核心 DNA'));
+    expect(worldPrompt, contains('物理维度'));
+    expect(worldPrompt, contains('社会维度'));
+    expect(worldPrompt, contains('隐喻维度'));
+    expect(charactersPrompt, contains('只输出 YAML'));
+    expect(charactersPrompt, contains('根节点允许 `characters` 和 `relationships`'));
+    expect(charactersPrompt, contains('三级驱动力'));
+    expect(charactersPrompt, contains('权力差'));
+    expect(charactersPrompt, contains('不要新增 schema 之外的字段'));
+    expect(volumePrompt, contains('根节点必须是 `volumes`'));
+    expect(volumePrompt, contains('核心 DNA'));
+    expect(volumePrompt, contains('半兑现'));
+    expect(volumePrompt, contains('反噬'));
     expect(outlinePrompt, contains('只输出 YAML'));
     expect(outlinePrompt, contains('根节点必须是 `volumes`'));
+    expect(outlinePrompt, contains('3-5 章'));
+    expect(outlinePrompt, contains('压力出现'));
+    expect(outlinePrompt, contains('伏笔埋设或回收'));
     expect(outlinePrompt, contains('# Plot Writing Guide'));
   });
 
