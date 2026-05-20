@@ -8,8 +8,10 @@ import '../../settings/domain/provider_config_repository.dart';
 import '../domain/novel_workshop.dart';
 import '../domain/novel_workshop_repository.dart';
 import 'asset_generation_prompts.dart';
+import 'character_graph_parser.dart';
 import 'outline_detail_parser.dart';
 import 'project_prompt_asset_resolver.dart';
+import 'volume_blueprint_parser.dart';
 
 class AssetGenerationPipeline {
   const AssetGenerationPipeline({
@@ -22,6 +24,8 @@ class AssetGenerationPipeline {
     AssetGenerationPromptBuilder promptBuilder =
         const AssetGenerationPromptBuilder(),
     OutlineDetailParser outlineDetailParser = const OutlineDetailParser(),
+    CharacterGraphParser characterGraphParser = const CharacterGraphParser(),
+    VolumeBlueprintParser volumeBlueprintParser = const VolumeBlueprintParser(),
   }) : _repository = repository,
        _projectRepository = projectRepository,
        _providerRepository = providerRepository,
@@ -29,7 +33,9 @@ class AssetGenerationPipeline {
        _completionService = completionService,
        _workflowTaskRepository = workflowTaskRepository,
        _promptBuilder = promptBuilder,
-       _outlineDetailParser = outlineDetailParser;
+       _outlineDetailParser = outlineDetailParser,
+       _characterGraphParser = characterGraphParser,
+       _volumeBlueprintParser = volumeBlueprintParser;
 
   final NovelWorkshopRepository _repository;
   final ProjectRepository _projectRepository;
@@ -39,19 +45,27 @@ class AssetGenerationPipeline {
   final WorkflowTaskRepository _workflowTaskRepository;
   final AssetGenerationPromptBuilder _promptBuilder;
   final OutlineDetailParser _outlineDetailParser;
+  final CharacterGraphParser _characterGraphParser;
+  final VolumeBlueprintParser _volumeBlueprintParser;
 
   Future<AssetGenerationResult> generateAsset({
     required String projectId,
     required AssetGenerationKind kind,
+    String? targetVolumeId,
   }) async {
-    final run = await _repository.createAssetGenerationRun(
-      AssetGenerationRunInput(
-        projectId: projectId,
-        kind: kind,
-        providerId: '',
-        modelName: '',
-      ),
-    );
+    final run = targetVolumeId == null
+        ? await _repository.createAssetGenerationRun(
+            AssetGenerationRunInput(
+              projectId: projectId,
+              kind: kind,
+              providerId: '',
+              modelName: '',
+            ),
+          )
+        : await _repository.createVolumeDetailGenerationRun(
+            projectId: projectId,
+            volumeId: targetVolumeId,
+          );
     var currentRun = run;
     var currentStage = currentRun.stage;
     final log = StringBuffer(currentRun.logs);
@@ -88,6 +102,9 @@ class AssetGenerationPipeline {
 
     try {
       final project = await _requireProject(projectId);
+      final targetVolume = currentRun.targetVolumeId == null
+          ? null
+          : await _requireVolume(projectId, currentRun.targetVolumeId!);
       final provider = await _requireProvider(project);
       final modelName = _requireModelName(project, provider);
       resolvedProvider = provider;
@@ -118,6 +135,7 @@ class AssetGenerationPipeline {
         project: project,
         bible: bible,
         assets: assets,
+        targetVolume: targetVolume,
       );
 
       await transition(
@@ -129,7 +147,9 @@ class AssetGenerationPipeline {
       final generated = await _completionService.completeMarkdown(
         provider: provider,
         prompt: prompt,
-        temperature: kind == AssetGenerationKind.outlineDetailYaml
+        temperature:
+            kind == AssetGenerationKind.outlineDetailYaml ||
+                kind == AssetGenerationKind.volumeBlueprintYaml
             ? 0.35
             : 0.55,
         modelName: modelName,
@@ -139,9 +159,7 @@ class AssetGenerationPipeline {
       if (draft.trim().isEmpty) {
         throw StateError('模型返回了空资产草稿。');
       }
-      if (kind == AssetGenerationKind.outlineDetailYaml) {
-        _outlineDetailParser.parse(draft);
-      }
+      _validateDraft(kind, draft);
 
       await transition(
         AssetGenerationStatus.running,
@@ -192,6 +210,33 @@ class AssetGenerationPipeline {
     return provider;
   }
 
+  Future<ChapterVolume> _requireVolume(
+    String projectId,
+    String volumeId,
+  ) async {
+    final volumes = await _repository.watchChapterVolumesOnce(projectId);
+    for (final volume in volumes) {
+      if (volume.id == volumeId) {
+        return volume;
+      }
+    }
+    throw StateError('目标分卷不存在。');
+  }
+
+  void _validateDraft(AssetGenerationKind kind, String draft) {
+    switch (kind) {
+      case AssetGenerationKind.worldBuilding:
+      case AssetGenerationKind.outlineMaster:
+        return;
+      case AssetGenerationKind.charactersBlueprint:
+        _characterGraphParser.parse(draft);
+      case AssetGenerationKind.volumeBlueprintYaml:
+        _volumeBlueprintParser.parse(draft);
+      case AssetGenerationKind.outlineDetailYaml:
+        _outlineDetailParser.parse(draft);
+    }
+  }
+
   String _requireModelName(WritingProject project, ProviderConfig provider) {
     final modelName = project.defaultModelName?.trim();
     if (modelName == null || modelName.isEmpty) {
@@ -234,6 +279,7 @@ class AssetGenerationPipeline {
       AssetGenerationKind.worldBuilding => '世界观设定',
       AssetGenerationKind.charactersBlueprint => '角色索引与关系网',
       AssetGenerationKind.outlineMaster => '总纲',
+      AssetGenerationKind.volumeBlueprintYaml => '分卷规划',
       AssetGenerationKind.outlineDetailYaml => '分卷与章节细纲',
     };
   }

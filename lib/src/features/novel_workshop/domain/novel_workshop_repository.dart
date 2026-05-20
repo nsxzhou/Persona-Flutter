@@ -10,6 +10,10 @@ abstract interface class NovelWorkshopRepository {
 
   Stream<List<ProjectChapter>> watchChapters(String projectId);
 
+  Stream<List<NovelCharacter>> watchCharacters(String projectId);
+
+  Stream<List<NovelRelationship>> watchRelationships(String projectId);
+
   Stream<List<ChapterGenerationRun>> watchChapterGenerationRuns(
     String projectId,
   );
@@ -34,6 +38,10 @@ abstract interface class NovelWorkshopRepository {
 
   Future<ProjectChapter?> findChapterByPlan(String chapterPlanId);
 
+  Future<NovelCharacter?> findCharacter(String id);
+
+  Future<NovelRelationship?> findRelationship(String id);
+
   Future<ChapterGenerationRun?> findChapterGenerationRun(String id);
 
   Future<AssetGenerationRun?> findAssetGenerationRun(String id);
@@ -56,6 +64,16 @@ abstract interface class NovelWorkshopRepository {
     required ChapterVolumeInput input,
   });
 
+  Future<NovelCharacter> saveCharacter({
+    String? id,
+    required NovelCharacterInput input,
+  });
+
+  Future<NovelRelationship> saveRelationship({
+    String? id,
+    required NovelRelationshipInput input,
+  });
+
   Future<ChapterPlan> saveChapterPlan({
     String? id,
     required ChapterPlanInput input,
@@ -66,6 +84,11 @@ abstract interface class NovelWorkshopRepository {
     required String outlineDetailYaml,
   });
 
+  Future<void> applyCharactersYaml({
+    required String projectId,
+    required String charactersYaml,
+  });
+
   Future<ProjectChapter> saveChapter({
     String? id,
     required ProjectChapterInput input,
@@ -73,9 +96,16 @@ abstract interface class NovelWorkshopRepository {
 
   Future<ProjectChapter> saveMemorySyncProposal(MemorySyncProposalInput input);
 
+  Future<ProjectChapter> applyMemorySyncPatch(String chapterId);
+
   Future<AssetGenerationRun> createAssetGenerationRun(
     AssetGenerationRunInput input,
   );
+
+  Future<AssetGenerationRun> createVolumeDetailGenerationRun({
+    required String projectId,
+    required String volumeId,
+  });
 
   Future<AssetGenerationRun> updateAssetGenerationRunState({
     required String id,

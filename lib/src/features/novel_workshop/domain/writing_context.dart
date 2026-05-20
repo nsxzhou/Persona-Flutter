@@ -59,6 +59,7 @@ class WritingContextSections {
     required this.voiceProfileMarkdown,
     required this.storyEngineMarkdown,
     required this.projectContextMarkdown,
+    this.characterGraphMarkdown = '',
     required this.runtimeMemory,
     required this.writingRulesMarkdown,
   });
@@ -70,6 +71,7 @@ class WritingContextSections {
   final String voiceProfileMarkdown;
   final String storyEngineMarkdown;
   final String projectContextMarkdown;
+  final String characterGraphMarkdown;
   final RuntimeMemoryState runtimeMemory;
   final String writingRulesMarkdown;
 }

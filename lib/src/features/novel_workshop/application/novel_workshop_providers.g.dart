@@ -604,6 +604,161 @@ final class ProjectChaptersFamily extends $Family
   String toString() => r'projectChaptersProvider';
 }
 
+@ProviderFor(novelCharacters)
+final novelCharactersProvider = NovelCharactersFamily._();
+
+final class NovelCharactersProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<NovelCharacter>>,
+          List<NovelCharacter>,
+          Stream<List<NovelCharacter>>
+        >
+    with
+        $FutureModifier<List<NovelCharacter>>,
+        $StreamProvider<List<NovelCharacter>> {
+  NovelCharactersProvider._({
+    required NovelCharactersFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'novelCharactersProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$novelCharactersHash();
+
+  @override
+  String toString() {
+    return r'novelCharactersProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<List<NovelCharacter>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<NovelCharacter>> create(Ref ref) {
+    final argument = this.argument as String;
+    return novelCharacters(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is NovelCharactersProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$novelCharactersHash() => r'9907897de529f76ab85bf2f03c7508778ade3616';
+
+final class NovelCharactersFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<List<NovelCharacter>>, String> {
+  NovelCharactersFamily._()
+    : super(
+        retry: null,
+        name: r'novelCharactersProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  NovelCharactersProvider call(String projectId) =>
+      NovelCharactersProvider._(argument: projectId, from: this);
+
+  @override
+  String toString() => r'novelCharactersProvider';
+}
+
+@ProviderFor(novelRelationships)
+final novelRelationshipsProvider = NovelRelationshipsFamily._();
+
+final class NovelRelationshipsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<NovelRelationship>>,
+          List<NovelRelationship>,
+          Stream<List<NovelRelationship>>
+        >
+    with
+        $FutureModifier<List<NovelRelationship>>,
+        $StreamProvider<List<NovelRelationship>> {
+  NovelRelationshipsProvider._({
+    required NovelRelationshipsFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'novelRelationshipsProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$novelRelationshipsHash();
+
+  @override
+  String toString() {
+    return r'novelRelationshipsProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<List<NovelRelationship>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<NovelRelationship>> create(Ref ref) {
+    final argument = this.argument as String;
+    return novelRelationships(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is NovelRelationshipsProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$novelRelationshipsHash() =>
+    r'5c348fceceb3ceb5b962b7727b6738076d5fc0cc';
+
+final class NovelRelationshipsFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<List<NovelRelationship>>, String> {
+  NovelRelationshipsFamily._()
+    : super(
+        retry: null,
+        name: r'novelRelationshipsProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  NovelRelationshipsProvider call(String projectId) =>
+      NovelRelationshipsProvider._(argument: projectId, from: this);
+
+  @override
+  String toString() => r'novelRelationshipsProvider';
+}
+
 @ProviderFor(chapterGenerationRuns)
 final chapterGenerationRunsProvider = ChapterGenerationRunsFamily._();
 
@@ -1025,7 +1180,7 @@ final class NovelWorkshopControllerProvider
 }
 
 String _$novelWorkshopControllerHash() =>
-    r'6f8fdb375cf9c460486a9b8c8d02bdbf82aa65cc';
+    r'c0f8c50d15ed1a87984d04b912e06c73ac4f486a';
 
 abstract class _$NovelWorkshopController extends $AsyncNotifier<void> {
   FutureOr<void> build();

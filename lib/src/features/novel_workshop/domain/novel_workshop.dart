@@ -14,12 +14,18 @@ enum MemorySyncStatus {
 
 enum ChapterGenerationStatus { pending, running, succeeded, failed }
 
-enum ChapterGenerationStage { preparingContext, generatingDraft, savingChapter }
+enum ChapterGenerationStage {
+  preparingContext,
+  generatingDraft,
+  savingChapter,
+  proposingMemoryPatch,
+}
 
 enum AssetGenerationKind {
   worldBuilding,
   charactersBlueprint,
   outlineMaster,
+  volumeBlueprintYaml,
   outlineDetailYaml,
 }
 
@@ -76,6 +82,11 @@ class ChapterVolume {
     required this.projectId,
     required this.volumeIndex,
     required this.title,
+    this.targetLength = 0,
+    this.summary = '',
+    this.centralConflict = '',
+    this.characterProgression = '',
+    this.endingHook = '',
     required this.createdAt,
     required this.updatedAt,
   });
@@ -84,6 +95,11 @@ class ChapterVolume {
   final String projectId;
   final int volumeIndex;
   final String title;
+  final int targetLength;
+  final String summary;
+  final String centralConflict;
+  final String characterProgression;
+  final String endingHook;
   final DateTime createdAt;
   final DateTime updatedAt;
 }
@@ -93,11 +109,21 @@ class ChapterVolumeInput {
     required this.projectId,
     required this.volumeIndex,
     required this.title,
+    this.targetLength = 0,
+    this.summary = '',
+    this.centralConflict = '',
+    this.characterProgression = '',
+    this.endingHook = '',
   });
 
   final String projectId;
   final int volumeIndex;
   final String title;
+  final int targetLength;
+  final String summary;
+  final String centralConflict;
+  final String characterProgression;
+  final String endingHook;
 }
 
 class ChapterPlan {
@@ -179,6 +205,7 @@ class ProjectChapter {
     required this.memorySyncProposedRuntimeState,
     required this.memorySyncProposedRuntimeThreads,
     required this.memorySyncProposedStorySummary,
+    this.memorySyncPatchYaml = '',
     required this.createdAt,
     required this.updatedAt,
   });
@@ -198,6 +225,7 @@ class ProjectChapter {
   final String memorySyncProposedRuntimeState;
   final String memorySyncProposedRuntimeThreads;
   final String memorySyncProposedStorySummary;
+  final String memorySyncPatchYaml;
   final DateTime createdAt;
   final DateTime updatedAt;
 }
@@ -226,12 +254,126 @@ class MemorySyncProposalInput {
   const MemorySyncProposalInput({
     required this.chapterId,
     required this.contentHash,
-    required this.proposedMemory,
+    this.proposedMemory = const RuntimeMemoryState(),
+    this.patchYaml = '',
   });
 
   final String chapterId;
   final String contentHash;
   final RuntimeMemoryState proposedMemory;
+  final String patchYaml;
+}
+
+class NovelCharacter {
+  const NovelCharacter({
+    required this.id,
+    required this.projectId,
+    required this.name,
+    required this.aliases,
+    required this.tags,
+    required this.faction,
+    required this.role,
+    required this.longTermGoal,
+    required this.currentStatus,
+    required this.secrets,
+    required this.firstChapterIndex,
+    required this.lastChapterIndex,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  final String id;
+  final String projectId;
+  final String name;
+  final String aliases;
+  final String tags;
+  final String faction;
+  final String role;
+  final String longTermGoal;
+  final String currentStatus;
+  final String secrets;
+  final int? firstChapterIndex;
+  final int? lastChapterIndex;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+}
+
+class NovelCharacterInput {
+  const NovelCharacterInput({
+    required this.projectId,
+    required this.name,
+    this.aliases = '',
+    this.tags = '',
+    this.faction = '',
+    this.role = '',
+    this.longTermGoal = '',
+    this.currentStatus = '',
+    this.secrets = '',
+    this.firstChapterIndex,
+    this.lastChapterIndex,
+  });
+
+  final String projectId;
+  final String name;
+  final String aliases;
+  final String tags;
+  final String faction;
+  final String role;
+  final String longTermGoal;
+  final String currentStatus;
+  final String secrets;
+  final int? firstChapterIndex;
+  final int? lastChapterIndex;
+}
+
+class NovelRelationship {
+  const NovelRelationship({
+    required this.id,
+    required this.projectId,
+    required this.fromCharacterId,
+    required this.toCharacterId,
+    required this.relationshipType,
+    required this.strength,
+    required this.status,
+    required this.description,
+    required this.lastChangedChapterIndex,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  final String id;
+  final String projectId;
+  final String fromCharacterId;
+  final String toCharacterId;
+  final String relationshipType;
+  final int strength;
+  final String status;
+  final String description;
+  final int? lastChangedChapterIndex;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+}
+
+class NovelRelationshipInput {
+  const NovelRelationshipInput({
+    required this.projectId,
+    required this.fromCharacterId,
+    required this.toCharacterId,
+    this.relationshipType = '',
+    this.strength = 0,
+    this.status = '',
+    this.description = '',
+    this.lastChangedChapterIndex,
+  });
+
+  final String projectId;
+  final String fromCharacterId;
+  final String toCharacterId;
+  final String relationshipType;
+  final int strength;
+  final String status;
+  final String description;
+  final int? lastChangedChapterIndex;
 }
 
 class ProjectRuntimeMemory {
@@ -319,6 +461,7 @@ class AssetGenerationRun {
     required this.id,
     required this.workflowTaskId,
     required this.projectId,
+    this.targetVolumeId,
     required this.kind,
     required this.providerId,
     required this.modelName,
@@ -336,6 +479,7 @@ class AssetGenerationRun {
   final String id;
   final String workflowTaskId;
   final String projectId;
+  final String? targetVolumeId;
   final AssetGenerationKind kind;
   final String providerId;
   final String modelName;

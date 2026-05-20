@@ -127,6 +127,10 @@ class ChapterGenerationPipeline {
       final assets = await _promptAssetResolver.resolve(projectId);
       final bible = await _repository.ensureProjectBible(projectId);
       final runtimeMemory = await _repository.findRuntimeMemory(projectId);
+      final characters = await _repository.watchCharacters(projectId).first;
+      final relationships = await _repository
+          .watchRelationships(projectId)
+          .first;
       final contextWarnings = <String>[
         ...assets.warnings,
         if (ProjectBiblePromptContext(
@@ -137,6 +141,7 @@ class ChapterGenerationPipeline {
           outlineDetailYaml: bible.outlineDetailYaml,
         ).isEmpty)
           'Project Bible 为空。',
+        if (characters.isEmpty) '结构化角色卡片为空。',
         if (runtimeMemory == null || runtimeMemory.state.isEmpty) '运行时记忆为空。',
       ];
       final bundle = _contextAssembler.assemble(
@@ -163,6 +168,10 @@ class ChapterGenerationPipeline {
           voiceProfileMarkdown: assets.voiceProfileMarkdown,
           storyEngineMarkdown: assets.storyEngineMarkdown,
           projectContextMarkdown: _projectContextMarkdown(project),
+          characterGraphMarkdown: _characterGraphMarkdown(
+            characters,
+            relationships,
+          ),
           runtimeMemory: runtimeMemory?.state ?? const RuntimeMemoryState(),
           writingRulesMarkdown: _writingRulesMarkdown(project),
         ),
@@ -202,6 +211,22 @@ class ChapterGenerationPipeline {
           title: _chapterTitle(plan),
           contentMarkdown: content,
         ),
+      );
+
+      await transition(
+        ChapterGenerationStatus.running,
+        ChapterGenerationStage.proposingMemoryPatch,
+        message: '阶段: 同步记忆。生成角色卡片和关系图更新提案。',
+      );
+      await _proposeMemoryPatch(
+        provider: provider,
+        modelName: modelName,
+        traceRecorder: traceRecorder,
+        chapter: chapter,
+        project: project,
+        plan: plan,
+        characters: characters,
+        relationships: relationships,
       );
 
       await transition(
@@ -281,10 +306,109 @@ class ChapterGenerationPipeline {
     final lines = <String>[
       '- Project Title: ${project.title.trim()}',
       '- Language: ${project.language.trim()}',
-      '- Target Length: ${project.targetLength} 字左右',
+      '- Chapter Target Length: ${project.targetLength} 字左右',
+      '- Novel Target Length: ${project.totalTargetLength} 字左右',
       '- Narrative Perspective: ${project.narrativePerspective.trim()}',
     ];
     return lines.join('\n');
+  }
+
+  String _characterGraphMarkdown(
+    List<NovelCharacter> characters,
+    List<NovelRelationship> relationships,
+  ) {
+    if (characters.isEmpty && relationships.isEmpty) {
+      return '';
+    }
+    final characterById = {
+      for (final character in characters) character.id: character,
+    };
+    final buffer = StringBuffer();
+    if (characters.isNotEmpty) {
+      buffer.writeln('### Character Cards');
+      for (final character in characters) {
+        buffer.writeln(
+          '- ${character.name}: ${[character.role, character.faction, character.longTermGoal, character.currentStatus].where((value) => value.trim().isNotEmpty).join(' / ')}',
+        );
+      }
+    }
+    if (relationships.isNotEmpty) {
+      if (buffer.isNotEmpty) {
+        buffer.writeln();
+      }
+      buffer.writeln('### Directed Relationships');
+      for (final relationship in relationships) {
+        final from =
+            characterById[relationship.fromCharacterId]?.name ?? 'Unknown';
+        final to = characterById[relationship.toCharacterId]?.name ?? 'Unknown';
+        buffer.writeln(
+          '- $from -> $to: ${relationship.relationshipType} '
+          '(strength ${relationship.strength}) ${relationship.status} '
+          '${relationship.description}',
+        );
+      }
+    }
+    return buffer.toString().trim();
+  }
+
+  Future<void> _proposeMemoryPatch({
+    required ProviderConfig provider,
+    required String modelName,
+    required PromptTraceRecorder traceRecorder,
+    required ProjectChapter chapter,
+    required WritingProject project,
+    required ChapterPlan plan,
+    required List<NovelCharacter> characters,
+    required List<NovelRelationship> relationships,
+  }) async {
+    final prompt =
+        '''
+你是长篇小说项目的连续性编辑。阅读当前章节正文后，只输出 YAML，用作待审阅的结构化记忆 Patch。
+
+## 输出契约
+- 只输出 YAML。
+- 不要输出 Markdown、代码围栏、解释。
+- 根节点允许 `characters`、`relationships`、`runtimeMemory`。
+- 只包含本章确实发生变化的角色和关系，不要输出全量快照。
+- `characters` 中每项必须有 `name`，可更新 `aliases`、`tags`、`faction`、`role`、`longTermGoal`、`currentStatus`、`secrets`、`firstChapterIndex`、`lastChapterIndex`。
+- `relationships` 中每项必须有 `from`、`to`，可更新 `type`、`strength`、`status`、`description`、`lastChangedChapterIndex`。
+- `runtimeMemory` 可包含 `runtimeState`、`runtimeThreads`、`storySummary`。
+
+## 项目
+- 标题：${project.title}
+- 当前章节：第 ${plan.chapterIndex} 章 · ${chapter.title}
+
+## 已有结构化角色和关系
+${_characterGraphMarkdown(characters, relationships)}
+
+## 章节正文
+${chapter.contentMarkdown}
+''';
+    final generated = await _completionService.completeMarkdown(
+      provider: provider,
+      prompt: prompt,
+      temperature: 0.25,
+      modelName: modelName,
+      promptTrace: traceRecorder.config(label: 'propose_memory_patch'),
+    );
+    final patchYaml = _cleanMarkdownDraft(generated);
+    if (patchYaml.trim().isEmpty) {
+      await _repository.saveMemorySyncProposal(
+        MemorySyncProposalInput(
+          chapterId: chapter.id,
+          contentHash: chapter.contentHash,
+          patchYaml: '',
+        ),
+      );
+      return;
+    }
+    await _repository.saveMemorySyncProposal(
+      MemorySyncProposalInput(
+        chapterId: chapter.id,
+        contentHash: chapter.contentHash,
+        patchYaml: patchYaml,
+      ),
+    );
   }
 
   String _writingRulesMarkdown(WritingProject project) {

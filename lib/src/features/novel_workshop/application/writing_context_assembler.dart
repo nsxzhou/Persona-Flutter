@@ -32,6 +32,11 @@ class WritingContextAssembler {
       'Project Context',
       sections.projectContextMarkdown,
     );
+    _appendTextBlock(
+      blocks,
+      'Structured Characters And Relationships',
+      sections.characterGraphMarkdown,
+    );
     _appendRuntimeMemory(blocks, sections.runtimeMemory);
     _appendTextBlock(blocks, 'Writing Rules', sections.writingRulesMarkdown);
 

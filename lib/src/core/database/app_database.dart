@@ -74,6 +74,8 @@ class ProjectRecords extends Table {
   TextColumn get plotProfileId => text().nullable()();
   TextColumn get language => text().withDefault(const Constant('简体中文'))();
   IntColumn get targetLength => integer().withDefault(const Constant(3000))();
+  IntColumn get totalTargetLength =>
+      integer().withDefault(const Constant(100000))();
   TextColumn get narrativePerspective =>
       text().withDefault(const Constant('第三人称有限视角'))();
   DateTimeColumn get createdAt => dateTime()();
@@ -258,6 +260,12 @@ class ChapterVolumeRecords extends Table {
   TextColumn get projectId => text().references(ProjectRecords, #id)();
   IntColumn get volumeIndex => integer()();
   TextColumn get title => text().withDefault(const Constant(''))();
+  IntColumn get targetLength => integer().withDefault(const Constant(0))();
+  TextColumn get summary => text().withDefault(const Constant(''))();
+  TextColumn get centralConflict => text().withDefault(const Constant(''))();
+  TextColumn get characterProgression =>
+      text().withDefault(const Constant(''))();
+  TextColumn get endingHook => text().withDefault(const Constant(''))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
@@ -325,6 +333,8 @@ class ProjectChapterRecords extends Table {
       text().withDefault(const Constant(''))();
   TextColumn get memorySyncProposedStorySummary =>
       text().withDefault(const Constant(''))();
+  TextColumn get memorySyncPatchYaml =>
+      text().withDefault(const Constant(''))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
@@ -334,6 +344,57 @@ class ProjectChapterRecords extends Table {
   @override
   List<Set<Column<Object>>> get uniqueKeys => [
     {projectId, chapterIndex},
+  ];
+}
+
+class NovelCharacterRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get projectId => text().references(ProjectRecords, #id)();
+  TextColumn get name => text()();
+  TextColumn get aliases => text().withDefault(const Constant(''))();
+  TextColumn get tags => text().withDefault(const Constant(''))();
+  TextColumn get faction => text().withDefault(const Constant(''))();
+  TextColumn get role => text().withDefault(const Constant(''))();
+  TextColumn get longTermGoal => text().withDefault(const Constant(''))();
+  TextColumn get currentStatus => text().withDefault(const Constant(''))();
+  TextColumn get secrets => text().withDefault(const Constant(''))();
+  IntColumn get firstChapterIndex => integer().nullable()();
+  IntColumn get lastChapterIndex => integer().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+
+  @override
+  List<Set<Column<Object>>> get uniqueKeys => [
+    {projectId, name},
+  ];
+}
+
+class NovelRelationshipRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get projectId => text().references(ProjectRecords, #id)();
+  @ReferenceName('outgoingRelationships')
+  TextColumn get fromCharacterId =>
+      text().references(NovelCharacterRecords, #id)();
+  @ReferenceName('incomingRelationships')
+  TextColumn get toCharacterId =>
+      text().references(NovelCharacterRecords, #id)();
+  TextColumn get relationshipType => text().withDefault(const Constant(''))();
+  IntColumn get strength => integer().withDefault(const Constant(0))();
+  TextColumn get status => text().withDefault(const Constant(''))();
+  TextColumn get description => text().withDefault(const Constant(''))();
+  IntColumn get lastChangedChapterIndex => integer().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+
+  @override
+  List<Set<Column<Object>>> get uniqueKeys => [
+    {projectId, fromCharacterId, toCharacterId},
   ];
 }
 
@@ -367,6 +428,8 @@ class AssetGenerationRunRecords extends Table {
   TextColumn get workflowTaskId =>
       text().references(WorkflowTaskRecords, #id)();
   TextColumn get projectId => text().references(ProjectRecords, #id)();
+  TextColumn get targetVolumeId =>
+      text().nullable().references(ChapterVolumeRecords, #id)();
   TextColumn get kind => text()();
   TextColumn get providerId => text()();
   TextColumn get modelName => text()();
@@ -402,6 +465,8 @@ class AssetGenerationRunRecords extends Table {
     ChapterVolumeRecords,
     ChapterPlanRecords,
     ProjectChapterRecords,
+    NovelCharacterRecords,
+    NovelRelationshipRecords,
     ChapterGenerationRunRecords,
     AssetGenerationRunRecords,
   ],
@@ -410,7 +475,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration {
@@ -534,6 +599,82 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 16) {
           await migrator.createTable(assetGenerationRunRecords);
+        }
+        if (from < 17) {
+          if (await _tableExists('project_records') &&
+              !await _columnExists('project_records', 'total_target_length')) {
+            await migrator.addColumn(
+              projectRecords,
+              projectRecords.totalTargetLength,
+            );
+          }
+          if (await _tableExists('chapter_volume_records')) {
+            if (!await _columnExists(
+              'chapter_volume_records',
+              'target_length',
+            )) {
+              await migrator.addColumn(
+                chapterVolumeRecords,
+                chapterVolumeRecords.targetLength,
+              );
+            }
+            if (!await _columnExists('chapter_volume_records', 'summary')) {
+              await migrator.addColumn(
+                chapterVolumeRecords,
+                chapterVolumeRecords.summary,
+              );
+            }
+            if (!await _columnExists(
+              'chapter_volume_records',
+              'central_conflict',
+            )) {
+              await migrator.addColumn(
+                chapterVolumeRecords,
+                chapterVolumeRecords.centralConflict,
+              );
+            }
+            if (!await _columnExists(
+              'chapter_volume_records',
+              'character_progression',
+            )) {
+              await migrator.addColumn(
+                chapterVolumeRecords,
+                chapterVolumeRecords.characterProgression,
+              );
+            }
+            if (!await _columnExists('chapter_volume_records', 'ending_hook')) {
+              await migrator.addColumn(
+                chapterVolumeRecords,
+                chapterVolumeRecords.endingHook,
+              );
+            }
+          }
+          if (await _tableExists('project_chapter_records') &&
+              !await _columnExists(
+                'project_chapter_records',
+                'memory_sync_patch_yaml',
+              )) {
+            await migrator.addColumn(
+              projectChapterRecords,
+              projectChapterRecords.memorySyncPatchYaml,
+            );
+          }
+          if (!await _tableExists('novel_character_records')) {
+            await migrator.createTable(novelCharacterRecords);
+          }
+          if (!await _tableExists('novel_relationship_records')) {
+            await migrator.createTable(novelRelationshipRecords);
+          }
+          if (await _tableExists('asset_generation_run_records') &&
+              !await _columnExists(
+                'asset_generation_run_records',
+                'target_volume_id',
+              )) {
+            await migrator.addColumn(
+              assetGenerationRunRecords,
+              assetGenerationRunRecords.targetVolumeId,
+            );
+          }
         }
       },
     );

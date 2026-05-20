@@ -97,6 +97,18 @@ Stream<List<ProjectChapter>> projectChapters(Ref ref, String projectId) {
 }
 
 @riverpod
+Stream<List<NovelCharacter>> novelCharacters(Ref ref, String projectId) {
+  return ref.watch(novelWorkshopRepositoryProvider).watchCharacters(projectId);
+}
+
+@riverpod
+Stream<List<NovelRelationship>> novelRelationships(Ref ref, String projectId) {
+  return ref
+      .watch(novelWorkshopRepositoryProvider)
+      .watchRelationships(projectId);
+}
+
+@riverpod
 Stream<List<ChapterGenerationRun>> chapterGenerationRuns(
   Ref ref,
   String projectId,
@@ -249,13 +261,18 @@ class NovelWorkshopController extends _$NovelWorkshopController {
   Future<AssetGenerationResult> generateAsset({
     required String projectId,
     required AssetGenerationKind kind,
+    String? targetVolumeId,
   }) async {
     state = const AsyncLoading();
     late AssetGenerationResult result;
     state = await AsyncValue.guard(() async {
       result = await ref
           .read(assetGenerationPipelineProvider)
-          .generateAsset(projectId: projectId, kind: kind);
+          .generateAsset(
+            projectId: projectId,
+            kind: kind,
+            targetVolumeId: targetVolumeId,
+          );
     });
     if (state.hasError) {
       Error.throwWithStackTrace(state.error!, state.stackTrace!);
@@ -270,6 +287,20 @@ class NovelWorkshopController extends _$NovelWorkshopController {
       saved = await ref
           .read(novelWorkshopRepositoryProvider)
           .applyAssetGenerationDraft(runId);
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
+    return saved;
+  }
+
+  Future<ProjectChapter> applyMemorySyncPatch(String chapterId) async {
+    state = const AsyncLoading();
+    late ProjectChapter saved;
+    state = await AsyncValue.guard(() async {
+      saved = await ref
+          .read(novelWorkshopRepositoryProvider)
+          .applyMemorySyncPatch(chapterId);
     });
     if (state.hasError) {
       Error.throwWithStackTrace(state.error!, state.stackTrace!);

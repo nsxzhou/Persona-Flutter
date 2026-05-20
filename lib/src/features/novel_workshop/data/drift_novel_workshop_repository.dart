@@ -5,7 +5,9 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/tasks/domain/workflow_task.dart';
+import '../application/character_graph_parser.dart';
 import '../application/outline_detail_parser.dart';
+import '../application/volume_blueprint_parser.dart';
 import '../domain/novel_workshop.dart';
 import '../domain/novel_workshop_repository.dart';
 import '../domain/writing_context.dart';
@@ -56,6 +58,29 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       ..orderBy([(chapter) => OrderingTerm.asc(chapter.chapterIndex)]);
     return query.watch().map(
       (rows) => rows.map(_mapChapter).toList(growable: false),
+    );
+  }
+
+  @override
+  Stream<List<NovelCharacter>> watchCharacters(String projectId) {
+    final query = _database.select(_database.novelCharacterRecords)
+      ..where((character) => character.projectId.equals(projectId))
+      ..orderBy([(character) => OrderingTerm.asc(character.name)]);
+    return query.watch().map(
+      (rows) => rows.map(_mapCharacter).toList(growable: false),
+    );
+  }
+
+  @override
+  Stream<List<NovelRelationship>> watchRelationships(String projectId) {
+    final query = _database.select(_database.novelRelationshipRecords)
+      ..where((relationship) => relationship.projectId.equals(projectId))
+      ..orderBy([
+        (relationship) => OrderingTerm.asc(relationship.fromCharacterId),
+        (relationship) => OrderingTerm.asc(relationship.toCharacterId),
+      ]);
+    return query.watch().map(
+      (rows) => rows.map(_mapRelationship).toList(growable: false),
     );
   }
 
@@ -124,6 +149,24 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       ..limit(1);
     final row = await query.getSingleOrNull();
     return row == null ? null : _mapChapter(row);
+  }
+
+  @override
+  Future<NovelCharacter?> findCharacter(String id) async {
+    final query = _database.select(_database.novelCharacterRecords)
+      ..where((character) => character.id.equals(id))
+      ..limit(1);
+    final row = await query.getSingleOrNull();
+    return row == null ? null : _mapCharacter(row);
+  }
+
+  @override
+  Future<NovelRelationship?> findRelationship(String id) async {
+    final query = _database.select(_database.novelRelationshipRecords)
+      ..where((relationship) => relationship.id.equals(id))
+      ..limit(1);
+    final row = await query.getSingleOrNull();
+    return row == null ? null : _mapRelationship(row);
   }
 
   @override
@@ -303,6 +346,11 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
             projectId: Value(input.projectId),
             volumeIndex: Value(input.volumeIndex),
             title: Value(input.title.trim()),
+            targetLength: Value(input.targetLength),
+            summary: Value(input.summary.trim()),
+            centralConflict: Value(input.centralConflict.trim()),
+            characterProgression: Value(input.characterProgression.trim()),
+            endingHook: Value(input.endingHook.trim()),
             createdAt: Value(existing?.createdAt ?? now),
             updatedAt: Value(now),
           ),
@@ -310,6 +358,75 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     final saved = await _findChapterVolume(normalizedId);
     if (saved == null) {
       throw StateError('Chapter volume was not saved.');
+    }
+    return saved;
+  }
+
+  @override
+  Future<NovelCharacter> saveCharacter({
+    String? id,
+    required NovelCharacterInput input,
+  }) async {
+    await _validateCharacterInput(input);
+    final now = DateTime.now();
+    final normalizedId = id ?? _uuid.v4();
+    final existing = id == null ? null : await findCharacter(id);
+    await _database
+        .into(_database.novelCharacterRecords)
+        .insertOnConflictUpdate(
+          NovelCharacterRecordsCompanion(
+            id: Value(normalizedId),
+            projectId: Value(input.projectId),
+            name: Value(input.name.trim()),
+            aliases: Value(input.aliases.trim()),
+            tags: Value(input.tags.trim()),
+            faction: Value(input.faction.trim()),
+            role: Value(input.role.trim()),
+            longTermGoal: Value(input.longTermGoal.trim()),
+            currentStatus: Value(input.currentStatus.trim()),
+            secrets: Value(input.secrets.trim()),
+            firstChapterIndex: Value(input.firstChapterIndex),
+            lastChapterIndex: Value(input.lastChapterIndex),
+            createdAt: Value(existing?.createdAt ?? now),
+            updatedAt: Value(now),
+          ),
+        );
+    final saved = await findCharacter(normalizedId);
+    if (saved == null) {
+      throw StateError('Novel character was not saved.');
+    }
+    return saved;
+  }
+
+  @override
+  Future<NovelRelationship> saveRelationship({
+    String? id,
+    required NovelRelationshipInput input,
+  }) async {
+    await _validateRelationshipInput(input);
+    final now = DateTime.now();
+    final normalizedId = id ?? _uuid.v4();
+    final existing = id == null ? null : await findRelationship(id);
+    await _database
+        .into(_database.novelRelationshipRecords)
+        .insertOnConflictUpdate(
+          NovelRelationshipRecordsCompanion(
+            id: Value(normalizedId),
+            projectId: Value(input.projectId),
+            fromCharacterId: Value(input.fromCharacterId),
+            toCharacterId: Value(input.toCharacterId),
+            relationshipType: Value(input.relationshipType.trim()),
+            strength: Value(input.strength.clamp(-5, 5)),
+            status: Value(input.status.trim()),
+            description: Value(input.description.trim()),
+            lastChangedChapterIndex: Value(input.lastChangedChapterIndex),
+            createdAt: Value(existing?.createdAt ?? now),
+            updatedAt: Value(now),
+          ),
+        );
+    final saved = await findRelationship(normalizedId);
+    if (saved == null) {
+      throw StateError('Novel relationship was not saved.');
     }
     return saved;
   }
@@ -455,6 +572,95 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     return saved;
   }
 
+  Future<void> _saveVolumeBlueprintYaml({
+    required String projectId,
+    required String volumeBlueprintYaml,
+  }) async {
+    await _requireProject(projectId);
+    final document = const VolumeBlueprintParser().parse(volumeBlueprintYaml);
+    for (final draft in document.volumes) {
+      await saveChapterVolume(input: draft.toInput(projectId));
+    }
+  }
+
+  @override
+  Future<void> applyCharactersYaml({
+    required String projectId,
+    required String charactersYaml,
+  }) async {
+    await _requireProject(projectId);
+    final document = const CharacterGraphParser().parse(charactersYaml);
+    final now = DateTime.now();
+    await _database.transaction(() async {
+      final existingRows = await (_database.select(
+        _database.novelCharacterRecords,
+      )..where((row) => row.projectId.equals(projectId))).get();
+      final characterByName = {
+        for (final row in existingRows) row.name.trim(): row,
+      };
+      final idByName = <String, String>{
+        for (final row in existingRows) row.name.trim(): row.id,
+      };
+
+      for (final draft in document.characters) {
+        final existing = characterByName[draft.name];
+        final id = existing?.id ?? _uuid.v4();
+        idByName[draft.name] = id;
+        await _database
+            .into(_database.novelCharacterRecords)
+            .insertOnConflictUpdate(
+              NovelCharacterRecordsCompanion(
+                id: Value(id),
+                projectId: Value(projectId),
+                name: Value(draft.name),
+                aliases: Value(draft.aliases),
+                tags: Value(draft.tags),
+                faction: Value(draft.faction),
+                role: Value(draft.role),
+                longTermGoal: Value(draft.longTermGoal),
+                currentStatus: Value(draft.currentStatus),
+                secrets: Value(draft.secrets),
+                firstChapterIndex: Value(draft.firstChapterIndex),
+                lastChapterIndex: Value(draft.lastChapterIndex),
+                createdAt: Value(existing?.createdAt ?? now),
+                updatedAt: Value(now),
+              ),
+            );
+      }
+
+      for (final draft in document.relationships) {
+        final fromId = idByName[draft.fromName];
+        final toId = idByName[draft.toName];
+        if (fromId == null || toId == null) {
+          throw StateError('关系引用的角色不存在：${draft.fromName} -> ${draft.toName}');
+        }
+        final existingRelationship = await _findRelationshipByEndpoints(
+          projectId: projectId,
+          fromCharacterId: fromId,
+          toCharacterId: toId,
+        );
+        final id = existingRelationship?.id ?? _uuid.v4();
+        await _database
+            .into(_database.novelRelationshipRecords)
+            .insertOnConflictUpdate(
+              NovelRelationshipRecordsCompanion(
+                id: Value(id),
+                projectId: Value(projectId),
+                fromCharacterId: Value(fromId),
+                toCharacterId: Value(toId),
+                relationshipType: Value(draft.relationshipType),
+                strength: Value(draft.strength.clamp(-5, 5)),
+                status: Value(draft.status),
+                description: Value(draft.description),
+                lastChangedChapterIndex: Value(draft.lastChangedChapterIndex),
+                createdAt: Value(existingRelationship?.createdAt ?? now),
+                updatedAt: Value(now),
+              ),
+            );
+      }
+    });
+  }
+
   @override
   Future<ProjectChapter> saveChapter({
     String? id,
@@ -502,6 +708,9 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
             memorySyncProposedStorySummary: contentChanged
                 ? const Value('')
                 : const Value.absent(),
+            memorySyncPatchYaml: contentChanged
+                ? const Value('')
+                : const Value.absent(),
             createdAt: Value(existing?.createdAt ?? now),
             updatedAt: Value(now),
           ),
@@ -543,10 +752,62 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
         memorySyncProposedStorySummary: Value(
           input.proposedMemory.storySummary.trim(),
         ),
+        memorySyncPatchYaml: Value(input.patchYaml.trim()),
         updatedAt: Value(now),
       ),
     );
     final saved = await findChapter(input.chapterId);
+    if (saved == null) {
+      throw StateError('Project chapter was not updated.');
+    }
+    return saved;
+  }
+
+  @override
+  Future<ProjectChapter> applyMemorySyncPatch(String chapterId) async {
+    final chapter = await findChapter(chapterId);
+    if (chapter == null) {
+      throw StateError('Project chapter does not exist: $chapterId');
+    }
+    if (chapter.memorySyncStatus != MemorySyncStatus.pendingReview) {
+      throw StateError('没有待审阅的记忆同步提案。');
+    }
+    if (chapter.memorySyncContentHash != chapter.contentHash) {
+      throw StateError('记忆同步提案已过期。');
+    }
+    final patchYaml = chapter.memorySyncPatchYaml.trim();
+    if (patchYaml.isNotEmpty) {
+      await applyCharactersYaml(
+        projectId: chapter.projectId,
+        charactersYaml: patchYaml,
+      );
+    }
+    if (!RuntimeMemoryState(
+      charactersStatus: chapter.memorySyncProposedCharactersStatus,
+      runtimeState: chapter.memorySyncProposedRuntimeState,
+      runtimeThreads: chapter.memorySyncProposedRuntimeThreads,
+      storySummary: chapter.memorySyncProposedStorySummary,
+    ).isEmpty) {
+      await saveRuntimeMemory(
+        projectId: chapter.projectId,
+        state: RuntimeMemoryState(
+          charactersStatus: chapter.memorySyncProposedCharactersStatus,
+          runtimeState: chapter.memorySyncProposedRuntimeState,
+          runtimeThreads: chapter.memorySyncProposedRuntimeThreads,
+          storySummary: chapter.memorySyncProposedStorySummary,
+        ),
+      );
+    }
+    final now = DateTime.now();
+    await (_database.update(
+      _database.projectChapterRecords,
+    )..where((row) => row.id.equals(chapterId))).write(
+      ProjectChapterRecordsCompanion(
+        memorySyncStatus: Value(MemorySyncStatus.synced.name),
+        updatedAt: Value(now),
+      ),
+    );
+    final saved = await findChapter(chapterId);
     if (saved == null) {
       throw StateError('Project chapter was not updated.');
     }
@@ -587,6 +848,7 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
               id: runId,
               workflowTaskId: taskId,
               projectId: input.projectId,
+              targetVolumeId: const Value(null),
               kind: input.kind.name,
               providerId: input.providerId.trim(),
               modelName: input.modelName.trim(),
@@ -603,6 +865,64 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
           );
     });
 
+    final saved = await findAssetGenerationRun(runId);
+    if (saved == null) {
+      throw StateError('Asset generation run was not created.');
+    }
+    return saved;
+  }
+
+  @override
+  Future<AssetGenerationRun> createVolumeDetailGenerationRun({
+    required String projectId,
+    required String volumeId,
+  }) async {
+    await _requireProject(projectId);
+    final volume = await _findChapterVolume(volumeId);
+    if (volume == null || volume.projectId != projectId) {
+      throw StateError('分卷不存在。');
+    }
+    final now = DateTime.now();
+    final runId = _uuid.v4();
+    final taskId = _uuid.v4();
+    await _database.transaction(() async {
+      await _database
+          .into(_database.workflowTaskRecords)
+          .insert(
+            WorkflowTaskRecordsCompanion.insert(
+              id: taskId,
+              kind: assetGenerationWorkflowTaskKind,
+              status: WorkflowTaskStatus.pending.name,
+              title: '资产生成：${volume.title}章节细纲',
+              stage: const Value('queued'),
+              errorMessage: const Value(null),
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+      await _database
+          .into(_database.assetGenerationRunRecords)
+          .insert(
+            AssetGenerationRunRecordsCompanion.insert(
+              id: runId,
+              workflowTaskId: taskId,
+              projectId: projectId,
+              targetVolumeId: Value(volumeId),
+              kind: AssetGenerationKind.outlineDetailYaml.name,
+              providerId: '',
+              modelName: '',
+              status: AssetGenerationStatus.pending.name,
+              stage: const Value(null),
+              errorMessage: const Value(null),
+              logs: const Value(''),
+              draftMarkdown: const Value(''),
+              createdAt: now,
+              updatedAt: now,
+              startedAt: const Value(null),
+              completedAt: const Value(null),
+            ),
+          );
+    });
     final saved = await findAssetGenerationRun(runId);
     if (saved == null) {
       throw StateError('Asset generation run was not created.');
@@ -699,16 +1019,8 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
           outlineDetailYaml: bible.outlineDetailYaml,
         ),
       ),
-      AssetGenerationKind.charactersBlueprint => await saveProjectBible(
-        ProjectBibleInput(
-          projectId: run.projectId,
-          descriptionMarkdown: bible.descriptionMarkdown,
-          worldBuildingMarkdown: bible.worldBuildingMarkdown,
-          charactersBlueprintMarkdown: draft,
-          outlineMasterMarkdown: bible.outlineMasterMarkdown,
-          outlineDetailYaml: bible.outlineDetailYaml,
-        ),
-      ),
+      AssetGenerationKind.charactersBlueprint =>
+        await _applyCharacterDraftAndReturnBible(run.projectId, draft, bible),
       AssetGenerationKind.outlineMaster => await saveProjectBible(
         ProjectBibleInput(
           projectId: run.projectId,
@@ -719,6 +1031,8 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
           outlineDetailYaml: bible.outlineDetailYaml,
         ),
       ),
+      AssetGenerationKind.volumeBlueprintYaml =>
+        await _applyVolumeBlueprintAndReturnBible(run.projectId, draft, bible),
       AssetGenerationKind.outlineDetailYaml => await saveOutlineDetailYaml(
         projectId: run.projectId,
         outlineDetailYaml: draft,
@@ -733,6 +1047,27 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       completedAt: run.completedAt,
     );
     return saved;
+  }
+
+  Future<ProjectBible> _applyCharacterDraftAndReturnBible(
+    String projectId,
+    String draft,
+    ProjectBible bible,
+  ) async {
+    await applyCharactersYaml(projectId: projectId, charactersYaml: draft);
+    return bible;
+  }
+
+  Future<ProjectBible> _applyVolumeBlueprintAndReturnBible(
+    String projectId,
+    String draft,
+    ProjectBible bible,
+  ) async {
+    await _saveVolumeBlueprintYaml(
+      projectId: projectId,
+      volumeBlueprintYaml: draft,
+    );
+    return bible;
   }
 
   @override
@@ -910,8 +1245,40 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     if (input.volumeIndex <= 0) {
       throw StateError('分卷序号必须大于 0。');
     }
+    if (input.targetLength < 0) {
+      throw StateError('分卷目标字数不能小于 0。');
+    }
     if (input.title.trim().isEmpty) {
       throw StateError('分卷标题不能为空。');
+    }
+  }
+
+  Future<void> _validateCharacterInput(NovelCharacterInput input) async {
+    await _requireProject(input.projectId);
+    if (input.name.trim().isEmpty) {
+      throw StateError('角色姓名不能为空。');
+    }
+    if ((input.firstChapterIndex ?? 1) <= 0 ||
+        (input.lastChapterIndex ?? 1) <= 0) {
+      throw StateError('角色出场章节必须大于 0。');
+    }
+  }
+
+  Future<void> _validateRelationshipInput(NovelRelationshipInput input) async {
+    await _requireProject(input.projectId);
+    if (input.fromCharacterId == input.toCharacterId) {
+      throw StateError('关系两端不能是同一个角色。');
+    }
+    final from = await findCharacter(input.fromCharacterId);
+    final to = await findCharacter(input.toCharacterId);
+    if (from == null || to == null) {
+      throw StateError('关系需要有效角色。');
+    }
+    if (from.projectId != input.projectId || to.projectId != input.projectId) {
+      throw StateError('关系角色不属于当前项目。');
+    }
+    if ((input.lastChangedChapterIndex ?? 1) <= 0) {
+      throw StateError('关系变更章节必须大于 0。');
     }
   }
 
@@ -938,6 +1305,23 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     return row == null ? null : _mapVolume(row);
   }
 
+  Future<NovelRelationship?> _findRelationshipByEndpoints({
+    required String projectId,
+    required String fromCharacterId,
+    required String toCharacterId,
+  }) async {
+    final query = _database.select(_database.novelRelationshipRecords)
+      ..where(
+        (relationship) =>
+            relationship.projectId.equals(projectId) &
+            relationship.fromCharacterId.equals(fromCharacterId) &
+            relationship.toCharacterId.equals(toCharacterId),
+      )
+      ..limit(1);
+    final row = await query.getSingleOrNull();
+    return row == null ? null : _mapRelationship(row);
+  }
+
   ProjectBible _mapBible(ProjectBibleRecord row) {
     return ProjectBible(
       projectId: row.projectId,
@@ -957,6 +1341,46 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       projectId: row.projectId,
       volumeIndex: row.volumeIndex,
       title: row.title,
+      targetLength: row.targetLength,
+      summary: row.summary,
+      centralConflict: row.centralConflict,
+      characterProgression: row.characterProgression,
+      endingHook: row.endingHook,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    );
+  }
+
+  NovelCharacter _mapCharacter(NovelCharacterRecord row) {
+    return NovelCharacter(
+      id: row.id,
+      projectId: row.projectId,
+      name: row.name,
+      aliases: row.aliases,
+      tags: row.tags,
+      faction: row.faction,
+      role: row.role,
+      longTermGoal: row.longTermGoal,
+      currentStatus: row.currentStatus,
+      secrets: row.secrets,
+      firstChapterIndex: row.firstChapterIndex,
+      lastChapterIndex: row.lastChapterIndex,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    );
+  }
+
+  NovelRelationship _mapRelationship(NovelRelationshipRecord row) {
+    return NovelRelationship(
+      id: row.id,
+      projectId: row.projectId,
+      fromCharacterId: row.fromCharacterId,
+      toCharacterId: row.toCharacterId,
+      relationshipType: row.relationshipType,
+      strength: row.strength,
+      status: row.status,
+      description: row.description,
+      lastChangedChapterIndex: row.lastChangedChapterIndex,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     );
@@ -1020,6 +1444,7 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       memorySyncProposedRuntimeState: row.memorySyncProposedRuntimeState,
       memorySyncProposedRuntimeThreads: row.memorySyncProposedRuntimeThreads,
       memorySyncProposedStorySummary: row.memorySyncProposedStorySummary,
+      memorySyncPatchYaml: row.memorySyncPatchYaml,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     );
@@ -1053,6 +1478,7 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       id: row.id,
       workflowTaskId: row.workflowTaskId,
       projectId: row.projectId,
+      targetVolumeId: row.targetVolumeId,
       kind: AssetGenerationKind.values.byName(row.kind),
       providerId: row.providerId,
       modelName: row.modelName,
@@ -1087,6 +1513,7 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       AssetGenerationKind.worldBuilding => '世界观设定',
       AssetGenerationKind.charactersBlueprint => '角色索引与关系网',
       AssetGenerationKind.outlineMaster => '总纲',
+      AssetGenerationKind.volumeBlueprintYaml => '分卷规划',
       AssetGenerationKind.outlineDetailYaml => '分卷与章节细纲',
     };
   }
