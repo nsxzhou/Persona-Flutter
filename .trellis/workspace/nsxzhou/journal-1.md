@@ -411,3 +411,36 @@ Added constrained YAML+MD repair passes for Plot Lab sketches and Style Lab Voic
 ### Next Steps
 
 - None - task complete
+
+
+## Session 13: Imported novel enrichment workflow
+
+**Date**: 2026-05-20
+**Task**: Imported novel enrichment workflow
+**Branch**: `main`
+
+### Summary
+
+Implemented imported novel enrichment projects: TXT/EPUB import preview, simplified imported workshop, chapter enrichment batches, preview-first apply flow, persistence, tests, and spec updates.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f3b9e83` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
