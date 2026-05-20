@@ -226,6 +226,67 @@ void main() {
     expect(find.text('可选'), findsOneWidget);
   });
 
+  testWidgets('optional prompt assets do not show warning block', (
+    tester,
+  ) async {
+    final fixture = _WorkshopFixture(bindPromptAssets: false);
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Voice Profile 可选'), findsOneWidget);
+    expect(find.text('Story Engine 可选'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Prompt 栈').last);
+    await tester.tap(find.text('Prompt 栈').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Warnings'), findsNothing);
+    expect(find.text('未绑定 Style Profile，生成时会自动跳过'), findsOneWidget);
+    expect(find.text('未绑定 Plot Profile，生成时会自动跳过'), findsOneWidget);
+  });
+
+  testWidgets('character graph exposes edit entry for structured character', (
+    tester,
+  ) async {
+    final fixture = _WorkshopFixture(
+      characters: [
+        NovelCharacter(
+          id: 'character-1',
+          projectId: 'project-1',
+          name: '林岚',
+          aliases: '',
+          tags: '',
+          faction: '调查局',
+          role: '调查者',
+          longTermGoal: '查明失踪案。',
+          currentStatus: '抵达雾港。',
+          secrets: '',
+          firstChapterIndex: 1,
+          lastChapterIndex: null,
+          createdAt: _testCreatedAt,
+          updatedAt: _testUpdatedAt,
+        ),
+      ],
+    );
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('角色索引与关系网').last);
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(OutlinedButton, '编辑角色'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(OutlinedButton, '编辑角色'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('林岚'), findsWidgets);
+    expect(find.byTooltip('编辑'), findsOneWidget);
+  });
+
   testWidgets('editor loads from workshop sub-route', (tester) async {
     final fixture = _WorkshopFixture(
       plans: [
@@ -513,13 +574,21 @@ class _WorkshopFixture {
     RuntimeMemoryState runtimeMemory = const RuntimeMemoryState(
       storySummary: '林岚追查失踪案。',
     ),
-  }) : projectRepository = _FakeProjectRepository(status: projectStatus),
+    bool bindPromptAssets = true,
+    List<NovelCharacter> characters = const [],
+    List<NovelRelationship> relationships = const [],
+  }) : projectRepository = _FakeProjectRepository(
+         status: projectStatus,
+         bindPromptAssets: bindPromptAssets,
+       ),
        repository = _FakeNovelWorkshopRepository(
          plans: plans,
          chapters: chapters,
          runs: runs,
          withDefaultVolume: withDefaultVolume,
          runtimeMemory: runtimeMemory,
+         characters: characters,
+         relationships: relationships,
        ),
        styleRepository = _FakeStyleLabRepository(),
        plotRepository = _FakePlotLabRepository() {
@@ -589,7 +658,10 @@ class _FakeChapterGenerationPipeline implements ChapterGenerationPipeline {
 }
 
 class _FakeProjectRepository implements ProjectRepository {
-  _FakeProjectRepository({ProjectStatus status = ProjectStatus.active}) {
+  _FakeProjectRepository({
+    ProjectStatus status = ProjectStatus.active,
+    bool bindPromptAssets = true,
+  }) {
     _project = WritingProject(
       id: 'project-1',
       title: '雾港纪事',
@@ -597,8 +669,8 @@ class _FakeProjectRepository implements ProjectRepository {
       status: status,
       defaultProviderId: 'provider-1',
       defaultModelName: 'gpt-4.1-mini',
-      styleProfileId: 'style-1',
-      plotProfileId: 'plot-1',
+      styleProfileId: bindPromptAssets ? 'style-1' : null,
+      plotProfileId: bindPromptAssets ? 'plot-1' : null,
       createdAt: DateTime(2026, 5, 18, 9),
       updatedAt: DateTime(2026, 5, 18, 10),
     );
@@ -739,9 +811,13 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
     required List<ChapterGenerationRun> runs,
     required bool withDefaultVolume,
     required RuntimeMemoryState runtimeMemory,
+    required List<NovelCharacter> characters,
+    required List<NovelRelationship> relationships,
   }) : plans = [...plans],
        chapters = [...chapters],
        runs = [...runs],
+       characters = [...characters],
+       relationships = [...relationships],
        volumes = withDefaultVolume
            ? [
                ChapterVolume(
@@ -775,8 +851,8 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   final List<ProjectChapter> chapters;
   final List<ChapterGenerationRun> runs;
   final List<AssetGenerationRun> assetRuns = [];
-  final List<NovelCharacter> characters = [];
-  final List<NovelRelationship> relationships = [];
+  final List<NovelCharacter> characters;
+  final List<NovelRelationship> relationships;
   final List<ChapterVolume> volumes;
   ProjectBible bible;
   ProjectRuntimeMemory memory;
@@ -1047,6 +1123,9 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
     String? id,
     required NovelCharacterInput input,
   }) async {
+    final existingIndex = id == null
+        ? -1
+        : characters.indexWhere((character) => character.id == id);
     final saved = NovelCharacter(
       id: id ?? 'character-${characters.length + 1}',
       projectId: input.projectId,
@@ -1063,7 +1142,11 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
       createdAt: _testCreatedAt,
       updatedAt: _testUpdatedAt,
     );
-    characters.add(saved);
+    if (existingIndex == -1) {
+      characters.add(saved);
+    } else {
+      characters[existingIndex] = saved;
+    }
     emit();
     return saved;
   }
@@ -1073,6 +1156,9 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
     String? id,
     required NovelRelationshipInput input,
   }) async {
+    final existingIndex = id == null
+        ? -1
+        : relationships.indexWhere((relationship) => relationship.id == id);
     final saved = NovelRelationship(
       id: id ?? 'relationship-${relationships.length + 1}',
       projectId: input.projectId,
@@ -1086,7 +1172,11 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
       createdAt: _testCreatedAt,
       updatedAt: _testUpdatedAt,
     );
-    relationships.add(saved);
+    if (existingIndex == -1) {
+      relationships.add(saved);
+    } else {
+      relationships[existingIndex] = saved;
+    }
     emit();
     return saved;
   }

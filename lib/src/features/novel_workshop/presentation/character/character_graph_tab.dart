@@ -32,7 +32,8 @@ class CharacterGraphTab extends ConsumerStatefulWidget {
   /// Callback to show the draft review dialog. Receives the run and returns
   /// whether the draft should be applied. This avoids coupling to a specific
   /// dialog implementation in the parent file.
-  final Future<bool?> Function(BuildContext context, AssetGenerationRun run) onShowDraftReview;
+  final Future<bool?> Function(BuildContext context, AssetGenerationRun run)
+  onShowDraftReview;
 
   @override
   ConsumerState<CharacterGraphTab> createState() => _CharacterGraphTabState();
@@ -76,87 +77,161 @@ class _CharacterGraphTabState extends ConsumerState<CharacterGraphTab> {
     List<NovelCharacter> characterItems,
     List<NovelRelationship> relationshipItems,
   ) {
+    final activeSelectedId = _selectedCharacter?.id;
+    final activeSelectedCharacter = activeSelectedId == null
+        ? null
+        : characterItems
+              .where((item) => item.id == activeSelectedId)
+              .firstOrNull;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Action bar.
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '结构化角色卡片和有向关系边会进入章节生成上下文。旧 Markdown 只作为历史参考保留。',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 760;
+              final description = Text(
+                '结构化角色卡片和有向关系边会进入章节生成上下文。点击节点查看详情，或打开角色面板进行编辑。',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
-              ),
-              OutlinedButton.icon(
-                key: const ValueKey('generate-asset-charactersBlueprint'),
-                onPressed: controllerState.isLoading || _generating
-                    ? null
-                    : () => _generateCharacters(context, ref),
-                icon: _generating
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.auto_fix_high_outlined, size: 18),
-                label: Text(_generating ? '生成中' : '生成角色草稿'),
-              ),
-              if (_canReview(widget.latestRun)) ...[
-                const SizedBox(width: 8),
-                TextButton.icon(
-                  onPressed: controllerState.isLoading
-                      ? null
-                      : () => _reviewCharacterDraft(context, ref, widget.latestRun!),
-                  icon: const Icon(Icons.rate_review_outlined, size: 18),
-                  label: const Text('查看草稿'),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Graph canvas with optional sliding detail panel.
-          SizedBox(
-            height: 520,
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: RelationshipCanvas(
-                    characters: characterItems,
-                    relationships: relationshipItems,
-                    selectedCharacterId: _selectedCharacter?.id,
-                    onCharacterTap: (character) {
-                      setState(() => _selectedCharacter = character);
-                    },
-                  ),
-                ),
-                // Detail panel slides in from the right.
-                AnimatedSlide(
-                  offset: _selectedCharacter != null ? Offset.zero : const Offset(1, 0),
-                  duration: const Duration(milliseconds: 250),
-                  curve: Curves.easeOutCubic,
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: SizedBox(
-                      width: 340,
-                      child: _selectedCharacter != null
-                          ? CharacterDetailPanel(
-                              character: _selectedCharacter!,
-                              characters: characterItems,
-                              relationships: relationshipItems,
-                              onClose: () => setState(() => _selectedCharacter = null),
-                            )
-                          : const SizedBox.shrink(),
+              );
+              final actions = Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.end,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: characterItems.isEmpty
+                        ? null
+                        : () => setState(
+                            () => _selectedCharacter =
+                                activeSelectedCharacter ?? characterItems.first,
+                          ),
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    label: Text(
+                      activeSelectedCharacter == null ? '编辑角色' : '编辑已选角色',
                     ),
                   ),
-                ),
-              ],
-            ),
+                  OutlinedButton.icon(
+                    key: const ValueKey('generate-asset-charactersBlueprint'),
+                    onPressed: controllerState.isLoading || _generating
+                        ? null
+                        : () => _generateCharacters(context, ref),
+                    icon: _generating
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.auto_fix_high_outlined, size: 18),
+                    label: Text(_generating ? '生成中' : '生成角色草稿'),
+                  ),
+                  if (_canReview(widget.latestRun))
+                    TextButton.icon(
+                      onPressed: controllerState.isLoading
+                          ? null
+                          : () => _reviewCharacterDraft(
+                              context,
+                              ref,
+                              widget.latestRun!,
+                            ),
+                      icon: const Icon(Icons.rate_review_outlined, size: 18),
+                      label: const Text('查看草稿'),
+                    ),
+                ],
+              );
+
+              if (compact) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [description, const SizedBox(height: 12), actions],
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: description),
+                  const SizedBox(width: 20),
+                  actions,
+                ],
+              );
+            },
           ),
+          const SizedBox(height: 16),
+          // Graph canvas with optional sliding detail panel, or empty state.
+          if (characterItems.isEmpty)
+            SizedBox(
+              height: 520,
+              child: Center(
+                child: PersonaEmptyStateCard(
+                  icon: Icons.people_outline,
+                  title: '暂无结构化角色',
+                  description: '生成角色草稿后，角色卡片和关系边会在此展示；导入后可在关系图中选择角色并编辑。',
+                  centered: true,
+                  maxWidth: 620,
+                  action: OutlinedButton.icon(
+                    onPressed: _generating
+                        ? null
+                        : () => _generateCharacters(context, ref),
+                    icon: _generating
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.auto_fix_high_outlined, size: 18),
+                    label: Text(_generating ? '生成中' : '生成角色草稿'),
+                  ),
+                ),
+              ),
+            )
+          else
+            SizedBox(
+              height: 520,
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: RelationshipCanvas(
+                      characters: characterItems,
+                      relationships: relationshipItems,
+                      selectedCharacterId: activeSelectedCharacter?.id,
+                      onCharacterTap: (character) {
+                        setState(() => _selectedCharacter = character);
+                      },
+                    ),
+                  ),
+                  // Detail panel slides in from the right.
+                  AnimatedSlide(
+                    offset: activeSelectedCharacter != null
+                        ? Offset.zero
+                        : const Offset(1, 0),
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOutCubic,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: SizedBox(
+                        width: 340,
+                        child: activeSelectedCharacter != null
+                            ? CharacterDetailPanel(
+                                character: activeSelectedCharacter,
+                                characters: characterItems,
+                                relationships: relationshipItems,
+                                onClose: () =>
+                                    setState(() => _selectedCharacter = null),
+                                onSaved: () => setState(() {}),
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           // Legacy markdown reference.
           if (widget.legacyMarkdown.trim().isNotEmpty) ...[
             const SizedBox(height: 18),
@@ -210,14 +285,14 @@ class _CharacterGraphTabState extends ConsumerState<CharacterGraphTab> {
           .read(novelWorkshopControllerProvider.notifier)
           .applyAssetDraft(run.id);
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('角色草稿已导入。')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('角色草稿已导入。')));
     } on Object catch (error) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('导入失败：$error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('导入失败：$error')));
     }
   }
 }

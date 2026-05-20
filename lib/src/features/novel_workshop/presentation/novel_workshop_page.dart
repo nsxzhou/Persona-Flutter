@@ -683,6 +683,11 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
                       emptyIcon: Icons.record_voice_over_outlined,
                       emptyTitle: '暂无 Voice Profile',
                       emptyDescription: '请先在项目设置中绑定 Style Profile。',
+                      emptyAction: TextButton.icon(
+                        onPressed: () => _onSwitchTab(9),
+                        icon: const Icon(Icons.settings_outlined, size: 18),
+                        label: const Text('前往设置'),
+                      ),
                     ),
                     _YamlMarkdownAssetTab(
                       title: 'Story Engine',
@@ -694,6 +699,11 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
                       emptyIcon: Icons.engineering_outlined,
                       emptyTitle: '暂无 Story Engine',
                       emptyDescription: '请先在项目设置中绑定 Plot Profile。',
+                      emptyAction: TextButton.icon(
+                        onPressed: () => _onSwitchTab(9),
+                        icon: const Icon(Icons.settings_outlined, size: 18),
+                        label: const Text('前往设置'),
+                      ),
                     ),
                     _RuntimeMemoryTab(
                       projectId: widget.project.id,
@@ -1198,6 +1208,7 @@ class _YamlMarkdownAssetTab extends StatelessWidget {
     required this.emptyIcon,
     required this.emptyTitle,
     required this.emptyDescription,
+    this.emptyAction,
   });
 
   final String title;
@@ -1207,6 +1218,7 @@ class _YamlMarkdownAssetTab extends StatelessWidget {
   final IconData emptyIcon;
   final String emptyTitle;
   final String emptyDescription;
+  final Widget? emptyAction;
 
   @override
   Widget build(BuildContext context) {
@@ -1214,13 +1226,29 @@ class _YamlMarkdownAssetTab extends StatelessWidget {
       data: (markdown) {
         final trimmed = markdown.trim();
         if (trimmed.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.all(20),
-            child: PersonaEmptyStateCard(
-              icon: emptyIcon,
-              title: emptyTitle,
-              description: emptyDescription,
-            ),
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final minHeight = (constraints.maxHeight - 40).clamp(
+                0.0,
+                double.infinity,
+              );
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: minHeight),
+                  child: Center(
+                    child: PersonaEmptyStateCard(
+                      icon: emptyIcon,
+                      title: emptyTitle,
+                      description: emptyDescription,
+                      action: emptyAction,
+                      centered: true,
+                      maxWidth: 560,
+                    ),
+                  ),
+                ),
+              );
+            },
           );
         }
         final parsed = _parsePromptDocument(kind, trimmed);
@@ -1382,7 +1410,7 @@ class _RuntimeMemoryTabState extends ConsumerState<_RuntimeMemoryTab> {
               _MemoryPatchReviewList(chapters: widget.chapters),
               const SizedBox(height: 16),
               if (isEmpty)
-                _buildEmptyState(context, colorScheme, textTheme)
+                _buildEmptyState(context, item.state)
               else if (_editing)
                 _buildEditForm(context, colorScheme, textTheme)
               else
@@ -1399,120 +1427,23 @@ class _RuntimeMemoryTabState extends ConsumerState<_RuntimeMemoryTab> {
     );
   }
 
-  Widget _buildEmptyState(
-    BuildContext context,
-    ColorScheme colorScheme,
-    TextTheme textTheme,
-  ) {
+  Widget _buildEmptyState(BuildContext context, RuntimeMemoryState state) {
     return Center(
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 600),
-        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 32),
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: colorScheme.outlineVariant),
-        ),
-        child: Column(
+      child: PersonaEmptyStateCard(
+        icon: Icons.auto_stories_outlined,
+        title: '运行时记忆尚未建立',
+        description: '随着章节生成和故事推进，系统会自动追踪运行状态、剧情线索和故事摘要。你也可以手动编辑来维护它们。',
+        centered: true,
+        maxWidth: 620,
+        action: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Illustration: layered memory icon
-            SizedBox(
-              height: 120,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Background glow
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        colors: [
-                          colorScheme.primary.withValues(alpha: 0.12),
-                          colorScheme.primary.withValues(alpha: 0.0),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // Outer ring
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: colorScheme.primary.withValues(alpha: 0.2),
-                        width: 2,
-                      ),
-                    ),
-                  ),
-                  // Inner icon
-                  Icon(
-                    Icons.auto_stories_outlined,
-                    size: 40,
-                    color: colorScheme.primary,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              '运行时记忆尚未建立',
-              style: textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              '随着章节生成和故事推进，系统会自动追踪并累积以下维度的记忆。你也可以手动编辑来维护它们。',
-              textAlign: TextAlign.center,
-              style: textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 28),
-            // Category preview cards
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final wide = constraints.maxWidth >= 440;
-                final cards = [
-                  _CategoryPreview(
-                    icon: Icons.play_circle_outline,
-                    label: '运行状态',
-                    description: '故事推进中的状态',
-                    color: Colors.green,
-                  ),
-                  _CategoryPreview(
-                    icon: Icons.timeline_outlined,
-                    label: '剧情线索',
-                    description: '未解决的伏笔与暗线',
-                    color: Colors.amber,
-                  ),
-                  _CategoryPreview(
-                    icon: Icons.menu_book_outlined,
-                    label: '故事摘要',
-                    description: '整体故事脉络',
-                    color: Colors.purple,
-                  ),
-                ];
-                if (wide) {
-                  return Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      for (final card in cards)
-                        SizedBox(
-                          width: (constraints.maxWidth - 10) / 2,
-                          child: card,
-                        ),
-                    ],
-                  );
-                }
-                return Column(children: cards);
-              },
+            const _RuntimeMemoryEmptyPreview(),
+            const SizedBox(height: 22),
+            FilledButton.icon(
+              onPressed: () => _startEditing(state),
+              icon: const Icon(Icons.edit_outlined, size: 18),
+              label: const Text('开始编辑'),
             ),
           ],
         ),
@@ -1592,19 +1523,21 @@ class _PromptStackTab extends StatelessWidget {
                   bound: true,
                   ready: asset.voiceProfileMarkdown.trim().isNotEmpty,
                   detail: asset.voiceProfileMarkdown.trim().isEmpty
-                      ? '未绑定 Style Profile'
+                      ? '未绑定 Style Profile，生成时会自动跳过'
                       : '已接入风格约束',
+                  neutralWhenReady: asset.voiceProfileMarkdown.trim().isEmpty,
                 ),
                 _AssetDetailTile(
                   title: 'Story Engine',
                   bound: true,
                   ready: asset.storyEngineMarkdown.trim().isNotEmpty,
                   detail: asset.storyEngineMarkdown.trim().isEmpty
-                      ? '未绑定 Plot Profile'
+                      ? '未绑定 Plot Profile，生成时会自动跳过'
                       : '已接入叙事引擎',
+                  neutralWhenReady: asset.storyEngineMarkdown.trim().isEmpty,
                 ),
-                if (asset.warnings.isNotEmpty)
-                  _WarningList(warnings: asset.warnings),
+                if (_actionablePromptWarnings(asset).isNotEmpty)
+                  _WarningList(warnings: _actionablePromptWarnings(asset)),
               ],
             ),
             error: (error, stackTrace) => Text('无法加载 Prompt 资产：$error'),
@@ -1625,6 +1558,16 @@ class _PromptStackTab extends StatelessWidget {
       ),
     );
   }
+}
+
+List<String> _actionablePromptWarnings(ProjectPromptAssets asset) {
+  const optionalMissingWarnings = {
+    '项目未绑定 Voice Profile。',
+    '项目未绑定 Story Engine。',
+  };
+  return asset.warnings
+      .where((warning) => !optionalMissingWarnings.contains(warning))
+      .toList(growable: false);
 }
 
 class _WorkshopSettingsTab extends ConsumerStatefulWidget {
@@ -3085,6 +3028,8 @@ class _AssetDetailTile extends StatelessWidget {
         ? neutralWhenReady
               ? colorScheme.onSurfaceVariant
               : colorScheme.primary
+        : neutralWhenReady
+        ? colorScheme.onSurfaceVariant
         : bound
         ? colorScheme.error
         : colorScheme.onSurfaceVariant;
@@ -3104,6 +3049,8 @@ class _AssetDetailTile extends StatelessWidget {
                     ? neutralWhenReady
                           ? Icons.radio_button_unchecked
                           : Icons.check_circle_outline
+                    : neutralWhenReady
+                    ? Icons.radio_button_unchecked
                     : Icons.warning_amber_outlined,
                 color: statusColor,
               ),
@@ -3123,6 +3070,8 @@ class _AssetDetailTile extends StatelessWidget {
                     ? neutralWhenReady
                           ? '可选'
                           : '已接入'
+                    : neutralWhenReady
+                    ? '可选'
                     : '待完善',
               ),
             ],
@@ -3140,25 +3089,32 @@ class _PromptAssetStatusStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Wrap(
       spacing: 10,
       runSpacing: 10,
       children: [
         PersonaStatusPill(
           label: assets.voiceProfileMarkdown.trim().isEmpty
-              ? 'Voice Profile 缺失'
+              ? 'Voice Profile 可选'
               : 'Voice Profile 已接入',
           icon: assets.voiceProfileMarkdown.trim().isEmpty
-              ? Icons.warning_amber_outlined
+              ? Icons.radio_button_unchecked
               : Icons.check_circle_outline,
+          color: assets.voiceProfileMarkdown.trim().isEmpty
+              ? colorScheme.onSurfaceVariant
+              : null,
         ),
         PersonaStatusPill(
           label: assets.storyEngineMarkdown.trim().isEmpty
-              ? 'Story Engine 缺失'
+              ? 'Story Engine 可选'
               : 'Story Engine 已接入',
           icon: assets.storyEngineMarkdown.trim().isEmpty
-              ? Icons.warning_amber_outlined
+              ? Icons.radio_button_unchecked
               : Icons.check_circle_outline,
+          color: assets.storyEngineMarkdown.trim().isEmpty
+              ? colorScheme.onSurfaceVariant
+              : null,
         ),
       ],
     );
@@ -3463,6 +3419,71 @@ class _CategoryPreview extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _RuntimeMemoryEmptyPreview extends StatelessWidget {
+  const _RuntimeMemoryEmptyPreview();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final items = [
+      (
+        icon: Icons.play_circle_outline,
+        label: '运行状态',
+        description: '故事推进中的状态',
+        color: const Color(0xFF16825D),
+      ),
+      (
+        icon: Icons.timeline_outlined,
+        label: '剧情线索',
+        description: '未解决的伏笔与暗线',
+        color: const Color(0xFFA66A00),
+      ),
+      (
+        icon: Icons.menu_book_outlined,
+        label: '故事摘要',
+        description: '整体故事脉络',
+        color: colorScheme.primary,
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 430;
+        final children = [
+          for (final item in items)
+            _CategoryPreview(
+              icon: item.icon,
+              label: item.label,
+              description: item.description,
+              color: item.color,
+            ),
+        ];
+
+        if (compact) {
+          return Column(
+            children: [
+              for (final child in children) ...[
+                child,
+                if (child != children.last) const SizedBox(height: 10),
+              ],
+            ],
+          );
+        }
+
+        return Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          alignment: WrapAlignment.center,
+          children: [
+            for (final child in children)
+              SizedBox(width: (constraints.maxWidth - 10) / 2, child: child),
+          ],
+        );
+      },
     );
   }
 }
@@ -4802,7 +4823,7 @@ class _ContextStatusList extends StatelessWidget {
     return assets.when(
       data: (asset) => memory.when(
         data: (item) {
-          final warnings = <String>[...asset.warnings];
+          final warnings = _actionablePromptWarnings(asset);
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

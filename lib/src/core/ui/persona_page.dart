@@ -27,7 +27,8 @@ class PersonaPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
-    final hasHeader = eyebrow.isNotEmpty ||
+    final hasHeader =
+        eyebrow.isNotEmpty ||
         title.isNotEmpty ||
         description.isNotEmpty ||
         actions.isNotEmpty;
@@ -65,8 +66,9 @@ class PersonaPage extends StatelessWidget {
                               const SizedBox(height: 10),
                             if (description.isNotEmpty)
                               ConstrainedBox(
-                                constraints:
-                                    const BoxConstraints(maxWidth: 700),
+                                constraints: const BoxConstraints(
+                                  maxWidth: 700,
+                                ),
                                 child: Text(
                                   description,
                                   style: textTheme.bodyLarge?.copyWith(
@@ -79,11 +81,7 @@ class PersonaPage extends StatelessWidget {
                       ),
                       if (actions.isNotEmpty) ...[
                         const SizedBox(width: 24),
-                        Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
-                          children: actions,
-                        ),
+                        Wrap(spacing: 10, runSpacing: 10, children: actions),
                       ],
                     ],
                   ),
@@ -241,10 +239,7 @@ class PersonaMetric extends StatelessWidget {
 }
 
 class _StaggeredList extends StatefulWidget {
-  const _StaggeredList({
-    required this.children,
-    this.animate = false,
-  });
+  const _StaggeredList({required this.children, this.animate = false});
 
   final List<Widget> children;
   final bool animate;
@@ -303,6 +298,8 @@ class PersonaEmptyStateCard extends StatelessWidget {
     required this.title,
     required this.description,
     this.action,
+    this.centered = false,
+    this.maxWidth,
     super.key,
   });
 
@@ -310,37 +307,100 @@ class PersonaEmptyStateCard extends StatelessWidget {
   final String title;
   final String description;
   final Widget? action;
+  final bool centered;
+  final double? maxWidth;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return DecoratedBox(
+    final content = DecoratedBox(
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
         borderRadius: BorderRadius.circular(kPanelRadius),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(22),
-        child: Row(
-          children: [
-            Icon(icon, color: colorScheme.primary, size: 36),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        padding: EdgeInsets.all(centered ? 28 : 22),
+        child: centered
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(title, style: textTheme.titleLarge),
-                  const SizedBox(height: 6),
-                  Text(description, style: textTheme.bodyMedium),
+                  _EmptyStateIcon(icon: icon),
+                  const SizedBox(height: 18),
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    description,
+                    textAlign: TextAlign.center,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  if (action != null) ...[const SizedBox(height: 22), action!],
+                ],
+              )
+            : Row(
+                children: [
+                  _EmptyStateIcon(icon: icon, compact: true),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(title, style: textTheme.titleLarge),
+                        const SizedBox(height: 6),
+                        Text(
+                          description,
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (action != null) ...[const SizedBox(width: 16), action!],
                 ],
               ),
-            ),
-            if (action != null) ...[const SizedBox(width: 16), action!],
-          ],
-        ),
+      ),
+    );
+
+    if (maxWidth == null) return content;
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth!),
+      child: content,
+    );
+  }
+}
+
+class _EmptyStateIcon extends StatelessWidget {
+  const _EmptyStateIcon({required this.icon, this.compact = false});
+
+  final IconData icon;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final size = compact ? 44.0 : 72.0;
+    final iconSize = compact ? 28.0 : 34.0;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.primary.withValues(alpha: 0.09),
+        borderRadius: BorderRadius.circular(compact ? 10 : 14),
+        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.18)),
+      ),
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: Icon(icon, color: colorScheme.primary, size: iconSize),
       ),
     );
   }
