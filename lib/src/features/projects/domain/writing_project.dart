@@ -7,6 +7,7 @@ enum ProjectStatus { active, archived }
 
 const defaultProjectLanguage = '简体中文';
 const defaultProjectTargetLength = 3000;
+const defaultProjectTotalTargetLength = 100000;
 const defaultProjectNarrativePerspective = '第三人称有限视角';
 
 @freezed
@@ -22,6 +23,7 @@ abstract class WritingProject with _$WritingProject {
     String? plotProfileId,
     @Default(defaultProjectLanguage) String language,
     @Default(defaultProjectTargetLength) int targetLength,
+    @Default(defaultProjectTotalTargetLength) int totalTargetLength,
     @Default(defaultProjectNarrativePerspective) String narrativePerspective,
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -42,6 +44,7 @@ class WritingProjectInput {
     this.plotProfileId,
     this.language = defaultProjectLanguage,
     this.targetLength = defaultProjectTargetLength,
+    this.totalTargetLength = defaultProjectTotalTargetLength,
     this.narrativePerspective = defaultProjectNarrativePerspective,
   });
 
@@ -54,5 +57,6 @@ class WritingProjectInput {
   final String? plotProfileId;
   final String language;
   final int targetLength;
+  final int totalTargetLength;
   final String narrativePerspective;
 }

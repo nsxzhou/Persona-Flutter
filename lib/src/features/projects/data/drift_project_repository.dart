@@ -72,6 +72,9 @@ class DriftProjectRepository implements ProjectRepository {
             plotProfileId: Value(_blankToNull(input.plotProfileId)),
             language: Value(_normalizedLanguage(input.language)),
             targetLength: Value(_normalizedTargetLength(input.targetLength)),
+            totalTargetLength: Value(
+              _normalizedTotalTargetLength(input.totalTargetLength),
+            ),
             narrativePerspective: Value(
               _normalizedPerspective(input.narrativePerspective),
             ),
@@ -118,6 +121,7 @@ class DriftProjectRepository implements ProjectRepository {
       plotProfileId: row.plotProfileId,
       language: row.language,
       targetLength: row.targetLength,
+      totalTargetLength: row.totalTargetLength,
       narrativePerspective: row.narrativePerspective,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
@@ -159,6 +163,7 @@ class DriftProjectRepository implements ProjectRepository {
     await _validateStyleProfile(_blankToNull(input.styleProfileId));
     await _validatePlotProfile(_blankToNull(input.plotProfileId));
     _normalizedTargetLength(input.targetLength);
+    _normalizedTotalTargetLength(input.totalTargetLength);
   }
 
   Future<void> _validateStyleProfile(String? id) async {
@@ -213,7 +218,14 @@ class DriftProjectRepository implements ProjectRepository {
 
   int _normalizedTargetLength(int value) {
     if (value <= 0) {
-      throw StateError('目标长度必须大于 0。');
+      throw StateError('单章目标字数必须大于 0。');
+    }
+    return value;
+  }
+
+  int _normalizedTotalTargetLength(int value) {
+    if (value <= 0) {
+      throw StateError('全书目标字数必须大于 0。');
     }
     return value;
   }

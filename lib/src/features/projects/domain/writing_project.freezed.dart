@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$WritingProject {
 
- String get id; String get title; String get description; ProjectStatus get status; String? get defaultProviderId; String? get defaultModelName; String? get styleProfileId; String? get plotProfileId; String get language; int get targetLength; String get narrativePerspective; DateTime get createdAt; DateTime get updatedAt;
+ String get id; String get title; String get description; ProjectStatus get status; String? get defaultProviderId; String? get defaultModelName; String? get styleProfileId; String? get plotProfileId; String get language; int get targetLength; int get totalTargetLength; String get narrativePerspective; DateTime get createdAt; DateTime get updatedAt;
 /// Create a copy of WritingProject
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $WritingProjectCopyWith<WritingProject> get copyWith => _$WritingProjectCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WritingProject&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.status, status) || other.status == status)&&(identical(other.defaultProviderId, defaultProviderId) || other.defaultProviderId == defaultProviderId)&&(identical(other.defaultModelName, defaultModelName) || other.defaultModelName == defaultModelName)&&(identical(other.styleProfileId, styleProfileId) || other.styleProfileId == styleProfileId)&&(identical(other.plotProfileId, plotProfileId) || other.plotProfileId == plotProfileId)&&(identical(other.language, language) || other.language == language)&&(identical(other.targetLength, targetLength) || other.targetLength == targetLength)&&(identical(other.narrativePerspective, narrativePerspective) || other.narrativePerspective == narrativePerspective)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WritingProject&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.status, status) || other.status == status)&&(identical(other.defaultProviderId, defaultProviderId) || other.defaultProviderId == defaultProviderId)&&(identical(other.defaultModelName, defaultModelName) || other.defaultModelName == defaultModelName)&&(identical(other.styleProfileId, styleProfileId) || other.styleProfileId == styleProfileId)&&(identical(other.plotProfileId, plotProfileId) || other.plotProfileId == plotProfileId)&&(identical(other.language, language) || other.language == language)&&(identical(other.targetLength, targetLength) || other.targetLength == targetLength)&&(identical(other.totalTargetLength, totalTargetLength) || other.totalTargetLength == totalTargetLength)&&(identical(other.narrativePerspective, narrativePerspective) || other.narrativePerspective == narrativePerspective)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,title,description,status,defaultProviderId,defaultModelName,styleProfileId,plotProfileId,language,targetLength,narrativePerspective,createdAt,updatedAt);
+int get hashCode => Object.hash(runtimeType,id,title,description,status,defaultProviderId,defaultModelName,styleProfileId,plotProfileId,language,targetLength,totalTargetLength,narrativePerspective,createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'WritingProject(id: $id, title: $title, description: $description, status: $status, defaultProviderId: $defaultProviderId, defaultModelName: $defaultModelName, styleProfileId: $styleProfileId, plotProfileId: $plotProfileId, language: $language, targetLength: $targetLength, narrativePerspective: $narrativePerspective, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'WritingProject(id: $id, title: $title, description: $description, status: $status, defaultProviderId: $defaultProviderId, defaultModelName: $defaultModelName, styleProfileId: $styleProfileId, plotProfileId: $plotProfileId, language: $language, targetLength: $targetLength, totalTargetLength: $totalTargetLength, narrativePerspective: $narrativePerspective, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $WritingProjectCopyWith<$Res>  {
   factory $WritingProjectCopyWith(WritingProject value, $Res Function(WritingProject) _then) = _$WritingProjectCopyWithImpl;
 @useResult
 $Res call({
- String id, String title, String description, ProjectStatus status, String? defaultProviderId, String? defaultModelName, String? styleProfileId, String? plotProfileId, String language, int targetLength, String narrativePerspective, DateTime createdAt, DateTime updatedAt
+ String id, String title, String description, ProjectStatus status, String? defaultProviderId, String? defaultModelName, String? styleProfileId, String? plotProfileId, String language, int targetLength, int totalTargetLength, String narrativePerspective, DateTime createdAt, DateTime updatedAt
 });
 
 
@@ -65,7 +65,7 @@ class _$WritingProjectCopyWithImpl<$Res>
 
 /// Create a copy of WritingProject
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? description = null,Object? status = null,Object? defaultProviderId = freezed,Object? defaultModelName = freezed,Object? styleProfileId = freezed,Object? plotProfileId = freezed,Object? language = null,Object? targetLength = null,Object? narrativePerspective = null,Object? createdAt = null,Object? updatedAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? description = null,Object? status = null,Object? defaultProviderId = freezed,Object? defaultModelName = freezed,Object? styleProfileId = freezed,Object? plotProfileId = freezed,Object? language = null,Object? targetLength = null,Object? totalTargetLength = null,Object? narrativePerspective = null,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -77,6 +77,7 @@ as String?,styleProfileId: freezed == styleProfileId ? _self.styleProfileId : st
 as String?,plotProfileId: freezed == plotProfileId ? _self.plotProfileId : plotProfileId // ignore: cast_nullable_to_non_nullable
 as String?,language: null == language ? _self.language : language // ignore: cast_nullable_to_non_nullable
 as String,targetLength: null == targetLength ? _self.targetLength : targetLength // ignore: cast_nullable_to_non_nullable
+as int,totalTargetLength: null == totalTargetLength ? _self.totalTargetLength : totalTargetLength // ignore: cast_nullable_to_non_nullable
 as int,narrativePerspective: null == narrativePerspective ? _self.narrativePerspective : narrativePerspective // ignore: cast_nullable_to_non_nullable
 as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
@@ -165,10 +166,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  String description,  ProjectStatus status,  String? defaultProviderId,  String? defaultModelName,  String? styleProfileId,  String? plotProfileId,  String language,  int targetLength,  String narrativePerspective,  DateTime createdAt,  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  String description,  ProjectStatus status,  String? defaultProviderId,  String? defaultModelName,  String? styleProfileId,  String? plotProfileId,  String language,  int targetLength,  int totalTargetLength,  String narrativePerspective,  DateTime createdAt,  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _WritingProject() when $default != null:
-return $default(_that.id,_that.title,_that.description,_that.status,_that.defaultProviderId,_that.defaultModelName,_that.styleProfileId,_that.plotProfileId,_that.language,_that.targetLength,_that.narrativePerspective,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.title,_that.description,_that.status,_that.defaultProviderId,_that.defaultModelName,_that.styleProfileId,_that.plotProfileId,_that.language,_that.targetLength,_that.totalTargetLength,_that.narrativePerspective,_that.createdAt,_that.updatedAt);case _:
   return orElse();
 
 }
@@ -186,10 +187,10 @@ return $default(_that.id,_that.title,_that.description,_that.status,_that.defaul
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  String description,  ProjectStatus status,  String? defaultProviderId,  String? defaultModelName,  String? styleProfileId,  String? plotProfileId,  String language,  int targetLength,  String narrativePerspective,  DateTime createdAt,  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  String description,  ProjectStatus status,  String? defaultProviderId,  String? defaultModelName,  String? styleProfileId,  String? plotProfileId,  String language,  int targetLength,  int totalTargetLength,  String narrativePerspective,  DateTime createdAt,  DateTime updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _WritingProject():
-return $default(_that.id,_that.title,_that.description,_that.status,_that.defaultProviderId,_that.defaultModelName,_that.styleProfileId,_that.plotProfileId,_that.language,_that.targetLength,_that.narrativePerspective,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.title,_that.description,_that.status,_that.defaultProviderId,_that.defaultModelName,_that.styleProfileId,_that.plotProfileId,_that.language,_that.targetLength,_that.totalTargetLength,_that.narrativePerspective,_that.createdAt,_that.updatedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -206,10 +207,10 @@ return $default(_that.id,_that.title,_that.description,_that.status,_that.defaul
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  String description,  ProjectStatus status,  String? defaultProviderId,  String? defaultModelName,  String? styleProfileId,  String? plotProfileId,  String language,  int targetLength,  String narrativePerspective,  DateTime createdAt,  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  String description,  ProjectStatus status,  String? defaultProviderId,  String? defaultModelName,  String? styleProfileId,  String? plotProfileId,  String language,  int targetLength,  int totalTargetLength,  String narrativePerspective,  DateTime createdAt,  DateTime updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _WritingProject() when $default != null:
-return $default(_that.id,_that.title,_that.description,_that.status,_that.defaultProviderId,_that.defaultModelName,_that.styleProfileId,_that.plotProfileId,_that.language,_that.targetLength,_that.narrativePerspective,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.title,_that.description,_that.status,_that.defaultProviderId,_that.defaultModelName,_that.styleProfileId,_that.plotProfileId,_that.language,_that.targetLength,_that.totalTargetLength,_that.narrativePerspective,_that.createdAt,_that.updatedAt);case _:
   return null;
 
 }
@@ -221,7 +222,7 @@ return $default(_that.id,_that.title,_that.description,_that.status,_that.defaul
 @JsonSerializable()
 
 class _WritingProject implements WritingProject {
-  const _WritingProject({required this.id, required this.title, this.description = '', required this.status, this.defaultProviderId, this.defaultModelName, this.styleProfileId, this.plotProfileId, this.language = defaultProjectLanguage, this.targetLength = defaultProjectTargetLength, this.narrativePerspective = defaultProjectNarrativePerspective, required this.createdAt, required this.updatedAt});
+  const _WritingProject({required this.id, required this.title, this.description = '', required this.status, this.defaultProviderId, this.defaultModelName, this.styleProfileId, this.plotProfileId, this.language = defaultProjectLanguage, this.targetLength = defaultProjectTargetLength, this.totalTargetLength = defaultProjectTotalTargetLength, this.narrativePerspective = defaultProjectNarrativePerspective, required this.createdAt, required this.updatedAt});
   factory _WritingProject.fromJson(Map<String, dynamic> json) => _$WritingProjectFromJson(json);
 
 @override final  String id;
@@ -234,6 +235,7 @@ class _WritingProject implements WritingProject {
 @override final  String? plotProfileId;
 @override@JsonKey() final  String language;
 @override@JsonKey() final  int targetLength;
+@override@JsonKey() final  int totalTargetLength;
 @override@JsonKey() final  String narrativePerspective;
 @override final  DateTime createdAt;
 @override final  DateTime updatedAt;
@@ -251,16 +253,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WritingProject&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.status, status) || other.status == status)&&(identical(other.defaultProviderId, defaultProviderId) || other.defaultProviderId == defaultProviderId)&&(identical(other.defaultModelName, defaultModelName) || other.defaultModelName == defaultModelName)&&(identical(other.styleProfileId, styleProfileId) || other.styleProfileId == styleProfileId)&&(identical(other.plotProfileId, plotProfileId) || other.plotProfileId == plotProfileId)&&(identical(other.language, language) || other.language == language)&&(identical(other.targetLength, targetLength) || other.targetLength == targetLength)&&(identical(other.narrativePerspective, narrativePerspective) || other.narrativePerspective == narrativePerspective)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WritingProject&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.status, status) || other.status == status)&&(identical(other.defaultProviderId, defaultProviderId) || other.defaultProviderId == defaultProviderId)&&(identical(other.defaultModelName, defaultModelName) || other.defaultModelName == defaultModelName)&&(identical(other.styleProfileId, styleProfileId) || other.styleProfileId == styleProfileId)&&(identical(other.plotProfileId, plotProfileId) || other.plotProfileId == plotProfileId)&&(identical(other.language, language) || other.language == language)&&(identical(other.targetLength, targetLength) || other.targetLength == targetLength)&&(identical(other.totalTargetLength, totalTargetLength) || other.totalTargetLength == totalTargetLength)&&(identical(other.narrativePerspective, narrativePerspective) || other.narrativePerspective == narrativePerspective)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,title,description,status,defaultProviderId,defaultModelName,styleProfileId,plotProfileId,language,targetLength,narrativePerspective,createdAt,updatedAt);
+int get hashCode => Object.hash(runtimeType,id,title,description,status,defaultProviderId,defaultModelName,styleProfileId,plotProfileId,language,targetLength,totalTargetLength,narrativePerspective,createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'WritingProject(id: $id, title: $title, description: $description, status: $status, defaultProviderId: $defaultProviderId, defaultModelName: $defaultModelName, styleProfileId: $styleProfileId, plotProfileId: $plotProfileId, language: $language, targetLength: $targetLength, narrativePerspective: $narrativePerspective, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'WritingProject(id: $id, title: $title, description: $description, status: $status, defaultProviderId: $defaultProviderId, defaultModelName: $defaultModelName, styleProfileId: $styleProfileId, plotProfileId: $plotProfileId, language: $language, targetLength: $targetLength, totalTargetLength: $totalTargetLength, narrativePerspective: $narrativePerspective, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -271,7 +273,7 @@ abstract mixin class _$WritingProjectCopyWith<$Res> implements $WritingProjectCo
   factory _$WritingProjectCopyWith(_WritingProject value, $Res Function(_WritingProject) _then) = __$WritingProjectCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String title, String description, ProjectStatus status, String? defaultProviderId, String? defaultModelName, String? styleProfileId, String? plotProfileId, String language, int targetLength, String narrativePerspective, DateTime createdAt, DateTime updatedAt
+ String id, String title, String description, ProjectStatus status, String? defaultProviderId, String? defaultModelName, String? styleProfileId, String? plotProfileId, String language, int targetLength, int totalTargetLength, String narrativePerspective, DateTime createdAt, DateTime updatedAt
 });
 
 
@@ -288,7 +290,7 @@ class __$WritingProjectCopyWithImpl<$Res>
 
 /// Create a copy of WritingProject
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? description = null,Object? status = null,Object? defaultProviderId = freezed,Object? defaultModelName = freezed,Object? styleProfileId = freezed,Object? plotProfileId = freezed,Object? language = null,Object? targetLength = null,Object? narrativePerspective = null,Object? createdAt = null,Object? updatedAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? description = null,Object? status = null,Object? defaultProviderId = freezed,Object? defaultModelName = freezed,Object? styleProfileId = freezed,Object? plotProfileId = freezed,Object? language = null,Object? targetLength = null,Object? totalTargetLength = null,Object? narrativePerspective = null,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_WritingProject(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -300,6 +302,7 @@ as String?,styleProfileId: freezed == styleProfileId ? _self.styleProfileId : st
 as String?,plotProfileId: freezed == plotProfileId ? _self.plotProfileId : plotProfileId // ignore: cast_nullable_to_non_nullable
 as String?,language: null == language ? _self.language : language // ignore: cast_nullable_to_non_nullable
 as String,targetLength: null == targetLength ? _self.targetLength : targetLength // ignore: cast_nullable_to_non_nullable
+as int,totalTargetLength: null == totalTargetLength ? _self.totalTargetLength : totalTargetLength // ignore: cast_nullable_to_non_nullable
 as int,narrativePerspective: null == narrativePerspective ? _self.narrativePerspective : narrativePerspective // ignore: cast_nullable_to_non_nullable
 as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable

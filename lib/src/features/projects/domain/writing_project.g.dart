@@ -19,6 +19,9 @@ _WritingProject _$WritingProjectFromJson(Map<String, dynamic> json) =>
       language: json['language'] as String? ?? defaultProjectLanguage,
       targetLength:
           (json['targetLength'] as num?)?.toInt() ?? defaultProjectTargetLength,
+      totalTargetLength:
+          (json['totalTargetLength'] as num?)?.toInt() ??
+          defaultProjectTotalTargetLength,
       narrativePerspective:
           json['narrativePerspective'] as String? ??
           defaultProjectNarrativePerspective,
@@ -38,6 +41,7 @@ Map<String, dynamic> _$WritingProjectToJson(_WritingProject instance) =>
       'plotProfileId': instance.plotProfileId,
       'language': instance.language,
       'targetLength': instance.targetLength,
+      'totalTargetLength': instance.totalTargetLength,
       'narrativePerspective': instance.narrativePerspective,
       'createdAt': instance.createdAt.toIso8601String(),
       'updatedAt': instance.updatedAt.toIso8601String(),

@@ -603,6 +603,7 @@ class _ProjectDialogState extends ConsumerState<_ProjectDialog> {
   late final TextEditingController _descriptionController;
   late final TextEditingController _languageController;
   late final TextEditingController _targetLengthController;
+  late final TextEditingController _totalTargetLengthController;
   late final TextEditingController _perspectiveController;
   late ProjectStatus _status;
   String? _selectedProviderId;
@@ -624,6 +625,10 @@ class _ProjectDialogState extends ConsumerState<_ProjectDialog> {
     _targetLengthController = TextEditingController(
       text: (project?.targetLength ?? defaultProjectTargetLength).toString(),
     );
+    _totalTargetLengthController = TextEditingController(
+      text: (project?.totalTargetLength ?? defaultProjectTotalTargetLength)
+          .toString(),
+    );
     _perspectiveController = TextEditingController(
       text: project?.narrativePerspective ?? defaultProjectNarrativePerspective,
     );
@@ -640,6 +645,7 @@ class _ProjectDialogState extends ConsumerState<_ProjectDialog> {
     _descriptionController.dispose();
     _languageController.dispose();
     _targetLengthController.dispose();
+    _totalTargetLengthController.dispose();
     _perspectiveController.dispose();
     super.dispose();
   }
@@ -683,6 +689,7 @@ class _ProjectDialogState extends ConsumerState<_ProjectDialog> {
                 descriptionController: _descriptionController,
                 languageController: _languageController,
                 targetLengthController: _targetLengthController,
+                totalTargetLengthController: _totalTargetLengthController,
                 perspectiveController: _perspectiveController,
                 status: _status,
                 providers: providerItems,
@@ -817,6 +824,8 @@ class _ProjectDialogState extends ConsumerState<_ProjectDialog> {
             language: _languageController.text,
             targetLength:
                 int.tryParse(_targetLengthController.text.trim()) ?? 0,
+            totalTargetLength:
+                int.tryParse(_totalTargetLengthController.text.trim()) ?? 0,
             narrativePerspective: _perspectiveController.text,
           ),
         );
@@ -834,6 +843,7 @@ class _ProjectDialogForm extends StatelessWidget {
     required this.descriptionController,
     required this.languageController,
     required this.targetLengthController,
+    required this.totalTargetLengthController,
     required this.perspectiveController,
     required this.status,
     required this.providers,
@@ -859,6 +869,7 @@ class _ProjectDialogForm extends StatelessWidget {
   final TextEditingController descriptionController;
   final TextEditingController languageController;
   final TextEditingController targetLengthController;
+  final TextEditingController totalTargetLengthController;
   final TextEditingController perspectiveController;
   final ProjectStatus status;
   final List<ProviderConfig> providers;
@@ -1028,7 +1039,17 @@ class _ProjectDialogForm extends StatelessWidget {
                     final targetLength = TextFormField(
                       controller: targetLengthController,
                       decoration: const InputDecoration(
-                        labelText: '目标长度',
+                        labelText: '单章目标字数',
+                        suffixText: '字',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.number,
+                      validator: _positiveIntValidator,
+                    );
+                    final totalTargetLength = TextFormField(
+                      controller: totalTargetLengthController,
+                      decoration: const InputDecoration(
+                        labelText: '全书目标字数',
                         suffixText: '字',
                         border: OutlineInputBorder(),
                       ),
@@ -1036,12 +1057,14 @@ class _ProjectDialogForm extends StatelessWidget {
                       validator: _positiveIntValidator,
                     );
 
-                    if (constraints.maxWidth < 560) {
+                    if (constraints.maxWidth < 620) {
                       return Column(
                         children: [
                           language,
                           const SizedBox(height: 12),
                           targetLength,
+                          const SizedBox(height: 12),
+                          totalTargetLength,
                         ],
                       );
                     }
@@ -1050,6 +1073,8 @@ class _ProjectDialogForm extends StatelessWidget {
                         Expanded(child: language),
                         const SizedBox(width: 12),
                         Expanded(child: targetLength),
+                        const SizedBox(width: 12),
+                        Expanded(child: totalTargetLength),
                       ],
                     );
                   },
