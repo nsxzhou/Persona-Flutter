@@ -205,6 +205,24 @@ class NovelWorkshopController extends _$NovelWorkshopController {
     return saved;
   }
 
+  Future<ProjectRuntimeMemory> saveRuntimeMemory({
+    required String projectId,
+    required RuntimeMemoryState memoryState,
+  }) async {
+    state = const AsyncLoading();
+    late ProjectRuntimeMemory saved;
+    state = await AsyncValue.guard(() async {
+      saved = await ref
+          .read(novelWorkshopRepositoryProvider)
+          .saveRuntimeMemory(projectId: projectId, state: memoryState);
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
+    ref.invalidate(projectRuntimeMemoryProvider(projectId));
+    return saved;
+  }
+
   Future<ChapterGenerationResult> generateChapter({
     required String projectId,
     required String chapterPlanId,

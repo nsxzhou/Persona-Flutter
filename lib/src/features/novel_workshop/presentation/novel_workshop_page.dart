@@ -641,7 +641,10 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
                       emptyTitle: '暂无 Story Engine',
                       emptyDescription: '请先在项目设置中绑定 Plot Profile。',
                     ),
-                    _RuntimeMemoryTab(memory: widget.memory),
+                    _RuntimeMemoryTab(
+                      projectId: widget.project.id,
+                      memory: widget.memory,
+                    ),
                     _PromptStackTab(
                       assets: widget.assets,
                       bible: widget.bible,
@@ -1111,38 +1114,137 @@ class _YamlMarkdownAssetTab extends StatelessWidget {
   }
 }
 
-class _RuntimeMemoryTab extends StatelessWidget {
-  const _RuntimeMemoryTab({required this.memory});
+class _RuntimeMemoryTab extends ConsumerStatefulWidget {
+  const _RuntimeMemoryTab({
+    required this.projectId,
+    required this.memory,
+  });
 
+  final String projectId;
   final AsyncValue<ProjectRuntimeMemory> memory;
 
   @override
-  Widget build(BuildContext context) {
-    return memory.when(
-      data: (item) {
-        if (item.state.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.all(20),
-            child: PersonaEmptyStateCard(
-              icon: Icons.history_toggle_off_outlined,
-              title: '暂无 Runtime Memory',
-              description: '运行时记忆会在章节生成和同步后逐步累积；没有记录时不会影响手动维护项目设定。',
+  ConsumerState<_RuntimeMemoryTab> createState() => _RuntimeMemoryTabState();
+}
+
+class _RuntimeMemoryTabState extends ConsumerState<_RuntimeMemoryTab> {
+  bool _editing = false;
+  late TextEditingController _charactersCtrl;
+  late TextEditingController _runtimeStateCtrl;
+  late TextEditingController _threadsCtrl;
+  late TextEditingController _summaryCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _charactersCtrl = TextEditingController();
+    _runtimeStateCtrl = TextEditingController();
+    _threadsCtrl = TextEditingController();
+    _summaryCtrl = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _charactersCtrl.dispose();
+    _runtimeStateCtrl.dispose();
+    _threadsCtrl.dispose();
+    _summaryCtrl.dispose();
+    super.dispose();
+  }
+
+  void _startEditing(RuntimeMemoryState state) {
+    _charactersCtrl.text = state.charactersStatus;
+    _runtimeStateCtrl.text = state.runtimeState;
+    _threadsCtrl.text = state.runtimeThreads;
+    _summaryCtrl.text = state.storySummary;
+    setState(() => _editing = true);
+  }
+
+  void _cancelEditing() {
+    setState(() => _editing = false);
+  }
+
+  Future<void> _save() async {
+    try {
+      await ref
+          .read(novelWorkshopControllerProvider.notifier)
+          .saveRuntimeMemory(
+            projectId: widget.projectId,
+            memoryState: RuntimeMemoryState(
+              charactersStatus: _charactersCtrl.text,
+              runtimeState: _runtimeStateCtrl.text,
+              runtimeThreads: _threadsCtrl.text,
+              storySummary: _summaryCtrl.text,
             ),
           );
-        }
+      if (!mounted) return;
+      setState(() => _editing = false);
+      if (Scaffold.maybeOf(context) != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('运行时记忆已保存。')));
+      }
+    } on Object catch (error) {
+      if (!mounted) return;
+      if (Scaffold.maybeOf(context) != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('保存失败：$error')));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final controllerState = ref.watch(novelWorkshopControllerProvider);
+
+    return widget.memory.when(
+      data: (item) {
+        final isEmpty = item.state.isEmpty && !_editing;
         return SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '展示创作过程中需要持续保留的角色状态、运行状态、未解决线索和故事摘要。',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '创作过程中持续追踪的角色状态、运行状态、剧情线索和故事摘要。',
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  if (_editing) ...[
+                    TextButton(
+                      onPressed:
+                          controllerState.isLoading ? null : _cancelEditing,
+                      child: const Text('取消'),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton.icon(
+                      onPressed: controllerState.isLoading ? null : _save,
+                      icon: const Icon(Icons.save_outlined, size: 18),
+                      label: const Text('保存'),
+                    ),
+                  ] else
+                    OutlinedButton.icon(
+                      onPressed: () => _startEditing(item.state),
+                      icon: const Icon(Icons.edit_outlined, size: 18),
+                      label: Text(isEmpty ? '开始编辑' : '编辑'),
+                    ),
+                ],
               ),
-              const SizedBox(height: 16),
-              _RuntimeMemoryGrid(memory: item.state),
+              const SizedBox(height: 20),
+              if (isEmpty)
+                _buildEmptyState(context, colorScheme, textTheme)
+              else if (_editing)
+                _buildEditForm(context, colorScheme, textTheme)
+              else
+                _RuntimeMemoryGrid(memory: item.state),
             ],
           ),
         );
@@ -1152,6 +1254,172 @@ class _RuntimeMemoryTab extends StatelessWidget {
         child: Text('无法加载运行时记忆：$error'),
       ),
       loading: () => const Center(child: CircularProgressIndicator()),
+    );
+  }
+
+  Widget _buildEmptyState(
+    BuildContext context,
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+  ) {
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 600),
+        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 32),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: colorScheme.outlineVariant),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Illustration: layered memory icon
+            SizedBox(
+              height: 120,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Background glow
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          colorScheme.primary.withValues(alpha: 0.12),
+                          colorScheme.primary.withValues(alpha: 0.0),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Outer ring
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: colorScheme.primary.withValues(alpha: 0.2),
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                  // Inner icon
+                  Icon(
+                    Icons.auto_stories_outlined,
+                    size: 40,
+                    color: colorScheme.primary,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              '运行时记忆尚未建立',
+              style: textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              '随着章节生成和故事推进，系统会自动追踪并累积以下维度的记忆。你也可以手动编辑来维护它们。',
+              textAlign: TextAlign.center,
+              style: textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 28),
+            // Category preview cards
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final wide = constraints.maxWidth >= 440;
+                final cards = [
+                  _CategoryPreview(
+                    icon: Icons.people_outline,
+                    label: '角色状态',
+                    description: '活跃角色的即时变化',
+                    color: Colors.blue,
+                  ),
+                  _CategoryPreview(
+                    icon: Icons.play_circle_outline,
+                    label: '运行状态',
+                    description: '故事推进中的状态',
+                    color: Colors.green,
+                  ),
+                  _CategoryPreview(
+                    icon: Icons.timeline_outlined,
+                    label: '剧情线索',
+                    description: '未解决的伏笔与暗线',
+                    color: Colors.amber,
+                  ),
+                  _CategoryPreview(
+                    icon: Icons.menu_book_outlined,
+                    label: '故事摘要',
+                    description: '整体故事脉络',
+                    color: Colors.purple,
+                  ),
+                ];
+                if (wide) {
+                  return Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: [
+                      for (final card in cards)
+                        SizedBox(
+                          width: (constraints.maxWidth - 10) / 2,
+                          child: card,
+                        ),
+                    ],
+                  );
+                }
+                return Column(children: cards);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEditForm(
+    BuildContext context,
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+  ) {
+    return Column(
+      children: [
+        _MemoryEditField(
+          controller: _charactersCtrl,
+          icon: Icons.people_outline,
+          label: '角色状态',
+          description: '当前活跃角色的状态变化',
+          accentColor: Colors.blue,
+        ),
+        _MemoryEditField(
+          controller: _runtimeStateCtrl,
+          icon: Icons.play_circle_outline,
+          label: '运行状态',
+          description: '故事推进中的即时状态',
+          accentColor: Colors.green,
+        ),
+        _MemoryEditField(
+          controller: _threadsCtrl,
+          icon: Icons.timeline_outlined,
+          label: '剧情线索',
+          description: '未解决的伏笔和进行中的线索',
+          accentColor: Colors.amber,
+        ),
+        _MemoryEditField(
+          controller: _summaryCtrl,
+          icon: Icons.menu_book_outlined,
+          label: '故事摘要',
+          description: '截至目前的整体故事脉络',
+          accentColor: Colors.purple,
+        ),
+      ],
     );
   }
 }
@@ -2355,12 +2623,33 @@ class _RuntimeMemoryGrid extends StatelessWidget {
         final wide = constraints.maxWidth >= 760;
         final children = [
           _MemoryBlock(
-            title: 'charactersStatus',
+            icon: Icons.people_outline,
+            title: '角色状态',
+            description: '当前活跃角色的状态变化',
             value: memory.charactersStatus,
+            accentColor: Colors.blue,
           ),
-          _MemoryBlock(title: 'runtimeState', value: memory.runtimeState),
-          _MemoryBlock(title: 'runtimeThreads', value: memory.runtimeThreads),
-          _MemoryBlock(title: 'storySummary', value: memory.storySummary),
+          _MemoryBlock(
+            icon: Icons.play_circle_outline,
+            title: '运行状态',
+            description: '故事推进中的即时状态',
+            value: memory.runtimeState,
+            accentColor: Colors.green,
+          ),
+          _MemoryBlock(
+            icon: Icons.timeline_outlined,
+            title: '剧情线索',
+            description: '未解决的伏笔和进行中的线索',
+            value: memory.runtimeThreads,
+            accentColor: Colors.amber,
+          ),
+          _MemoryBlock(
+            icon: Icons.menu_book_outlined,
+            title: '故事摘要',
+            description: '截至目前的整体故事脉络',
+            value: memory.storySummary,
+            accentColor: Colors.purple,
+          ),
         ];
         if (!wide) {
           return Column(children: children);
@@ -2379,33 +2668,220 @@ class _RuntimeMemoryGrid extends StatelessWidget {
 }
 
 class _MemoryBlock extends StatelessWidget {
-  const _MemoryBlock({required this.title, required this.value});
+  const _MemoryBlock({
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.value,
+    required this.accentColor,
+  });
 
+  final IconData icon;
   final String title;
+  final String description;
   final String value;
+  final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final text = value.trim();
+    final isEmpty = text.isEmpty;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: DecoratedBox(
         decoration: BoxDecoration(
           border: Border.all(color: colorScheme.outlineVariant),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(title, style: Theme.of(context).textTheme.labelLarge),
-              const SizedBox(height: 8),
-              Text(text.isEmpty ? '未记录' : text),
+              // Colored left accent bar
+              Container(
+                width: 4,
+                decoration: BoxDecoration(
+                  color: accentColor,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(10),
+                    bottomLeft: Radius.circular(10),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(icon, size: 20, color: accentColor),
+                          const SizedBox(width: 8),
+                          Text(
+                            title,
+                            style: textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        description,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        isEmpty ? '未记录' : text,
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: isEmpty
+                              ? colorScheme.onSurfaceVariant.withValues(
+                                  alpha: 0.6,
+                                )
+                              : null,
+                          fontStyle: isEmpty ? FontStyle.italic : null,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _CategoryPreview extends StatelessWidget {
+  const _CategoryPreview({
+    required this.icon,
+    required this.label,
+    required this.description,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final String description;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, size: 20, color: color),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    description,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MemoryEditField extends StatelessWidget {
+  const _MemoryEditField({
+    required this.controller,
+    required this.icon,
+    required this.label,
+    required this.description,
+    required this.accentColor,
+  });
+
+  final TextEditingController controller;
+  final IconData icon;
+  final String label;
+  final String description;
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 18, color: accentColor),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                description,
+                style: textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: controller,
+            minLines: 3,
+            maxLines: 8,
+            decoration: InputDecoration(
+              hintText: '记录$label...',
+              alignLabelWithHint: true,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
