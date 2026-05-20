@@ -20,6 +20,14 @@ abstract interface class NovelWorkshopRepository {
 
   Stream<List<AssetGenerationRun>> watchAssetGenerationRuns(String projectId);
 
+  Stream<List<ChapterEnrichmentBatch>> watchChapterEnrichmentBatches(
+    String projectId,
+  );
+
+  Stream<List<ChapterEnrichmentItem>> watchChapterEnrichmentItems(
+    String batchId,
+  );
+
   Stream<ChapterGenerationRun?> watchChapterGenerationRunByWorkflowTask(
     String workflowTaskId,
   );
@@ -45,6 +53,10 @@ abstract interface class NovelWorkshopRepository {
   Future<ChapterGenerationRun?> findChapterGenerationRun(String id);
 
   Future<AssetGenerationRun?> findAssetGenerationRun(String id);
+
+  Future<ChapterEnrichmentBatch?> findChapterEnrichmentBatch(String id);
+
+  Future<ChapterEnrichmentItem?> findChapterEnrichmentItem(String id);
 
   Future<bool> hasRunningChapterGeneration(String chapterPlanId);
 
@@ -139,4 +151,38 @@ abstract interface class NovelWorkshopRepository {
     DateTime? startedAt,
     DateTime? completedAt,
   });
+
+  Future<ChapterEnrichmentBatch> createChapterEnrichmentBatch(
+    ChapterEnrichmentBatchInput input,
+  );
+
+  Future<ChapterEnrichmentBatch> updateChapterEnrichmentBatchState({
+    required String id,
+    required ChapterEnrichmentBatchStatus status,
+    String? providerId,
+    String? modelName,
+    String? errorMessage,
+    String? logs,
+    DateTime? startedAt,
+    DateTime? completedAt,
+  });
+
+  Future<ChapterEnrichmentItem> updateChapterEnrichmentItemState({
+    required String id,
+    required ChapterEnrichmentItemStatus status,
+    String? errorMessage,
+    String? originalContentMarkdown,
+    String? generatedContentMarkdown,
+    String? providerId,
+    String? modelName,
+    String? logs,
+    DateTime? startedAt,
+    DateTime? completedAt,
+    DateTime? appliedAt,
+    bool clearStartedAt = false,
+    bool clearCompletedAt = false,
+    bool clearAppliedAt = false,
+  });
+
+  Future<ProjectChapter> applyChapterEnrichmentItem(String itemId);
 }

@@ -55,6 +55,9 @@ class _NovelWorkshopPageState extends ConsumerState<NovelWorkshopPage> {
     );
     final runs = ref.watch(chapterGenerationRunsProvider(widget.projectId));
     final assetRuns = ref.watch(assetGenerationRunsProvider(widget.projectId));
+    final enrichmentBatches = ref.watch(
+      chapterEnrichmentBatchesProvider(widget.projectId),
+    );
     final memory = ref.watch(projectRuntimeMemoryProvider(widget.projectId));
     final assets = ref.watch(projectPromptAssetsProvider(widget.projectId));
 
@@ -72,40 +75,46 @@ class _NovelWorkshopPageState extends ConsumerState<NovelWorkshopPage> {
               data: (planItems) => chapters.when(
                 data: (chapterItems) => runs.when(
                   data: (runItems) => assetRuns.when(
-                    data: (assetRunItems) => _AssetWorkbenchPage(
-                      project: item,
-                      bible: bibleItem,
-                      volumes: volumeItems,
-                      plans: planItems,
-                      chapters: chapterItems,
-                      characters: characters,
-                      relationships: relationships,
-                      runs: runItems,
-                      assetRuns: assetRunItems,
-                      assets: assets,
-                      memory: memory,
-                      onCreatePlan: () => _showPlanDialog(
-                        context: context,
-                        projectId: item.id,
+                    data: (assetRunItems) => enrichmentBatches.when(
+                      data: (batchItems) => _AssetWorkbenchPage(
+                        project: item,
+                        bible: bibleItem,
                         volumes: volumeItems,
-                        nextIndex: _nextChapterIndex(planItems),
+                        plans: planItems,
+                        chapters: chapterItems,
+                        characters: characters,
+                        relationships: relationships,
+                        runs: runItems,
+                        assetRuns: assetRunItems,
+                        enrichmentBatches: batchItems,
+                        assets: assets,
+                        memory: memory,
+                        onCreatePlan: () => _showPlanDialog(
+                          context: context,
+                          projectId: item.id,
+                          volumes: volumeItems,
+                          nextIndex: _nextChapterIndex(planItems),
+                        ),
+                        onCreateVolume: () => _showVolumeDialog(
+                          context: context,
+                          projectId: item.id,
+                          nextIndex: _nextVolumeIndex(volumeItems),
+                        ),
+                        onEditVolume: (volume) => _showVolumeDialog(
+                          context: context,
+                          projectId: item.id,
+                          volume: volume,
+                        ),
+                        onEditPlan: (plan) => _showPlanDialog(
+                          context: context,
+                          projectId: item.id,
+                          volumes: volumeItems,
+                          plan: plan,
+                        ),
                       ),
-                      onCreateVolume: () => _showVolumeDialog(
-                        context: context,
-                        projectId: item.id,
-                        nextIndex: _nextVolumeIndex(volumeItems),
-                      ),
-                      onEditVolume: (volume) => _showVolumeDialog(
-                        context: context,
-                        projectId: item.id,
-                        volume: volume,
-                      ),
-                      onEditPlan: (plan) => _showPlanDialog(
-                        context: context,
-                        projectId: item.id,
-                        volumes: volumeItems,
-                        plan: plan,
-                      ),
+                      error: (error, stackTrace) =>
+                          _WorkshopError(message: '无法加载加料任务：$error'),
+                      loading: () => const _WorkshopLoading(),
                     ),
                     error: (error, stackTrace) =>
                         _WorkshopError(message: '无法加载资产生成任务：$error'),
@@ -193,6 +202,9 @@ class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
                   final selectedRunning =
                       selectedRun?.status == ChapterGenerationStatus.pending ||
                       selectedRun?.status == ChapterGenerationStatus.running;
+                  final selectedChapterIds = selectedChapter == null
+                      ? const <String>{}
+                      : <String>{selectedChapter.id};
                   final busy = controller.isLoading || selectedRunning;
 
                   return _WorkshopScaffold(
@@ -209,6 +221,8 @@ class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
                     isBusy: busy,
                     assets: assets,
                     memory: memory,
+                    isImportedEnrichment:
+                        item.origin == ProjectOrigin.importedEnrichment,
                     onSelectPlan: (plan) => _selectPlan(
                       nextPlan: plan,
                       currentProject: item,
@@ -238,6 +252,12 @@ class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
                           ),
                     onGenerate: selectedPlan == null || busy
                         ? null
+                        : item.origin == ProjectOrigin.importedEnrichment
+                        ? () => _showEnrichmentDialog(
+                            project: item,
+                            chapters: chapterItems,
+                            initialChapterIds: selectedChapterIds,
+                          )
                         : () => _generateChapter(
                             project: item,
                             plan: selectedPlan,
@@ -374,6 +394,49 @@ class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
     }
   }
 
+  Future<void> _showEnrichmentDialog({
+    required WritingProject project,
+    required List<ProjectChapter> chapters,
+    required Set<String> initialChapterIds,
+  }) async {
+    final candidates = chapters
+        .where((chapter) => chapter.contentMarkdown.trim().isNotEmpty)
+        .toList(growable: false);
+    if (candidates.isEmpty) {
+      _showSnack('没有可加料的章节正文。');
+      return;
+    }
+    if (_isDirty) {
+      _showSnack('请先保存正文再加料。');
+      return;
+    }
+    final request = await showGlassDialog<_EnrichmentRequest>(
+      context: context,
+      maxWidth: 720,
+      maxHeight: MediaQuery.sizeOf(context).height * 0.88,
+      builder: (context) => _EnrichmentRequestDialog(
+        chapters: candidates,
+        initialChapterIds: initialChapterIds,
+      ),
+    );
+    if (request == null) {
+      return;
+    }
+    try {
+      await ref
+          .read(novelWorkshopControllerProvider.notifier)
+          .enrichChapters(
+            projectId: project.id,
+            chapterIds: request.chapterIds,
+            instruction: request.instruction,
+            expansionRatioPercent: request.expansionRatioPercent,
+          );
+      _showSnack('加料已生成，返回概览预览后应用。');
+    } on Object {
+      // The controller listener renders the error.
+    }
+  }
+
   Future<bool> _resolveDirtyEditor({
     required WritingProject project,
     required ChapterPlan? plan,
@@ -435,6 +498,7 @@ class _AssetWorkbenchPage extends StatelessWidget {
     required this.relationships,
     required this.runs,
     required this.assetRuns,
+    required this.enrichmentBatches,
     required this.assets,
     required this.memory,
     required this.onCreatePlan,
@@ -452,6 +516,7 @@ class _AssetWorkbenchPage extends StatelessWidget {
   final AsyncValue<List<NovelRelationship>> relationships;
   final List<ChapterGenerationRun> runs;
   final List<AssetGenerationRun> assetRuns;
+  final List<ChapterEnrichmentBatch> enrichmentBatches;
   final AsyncValue<ProjectPromptAssets> assets;
   final AsyncValue<ProjectRuntimeMemory> memory;
   final VoidCallback onCreatePlan;
@@ -490,6 +555,7 @@ class _AssetWorkbenchPage extends StatelessWidget {
           relationships: relationships,
           runs: runs,
           assetRuns: assetRuns,
+          enrichmentBatches: enrichmentBatches,
           assets: assets,
           memory: memory,
           onCreatePlan: onCreatePlan,
@@ -513,6 +579,7 @@ class _WorkbenchTabs extends StatefulWidget {
     required this.relationships,
     required this.runs,
     required this.assetRuns,
+    required this.enrichmentBatches,
     required this.assets,
     required this.memory,
     required this.onCreatePlan,
@@ -530,6 +597,7 @@ class _WorkbenchTabs extends StatefulWidget {
   final AsyncValue<List<NovelRelationship>> relationships;
   final List<ChapterGenerationRun> runs;
   final List<AssetGenerationRun> assetRuns;
+  final List<ChapterEnrichmentBatch> enrichmentBatches;
   final AsyncValue<ProjectPromptAssets> assets;
   final AsyncValue<ProjectRuntimeMemory> memory;
   final VoidCallback onCreatePlan;
@@ -543,12 +611,27 @@ class _WorkbenchTabs extends StatefulWidget {
 
 class _WorkbenchTabsState extends State<_WorkbenchTabs>
     with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
+  late TabController _tabController;
+
+  int get _tabLength =>
+      widget.project.origin == ProjectOrigin.importedEnrichment ? 3 : 10;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 10, vsync: this);
+    _tabController = TabController(length: _tabLength, vsync: this);
+  }
+
+  @override
+  void didUpdateWidget(_WorkbenchTabs oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_tabLength == _tabController.length) {
+      return;
+    }
+    final previousIndex = _tabController.index;
+    _tabController.dispose();
+    _tabController = TabController(length: _tabLength, vsync: this);
+    _tabController.index = previousIndex.clamp(0, _tabLength - 1);
   }
 
   @override
@@ -563,6 +646,170 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
 
   @override
   Widget build(BuildContext context) {
+    final imported = widget.project.origin == ProjectOrigin.importedEnrichment;
+    final tabs = imported
+        ? const [Tab(text: '概览'), Tab(text: 'Voice Profile'), Tab(text: '设置')]
+        : const [
+            Tab(text: '概览'),
+            Tab(text: '世界观设定'),
+            Tab(text: '角色索引与关系网'),
+            Tab(text: '总纲'),
+            Tab(text: '分卷与章节细纲'),
+            Tab(text: 'Voice Profile'),
+            Tab(text: 'Story Engine'),
+            Tab(text: 'Runtime Memory'),
+            Tab(text: 'Prompt 栈'),
+            Tab(text: '设置'),
+          ];
+    final children = imported
+        ? [
+            _ImportedProjectOverviewTab(
+              project: widget.project,
+              volumes: widget.volumes,
+              plans: widget.plans,
+              chapters: widget.chapters,
+              enrichmentBatches: widget.enrichmentBatches,
+              assets: widget.assets,
+            ),
+            _YamlMarkdownAssetTab(
+              title: 'Voice Profile',
+              description:
+                  '加料时只注入 Voice Profile，不使用 Story Engine 或 Runtime Memory。',
+              markdownAsync: widget.assets.whenData(
+                (a) => a.voiceProfileMarkdown,
+              ),
+              kind: _PromptDocumentKind.voiceProfile,
+              emptyIcon: Icons.record_voice_over_outlined,
+              emptyTitle: '暂无 Voice Profile',
+              emptyDescription: '可在设置中绑定 Style Profile。',
+              emptyAction: TextButton.icon(
+                onPressed: () => _onSwitchTab(2),
+                icon: const Icon(Icons.settings_outlined, size: 18),
+                label: const Text('前往设置'),
+              ),
+            ),
+            _WorkshopSettingsTab(project: widget.project, bible: widget.bible),
+          ]
+        : [
+            _ProjectOverviewTab(
+              project: widget.project,
+              bible: widget.bible,
+              volumes: widget.volumes,
+              plans: widget.plans,
+              chapters: widget.chapters,
+              runs: widget.runs,
+              assets: widget.assets,
+              memory: widget.memory,
+              onSwitchTab: _onSwitchTab,
+            ),
+            _BibleMarkdownEditorTab(
+              title: '世界观设定',
+              description: '承载世界规则、地域组织、技术/魔法边界和不可破坏设定。',
+              bible: widget.bible,
+              field: _BibleField.worldBuilding,
+              latestRun: _latestAssetRun(
+                widget.assetRuns,
+                AssetGenerationKind.worldBuilding,
+              ),
+              emptyIcon: Icons.public_outlined,
+              emptyTitle: '暂无世界观设定',
+              emptyDescription: '补齐世界规则、地域组织和不可破坏设定后，章节生成会使用它作为硬上下文。',
+            ),
+            CharacterGraphTab(
+              projectId: widget.project.id,
+              legacyMarkdown: widget.bible.charactersBlueprintMarkdown,
+              characters: widget.characters,
+              relationships: widget.relationships,
+              latestRun: _latestAssetRun(
+                widget.assetRuns,
+                AssetGenerationKind.charactersBlueprint,
+              ),
+              onShowDraftReview: (context, run) async {
+                return showGlassDialog<bool>(
+                  context: context,
+                  maxWidth: 860,
+                  builder: (context) => _AssetDraftReviewDialog(
+                    title: '角色卡片与关系图草稿',
+                    run: run,
+                    hasExistingContent: true,
+                  ),
+                );
+              },
+            ),
+            _BibleMarkdownEditorTab(
+              title: '总纲',
+              description: '故事主线、主题推进、卷间结构和结局约束。',
+              bible: widget.bible,
+              field: _BibleField.outlineMaster,
+              latestRun: _latestAssetRun(
+                widget.assetRuns,
+                AssetGenerationKind.outlineMaster,
+              ),
+              emptyIcon: Icons.route_outlined,
+              emptyTitle: '暂无总纲',
+              emptyDescription: '总纲用于约束分卷和章节细纲，不再展示剧情分析骨架大纲。',
+            ),
+            _ChapterPlanningTab(
+              volumes: widget.volumes,
+              plans: widget.plans,
+              chapters: widget.chapters,
+              runs: widget.runs,
+              projectId: widget.project.id,
+              assetRun: _latestAssetRun(
+                widget.assetRuns,
+                AssetGenerationKind.outlineDetailYaml,
+              ),
+              outlineDetailYaml: widget.bible.outlineDetailYaml,
+              onCreatePlan: widget.onCreatePlan,
+              onCreateVolume: widget.onCreateVolume,
+              onEditVolume: widget.onEditVolume,
+              onEditPlan: widget.onEditPlan,
+            ),
+            _YamlMarkdownAssetTab(
+              title: 'Voice Profile',
+              description: 'YAML 元数据独立展示，正文只渲染 Markdown body。',
+              markdownAsync: widget.assets.whenData(
+                (a) => a.voiceProfileMarkdown,
+              ),
+              kind: _PromptDocumentKind.voiceProfile,
+              emptyIcon: Icons.record_voice_over_outlined,
+              emptyTitle: '暂无 Voice Profile',
+              emptyDescription: '请先在项目设置中绑定 Style Profile。',
+              emptyAction: TextButton.icon(
+                onPressed: () => _onSwitchTab(9),
+                icon: const Icon(Icons.settings_outlined, size: 18),
+                label: const Text('前往设置'),
+              ),
+            ),
+            _YamlMarkdownAssetTab(
+              title: 'Story Engine',
+              description: 'YAML 元数据独立展示，剧情写作指南只渲染 Markdown body。',
+              markdownAsync: widget.assets.whenData(
+                (a) => a.storyEngineMarkdown,
+              ),
+              kind: _PromptDocumentKind.storyEngine,
+              emptyIcon: Icons.engineering_outlined,
+              emptyTitle: '暂无 Story Engine',
+              emptyDescription: '请先在项目设置中绑定 Plot Profile。',
+              emptyAction: TextButton.icon(
+                onPressed: () => _onSwitchTab(9),
+                icon: const Icon(Icons.settings_outlined, size: 18),
+                label: const Text('前往设置'),
+              ),
+            ),
+            _RuntimeMemoryTab(
+              projectId: widget.project.id,
+              memory: widget.memory,
+              chapters: widget.chapters,
+            ),
+            _PromptStackTab(
+              assets: widget.assets,
+              bible: widget.bible,
+              memory: widget.memory,
+            ),
+            _WorkshopSettingsTab(project: widget.project, bible: widget.bible),
+          ];
+
     return PersonaPanel(
       padding: EdgeInsets.zero,
       child: Column(
@@ -574,18 +821,7 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
               child: TabBar(
                 controller: _tabController,
                 isScrollable: true,
-                tabs: const [
-                  Tab(text: '概览'),
-                  Tab(text: '世界观设定'),
-                  Tab(text: '角色索引与关系网'),
-                  Tab(text: '总纲'),
-                  Tab(text: '分卷与章节细纲'),
-                  Tab(text: 'Voice Profile'),
-                  Tab(text: 'Story Engine'),
-                  Tab(text: 'Runtime Memory'),
-                  Tab(text: 'Prompt 栈'),
-                  Tab(text: '设置'),
-                ],
+                tabs: tabs,
               ),
             ),
           ),
@@ -598,128 +834,7 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
                 height: availableHeight,
                 child: TabBarView(
                   controller: _tabController,
-                  children: [
-                    _ProjectOverviewTab(
-                      project: widget.project,
-                      bible: widget.bible,
-                      volumes: widget.volumes,
-                      plans: widget.plans,
-                      chapters: widget.chapters,
-                      runs: widget.runs,
-                      assets: widget.assets,
-                      memory: widget.memory,
-                      onSwitchTab: _onSwitchTab,
-                    ),
-                    _BibleMarkdownEditorTab(
-                      title: '世界观设定',
-                      description: '承载世界规则、地域组织、技术/魔法边界和不可破坏设定。',
-                      bible: widget.bible,
-                      field: _BibleField.worldBuilding,
-                      latestRun: _latestAssetRun(
-                        widget.assetRuns,
-                        AssetGenerationKind.worldBuilding,
-                      ),
-                      emptyIcon: Icons.public_outlined,
-                      emptyTitle: '暂无世界观设定',
-                      emptyDescription: '补齐世界规则、地域组织和不可破坏设定后，章节生成会使用它作为硬上下文。',
-                    ),
-                    CharacterGraphTab(
-                      projectId: widget.project.id,
-                      legacyMarkdown: widget.bible.charactersBlueprintMarkdown,
-                      characters: widget.characters,
-                      relationships: widget.relationships,
-                      latestRun: _latestAssetRun(
-                        widget.assetRuns,
-                        AssetGenerationKind.charactersBlueprint,
-                      ),
-                      onShowDraftReview: (context, run) async {
-                        return showGlassDialog<bool>(
-                          context: context,
-                          maxWidth: 860,
-                          builder: (context) => _AssetDraftReviewDialog(
-                            title: '角色卡片与关系图草稿',
-                            run: run,
-                            hasExistingContent: true,
-                          ),
-                        );
-                      },
-                    ),
-                    _BibleMarkdownEditorTab(
-                      title: '总纲',
-                      description: '故事主线、主题推进、卷间结构和结局约束。',
-                      bible: widget.bible,
-                      field: _BibleField.outlineMaster,
-                      latestRun: _latestAssetRun(
-                        widget.assetRuns,
-                        AssetGenerationKind.outlineMaster,
-                      ),
-                      emptyIcon: Icons.route_outlined,
-                      emptyTitle: '暂无总纲',
-                      emptyDescription: '总纲用于约束分卷和章节细纲，不再展示剧情分析骨架大纲。',
-                    ),
-                    _ChapterPlanningTab(
-                      volumes: widget.volumes,
-                      plans: widget.plans,
-                      chapters: widget.chapters,
-                      runs: widget.runs,
-                      projectId: widget.project.id,
-                      assetRun: _latestAssetRun(
-                        widget.assetRuns,
-                        AssetGenerationKind.outlineDetailYaml,
-                      ),
-                      outlineDetailYaml: widget.bible.outlineDetailYaml,
-                      onCreatePlan: widget.onCreatePlan,
-                      onCreateVolume: widget.onCreateVolume,
-                      onEditVolume: widget.onEditVolume,
-                      onEditPlan: widget.onEditPlan,
-                    ),
-                    _YamlMarkdownAssetTab(
-                      title: 'Voice Profile',
-                      description: 'YAML 元数据独立展示，正文只渲染 Markdown body。',
-                      markdownAsync: widget.assets.whenData(
-                        (a) => a.voiceProfileMarkdown,
-                      ),
-                      kind: _PromptDocumentKind.voiceProfile,
-                      emptyIcon: Icons.record_voice_over_outlined,
-                      emptyTitle: '暂无 Voice Profile',
-                      emptyDescription: '请先在项目设置中绑定 Style Profile。',
-                      emptyAction: TextButton.icon(
-                        onPressed: () => _onSwitchTab(9),
-                        icon: const Icon(Icons.settings_outlined, size: 18),
-                        label: const Text('前往设置'),
-                      ),
-                    ),
-                    _YamlMarkdownAssetTab(
-                      title: 'Story Engine',
-                      description: 'YAML 元数据独立展示，剧情写作指南只渲染 Markdown body。',
-                      markdownAsync: widget.assets.whenData(
-                        (a) => a.storyEngineMarkdown,
-                      ),
-                      kind: _PromptDocumentKind.storyEngine,
-                      emptyIcon: Icons.engineering_outlined,
-                      emptyTitle: '暂无 Story Engine',
-                      emptyDescription: '请先在项目设置中绑定 Plot Profile。',
-                      emptyAction: TextButton.icon(
-                        onPressed: () => _onSwitchTab(9),
-                        icon: const Icon(Icons.settings_outlined, size: 18),
-                        label: const Text('前往设置'),
-                      ),
-                    ),
-                    _RuntimeMemoryTab(
-                      projectId: widget.project.id,
-                      memory: widget.memory,
-                      chapters: widget.chapters,
-                    ),
-                    _PromptStackTab(
-                      assets: widget.assets,
-                      bible: widget.bible,
-                      memory: widget.memory,
-                    ),
-                    _WorkshopSettingsTab(
-                      project: widget.project,
-                      bible: widget.bible,
-                    ),
-                  ],
+                  children: children,
                 ),
               );
             },
@@ -901,6 +1016,471 @@ class _ProjectOverviewTab extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ImportedProjectOverviewTab extends StatelessWidget {
+  const _ImportedProjectOverviewTab({
+    required this.project,
+    required this.volumes,
+    required this.plans,
+    required this.chapters,
+    required this.enrichmentBatches,
+    required this.assets,
+  });
+
+  final WritingProject project;
+  final List<ChapterVolume> volumes;
+  final List<ChapterPlan> plans;
+  final List<ProjectChapter> chapters;
+  final List<ChapterEnrichmentBatch> enrichmentBatches;
+  final AsyncValue<ProjectPromptAssets> assets;
+
+  @override
+  Widget build(BuildContext context) {
+    final totalChars = chapters.fold<int>(
+      0,
+      (sum, chapter) => sum + chapter.contentMarkdown.trim().length,
+    );
+    final latestBatch = enrichmentBatches.isEmpty
+        ? null
+        : enrichmentBatches.first;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '导入加料项目',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            project.description.trim().isEmpty
+                ? '暂无导入说明。'
+                : project.description,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 20),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 150,
+                  child: PersonaMetric(
+                    label: '导入分卷',
+                    value: '${volumes.length}',
+                    detail: '固定导入正文卷',
+                  ),
+                ),
+                const SizedBox(width: 14),
+                SizedBox(
+                  width: 150,
+                  child: PersonaMetric(
+                    label: '章节',
+                    value: '${plans.length}',
+                    detail: '${chapters.length} 章有正文',
+                  ),
+                ),
+                const SizedBox(width: 14),
+                SizedBox(
+                  width: 170,
+                  child: PersonaMetric(
+                    label: '总字数',
+                    value: '$totalChars',
+                    detail: '按当前正文统计',
+                  ),
+                ),
+                const SizedBox(width: 14),
+                SizedBox(
+                  width: 170,
+                  child: PersonaMetric(
+                    label: '加料批次',
+                    value: '${enrichmentBatches.length}',
+                    detail: latestBatch == null
+                        ? '暂无批次'
+                        : _enrichmentBatchStatusLabel(latestBatch.status),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          PersonaPanel(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const PersonaSectionHeader(
+                  title: '最近加料批次',
+                  description: '成功生成的结果需要预览后手动应用到章节正文。',
+                ),
+                const SizedBox(height: 12),
+                if (latestBatch == null)
+                  const PersonaEmptyStateCard(
+                    icon: Icons.auto_fix_high_outlined,
+                    title: '暂无加料结果',
+                    description: '进入编辑器选择章节后执行加料。',
+                  )
+                else
+                  _EnrichmentBatchPreview(batch: latestBatch),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          PersonaPanel(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const PersonaSectionHeader(
+                  title: 'Voice Profile',
+                  description: '导入项目加料只使用 Voice Profile 作为风格上下文。',
+                ),
+                const SizedBox(height: 12),
+                assets.when(
+                  data: (item) => _AssetStatus(
+                    label: 'Voice Profile',
+                    ready: item.voiceProfileMarkdown.trim().isNotEmpty,
+                  ),
+                  error: (error, stackTrace) =>
+                      Text('无法加载 Voice Profile：$error'),
+                  loading: () => const SkeletonBox(width: 220, height: 16),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton.icon(
+              onPressed: () =>
+                  context.go('/projects/${project.id}/workshop/editor'),
+              icon: const Icon(Icons.edit_note_outlined, size: 18),
+              label: const Text('进入加料编辑器'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EnrichmentBatchPreview extends ConsumerWidget {
+  const _EnrichmentBatchPreview({required this.batch});
+
+  final ChapterEnrichmentBatch batch;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final items = ref.watch(chapterEnrichmentItemsProvider(batch.id));
+    final controller = ref.watch(novelWorkshopControllerProvider);
+    return items.when(
+      data: (itemList) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              PersonaStatusPill(
+                label: _enrichmentBatchStatusLabel(batch.status),
+                icon: Icons.auto_fix_high_outlined,
+              ),
+              PersonaStatusPill(
+                label: '成功 ${batch.generatedCount}',
+                icon: Icons.check_circle_outline,
+              ),
+              PersonaStatusPill(
+                label: '失败 ${batch.failedCount}',
+                icon: Icons.error_outline,
+              ),
+              PersonaStatusPill(
+                label: '已应用 ${batch.appliedCount}',
+                icon: Icons.done_all_outlined,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton.icon(
+              onPressed: controller.isLoading
+                  ? null
+                  : () => _applyAllGenerated(context, ref, itemList),
+              icon: const Icon(Icons.done_all_outlined, size: 18),
+              label: const Text('批量应用成功项'),
+            ),
+          ),
+          const SizedBox(height: 12),
+          for (final item in itemList.take(8))
+            _EnrichmentItemPreviewTile(item: item),
+        ],
+      ),
+      error: (error, stackTrace) => Text('无法加载加料结果：$error'),
+      loading: () => const SkeletonBox(width: 260, height: 16),
+    );
+  }
+
+  Future<void> _applyAllGenerated(
+    BuildContext context,
+    WidgetRef ref,
+    List<ChapterEnrichmentItem> items,
+  ) async {
+    final ids = items
+        .where(
+          (item) =>
+              item.status == ChapterEnrichmentItemStatus.generated &&
+              item.generatedContentMarkdown.trim().isNotEmpty,
+        )
+        .map((item) => item.id)
+        .toList(growable: false);
+    if (ids.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('没有可应用的加料结果。')));
+      return;
+    }
+    await ref
+        .read(novelWorkshopControllerProvider.notifier)
+        .applyChapterEnrichmentItems(ids);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('已应用 ${ids.length} 个加料结果。')));
+  }
+}
+
+class _EnrichmentItemPreviewTile extends ConsumerWidget {
+  const _EnrichmentItemPreviewTile({required this.item});
+
+  final ChapterEnrichmentItem item;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final canApply =
+        item.status == ChapterEnrichmentItemStatus.generated &&
+        item.generatedContentMarkdown.trim().isNotEmpty;
+    final canRetry = item.status == ChapterEnrichmentItemStatus.failed;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '章节 ${item.position + 1} · ${_enrichmentItemStatusLabel(item.status)}',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: canApply
+                        ? () => _reviewAndApply(context, ref)
+                        : null,
+                    icon: const Icon(Icons.check_outlined, size: 18),
+                    label: const Text('预览应用'),
+                  ),
+                  if (canRetry)
+                    TextButton.icon(
+                      onPressed: () async {
+                        await ref
+                            .read(novelWorkshopControllerProvider.notifier)
+                            .retryChapterEnrichmentItem(item.id);
+                      },
+                      icon: const Icon(Icons.refresh_outlined, size: 18),
+                      label: const Text('重试'),
+                    ),
+                ],
+              ),
+              if (item.errorMessage != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  item.errorMessage!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ],
+              if (item.generatedContentMarkdown.trim().isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  item.generatedContentMarkdown.trim(),
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _reviewAndApply(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showGlassDialog<bool>(
+      context: context,
+      maxWidth: 920,
+      maxHeight: MediaQuery.sizeOf(context).height * 0.88,
+      builder: (context) => _EnrichmentDiffDialog(item: item),
+    );
+    if (confirmed != true) {
+      return;
+    }
+    await ref
+        .read(novelWorkshopControllerProvider.notifier)
+        .applyChapterEnrichmentItem(item.id);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('加料结果已应用。')));
+  }
+}
+
+class _EnrichmentDiffDialog extends StatelessWidget {
+  const _EnrichmentDiffDialog({required this.item});
+
+  final ChapterEnrichmentItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxHeight: 760),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.compare_arrows_outlined),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '加料预览',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Flexible(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final original = _DiffColumn(
+                  title: '生成时原文快照',
+                  text: item.originalContentMarkdown,
+                );
+                final generated = _DiffColumn(
+                  title: '加料生成稿',
+                  text: item.generatedContentMarkdown,
+                );
+                if (constraints.maxWidth < 760) {
+                  return ListView(
+                    children: [original, const SizedBox(height: 12), generated],
+                  );
+                }
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: original),
+                    VerticalDivider(color: colorScheme.outlineVariant),
+                    Expanded(child: generated),
+                  ],
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('取消'),
+              ),
+              const SizedBox(width: 8),
+              FilledButton.icon(
+                onPressed: item.generatedContentMarkdown.trim().isEmpty
+                    ? null
+                    : () => Navigator.of(context).pop(true),
+                icon: const Icon(Icons.check_outlined, size: 18),
+                label: const Text('应用到章节'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DiffColumn extends StatelessWidget {
+  const _DiffColumn({required this.title, required this.text});
+
+  final String title;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+            child: Text(title, style: Theme.of(context).textTheme.titleSmall),
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(12),
+              child: SelectableText(
+                text.trim().isEmpty ? '暂无内容。' : text,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(height: 1.55),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _enrichmentBatchStatusLabel(ChapterEnrichmentBatchStatus status) {
+  return switch (status) {
+    ChapterEnrichmentBatchStatus.pending => '排队中',
+    ChapterEnrichmentBatchStatus.running => '加料中',
+    ChapterEnrichmentBatchStatus.succeeded => '已完成',
+    ChapterEnrichmentBatchStatus.partialFailed => '部分失败',
+    ChapterEnrichmentBatchStatus.failed => '失败',
+  };
+}
+
+String _enrichmentItemStatusLabel(ChapterEnrichmentItemStatus status) {
+  return switch (status) {
+    ChapterEnrichmentItemStatus.waiting => '等待中',
+    ChapterEnrichmentItemStatus.running => '加料中',
+    ChapterEnrichmentItemStatus.generated => '待应用',
+    ChapterEnrichmentItemStatus.failed => '失败',
+    ChapterEnrichmentItemStatus.applied => '已应用',
+  };
 }
 
 class _TappableMetric extends StatelessWidget {
@@ -3724,6 +4304,7 @@ class _WorkshopScaffold extends StatefulWidget {
     required this.isBusy,
     required this.assets,
     required this.memory,
+    required this.isImportedEnrichment,
     required this.onSelectPlan,
     required this.onCreatePlan,
     required this.onEditPlan,
@@ -3744,6 +4325,7 @@ class _WorkshopScaffold extends StatefulWidget {
   final bool isBusy;
   final AsyncValue<ProjectPromptAssets> assets;
   final AsyncValue<ProjectRuntimeMemory> memory;
+  final bool isImportedEnrichment;
   final ValueChanged<ChapterPlan> onSelectPlan;
   final VoidCallback onCreatePlan;
   final VoidCallback? onEditPlan;
@@ -3781,6 +4363,7 @@ class _WorkshopScaffoldState extends State<_WorkshopScaffold> {
             selectedPlanId: widget.selectedPlan?.id,
             onSelectPlan: widget.onSelectPlan,
             onCreatePlan: widget.onCreatePlan,
+            canCreatePlan: !widget.isImportedEnrichment,
           );
           final inspector = _WorkshopInspector(
             plan: widget.selectedPlan,
@@ -3809,8 +4392,10 @@ class _WorkshopScaffoldState extends State<_WorkshopScaffold> {
                   onToggleNavigator: _toggleNavigator,
                   onToggleInspector: _toggleInspector,
                   onCreatePlan: widget.onCreatePlan,
+                  canCreatePlan: !widget.isImportedEnrichment,
                   onSaveChapter: widget.onSaveChapter,
                   onGenerate: widget.onGenerate,
+                  generateLabel: widget.isImportedEnrichment ? '加料' : '生成',
                 ),
                 Expanded(
                   child: SingleChildScrollView(
@@ -3841,8 +4426,10 @@ class _WorkshopScaffoldState extends State<_WorkshopScaffold> {
                 onToggleNavigator: _toggleNavigator,
                 onToggleInspector: _toggleInspector,
                 onCreatePlan: widget.onCreatePlan,
+                canCreatePlan: !widget.isImportedEnrichment,
                 onSaveChapter: widget.onSaveChapter,
                 onGenerate: widget.onGenerate,
+                generateLabel: widget.isImportedEnrichment ? '加料' : '生成',
               ),
               Expanded(
                 child: Row(
@@ -3884,8 +4471,10 @@ class _WorkshopTopBar extends StatelessWidget {
     required this.onToggleNavigator,
     required this.onToggleInspector,
     required this.onCreatePlan,
+    required this.canCreatePlan,
     required this.onSaveChapter,
     required this.onGenerate,
+    required this.generateLabel,
   });
 
   final WritingProject project;
@@ -3897,8 +4486,10 @@ class _WorkshopTopBar extends StatelessWidget {
   final VoidCallback onToggleNavigator;
   final VoidCallback onToggleInspector;
   final VoidCallback onCreatePlan;
+  final bool canCreatePlan;
   final VoidCallback? onSaveChapter;
   final VoidCallback? onGenerate;
+  final String generateLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -3989,18 +4580,19 @@ class _WorkshopTopBar extends StatelessWidget {
                 alignment: WrapAlignment.end,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  OutlinedButton.icon(
-                    onPressed: onCreatePlan,
-                    icon: const Icon(Icons.add, size: 16),
-                    label: const Text('新建'),
-                    style: OutlinedButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
+                  if (canCreatePlan)
+                    OutlinedButton.icon(
+                      onPressed: onCreatePlan,
+                      icon: const Icon(Icons.add, size: 16),
+                      label: const Text('新建'),
+                      style: OutlinedButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                       ),
                     ),
-                  ),
                   OutlinedButton.icon(
                     onPressed: onSaveChapter,
                     icon: const Icon(Icons.save_outlined, size: 16),
@@ -4016,7 +4608,7 @@ class _WorkshopTopBar extends StatelessWidget {
                   FilledButton.icon(
                     onPressed: onGenerate,
                     icon: const Icon(Icons.auto_fix_high_outlined, size: 16),
-                    label: const Text('生成'),
+                    label: Text(generateLabel),
                     style: FilledButton.styleFrom(
                       visualDensity: VisualDensity.compact,
                       padding: const EdgeInsets.symmetric(
@@ -4059,6 +4651,7 @@ class _ChapterNavigator extends StatelessWidget {
     required this.selectedPlanId,
     required this.onSelectPlan,
     required this.onCreatePlan,
+    required this.canCreatePlan,
   });
 
   final List<ChapterVolume> volumes;
@@ -4068,6 +4661,7 @@ class _ChapterNavigator extends StatelessWidget {
   final String? selectedPlanId;
   final ValueChanged<ChapterPlan> onSelectPlan;
   final VoidCallback onCreatePlan;
+  final bool canCreatePlan;
 
   @override
   Widget build(BuildContext context) {
@@ -4090,13 +4684,14 @@ class _ChapterNavigator extends StatelessWidget {
                     ),
                   ),
                 ),
-                IconButton(
-                  tooltip: '新建章节',
-                  onPressed: onCreatePlan,
-                  icon: const Icon(Icons.add, size: 18),
-                  iconSize: 18,
-                  visualDensity: VisualDensity.compact,
-                ),
+                if (canCreatePlan)
+                  IconButton(
+                    tooltip: '新建章节',
+                    onPressed: onCreatePlan,
+                    icon: const Icon(Icons.add, size: 18),
+                    iconSize: 18,
+                    visualDensity: VisualDensity.compact,
+                  ),
               ],
             ),
           ),
@@ -4110,7 +4705,10 @@ class _ChapterNavigator extends StatelessWidget {
               child: Center(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
-                  child: _NavigatorEmptyState(onCreatePlan: onCreatePlan),
+                  child: _NavigatorEmptyState(
+                    onCreatePlan: onCreatePlan,
+                    canCreatePlan: canCreatePlan,
+                  ),
                 ),
               ),
             )
@@ -4295,9 +4893,13 @@ class _ChapterProgressStrip extends StatelessWidget {
 }
 
 class _NavigatorEmptyState extends StatelessWidget {
-  const _NavigatorEmptyState({required this.onCreatePlan});
+  const _NavigatorEmptyState({
+    required this.onCreatePlan,
+    required this.canCreatePlan,
+  });
 
   final VoidCallback onCreatePlan;
+  final bool canCreatePlan;
 
   @override
   Widget build(BuildContext context) {
@@ -4317,13 +4919,17 @@ class _NavigatorEmptyState extends StatelessWidget {
             color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
           ),
         ),
-        const SizedBox(height: 12),
-        OutlinedButton.icon(
-          onPressed: onCreatePlan,
-          icon: const Icon(Icons.add, size: 16),
-          label: const Text('新建章节'),
-          style: OutlinedButton.styleFrom(visualDensity: VisualDensity.compact),
-        ),
+        if (canCreatePlan) ...[
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: onCreatePlan,
+            icon: const Icon(Icons.add, size: 16),
+            label: const Text('新建章节'),
+            style: OutlinedButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -5091,6 +5697,185 @@ class _DirtyEditorDialog extends StatelessWidget {
               onPressed: () =>
                   Navigator.of(context).pop(_DirtyEditorAction.save),
               child: const Text('保存'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _EnrichmentRequest {
+  const _EnrichmentRequest({
+    required this.chapterIds,
+    required this.instruction,
+    required this.expansionRatioPercent,
+  });
+
+  final List<String> chapterIds;
+  final String instruction;
+  final int expansionRatioPercent;
+}
+
+class _EnrichmentRequestDialog extends StatefulWidget {
+  const _EnrichmentRequestDialog({
+    required this.chapters,
+    required this.initialChapterIds,
+  });
+
+  final List<ProjectChapter> chapters;
+  final Set<String> initialChapterIds;
+
+  @override
+  State<_EnrichmentRequestDialog> createState() =>
+      _EnrichmentRequestDialogState();
+}
+
+class _EnrichmentRequestDialogState extends State<_EnrichmentRequestDialog> {
+  final _instructionController = TextEditingController();
+  late final Set<String> _selectedChapterIds;
+  double _ratio = 20;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedChapterIds = widget.initialChapterIds.isEmpty
+        ? {widget.chapters.first.id}
+        : widget.initialChapterIds
+              .where((id) => widget.chapters.any((chapter) => chapter.id == id))
+              .toSet();
+    if (_selectedChapterIds.isEmpty && widget.chapters.isNotEmpty) {
+      _selectedChapterIds.add(widget.chapters.first.id);
+    }
+  }
+
+  @override
+  void dispose() {
+    _instructionController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final instruction = _instructionController.text.trim();
+    if (instruction.isEmpty) {
+      return;
+    }
+    if (_selectedChapterIds.isEmpty) {
+      return;
+    }
+    Navigator.of(context).pop(
+      _EnrichmentRequest(
+        chapterIds: _selectedChapterIds.toList(growable: false),
+        instruction: instruction,
+        expansionRatioPercent: _ratio.round().clamp(1, 100),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final canSubmit = _instructionController.text.trim().isNotEmpty;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.auto_fix_high_outlined, color: colorScheme.primary),
+            const SizedBox(width: 10),
+            Text('章节加料', style: Theme.of(context).textTheme.titleLarge),
+          ],
+        ),
+        const SizedBox(height: 14),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 240),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border.all(color: colorScheme.outlineVariant),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: ListView(
+              shrinkWrap: true,
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              children: [
+                for (final chapter in widget.chapters)
+                  CheckboxListTile(
+                    dense: true,
+                    value: _selectedChapterIds.contains(chapter.id),
+                    onChanged: (selected) {
+                      setState(() {
+                        if (selected ?? false) {
+                          _selectedChapterIds.add(chapter.id);
+                        } else {
+                          _selectedChapterIds.remove(chapter.id);
+                        }
+                      });
+                    },
+                    title: Text(
+                      '第 ${chapter.chapterIndex} 章 · ${chapter.title}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(
+                      '${chapter.contentMarkdown.trim().length} 字',
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        TextField(
+          controller: _instructionController,
+          minLines: 4,
+          maxLines: 7,
+          decoration: const InputDecoration(
+            labelText: '加料要求',
+            hintText: '例如：增强心理描写，补足环境压迫感，让冲突更尖锐。',
+            border: OutlineInputBorder(),
+            alignLabelWithHint: true,
+          ),
+          onChanged: (_) => setState(() {}),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: Slider(
+                value: _ratio,
+                min: 1,
+                max: 100,
+                divisions: 99,
+                label: '${_ratio.round()}%',
+                onChanged: (value) => setState(() => _ratio = value),
+              ),
+            ),
+            SizedBox(
+              width: 68,
+              child: Text(
+                '${_ratio.round()}%',
+                textAlign: TextAlign.end,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('取消'),
+            ),
+            const SizedBox(width: 8),
+            FilledButton.icon(
+              onPressed: canSubmit && _selectedChapterIds.isNotEmpty
+                  ? _submit
+                  : null,
+              icon: const Icon(Icons.auto_fix_high_outlined, size: 18),
+              label: Text('生成 ${_selectedChapterIds.length} 章预览'),
             ),
           ],
         ),

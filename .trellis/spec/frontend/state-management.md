@@ -93,6 +93,7 @@ Persona Flutter has no remote server in the baseline. Local persisted data is ex
 - Archived projects must not expose the Projects-row workspace action; if the route is opened directly for an archived project, render a read-only blocked state.
 - Presentation widgets consume `ProjectRepository`, `NovelWorkshopRepository`, `ProjectPromptAssetResolver`, and `ChapterGenerationPipeline` through Riverpod providers/application contracts only.
 - Novel Workshop tabs are: `概览`, `世界观设定`, `角色索引与关系网`, `总纲`, `分卷与章节细纲`, `Voice Profile`, `Story Engine`, `Runtime Memory`, `Prompt 栈`, `设置`.
+- Imported enrichment projects are a separate `ProjectOrigin.importedEnrichment` branch: Workshop tabs are only `概览`, `Voice Profile`, and `设置`.
 - Do not add a standalone `骨架大纲` tab. Plot skeleton content remains an input/reference for outline detail generation only.
 - User-facing Workshop UI calls `ProjectBible` the `项目设定集`. Keep `ProjectBible` as the domain/code name, but do not expose the English label as the primary user-facing editing concept.
 - The `世界观设定`, `角色索引与关系网`, and `总纲` tabs are direct edit surfaces for their corresponding `ProjectBible` fields. Do not make them read-only previews that point users to a separate hidden bible editor.
@@ -101,6 +102,8 @@ Persona Flutter has no remote server in the baseline. Local persisted data is ex
 - Runtime Memory is a first-class Workshop tab, not only an overview widget. Empty Runtime Memory is a neutral optional state, not a warning or incomplete setup item.
 - The editor owns unsaved Markdown text as widget-local state; persisted content continues to flow through `NovelWorkshopRepository.saveChapter`.
 - The editor chapter navigator groups chapters by `ChapterVolume`; chapter creation requires a volume-backed `ChapterPlanInput`.
+- For imported enrichment projects, the editor still shows the chapter tree but hides new chapter creation controls; the primary action is `加料`, not normal chapter generation.
+- Imported enrichment result application is preview-first: UI must call `NovelWorkshopRepository.applyChapterEnrichmentItem` only after the user chooses to apply a generated item.
 - Full Prompt Trace rendering remains owned by Workflow Runs; Novel Workshop may link to `/workflow-runs/:taskId`.
 
 ### 4. Validation & Error Matrix
@@ -111,12 +114,16 @@ Persona Flutter has no remote server in the baseline. Local persisted data is ex
 - Invalid Voice Profile / Story Engine front matter -> show format error and source preview instead of rendering raw YAML as normal Markdown.
 - Dirty editor before chapter switch or generation -> offer save, discard, or cancel before continuing.
 - Existing saved chapter content before generation -> confirm overwrite before calling `generateChapter(..., replaceExisting: true)`.
+- Imported editor with dirty local text before enrichment -> require saving first so the enrichment snapshot matches persisted content.
+- Imported project overview with no enrichment batch -> render an empty enrichment state, not normal generation metrics.
 
 ### 5. Good/Base/Bad Cases
 - Good: Project row opens `/projects/<id>/workshop`; the page reads project-scoped providers and links generation diagnostics to Workflow Runs.
+- Good: Imported project opens the same route but renders the imported 3-tab branch and routes selected chapters to `ChapterEnrichmentPipeline`.
 - Base: Manual chapter plans are created inside the workspace until automatic splitting exists.
 - Bad: Add a shell sidebar destination that opens an unscoped workspace without a project id.
 - Bad: Let the page import Drift table records or call LLM services directly.
+- Bad: Show the full 10-tab novel planning workbench for imported enrichment projects.
 
 ### 6. Tests Required
 - Widget test that active project rows expose `打开工作台` and archived rows do not.

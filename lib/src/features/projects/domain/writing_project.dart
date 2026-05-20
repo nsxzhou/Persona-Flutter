@@ -5,6 +5,8 @@ part 'writing_project.g.dart';
 
 enum ProjectStatus { active, archived }
 
+enum ProjectOrigin { standard, importedEnrichment }
+
 const defaultProjectLanguage = '简体中文';
 const defaultProjectTargetLength = 3000;
 const defaultProjectTotalTargetLength = 100000;
@@ -21,6 +23,7 @@ abstract class WritingProject with _$WritingProject {
     String? defaultModelName,
     String? styleProfileId,
     String? plotProfileId,
+    @Default(ProjectOrigin.standard) ProjectOrigin origin,
     @Default(defaultProjectLanguage) String language,
     @Default(defaultProjectTargetLength) int targetLength,
     @Default(defaultProjectTotalTargetLength) int totalTargetLength,
@@ -42,6 +45,7 @@ class WritingProjectInput {
     required this.defaultModelName,
     this.styleProfileId,
     this.plotProfileId,
+    this.origin = ProjectOrigin.standard,
     this.language = defaultProjectLanguage,
     this.targetLength = defaultProjectTargetLength,
     this.totalTargetLength = defaultProjectTotalTargetLength,
@@ -55,6 +59,7 @@ class WritingProjectInput {
   final String defaultModelName;
   final String? styleProfileId;
   final String? plotProfileId;
+  final ProjectOrigin origin;
   final String language;
   final int targetLength;
   final int totalTargetLength;

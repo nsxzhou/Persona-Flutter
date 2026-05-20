@@ -325,6 +325,60 @@ Let UI create a workflow task and call `saveChapter` directly after an LLM respo
 #### Correct
 Route chapter generation through `ChapterGenerationPipeline`, and let `DriftNovelWorkshopRepository` own run/task creation and state synchronization.
 
+## Scenario: Imported novel enrichment project persistence
+
+### 1. Scope / Trigger
+- Trigger: Projects can be created from imported TXT/EPUB manuscripts and then processed through whole-chapter enrichment batches.
+- This is a cross-layer persistence contract because `ProjectRecords.origin`, imported `ChapterVolume` / `ChapterPlan` / `ProjectChapter` rows, enrichment batch/item records, workflow tasks, and prompt traces must stay synchronized.
+
+### 2. Signatures
+- Project origin enum: `ProjectOrigin.standard`, `ProjectOrigin.importedEnrichment`.
+- Drift table/column: `ProjectRecords.origin`, default `standard`.
+- Import API: `NovelImportParser.importFile(...)`, `NovelImportService.createImportedProject(...)`.
+- Enrichment tables: `ChapterEnrichmentBatchRecords`, `ChapterEnrichmentItemRecords`.
+- Repository APIs: `createChapterEnrichmentBatch`, `updateChapterEnrichmentBatchState`, `updateChapterEnrichmentItemState`, `applyChapterEnrichmentItem`, `watchChapterEnrichmentBatches`, `watchChapterEnrichmentItems`.
+- Application API: `ChapterEnrichmentPipeline.enrichChapters({projectId, chapterIds, instruction, expansionRatioPercent = 20})`.
+- Workflow kind: `novel_chapter_enrichment`.
+
+### 3. Contracts
+- Legacy projects must read as `ProjectOrigin.standard` after migration.
+- Imported projects store their manuscript in the existing chapter tree: one volume titled `导入正文`, one `ChapterPlan` per imported chapter, and one `ProjectChapter` containing the imported body.
+- Enrichment is only valid for `ProjectOrigin.importedEnrichment` projects.
+- Enrichment batch/item rows store preview output; generated text must not overwrite `ProjectChapterRecords` until `applyChapterEnrichmentItem` is called.
+- Each enrichment batch owns one workflow task. Batch state and workflow task state are updated together by the owning repository.
+- Each enrichment item stores the original chapter snapshot and generated preview text for diff/preview surfaces.
+- The enrichment prompt may use Voice Profile only. It must not inject Plot Profile, Story Engine, or Runtime Memory.
+
+### 4. Validation & Error Matrix
+- Unsupported import extension -> `NovelImportException`.
+- Empty TXT/EPUB content -> `NovelImportException`.
+- Imported draft with no non-empty chapters -> `StateError` in `NovelImportService`.
+- Enrichment on a standard project -> `StateError` before LLM invocation.
+- Empty chapter selection -> repository validation error.
+- Expansion ratio outside `1..100` -> repository validation error.
+- Empty instruction -> repository validation error.
+- One item LLM failure -> mark that item failed and continue remaining items; final batch becomes `partialFailed` when at least one item succeeds.
+- Applying a non-generated item or empty generated content -> repository validation error.
+
+### 5. Good/Base/Bad Cases
+- Good: import TXT, preview/edit chapters, create imported project, run enrichment for selected chapters, preview generated items, then apply selected generated items.
+- Base: imported project without Voice Profile can still run enrichment; prompt instructs the model to preserve original style.
+- Bad: create separate manuscript storage tables for imported text when `ChapterVolume` / `ChapterPlan` / `ProjectChapter` already model the chapter tree.
+- Bad: auto-overwrite chapter content immediately after LLM output.
+
+### 6. Tests Required
+- Parser tests for TXT heading split, no-heading fallback, and empty file rejection.
+- Project repository tests for `origin` round-trip and legacy migration default.
+- Repository tests for enrichment batch/item creation, counts, workflow task state sync, and apply behavior.
+- Pipeline tests for success, standard-project rejection, prompt scope, and per-item failure continuation.
+- Widget tests should use fakes and must not make live LLM calls.
+
+### 7. Wrong vs Correct
+#### Wrong
+Run enrichment through the normal chapter generation pipeline and let it inject Project Bible, Story Engine, and Runtime Memory.
+#### Correct
+Use `ChapterEnrichmentPipeline`, which reads the selected imported chapter body, applies the user instruction and Voice Profile only, then stores a generated preview item until the user applies it.
+
 ## Scenario: Novel Workshop Project Bible and outline persistence
 
 ### 1. Scope / Trigger

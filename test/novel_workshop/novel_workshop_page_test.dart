@@ -686,6 +686,12 @@ class _FakeProjectRepository implements ProjectRepository {
   }
 
   @override
+  Future<WritingProject> createProject(WritingProjectInput input) async {
+    await saveProject(id: 'created-project', input: input);
+    return _project;
+  }
+
+  @override
   Future<void> deleteProject(String id) async {}
 
   @override
@@ -707,8 +713,10 @@ class _FakeProjectRepository implements ProjectRepository {
       defaultModelName: input.defaultModelName,
       styleProfileId: input.styleProfileId,
       plotProfileId: input.plotProfileId,
+      origin: input.origin,
       language: input.language,
       targetLength: input.targetLength,
+      totalTargetLength: input.totalTargetLength,
       narrativePerspective: input.narrativePerspective,
       createdAt: _project.createdAt,
       updatedAt: DateTime(2026, 5, 18, 12),
@@ -851,6 +859,8 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   final List<ProjectChapter> chapters;
   final List<ChapterGenerationRun> runs;
   final List<AssetGenerationRun> assetRuns = [];
+  final List<ChapterEnrichmentBatch> enrichmentBatches = [];
+  final List<ChapterEnrichmentItem> enrichmentItems = [];
   final List<NovelCharacter> characters;
   final List<NovelRelationship> relationships;
   final List<ChapterVolume> volumes;
@@ -868,6 +878,75 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
 
   @override
   Future<void> clearRuntimeMemory(String projectId) async {}
+
+  @override
+  Future<ProjectChapter> applyChapterEnrichmentItem(String itemId) async {
+    final item = enrichmentItems.singleWhere((entry) => entry.id == itemId);
+    final chapter = chapters.singleWhere((entry) => entry.id == item.chapterId);
+    return saveChapter(
+      id: chapter.id,
+      input: ProjectChapterInput(
+        projectId: chapter.projectId,
+        chapterPlanId: chapter.chapterPlanId,
+        chapterIndex: chapter.chapterIndex,
+        title: chapter.title,
+        contentMarkdown: item.generatedContentMarkdown,
+      ),
+    );
+  }
+
+  @override
+  Future<ChapterEnrichmentBatch> createChapterEnrichmentBatch(
+    ChapterEnrichmentBatchInput input,
+  ) async {
+    final now = DateTime(2026, 5, 18, 13);
+    final batch = ChapterEnrichmentBatch(
+      id: 'enrichment-batch-${enrichmentBatches.length + 1}',
+      workflowTaskId: 'enrichment-task-${enrichmentBatches.length + 1}',
+      projectId: input.projectId,
+      instruction: input.instruction,
+      expansionRatioPercent: input.expansionRatioPercent,
+      providerId: input.providerId,
+      modelName: input.modelName,
+      status: ChapterEnrichmentBatchStatus.pending,
+      errorMessage: null,
+      totalCount: input.chapterIds.length,
+      generatedCount: 0,
+      failedCount: 0,
+      appliedCount: 0,
+      logs: '',
+      createdAt: now,
+      updatedAt: now,
+      startedAt: null,
+      completedAt: null,
+    );
+    enrichmentBatches.add(batch);
+    for (var index = 0; index < input.chapterIds.length; index += 1) {
+      enrichmentItems.add(
+        ChapterEnrichmentItem(
+          id: 'enrichment-item-${enrichmentItems.length + 1}',
+          batchId: batch.id,
+          projectId: input.projectId,
+          chapterId: input.chapterIds[index],
+          position: index,
+          status: ChapterEnrichmentItemStatus.waiting,
+          errorMessage: null,
+          originalContentMarkdown: '',
+          generatedContentMarkdown: '',
+          providerId: input.providerId,
+          modelName: input.modelName,
+          logs: '',
+          createdAt: now,
+          updatedAt: now,
+          startedAt: null,
+          completedAt: null,
+          appliedAt: null,
+        ),
+      );
+    }
+    emit();
+    return batch;
+  }
 
   @override
   Future<ProjectBible> ensureProjectBible(String projectId) async {
@@ -954,6 +1033,16 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   @override
   Future<AssetGenerationRun?> findAssetGenerationRun(String id) async {
     return assetRuns.where((run) => run.id == id).firstOrNull;
+  }
+
+  @override
+  Future<ChapterEnrichmentBatch?> findChapterEnrichmentBatch(String id) async {
+    return enrichmentBatches.where((batch) => batch.id == id).firstOrNull;
+  }
+
+  @override
+  Future<ChapterEnrichmentItem?> findChapterEnrichmentItem(String id) async {
+    return enrichmentItems.where((item) => item.id == id).firstOrNull;
   }
 
   @override
@@ -1343,6 +1432,107 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   }
 
   @override
+  Future<ChapterEnrichmentBatch> updateChapterEnrichmentBatchState({
+    required String id,
+    required ChapterEnrichmentBatchStatus status,
+    String? providerId,
+    String? modelName,
+    String? errorMessage,
+    String? logs,
+    DateTime? startedAt,
+    DateTime? completedAt,
+  }) async {
+    final index = enrichmentBatches.indexWhere((batch) => batch.id == id);
+    final current = enrichmentBatches[index];
+    final updated = ChapterEnrichmentBatch(
+      id: current.id,
+      workflowTaskId: current.workflowTaskId,
+      projectId: current.projectId,
+      instruction: current.instruction,
+      expansionRatioPercent: current.expansionRatioPercent,
+      providerId: providerId ?? current.providerId,
+      modelName: modelName ?? current.modelName,
+      status: status,
+      errorMessage: errorMessage,
+      totalCount: current.totalCount,
+      generatedCount: enrichmentItems
+          .where(
+            (item) =>
+                item.batchId == id &&
+                item.status == ChapterEnrichmentItemStatus.generated,
+          )
+          .length,
+      failedCount: enrichmentItems
+          .where(
+            (item) =>
+                item.batchId == id &&
+                item.status == ChapterEnrichmentItemStatus.failed,
+          )
+          .length,
+      appliedCount: enrichmentItems
+          .where(
+            (item) =>
+                item.batchId == id &&
+                item.status == ChapterEnrichmentItemStatus.applied,
+          )
+          .length,
+      logs: logs ?? current.logs,
+      createdAt: current.createdAt,
+      updatedAt: _testUpdatedAt,
+      startedAt: startedAt ?? current.startedAt,
+      completedAt: completedAt ?? current.completedAt,
+    );
+    enrichmentBatches[index] = updated;
+    emit();
+    return updated;
+  }
+
+  @override
+  Future<ChapterEnrichmentItem> updateChapterEnrichmentItemState({
+    required String id,
+    required ChapterEnrichmentItemStatus status,
+    String? errorMessage,
+    String? originalContentMarkdown,
+    String? generatedContentMarkdown,
+    String? providerId,
+    String? modelName,
+    String? logs,
+    DateTime? startedAt,
+    DateTime? completedAt,
+    DateTime? appliedAt,
+    bool clearStartedAt = false,
+    bool clearCompletedAt = false,
+    bool clearAppliedAt = false,
+  }) async {
+    final index = enrichmentItems.indexWhere((item) => item.id == id);
+    final current = enrichmentItems[index];
+    final updated = ChapterEnrichmentItem(
+      id: current.id,
+      batchId: current.batchId,
+      projectId: current.projectId,
+      chapterId: current.chapterId,
+      position: current.position,
+      status: status,
+      errorMessage: errorMessage,
+      originalContentMarkdown:
+          originalContentMarkdown ?? current.originalContentMarkdown,
+      generatedContentMarkdown:
+          generatedContentMarkdown ?? current.generatedContentMarkdown,
+      providerId: providerId ?? current.providerId,
+      modelName: modelName ?? current.modelName,
+      logs: logs ?? current.logs,
+      createdAt: current.createdAt,
+      updatedAt: _testUpdatedAt,
+      startedAt: clearStartedAt ? null : startedAt ?? current.startedAt,
+      completedAt: clearCompletedAt ? null : completedAt ?? current.completedAt,
+      appliedAt: clearAppliedAt ? null : appliedAt ?? current.appliedAt,
+    );
+    enrichmentItems[index] = updated;
+    emit();
+    return updated;
+  }
+
+  @override
   Stream<List<ChapterGenerationRun>> watchChapterGenerationRuns(
     String projectId,
   ) async* {
@@ -1358,6 +1548,28 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   ) async* {
     List<AssetGenerationRun> snapshot() => assetRuns
         .where((run) => run.projectId == projectId)
+        .toList(growable: false);
+    yield snapshot();
+    yield* _changes.stream.map((_) => snapshot());
+  }
+
+  @override
+  Stream<List<ChapterEnrichmentBatch>> watchChapterEnrichmentBatches(
+    String projectId,
+  ) async* {
+    List<ChapterEnrichmentBatch> snapshot() => enrichmentBatches
+        .where((batch) => batch.projectId == projectId)
+        .toList(growable: false);
+    yield snapshot();
+    yield* _changes.stream.map((_) => snapshot());
+  }
+
+  @override
+  Stream<List<ChapterEnrichmentItem>> watchChapterEnrichmentItems(
+    String batchId,
+  ) async* {
+    List<ChapterEnrichmentItem> snapshot() => enrichmentItems
+        .where((item) => item.batchId == batchId)
         .toList(growable: false);
     yield snapshot();
     yield* _changes.stream.map((_) => snapshot());

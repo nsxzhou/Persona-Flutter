@@ -13,7 +13,10 @@ import '../domain/novel_workshop.dart';
 import '../domain/novel_workshop_repository.dart';
 import '../domain/writing_context.dart';
 import 'asset_generation_pipeline.dart';
+import 'chapter_enrichment_pipeline.dart';
 import 'chapter_generation_pipeline.dart';
+import 'novel_import_parser.dart';
+import 'novel_import_service.dart';
 import 'outline_detail_parser.dart';
 import 'project_prompt_asset_resolver.dart';
 import 'writing_context_assembler.dart';
@@ -67,6 +70,31 @@ ChapterGenerationPipeline chapterGenerationPipeline(Ref ref) {
     contextAssembler: ref.watch(writingContextAssemblerProvider),
     completionService: ref.watch(markdownCompletionServiceProvider),
     workflowTaskRepository: ref.watch(workflowTaskRepositoryProvider),
+  );
+}
+
+@Riverpod(keepAlive: true)
+ChapterEnrichmentPipeline chapterEnrichmentPipeline(Ref ref) {
+  return ChapterEnrichmentPipeline(
+    repository: ref.watch(novelWorkshopRepositoryProvider),
+    projectRepository: ref.watch(projectRepositoryProvider),
+    providerRepository: ref.watch(providerConfigRepositoryProvider),
+    promptAssetResolver: ref.watch(projectPromptAssetResolverProvider),
+    completionService: ref.watch(markdownCompletionServiceProvider),
+    workflowTaskRepository: ref.watch(workflowTaskRepositoryProvider),
+  );
+}
+
+@Riverpod(keepAlive: true)
+NovelImportParser novelImportParser(Ref ref) {
+  return const NovelImportParser();
+}
+
+@Riverpod(keepAlive: true)
+NovelImportService novelImportService(Ref ref) {
+  return NovelImportService(
+    projectRepository: ref.watch(projectRepositoryProvider),
+    workshopRepository: ref.watch(novelWorkshopRepositoryProvider),
   );
 }
 
@@ -126,6 +154,26 @@ Stream<List<AssetGenerationRun>> assetGenerationRuns(
   return ref
       .watch(novelWorkshopRepositoryProvider)
       .watchAssetGenerationRuns(projectId);
+}
+
+@riverpod
+Stream<List<ChapterEnrichmentBatch>> chapterEnrichmentBatches(
+  Ref ref,
+  String projectId,
+) {
+  return ref
+      .watch(novelWorkshopRepositoryProvider)
+      .watchChapterEnrichmentBatches(projectId);
+}
+
+@riverpod
+Stream<List<ChapterEnrichmentItem>> chapterEnrichmentItems(
+  Ref ref,
+  String batchId,
+) {
+  return ref
+      .watch(novelWorkshopRepositoryProvider)
+      .watchChapterEnrichmentItems(batchId);
 }
 
 @riverpod
@@ -328,5 +376,80 @@ class NovelWorkshopController extends _$NovelWorkshopController {
       Error.throwWithStackTrace(state.error!, state.stackTrace!);
     }
     return result;
+  }
+
+  Future<ChapterEnrichmentResult> enrichChapters({
+    required String projectId,
+    required List<String> chapterIds,
+    required String instruction,
+    int expansionRatioPercent = 20,
+  }) async {
+    state = const AsyncLoading();
+    late ChapterEnrichmentResult result;
+    state = await AsyncValue.guard(() async {
+      result = await ref
+          .read(chapterEnrichmentPipelineProvider)
+          .enrichChapters(
+            projectId: projectId,
+            chapterIds: chapterIds,
+            instruction: instruction,
+            expansionRatioPercent: expansionRatioPercent,
+          );
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
+    return result;
+  }
+
+  Future<ProjectChapter> applyChapterEnrichmentItem(String itemId) async {
+    state = const AsyncLoading();
+    late ProjectChapter saved;
+    state = await AsyncValue.guard(() async {
+      saved = await ref
+          .read(novelWorkshopRepositoryProvider)
+          .applyChapterEnrichmentItem(itemId);
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
+    return saved;
+  }
+
+  Future<ChapterEnrichmentResult> retryChapterEnrichmentItem(
+    String itemId,
+  ) async {
+    state = const AsyncLoading();
+    late ChapterEnrichmentResult result;
+    state = await AsyncValue.guard(() async {
+      result = await ref
+          .read(chapterEnrichmentPipelineProvider)
+          .retryItem(itemId);
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
+    return result;
+  }
+
+  Future<List<ProjectChapter>> applyChapterEnrichmentItems(
+    List<String> itemIds,
+  ) async {
+    state = const AsyncLoading();
+    late List<ProjectChapter> saved;
+    state = await AsyncValue.guard(() async {
+      saved = <ProjectChapter>[];
+      for (final itemId in itemIds) {
+        saved.add(
+          await ref
+              .read(novelWorkshopRepositoryProvider)
+              .applyChapterEnrichmentItem(itemId),
+        );
+      }
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
+    return saved;
   }
 }

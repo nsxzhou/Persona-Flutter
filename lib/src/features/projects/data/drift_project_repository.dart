@@ -70,6 +70,7 @@ class DriftProjectRepository implements ProjectRepository {
             defaultModelName: Value(input.defaultModelName.trim()),
             styleProfileId: Value(_blankToNull(input.styleProfileId)),
             plotProfileId: Value(_blankToNull(input.plotProfileId)),
+            origin: Value(input.origin.name),
             language: Value(_normalizedLanguage(input.language)),
             targetLength: Value(_normalizedTargetLength(input.targetLength)),
             totalTargetLength: Value(
@@ -82,6 +83,17 @@ class DriftProjectRepository implements ProjectRepository {
             updatedAt: Value(updatedAt),
           ),
         );
+  }
+
+  @override
+  Future<WritingProject> createProject(WritingProjectInput input) async {
+    final id = _uuid.v4();
+    await saveProject(id: id, input: input);
+    final saved = await findProject(id);
+    if (saved == null) {
+      throw StateError('Project was not saved.');
+    }
+    return saved;
   }
 
   @override
@@ -119,6 +131,7 @@ class DriftProjectRepository implements ProjectRepository {
       defaultModelName: row.defaultModelName,
       styleProfileId: row.styleProfileId,
       plotProfileId: row.plotProfileId,
+      origin: ProjectOrigin.values.byName(row.origin),
       language: row.language,
       targetLength: row.targetLength,
       totalTargetLength: row.totalTargetLength,

@@ -69,7 +69,11 @@ class ForceDirectedLayout {
 
     // Build adjacency for quick lookup.
     final edges = relationships
-        .where((r) => pos.containsKey(r.fromCharacterId) && pos.containsKey(r.toCharacterId))
+        .where(
+          (r) =>
+              pos.containsKey(r.fromCharacterId) &&
+              pos.containsKey(r.toCharacterId),
+        )
         .toList();
 
     for (var iter = 0; iter < iterations; iter++) {
@@ -224,8 +228,12 @@ class _RelationshipPainter extends CustomPainter {
     if (selectedCharacterId != null) {
       selectedIds.add(selectedCharacterId!);
       for (final r in relationships) {
-        if (r.fromCharacterId == selectedCharacterId) selectedIds.add(r.toCharacterId);
-        if (r.toCharacterId == selectedCharacterId) selectedIds.add(r.fromCharacterId);
+        if (r.fromCharacterId == selectedCharacterId) {
+          selectedIds.add(r.toCharacterId);
+        }
+        if (r.toCharacterId == selectedCharacterId) {
+          selectedIds.add(r.fromCharacterId);
+        }
       }
     }
 
@@ -235,9 +243,10 @@ class _RelationshipPainter extends CustomPainter {
       final to = positions[relationship.toCharacterId];
       if (from == null || to == null) continue;
 
-      final isHighlighted = selectedCharacterId != null &&
+      final isHighlighted =
+          selectedCharacterId != null &&
           (relationship.fromCharacterId == selectedCharacterId ||
-           relationship.toCharacterId == selectedCharacterId);
+              relationship.toCharacterId == selectedCharacterId);
 
       final edgeColor = isHighlighted
           ? colorScheme.primary
@@ -248,7 +257,9 @@ class _RelationshipPainter extends CustomPainter {
       final mid = Offset((from.dx + to.dx) / 2, (from.dy + to.dy) / 2);
       final delta = to - from;
       final dist = delta.distance;
-      final normal = dist > 0 ? Offset(-delta.dy / dist, delta.dx / dist) : Offset.zero;
+      final normal = dist > 0
+          ? Offset(-delta.dy / dist, delta.dx / dist)
+          : Offset.zero;
       final curvature = dist * 0.15;
       final control = mid + normal * curvature;
 
@@ -265,7 +276,13 @@ class _RelationshipPainter extends CustomPainter {
       );
 
       // Arrowhead at the target end.
-      _drawArrowhead(canvas, control, to, edgeColor, layout.nodeRadius(relationship.toCharacterId));
+      _drawArrowhead(
+        canvas,
+        control,
+        to,
+        edgeColor,
+        layout.nodeRadius(relationship.toCharacterId),
+      );
     }
 
     // Draw nodes.
@@ -281,18 +298,18 @@ class _RelationshipPainter extends CustomPainter {
       final fillColor = isSelected
           ? colorScheme.primaryContainer
           : dimmed
-              ? colorScheme.surface.withValues(alpha: 0.5)
-              : colorScheme.surface;
+          ? colorScheme.surface.withValues(alpha: 0.5)
+          : colorScheme.surface;
       final borderColor = isSelected
           ? colorScheme.primary
           : dimmed
-              ? colorScheme.outline.withValues(alpha: 0.3)
-              : colorScheme.outline;
+          ? colorScheme.outline.withValues(alpha: 0.3)
+          : colorScheme.outline;
       final textColor = isSelected
           ? colorScheme.onPrimaryContainer
           : dimmed
-              ? colorScheme.onSurface.withValues(alpha: 0.3)
-              : colorScheme.onSurface;
+          ? colorScheme.onSurface.withValues(alpha: 0.3)
+          : colorScheme.onSurface;
 
       canvas.drawCircle(position, radius, Paint()..color = fillColor);
       canvas.drawCircle(
@@ -307,7 +324,13 @@ class _RelationshipPainter extends CustomPainter {
     }
   }
 
-  void _drawArrowhead(Canvas canvas, Offset from, Offset to, Color color, double nodeRadius) {
+  void _drawArrowhead(
+    Canvas canvas,
+    Offset from,
+    Offset to,
+    Color color,
+    double nodeRadius,
+  ) {
     final direction = to - from;
     final length = direction.distance;
     if (length < 1) return;
@@ -316,17 +339,35 @@ class _RelationshipPainter extends CustomPainter {
     final normal = Offset(-unit.dy, unit.dx);
     final path = Path()
       ..moveTo(tip.dx, tip.dy)
-      ..lineTo((tip - unit * 10 + normal * 5).dx, (tip - unit * 10 + normal * 5).dy)
-      ..lineTo((tip - unit * 10 - normal * 5).dx, (tip - unit * 10 - normal * 5).dy)
+      ..lineTo(
+        (tip - unit * 10 + normal * 5).dx,
+        (tip - unit * 10 + normal * 5).dy,
+      )
+      ..lineTo(
+        (tip - unit * 10 - normal * 5).dx,
+        (tip - unit * 10 - normal * 5).dy,
+      )
       ..close();
     canvas.drawPath(path, Paint()..color = color);
   }
 
   void _drawCenteredText(Canvas canvas, Size size, String text) {
-    _drawText(canvas, text, Offset(size.width / 2, size.height / 2), colorScheme.onSurfaceVariant, 30);
+    _drawText(
+      canvas,
+      text,
+      Offset(size.width / 2, size.height / 2),
+      colorScheme.onSurfaceVariant,
+      30,
+    );
   }
 
-  void _drawText(Canvas canvas, String text, Offset center, Color color, double maxRadius) {
+  void _drawText(
+    Canvas canvas,
+    String text,
+    Offset center,
+    Color color,
+    double maxRadius,
+  ) {
     final maxWidth = maxRadius * 1.6;
     final painter = TextPainter(
       text: TextSpan(

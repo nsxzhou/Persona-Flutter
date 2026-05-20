@@ -298,6 +298,149 @@ final class ChapterGenerationPipelineProvider
 String _$chapterGenerationPipelineHash() =>
     r'9c43e6a655e508d4ac2977d5dcb78263caf27136';
 
+@ProviderFor(chapterEnrichmentPipeline)
+final chapterEnrichmentPipelineProvider = ChapterEnrichmentPipelineProvider._();
+
+final class ChapterEnrichmentPipelineProvider
+    extends
+        $FunctionalProvider<
+          ChapterEnrichmentPipeline,
+          ChapterEnrichmentPipeline,
+          ChapterEnrichmentPipeline
+        >
+    with $Provider<ChapterEnrichmentPipeline> {
+  ChapterEnrichmentPipelineProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'chapterEnrichmentPipelineProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$chapterEnrichmentPipelineHash();
+
+  @$internal
+  @override
+  $ProviderElement<ChapterEnrichmentPipeline> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  ChapterEnrichmentPipeline create(Ref ref) {
+    return chapterEnrichmentPipeline(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ChapterEnrichmentPipeline value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<ChapterEnrichmentPipeline>(value),
+    );
+  }
+}
+
+String _$chapterEnrichmentPipelineHash() =>
+    r'9e4aa88f0dae8dafef52177d2af8dce357133471';
+
+@ProviderFor(novelImportParser)
+final novelImportParserProvider = NovelImportParserProvider._();
+
+final class NovelImportParserProvider
+    extends
+        $FunctionalProvider<
+          NovelImportParser,
+          NovelImportParser,
+          NovelImportParser
+        >
+    with $Provider<NovelImportParser> {
+  NovelImportParserProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'novelImportParserProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$novelImportParserHash();
+
+  @$internal
+  @override
+  $ProviderElement<NovelImportParser> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  NovelImportParser create(Ref ref) {
+    return novelImportParser(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(NovelImportParser value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<NovelImportParser>(value),
+    );
+  }
+}
+
+String _$novelImportParserHash() => r'0fcdd7b85237d1cf13ed846d2f1206fdd579c59e';
+
+@ProviderFor(novelImportService)
+final novelImportServiceProvider = NovelImportServiceProvider._();
+
+final class NovelImportServiceProvider
+    extends
+        $FunctionalProvider<
+          NovelImportService,
+          NovelImportService,
+          NovelImportService
+        >
+    with $Provider<NovelImportService> {
+  NovelImportServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'novelImportServiceProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$novelImportServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<NovelImportService> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  NovelImportService create(Ref ref) {
+    return novelImportService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(NovelImportService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<NovelImportService>(value),
+    );
+  }
+}
+
+String _$novelImportServiceHash() =>
+    r'80726bc4d0bedfb8e84037baf0a476a2486dccfc';
+
 @ProviderFor(projectBible)
 final projectBibleProvider = ProjectBibleFamily._();
 
@@ -915,6 +1058,169 @@ final class AssetGenerationRunsFamily extends $Family
   String toString() => r'assetGenerationRunsProvider';
 }
 
+@ProviderFor(chapterEnrichmentBatches)
+final chapterEnrichmentBatchesProvider = ChapterEnrichmentBatchesFamily._();
+
+final class ChapterEnrichmentBatchesProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<ChapterEnrichmentBatch>>,
+          List<ChapterEnrichmentBatch>,
+          Stream<List<ChapterEnrichmentBatch>>
+        >
+    with
+        $FutureModifier<List<ChapterEnrichmentBatch>>,
+        $StreamProvider<List<ChapterEnrichmentBatch>> {
+  ChapterEnrichmentBatchesProvider._({
+    required ChapterEnrichmentBatchesFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'chapterEnrichmentBatchesProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$chapterEnrichmentBatchesHash();
+
+  @override
+  String toString() {
+    return r'chapterEnrichmentBatchesProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<List<ChapterEnrichmentBatch>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<ChapterEnrichmentBatch>> create(Ref ref) {
+    final argument = this.argument as String;
+    return chapterEnrichmentBatches(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ChapterEnrichmentBatchesProvider &&
+        other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$chapterEnrichmentBatchesHash() =>
+    r'8ac7bf55f81c96406673d05215ff46762193e4dd';
+
+final class ChapterEnrichmentBatchesFamily extends $Family
+    with
+        $FunctionalFamilyOverride<
+          Stream<List<ChapterEnrichmentBatch>>,
+          String
+        > {
+  ChapterEnrichmentBatchesFamily._()
+    : super(
+        retry: null,
+        name: r'chapterEnrichmentBatchesProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  ChapterEnrichmentBatchesProvider call(String projectId) =>
+      ChapterEnrichmentBatchesProvider._(argument: projectId, from: this);
+
+  @override
+  String toString() => r'chapterEnrichmentBatchesProvider';
+}
+
+@ProviderFor(chapterEnrichmentItems)
+final chapterEnrichmentItemsProvider = ChapterEnrichmentItemsFamily._();
+
+final class ChapterEnrichmentItemsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<ChapterEnrichmentItem>>,
+          List<ChapterEnrichmentItem>,
+          Stream<List<ChapterEnrichmentItem>>
+        >
+    with
+        $FutureModifier<List<ChapterEnrichmentItem>>,
+        $StreamProvider<List<ChapterEnrichmentItem>> {
+  ChapterEnrichmentItemsProvider._({
+    required ChapterEnrichmentItemsFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'chapterEnrichmentItemsProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$chapterEnrichmentItemsHash();
+
+  @override
+  String toString() {
+    return r'chapterEnrichmentItemsProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<List<ChapterEnrichmentItem>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<ChapterEnrichmentItem>> create(Ref ref) {
+    final argument = this.argument as String;
+    return chapterEnrichmentItems(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ChapterEnrichmentItemsProvider &&
+        other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$chapterEnrichmentItemsHash() =>
+    r'79751e4b59319ddb187b911afcb6c9f394cbd5c6';
+
+final class ChapterEnrichmentItemsFamily extends $Family
+    with
+        $FunctionalFamilyOverride<Stream<List<ChapterEnrichmentItem>>, String> {
+  ChapterEnrichmentItemsFamily._()
+    : super(
+        retry: null,
+        name: r'chapterEnrichmentItemsProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  ChapterEnrichmentItemsProvider call(String batchId) =>
+      ChapterEnrichmentItemsProvider._(argument: batchId, from: this);
+
+  @override
+  String toString() => r'chapterEnrichmentItemsProvider';
+}
+
 @ProviderFor(chapterGenerationRunByWorkflowTask)
 final chapterGenerationRunByWorkflowTaskProvider =
     ChapterGenerationRunByWorkflowTaskFamily._();
@@ -1180,7 +1486,7 @@ final class NovelWorkshopControllerProvider
 }
 
 String _$novelWorkshopControllerHash() =>
-    r'c0f8c50d15ed1a87984d04b912e06c73ac4f486a';
+    r'fc7ef9adcc9720d533b1ec330397af1c7652c698';
 
 abstract class _$NovelWorkshopController extends $AsyncNotifier<void> {
   FutureOr<void> build();

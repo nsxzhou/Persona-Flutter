@@ -16,6 +16,9 @@ _WritingProject _$WritingProjectFromJson(Map<String, dynamic> json) =>
       defaultModelName: json['defaultModelName'] as String?,
       styleProfileId: json['styleProfileId'] as String?,
       plotProfileId: json['plotProfileId'] as String?,
+      origin:
+          $enumDecodeNullable(_$ProjectOriginEnumMap, json['origin']) ??
+          ProjectOrigin.standard,
       language: json['language'] as String? ?? defaultProjectLanguage,
       targetLength:
           (json['targetLength'] as num?)?.toInt() ?? defaultProjectTargetLength,
@@ -39,6 +42,7 @@ Map<String, dynamic> _$WritingProjectToJson(_WritingProject instance) =>
       'defaultModelName': instance.defaultModelName,
       'styleProfileId': instance.styleProfileId,
       'plotProfileId': instance.plotProfileId,
+      'origin': _$ProjectOriginEnumMap[instance.origin]!,
       'language': instance.language,
       'targetLength': instance.targetLength,
       'totalTargetLength': instance.totalTargetLength,
@@ -50,4 +54,9 @@ Map<String, dynamic> _$WritingProjectToJson(_WritingProject instance) =>
 const _$ProjectStatusEnumMap = {
   ProjectStatus.active: 'active',
   ProjectStatus.archived: 'archived',
+};
+
+const _$ProjectOriginEnumMap = {
+  ProjectOrigin.standard: 'standard',
+  ProjectOrigin.importedEnrichment: 'importedEnrichment',
 };

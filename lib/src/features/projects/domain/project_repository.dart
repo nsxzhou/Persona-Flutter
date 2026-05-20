@@ -9,6 +9,8 @@ abstract interface class ProjectRepository {
 
   Future<void> saveProject({String? id, required WritingProjectInput input});
 
+  Future<WritingProject> createProject(WritingProjectInput input);
+
   Future<void> updateStatus({
     required String id,
     required ProjectStatus status,

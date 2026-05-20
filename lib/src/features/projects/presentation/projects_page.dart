@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/ui/glass_container.dart';
 import '../../../core/ui/persona_page.dart';
 import '../../../core/ui/skeleton_loader.dart';
+import '../../novel_workshop/application/novel_workshop_providers.dart';
+import '../../novel_workshop/domain/novel_import.dart';
 import '../../plot_lab/application/plot_lab_providers.dart';
 import '../../plot_lab/domain/plot_profile.dart';
 import '../../settings/application/provider_config_providers.dart';
@@ -33,6 +36,11 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
       title: '项目',
       description: '用于长篇项目、蓝图和本地写作会话的项目管理工作区。',
       actions: [
+        OutlinedButton.icon(
+          onPressed: () => _showNovelImportDialog(context),
+          icon: const Icon(Icons.upload_file_outlined),
+          label: const Text('导入小说'),
+        ),
         FilledButton.icon(
           onPressed: () => _showProjectDialog(context),
           icon: const Icon(Icons.add),
@@ -1253,6 +1261,17 @@ void _showProjectDialog(BuildContext context, {WritingProject? project}) {
   showProjectDialog(context, project: project);
 }
 
+Future<void> _showNovelImportDialog(BuildContext context) async {
+  final project = await showGlassDialog<WritingProject>(
+    context: context,
+    maxWidth: 920,
+    builder: (context) => const _NovelImportDialog(),
+  );
+  if (project != null && context.mounted) {
+    context.go('/projects/${project.id}/workshop');
+  }
+}
+
 Future<void> _confirmDeleteProject(
   BuildContext context,
   WidgetRef ref,
@@ -1306,6 +1325,419 @@ Future<void> _confirmDeleteProject(
 }
 
 enum _ProjectMenuAction { edit, openWorkshop, archive, restore, delete }
+
+class _NovelImportDialog extends ConsumerStatefulWidget {
+  const _NovelImportDialog();
+
+  @override
+  ConsumerState<_NovelImportDialog> createState() => _NovelImportDialogState();
+}
+
+class _NovelImportDialogState extends ConsumerState<_NovelImportDialog> {
+  final _titleController = TextEditingController();
+  NovelImportDraft? _draft;
+  String? _selectedProviderId;
+  String? _selectedModelName;
+  String? _selectedStyleProfileId;
+  bool _parsing = false;
+  bool _creating = false;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickFile() async {
+    setState(() {
+      _parsing = true;
+      _errorMessage = null;
+    });
+    try {
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['txt', 'epub'],
+        allowMultiple: false,
+      );
+      final path = result?.files.single.path;
+      if (path == null) {
+        return;
+      }
+      final draft = await ref.read(novelImportParserProvider).importFile(path);
+      setState(() {
+        _draft = draft;
+        _titleController.text = draft.title;
+      });
+    } on Object catch (error) {
+      setState(() => _errorMessage = '$error');
+    } finally {
+      if (mounted) {
+        setState(() => _parsing = false);
+      }
+    }
+  }
+
+  Future<void> _createProject() async {
+    final draft = _draft;
+    final providerId = _selectedProviderId;
+    final modelName = _selectedModelName;
+    if (draft == null || providerId == null || modelName == null) {
+      return;
+    }
+    setState(() {
+      _creating = true;
+      _errorMessage = null;
+    });
+    try {
+      final project = await ref
+          .read(novelImportServiceProvider)
+          .createImportedProject(
+            draft: NovelImportDraft(
+              sourceType: draft.sourceType,
+              title: _titleController.text.trim().isEmpty
+                  ? draft.title
+                  : _titleController.text.trim(),
+              sourceFilename: draft.sourceFilename,
+              chapters: draft.chapters,
+              warnings: draft.warnings,
+            ),
+            defaultProviderId: providerId,
+            defaultModelName: modelName,
+            styleProfileId: _selectedStyleProfileId,
+          );
+      if (mounted) {
+        Navigator.of(context).pop(project);
+      }
+    } on Object catch (error) {
+      setState(() => _errorMessage = '$error');
+    } finally {
+      if (mounted) {
+        setState(() => _creating = false);
+      }
+    }
+  }
+
+  void _updateChapterTitle(int index, String title) {
+    final draft = _draft;
+    if (draft == null) return;
+    final chapters = [...draft.chapters];
+    chapters[index] = chapters[index].copyWith(title: title);
+    _replaceDraft(draft, chapters);
+  }
+
+  void _deleteChapter(int index) {
+    final draft = _draft;
+    if (draft == null) return;
+    final chapters = [...draft.chapters]..removeAt(index);
+    _replaceDraft(draft, chapters);
+  }
+
+  void _mergeWithNext(int index) {
+    final draft = _draft;
+    if (draft == null || index + 1 >= draft.chapters.length) return;
+    final chapters = [...draft.chapters];
+    final current = chapters[index];
+    final next = chapters[index + 1];
+    chapters[index] = current.copyWith(
+      contentMarkdown:
+          '${current.contentMarkdown.trim()}\n\n${next.contentMarkdown.trim()}',
+    );
+    chapters.removeAt(index + 1);
+    _replaceDraft(draft, chapters);
+  }
+
+  void _replaceDraft(
+    NovelImportDraft draft,
+    List<NovelImportChapterDraft> chapters,
+  ) {
+    setState(() {
+      _draft = NovelImportDraft(
+        sourceType: draft.sourceType,
+        title: draft.title,
+        sourceFilename: draft.sourceFilename,
+        chapters: chapters,
+        warnings: draft.warnings,
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final providers = ref.watch(providerConfigsProvider);
+    final styleProfiles = ref.watch(styleProfilesProvider);
+    final draft = _draft;
+    final busy = _parsing || _creating;
+
+    return providers.when(
+      data: (providerItems) => styleProfiles.when(
+        data: (styleItems) {
+          if (_selectedProviderId == null && providerItems.isNotEmpty) {
+            final enabled = providerItems.where((item) => item.isEnabled);
+            final provider = enabled.isEmpty
+                ? providerItems.first
+                : enabled.first;
+            _selectedProviderId = provider.id;
+            _selectedModelName = provider.defaultModel;
+          }
+          final selectedProvider = _findById(
+            providerItems,
+            _selectedProviderId,
+            (item) => item.id,
+          );
+          final modelNames = selectedProvider?.modelNames ?? const <String>[];
+          if (selectedProvider != null &&
+              (_selectedModelName == null ||
+                  !modelNames.contains(_selectedModelName))) {
+            _selectedModelName = selectedProvider.defaultModel;
+          }
+
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '导入小说加料项目',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '选择 TXT / EPUB 后确认章节切分，再创建只用于整章加料的导入型项目。',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: busy ? null : _pickFile,
+                    icon: const Icon(Icons.upload_file_outlined),
+                    label: Text(_parsing ? '解析中' : '选择文件'),
+                  ),
+                  const SizedBox(width: 12),
+                  if (draft != null)
+                    Expanded(
+                      child: Text(
+                        '${draft.sourceFilename} · ${draft.chapters.length} 章 · ${draft.totalCharacterCount} 字',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                ],
+              ),
+              if (_errorMessage != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _errorMessage!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ],
+              if (draft != null) ...[
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _titleController,
+                  decoration: const InputDecoration(
+                    labelText: '项目标题',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _selectedProviderId,
+                        decoration: const InputDecoration(
+                          labelText: '默认 Provider',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: [
+                          for (final provider in providerItems)
+                            DropdownMenuItem(
+                              value: provider.id,
+                              child: Text(provider.name),
+                            ),
+                        ],
+                        onChanged: busy
+                            ? null
+                            : (id) {
+                                if (id == null) return;
+                                final provider = _findById(
+                                  providerItems,
+                                  id,
+                                  (item) => item.id,
+                                );
+                                setState(() {
+                                  _selectedProviderId = id;
+                                  _selectedModelName = provider?.defaultModel;
+                                });
+                              },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _selectedModelName,
+                        decoration: const InputDecoration(
+                          labelText: '默认模型',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: [
+                          for (final modelName in modelNames)
+                            DropdownMenuItem(
+                              value: modelName,
+                              child: Text(modelName),
+                            ),
+                        ],
+                        onChanged: busy
+                            ? null
+                            : (modelName) => setState(
+                                () => _selectedModelName = modelName,
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String?>(
+                  initialValue: _selectedStyleProfileId,
+                  decoration: const InputDecoration(
+                    labelText: 'Voice Profile（可选）',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('不绑定'),
+                    ),
+                    for (final profile in styleItems)
+                      DropdownMenuItem<String?>(
+                        value: profile.id,
+                        child: Text(profile.styleName),
+                      ),
+                  ],
+                  onChanged: busy
+                      ? null
+                      : (id) => setState(() => _selectedStyleProfileId = id),
+                ),
+                const SizedBox(height: 14),
+                Flexible(
+                  child: _ImportChapterPreviewList(
+                    chapters: draft.chapters,
+                    onTitleChanged: _updateChapterTitle,
+                    onDelete: _deleteChapter,
+                    onMergeWithNext: _mergeWithNext,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 18),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: busy ? null : () => Navigator.of(context).pop(),
+                    child: const Text('取消'),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton.icon(
+                    onPressed:
+                        draft == null ||
+                            draft.chapters.isEmpty ||
+                            _selectedProviderId == null ||
+                            _selectedModelName == null ||
+                            busy
+                        ? null
+                        : _createProject,
+                    icon: const Icon(Icons.check_outlined, size: 18),
+                    label: Text(_creating ? '创建中' : '创建项目'),
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
+        error: (error, stackTrace) => Text('无法加载 Style Profiles：$error'),
+        loading: () => const Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, stackTrace) => Text('无法加载 Providers：$error'),
+      loading: () => const Center(child: CircularProgressIndicator()),
+    );
+  }
+}
+
+class _ImportChapterPreviewList extends StatelessWidget {
+  const _ImportChapterPreviewList({
+    required this.chapters,
+    required this.onTitleChanged,
+    required this.onDelete,
+    required this.onMergeWithNext,
+  });
+
+  final List<NovelImportChapterDraft> chapters;
+  final void Function(int index, String title) onTitleChanged;
+  final ValueChanged<int> onDelete;
+  final ValueChanged<int> onMergeWithNext;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: ListView.separated(
+        shrinkWrap: true,
+        itemCount: chapters.length,
+        separatorBuilder: (context, index) => const Divider(height: 1),
+        itemBuilder: (context, index) {
+          final chapter = chapters[index];
+          return Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 64,
+                  child: Text(
+                    '${index + 1}',
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                ),
+                Expanded(
+                  child: TextFormField(
+                    key: ValueKey(chapter.id),
+                    initialValue: chapter.title,
+                    decoration: InputDecoration(
+                      labelText: '${chapter.characterCount} 字',
+                      border: const OutlineInputBorder(),
+                    ),
+                    onChanged: (value) => onTitleChanged(index, value),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  tooltip: '合并下一章',
+                  onPressed: index + 1 >= chapters.length
+                      ? null
+                      : () => onMergeWithNext(index),
+                  icon: const Icon(Icons.call_merge_outlined),
+                ),
+                IconButton(
+                  tooltip: '删除章节',
+                  onPressed: chapters.length <= 1
+                      ? null
+                      : () => onDelete(index),
+                  icon: const Icon(Icons.delete_outline),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
 
 String? _requiredValidator(String? value) {
   if (value == null || value.trim().isEmpty) {

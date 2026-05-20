@@ -168,6 +168,85 @@ volumes:
   });
 
   test(
+    'chapter enrichment batch persists preview and applies generated item',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final project = await _saveProject(database);
+      final repository = DriftNovelWorkshopRepository(database);
+      final workflowRepository = DriftWorkflowTaskRepository(database);
+      final volume = await repository.saveChapterVolume(
+        input: ChapterVolumeInput(
+          projectId: project.id,
+          volumeIndex: 1,
+          title: '导入正文',
+        ),
+      );
+      final plan = await repository.saveChapterPlan(
+        input: ChapterPlanInput(
+          projectId: project.id,
+          volumeId: volume.id,
+          volumeIndex: 1,
+          volumeTitle: volume.title,
+          chapterLocalIndex: 1,
+          chapterIndex: 1,
+          objectiveCard: const ChapterObjectiveCard(chapterTitle: '第一章'),
+        ),
+      );
+      final chapter = await repository.saveChapter(
+        input: ProjectChapterInput(
+          projectId: project.id,
+          chapterPlanId: plan.id,
+          chapterIndex: 1,
+          title: '第一章',
+          contentMarkdown: '旧正文。',
+        ),
+      );
+
+      final batch = await repository.createChapterEnrichmentBatch(
+        ChapterEnrichmentBatchInput(
+          projectId: project.id,
+          chapterIds: [chapter.id],
+          instruction: '增强心理描写。',
+          expansionRatioPercent: 20,
+          providerId: project.defaultProviderId!,
+          modelName: project.defaultModelName!,
+        ),
+      );
+      final items = await repository
+          .watchChapterEnrichmentItems(batch.id)
+          .first;
+      expect(items.single.status, ChapterEnrichmentItemStatus.waiting);
+
+      final generated = await repository.updateChapterEnrichmentItemState(
+        id: items.single.id,
+        status: ChapterEnrichmentItemStatus.generated,
+        originalContentMarkdown: chapter.contentMarkdown,
+        generatedContentMarkdown: '新正文。',
+      );
+      expect(generated.originalContentMarkdown, '旧正文。');
+      expect(generated.generatedContentMarkdown, '新正文。');
+
+      final updatedBatch = await repository.updateChapterEnrichmentBatchState(
+        id: batch.id,
+        status: ChapterEnrichmentBatchStatus.succeeded,
+        completedAt: DateTime.now(),
+      );
+      expect(updatedBatch.generatedCount, 1);
+      final task = await workflowRepository.findTask(batch.workflowTaskId);
+      expect(task!.kind, chapterEnrichmentWorkflowTaskKind);
+      expect(task.status, WorkflowTaskStatus.succeeded);
+
+      final applied = await repository.applyChapterEnrichmentItem(generated.id);
+      expect(applied.contentMarkdown, '新正文。');
+      final appliedItem = await repository.findChapterEnrichmentItem(
+        generated.id,
+      );
+      expect(appliedItem!.status, ChapterEnrichmentItemStatus.applied);
+    },
+  );
+
+  test(
     'editing chapter content clears previous memory sync proposal',
     () async {
       final database = AppDatabase(NativeDatabase.memory());

@@ -72,6 +72,7 @@ class ProjectRecords extends Table {
   TextColumn get defaultModelName => text().nullable()();
   TextColumn get styleProfileId => text().nullable()();
   TextColumn get plotProfileId => text().nullable()();
+  TextColumn get origin => text().withDefault(const Constant('standard'))();
   TextColumn get language => text().withDefault(const Constant('简体中文'))();
   IntColumn get targetLength => integer().withDefault(const Constant(3000))();
   IntColumn get totalTargetLength =>
@@ -347,6 +348,63 @@ class ProjectChapterRecords extends Table {
   ];
 }
 
+class ChapterEnrichmentBatchRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get workflowTaskId =>
+      text().references(WorkflowTaskRecords, #id)();
+  TextColumn get projectId => text().references(ProjectRecords, #id)();
+  TextColumn get instruction => text()();
+  IntColumn get expansionRatioPercent =>
+      integer().withDefault(const Constant(20))();
+  TextColumn get providerId => text()();
+  TextColumn get modelName => text()();
+  TextColumn get status => text()();
+  TextColumn get errorMessage => text().nullable()();
+  IntColumn get totalCount => integer().withDefault(const Constant(0))();
+  IntColumn get generatedCount => integer().withDefault(const Constant(0))();
+  IntColumn get failedCount => integer().withDefault(const Constant(0))();
+  IntColumn get appliedCount => integer().withDefault(const Constant(0))();
+  TextColumn get logs => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  DateTimeColumn get startedAt => dateTime().nullable()();
+  DateTimeColumn get completedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+class ChapterEnrichmentItemRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get batchId =>
+      text().references(ChapterEnrichmentBatchRecords, #id)();
+  TextColumn get projectId => text().references(ProjectRecords, #id)();
+  TextColumn get chapterId => text().references(ProjectChapterRecords, #id)();
+  IntColumn get position => integer()();
+  TextColumn get status => text()();
+  TextColumn get errorMessage => text().nullable()();
+  TextColumn get originalContentMarkdown =>
+      text().withDefault(const Constant(''))();
+  TextColumn get generatedContentMarkdown =>
+      text().withDefault(const Constant(''))();
+  TextColumn get providerId => text().withDefault(const Constant(''))();
+  TextColumn get modelName => text().withDefault(const Constant(''))();
+  TextColumn get logs => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  DateTimeColumn get startedAt => dateTime().nullable()();
+  DateTimeColumn get completedAt => dateTime().nullable()();
+  DateTimeColumn get appliedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+
+  @override
+  List<Set<Column<Object>>> get uniqueKeys => [
+    {batchId, chapterId},
+  ];
+}
+
 class NovelCharacterRecords extends Table {
   TextColumn get id => text()();
   TextColumn get projectId => text().references(ProjectRecords, #id)();
@@ -465,6 +523,8 @@ class AssetGenerationRunRecords extends Table {
     ChapterVolumeRecords,
     ChapterPlanRecords,
     ProjectChapterRecords,
+    ChapterEnrichmentBatchRecords,
+    ChapterEnrichmentItemRecords,
     NovelCharacterRecords,
     NovelRelationshipRecords,
     ChapterGenerationRunRecords,
@@ -475,7 +535,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration {
@@ -674,6 +734,18 @@ class AppDatabase extends _$AppDatabase {
               assetGenerationRunRecords,
               assetGenerationRunRecords.targetVolumeId,
             );
+          }
+        }
+        if (from < 18) {
+          if (await _tableExists('project_records') &&
+              !await _columnExists('project_records', 'origin')) {
+            await migrator.addColumn(projectRecords, projectRecords.origin);
+          }
+          if (!await _tableExists('chapter_enrichment_batch_records')) {
+            await migrator.createTable(chapterEnrichmentBatchRecords);
+          }
+          if (!await _tableExists('chapter_enrichment_item_records')) {
+            await migrator.createTable(chapterEnrichmentItemRecords);
           }
         }
       },

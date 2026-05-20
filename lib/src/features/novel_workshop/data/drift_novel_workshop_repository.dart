@@ -113,6 +113,33 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
   }
 
   @override
+  Stream<List<ChapterEnrichmentBatch>> watchChapterEnrichmentBatches(
+    String projectId,
+  ) {
+    final query = _database.select(_database.chapterEnrichmentBatchRecords)
+      ..where((batch) => batch.projectId.equals(projectId))
+      ..orderBy([
+        (batch) =>
+            OrderingTerm(expression: batch.updatedAt, mode: OrderingMode.desc),
+      ]);
+    return query.watch().map(
+      (rows) => rows.map(_mapEnrichmentBatch).toList(growable: false),
+    );
+  }
+
+  @override
+  Stream<List<ChapterEnrichmentItem>> watchChapterEnrichmentItems(
+    String batchId,
+  ) {
+    final query = _database.select(_database.chapterEnrichmentItemRecords)
+      ..where((item) => item.batchId.equals(batchId))
+      ..orderBy([(item) => OrderingTerm.asc(item.position)]);
+    return query.watch().map(
+      (rows) => rows.map(_mapEnrichmentItem).toList(growable: false),
+    );
+  }
+
+  @override
   Stream<ChapterGenerationRun?> watchChapterGenerationRunByWorkflowTask(
     String workflowTaskId,
   ) {
@@ -185,6 +212,24 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       ..limit(1);
     final row = await query.getSingleOrNull();
     return row == null ? null : _mapAssetGenerationRun(row);
+  }
+
+  @override
+  Future<ChapterEnrichmentBatch?> findChapterEnrichmentBatch(String id) async {
+    final query = _database.select(_database.chapterEnrichmentBatchRecords)
+      ..where((batch) => batch.id.equals(id))
+      ..limit(1);
+    final row = await query.getSingleOrNull();
+    return row == null ? null : _mapEnrichmentBatch(row);
+  }
+
+  @override
+  Future<ChapterEnrichmentItem?> findChapterEnrichmentItem(String id) async {
+    final query = _database.select(_database.chapterEnrichmentItemRecords)
+      ..where((item) => item.id.equals(id))
+      ..limit(1);
+    final row = await query.getSingleOrNull();
+    return row == null ? null : _mapEnrichmentItem(row);
   }
 
   @override
@@ -1208,6 +1253,248 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     return saved;
   }
 
+  @override
+  Future<ChapterEnrichmentBatch> createChapterEnrichmentBatch(
+    ChapterEnrichmentBatchInput input,
+  ) async {
+    await _validateChapterEnrichmentBatchInput(input);
+    final now = DateTime.now();
+    final batchId = _uuid.v4();
+    final taskId = _uuid.v4();
+
+    await _database.transaction(() async {
+      await _database
+          .into(_database.workflowTaskRecords)
+          .insert(
+            WorkflowTaskRecordsCompanion.insert(
+              id: taskId,
+              kind: chapterEnrichmentWorkflowTaskKind,
+              status: WorkflowTaskStatus.pending.name,
+              title: '章节加料：${input.chapterIds.length} 章',
+              stage: const Value('queued'),
+              errorMessage: const Value(null),
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+      await _database
+          .into(_database.chapterEnrichmentBatchRecords)
+          .insert(
+            ChapterEnrichmentBatchRecordsCompanion.insert(
+              id: batchId,
+              workflowTaskId: taskId,
+              projectId: input.projectId,
+              instruction: input.instruction.trim(),
+              expansionRatioPercent: Value(input.expansionRatioPercent),
+              providerId: input.providerId.trim(),
+              modelName: input.modelName.trim(),
+              status: ChapterEnrichmentBatchStatus.pending.name,
+              errorMessage: const Value(null),
+              totalCount: Value(input.chapterIds.length),
+              generatedCount: const Value(0),
+              failedCount: const Value(0),
+              appliedCount: const Value(0),
+              logs: const Value(''),
+              createdAt: now,
+              updatedAt: now,
+              startedAt: const Value(null),
+              completedAt: const Value(null),
+            ),
+          );
+      for (var index = 0; index < input.chapterIds.length; index += 1) {
+        await _database
+            .into(_database.chapterEnrichmentItemRecords)
+            .insert(
+              ChapterEnrichmentItemRecordsCompanion.insert(
+                id: _uuid.v4(),
+                batchId: batchId,
+                projectId: input.projectId,
+                chapterId: input.chapterIds[index],
+                position: index,
+                status: ChapterEnrichmentItemStatus.waiting.name,
+                errorMessage: const Value(null),
+                originalContentMarkdown: const Value(''),
+                generatedContentMarkdown: const Value(''),
+                providerId: Value(input.providerId.trim()),
+                modelName: Value(input.modelName.trim()),
+                logs: const Value(''),
+                createdAt: now,
+                updatedAt: now,
+                startedAt: const Value(null),
+                completedAt: const Value(null),
+                appliedAt: const Value(null),
+              ),
+            );
+      }
+    });
+
+    final saved = await findChapterEnrichmentBatch(batchId);
+    if (saved == null) {
+      throw StateError('Chapter enrichment batch was not created.');
+    }
+    return saved;
+  }
+
+  @override
+  Future<ChapterEnrichmentBatch> updateChapterEnrichmentBatchState({
+    required String id,
+    required ChapterEnrichmentBatchStatus status,
+    String? providerId,
+    String? modelName,
+    String? errorMessage,
+    String? logs,
+    DateTime? startedAt,
+    DateTime? completedAt,
+  }) async {
+    final batch = await findChapterEnrichmentBatch(id);
+    if (batch == null) {
+      throw StateError('Chapter enrichment batch does not exist: $id');
+    }
+    final now = DateTime.now();
+    final counts = await _chapterEnrichmentCounts(id);
+    await _database.transaction(() async {
+      await (_database.update(
+        _database.chapterEnrichmentBatchRecords,
+      )..where((row) => row.id.equals(id))).write(
+        ChapterEnrichmentBatchRecordsCompanion(
+          status: Value(status.name),
+          providerId: providerId == null
+              ? const Value.absent()
+              : Value(providerId.trim()),
+          modelName: modelName == null
+              ? const Value.absent()
+              : Value(modelName.trim()),
+          errorMessage: Value(errorMessage),
+          logs: logs == null ? const Value.absent() : Value(logs),
+          generatedCount: Value(counts.generatedCount),
+          failedCount: Value(counts.failedCount),
+          appliedCount: Value(counts.appliedCount),
+          startedAt: startedAt == null
+              ? const Value.absent()
+              : Value(startedAt),
+          completedAt: completedAt == null
+              ? const Value.absent()
+              : Value(completedAt),
+          updatedAt: Value(now),
+        ),
+      );
+      await _updateWorkflowTaskForEnrichmentBatch(
+        workflowTaskId: batch.workflowTaskId,
+        status: status,
+        errorMessage: errorMessage,
+        updatedAt: now,
+      );
+    });
+    final saved = await findChapterEnrichmentBatch(id);
+    if (saved == null) {
+      throw StateError('Chapter enrichment batch was not updated.');
+    }
+    return saved;
+  }
+
+  @override
+  Future<ChapterEnrichmentItem> updateChapterEnrichmentItemState({
+    required String id,
+    required ChapterEnrichmentItemStatus status,
+    String? errorMessage,
+    String? originalContentMarkdown,
+    String? generatedContentMarkdown,
+    String? providerId,
+    String? modelName,
+    String? logs,
+    DateTime? startedAt,
+    DateTime? completedAt,
+    DateTime? appliedAt,
+    bool clearStartedAt = false,
+    bool clearCompletedAt = false,
+    bool clearAppliedAt = false,
+  }) async {
+    final item = await findChapterEnrichmentItem(id);
+    if (item == null) {
+      throw StateError('Chapter enrichment item does not exist: $id');
+    }
+    final now = DateTime.now();
+    await (_database.update(
+      _database.chapterEnrichmentItemRecords,
+    )..where((row) => row.id.equals(id))).write(
+      ChapterEnrichmentItemRecordsCompanion(
+        status: Value(status.name),
+        errorMessage: Value(errorMessage),
+        originalContentMarkdown: originalContentMarkdown == null
+            ? const Value.absent()
+            : Value(originalContentMarkdown.trim()),
+        generatedContentMarkdown: generatedContentMarkdown == null
+            ? const Value.absent()
+            : Value(generatedContentMarkdown.trim()),
+        providerId: providerId == null
+            ? const Value.absent()
+            : Value(providerId.trim()),
+        modelName: modelName == null
+            ? const Value.absent()
+            : Value(modelName.trim()),
+        logs: logs == null ? const Value.absent() : Value(logs),
+        startedAt: clearStartedAt
+            ? const Value(null)
+            : startedAt == null
+            ? const Value.absent()
+            : Value(startedAt),
+        completedAt: clearCompletedAt
+            ? const Value(null)
+            : completedAt == null
+            ? const Value.absent()
+            : Value(completedAt),
+        appliedAt: clearAppliedAt
+            ? const Value(null)
+            : appliedAt == null
+            ? const Value.absent()
+            : Value(appliedAt),
+        updatedAt: Value(now),
+      ),
+    );
+    await _refreshChapterEnrichmentBatchCounts(item.batchId);
+    final saved = await findChapterEnrichmentItem(id);
+    if (saved == null) {
+      throw StateError('Chapter enrichment item was not updated.');
+    }
+    return saved;
+  }
+
+  @override
+  Future<ProjectChapter> applyChapterEnrichmentItem(String itemId) async {
+    final item = await findChapterEnrichmentItem(itemId);
+    if (item == null) {
+      throw StateError('Chapter enrichment item does not exist: $itemId');
+    }
+    if (item.status != ChapterEnrichmentItemStatus.generated) {
+      throw StateError('只有已生成的加料结果可以应用。');
+    }
+    final generated = item.generatedContentMarkdown.trim();
+    if (generated.isEmpty) {
+      throw StateError('加料结果为空，无法应用。');
+    }
+    final chapter = await findChapter(item.chapterId);
+    if (chapter == null) {
+      throw StateError('Project chapter does not exist: ${item.chapterId}');
+    }
+    final saved = await saveChapter(
+      id: chapter.id,
+      input: ProjectChapterInput(
+        projectId: chapter.projectId,
+        chapterPlanId: chapter.chapterPlanId,
+        chapterIndex: chapter.chapterIndex,
+        title: chapter.title,
+        contentMarkdown: generated,
+      ),
+    );
+    await updateChapterEnrichmentItemState(
+      id: item.id,
+      status: ChapterEnrichmentItemStatus.applied,
+      errorMessage: null,
+      appliedAt: DateTime.now(),
+    );
+    return saved;
+  }
+
   Future<void> _validateChapterPlanInput(ChapterPlanInput input) async {
     await _requireProject(input.projectId);
     final volume = await _findChapterVolume(input.volumeId);
@@ -1237,6 +1524,37 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     if (plan.projectId != input.projectId ||
         plan.chapterIndex != input.chapterIndex) {
       throw StateError('章节正文与 Chapter Plan 不匹配。');
+    }
+  }
+
+  Future<void> _validateChapterEnrichmentBatchInput(
+    ChapterEnrichmentBatchInput input,
+  ) async {
+    await _requireProject(input.projectId);
+    if (input.chapterIds.isEmpty) {
+      throw StateError('请选择需要加料的章节。');
+    }
+    if (input.instruction.trim().isEmpty) {
+      throw StateError('请输入加料要求。');
+    }
+    if (input.expansionRatioPercent < 1 || input.expansionRatioPercent > 100) {
+      throw StateError('扩写比例必须在 1 到 100 之间。');
+    }
+    if (input.providerId.trim().isEmpty || input.modelName.trim().isEmpty) {
+      throw StateError('加料任务需要 Provider 和模型。');
+    }
+    final seen = <String>{};
+    for (final id in input.chapterIds) {
+      if (!seen.add(id)) {
+        throw StateError('加料章节不能重复。');
+      }
+      final chapter = await findChapter(id);
+      if (chapter == null || chapter.projectId != input.projectId) {
+        throw StateError('加料章节不存在：$id');
+      }
+      if (chapter.contentMarkdown.trim().isEmpty) {
+        throw StateError('章节正文为空，无法加料：${chapter.title}');
+      }
     }
   }
 
@@ -1496,6 +1814,51 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     );
   }
 
+  ChapterEnrichmentBatch _mapEnrichmentBatch(ChapterEnrichmentBatchRecord row) {
+    return ChapterEnrichmentBatch(
+      id: row.id,
+      workflowTaskId: row.workflowTaskId,
+      projectId: row.projectId,
+      instruction: row.instruction,
+      expansionRatioPercent: row.expansionRatioPercent,
+      providerId: row.providerId,
+      modelName: row.modelName,
+      status: ChapterEnrichmentBatchStatus.values.byName(row.status),
+      errorMessage: row.errorMessage,
+      totalCount: row.totalCount,
+      generatedCount: row.generatedCount,
+      failedCount: row.failedCount,
+      appliedCount: row.appliedCount,
+      logs: row.logs,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      startedAt: row.startedAt,
+      completedAt: row.completedAt,
+    );
+  }
+
+  ChapterEnrichmentItem _mapEnrichmentItem(ChapterEnrichmentItemRecord row) {
+    return ChapterEnrichmentItem(
+      id: row.id,
+      batchId: row.batchId,
+      projectId: row.projectId,
+      chapterId: row.chapterId,
+      position: row.position,
+      status: ChapterEnrichmentItemStatus.values.byName(row.status),
+      errorMessage: row.errorMessage,
+      originalContentMarkdown: row.originalContentMarkdown,
+      generatedContentMarkdown: row.generatedContentMarkdown,
+      providerId: row.providerId,
+      modelName: row.modelName,
+      logs: row.logs,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      startedAt: row.startedAt,
+      completedAt: row.completedAt,
+      appliedAt: row.appliedAt,
+    );
+  }
+
   String _generationTaskTitle(ChapterPlan? plan) {
     final title = plan?.objectiveCard.chapterTitle.trim();
     if (title == null || title.isEmpty) {
@@ -1537,6 +1900,18 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     };
   }
 
+  WorkflowTaskStatus _enrichmentWorkflowStatus(
+    ChapterEnrichmentBatchStatus status,
+  ) {
+    return switch (status) {
+      ChapterEnrichmentBatchStatus.pending => WorkflowTaskStatus.pending,
+      ChapterEnrichmentBatchStatus.running => WorkflowTaskStatus.running,
+      ChapterEnrichmentBatchStatus.succeeded => WorkflowTaskStatus.succeeded,
+      ChapterEnrichmentBatchStatus.partialFailed => WorkflowTaskStatus.failed,
+      ChapterEnrichmentBatchStatus.failed => WorkflowTaskStatus.failed,
+    };
+  }
+
   Future<void> _updateWorkflowTaskForGenerationRun({
     required String workflowTaskId,
     required ChapterGenerationStatus status,
@@ -1575,6 +1950,61 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     );
   }
 
+  Future<void> _updateWorkflowTaskForEnrichmentBatch({
+    required String workflowTaskId,
+    required ChapterEnrichmentBatchStatus status,
+    required String? errorMessage,
+    required DateTime updatedAt,
+  }) {
+    return (_database.update(
+      _database.workflowTaskRecords,
+    )..where((task) => task.id.equals(workflowTaskId))).write(
+      WorkflowTaskRecordsCompanion(
+        status: Value(_enrichmentWorkflowStatus(status).name),
+        stage: Value(status.name),
+        errorMessage: Value(errorMessage),
+        updatedAt: Value(updatedAt),
+      ),
+    );
+  }
+
+  Future<_ChapterEnrichmentCounts> _chapterEnrichmentCounts(
+    String batchId,
+  ) async {
+    final rows = await (_database.select(
+      _database.chapterEnrichmentItemRecords,
+    )..where((row) => row.batchId.equals(batchId))).get();
+    return _ChapterEnrichmentCounts(
+      generatedCount: rows
+          .where(
+            (row) => row.status == ChapterEnrichmentItemStatus.generated.name,
+          )
+          .length,
+      failedCount: rows
+          .where((row) => row.status == ChapterEnrichmentItemStatus.failed.name)
+          .length,
+      appliedCount: rows
+          .where(
+            (row) => row.status == ChapterEnrichmentItemStatus.applied.name,
+          )
+          .length,
+    );
+  }
+
+  Future<void> _refreshChapterEnrichmentBatchCounts(String batchId) async {
+    final counts = await _chapterEnrichmentCounts(batchId);
+    await (_database.update(
+      _database.chapterEnrichmentBatchRecords,
+    )..where((row) => row.id.equals(batchId))).write(
+      ChapterEnrichmentBatchRecordsCompanion(
+        generatedCount: Value(counts.generatedCount),
+        failedCount: Value(counts.failedCount),
+        appliedCount: Value(counts.appliedCount),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
   String _hashContent(String content) {
     const offsetBasis = 0xcbf29ce484222325;
     const prime = 0x100000001b3;
@@ -1585,4 +2015,16 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     }
     return hash.toRadixString(16).padLeft(16, '0');
   }
+}
+
+class _ChapterEnrichmentCounts {
+  const _ChapterEnrichmentCounts({
+    required this.generatedCount,
+    required this.failedCount,
+    required this.appliedCount,
+  });
+
+  final int generatedCount;
+  final int failedCount;
+  final int appliedCount;
 }

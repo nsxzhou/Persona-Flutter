@@ -33,8 +33,25 @@ enum AssetGenerationStatus { pending, running, succeeded, failed, applied }
 
 enum AssetGenerationStage { preparingContext, generatingDraft, savingDraft }
 
+enum ChapterEnrichmentBatchStatus {
+  pending,
+  running,
+  succeeded,
+  partialFailed,
+  failed,
+}
+
+enum ChapterEnrichmentItemStatus {
+  waiting,
+  running,
+  generated,
+  failed,
+  applied,
+}
+
 const chapterGenerationWorkflowTaskKind = 'novel_chapter_generation';
 const assetGenerationWorkflowTaskKind = 'novel_asset_generation';
+const chapterEnrichmentWorkflowTaskKind = 'novel_chapter_enrichment';
 
 class ProjectBible {
   const ProjectBible({
@@ -453,6 +470,118 @@ class ChapterGenerationResult {
   final ChapterGenerationRun run;
   final ProjectChapter chapter;
   final List<String> contextWarnings;
+  final String workflowTaskId;
+}
+
+class ChapterEnrichmentBatch {
+  const ChapterEnrichmentBatch({
+    required this.id,
+    required this.workflowTaskId,
+    required this.projectId,
+    required this.instruction,
+    required this.expansionRatioPercent,
+    required this.providerId,
+    required this.modelName,
+    required this.status,
+    required this.errorMessage,
+    required this.totalCount,
+    required this.generatedCount,
+    required this.failedCount,
+    required this.appliedCount,
+    required this.logs,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.startedAt,
+    required this.completedAt,
+  });
+
+  final String id;
+  final String workflowTaskId;
+  final String projectId;
+  final String instruction;
+  final int expansionRatioPercent;
+  final String providerId;
+  final String modelName;
+  final ChapterEnrichmentBatchStatus status;
+  final String? errorMessage;
+  final int totalCount;
+  final int generatedCount;
+  final int failedCount;
+  final int appliedCount;
+  final String logs;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? startedAt;
+  final DateTime? completedAt;
+}
+
+class ChapterEnrichmentItem {
+  const ChapterEnrichmentItem({
+    required this.id,
+    required this.batchId,
+    required this.projectId,
+    required this.chapterId,
+    required this.position,
+    required this.status,
+    required this.errorMessage,
+    required this.originalContentMarkdown,
+    required this.generatedContentMarkdown,
+    required this.providerId,
+    required this.modelName,
+    required this.logs,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.startedAt,
+    required this.completedAt,
+    required this.appliedAt,
+  });
+
+  final String id;
+  final String batchId;
+  final String projectId;
+  final String chapterId;
+  final int position;
+  final ChapterEnrichmentItemStatus status;
+  final String? errorMessage;
+  final String originalContentMarkdown;
+  final String generatedContentMarkdown;
+  final String providerId;
+  final String modelName;
+  final String logs;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? startedAt;
+  final DateTime? completedAt;
+  final DateTime? appliedAt;
+}
+
+class ChapterEnrichmentBatchInput {
+  const ChapterEnrichmentBatchInput({
+    required this.projectId,
+    required this.chapterIds,
+    required this.instruction,
+    required this.expansionRatioPercent,
+    required this.providerId,
+    required this.modelName,
+  });
+
+  final String projectId;
+  final List<String> chapterIds;
+  final String instruction;
+  final int expansionRatioPercent;
+  final String providerId;
+  final String modelName;
+}
+
+class ChapterEnrichmentResult {
+  const ChapterEnrichmentResult({
+    required this.batch,
+    required this.items,
+    required this.workflowTaskId,
+  });
+
+  final ChapterEnrichmentBatch batch;
+  final List<ChapterEnrichmentItem> items;
   final String workflowTaskId;
 }
 

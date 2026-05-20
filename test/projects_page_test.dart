@@ -401,6 +401,16 @@ class _MutableProjectRepository implements ProjectRepository {
   }
 
   @override
+  Future<WritingProject> createProject(WritingProjectInput input) async {
+    await saveProject(id: 'created-project', input: input);
+    final project = await findProject('created-project');
+    if (project == null) {
+      throw StateError('Project was not saved.');
+    }
+    return project;
+  }
+
+  @override
   Future<void> saveProject({
     String? id,
     required WritingProjectInput input,
@@ -418,8 +428,10 @@ class _MutableProjectRepository implements ProjectRepository {
       defaultModelName: input.defaultModelName,
       styleProfileId: input.styleProfileId,
       plotProfileId: input.plotProfileId,
+      origin: input.origin,
       language: input.language,
       targetLength: input.targetLength,
+      totalTargetLength: input.totalTargetLength,
       narrativePerspective: input.narrativePerspective,
       createdAt: existingIndex == -1 ? now : _projects[existingIndex].createdAt,
       updatedAt: now,

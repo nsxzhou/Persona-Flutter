@@ -41,6 +41,7 @@ void main() {
     expect(active.single.plotProfileId, isNull);
     expect(active.single.language, '简体中文');
     expect(active.single.targetLength, 3200);
+    expect(active.single.origin, ProjectOrigin.standard);
     expect(active.single.narrativePerspective, '第三人称有限视角');
 
     final saved = active.single;
@@ -52,6 +53,7 @@ void main() {
         status: ProjectStatus.archived,
         defaultProviderId: provider.id,
         defaultModelName: 'gpt-4.1',
+        origin: ProjectOrigin.importedEnrichment,
         language: 'English',
         targetLength: 1800,
         narrativePerspective: '第一人称',
@@ -65,6 +67,7 @@ void main() {
     expect(archived.single.id, saved.id);
     expect(archived.single.title, '雾港纪事：修订');
     expect(archived.single.defaultModelName, 'gpt-4.1');
+    expect(archived.single.origin, ProjectOrigin.importedEnrichment);
     expect(archived.single.language, 'English');
     expect(archived.single.targetLength, 1800);
     expect(archived.single.narrativePerspective, '第一人称');
@@ -240,6 +243,7 @@ void main() {
       expect(project, isNotNull);
       expect(project!.defaultProviderId, 'provider-1');
       expect(project.defaultModelName, 'gpt-4.1-mini');
+      expect(project.origin, ProjectOrigin.standard);
       expect(project.language, defaultProjectLanguage);
       expect(project.targetLength, defaultProjectTargetLength);
       expect(project.narrativePerspective, defaultProjectNarrativePerspective);
