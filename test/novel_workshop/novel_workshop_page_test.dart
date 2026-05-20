@@ -166,6 +166,46 @@ void main() {
     expect(fixture.repository.bible.outlineMasterMarkdown, '失踪案引出港务处阴谋。');
   });
 
+  testWidgets('workshop reviews recovered asset draft before overwrite', (
+    tester,
+  ) async {
+    final fixture = _WorkshopFixture();
+    fixture.repository.assetRuns.add(
+      _assetRun(
+        id: 'asset-run-world',
+        projectId: 'project-1',
+        kind: AssetGenerationKind.worldBuilding,
+        status: AssetGenerationStatus.succeeded,
+        draftMarkdown: '# 新世界观\n\n七个港务家族共同控制雾港。',
+      ),
+    );
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('世界观设定').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextButton, '查看草稿'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('世界观设定草稿'), findsOneWidget);
+    expect(find.textContaining('七个港务家族'), findsOneWidget);
+    expect(find.text('应用草稿会覆盖当前已保存内容。'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, '确认覆盖并应用'));
+    await tester.pumpAndSettle();
+
+    expect(
+      fixture.repository.bible.worldBuildingMarkdown,
+      '# 新世界观\n\n七个港务家族共同控制雾港。',
+    );
+    expect(
+      fixture.repository.assetRuns.single.status,
+      AssetGenerationStatus.applied,
+    );
+  });
+
   testWidgets('empty runtime memory is neutral in overview and prompt stack', (
     tester,
   ) async {
@@ -182,7 +222,7 @@ void main() {
     await tester.tap(find.text('Runtime Memory').last);
     await tester.pumpAndSettle();
 
-    expect(find.text('暂无 Runtime Memory'), findsOneWidget);
+    expect(find.text('运行时记忆尚未建立'), findsOneWidget);
 
     await tester.ensureVisible(find.text('Prompt 栈').last);
     await tester.tap(find.text('Prompt 栈').last);
@@ -740,6 +780,7 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   final List<ChapterPlan> plans;
   final List<ProjectChapter> chapters;
   final List<ChapterGenerationRun> runs;
+  final List<AssetGenerationRun> assetRuns = [];
   final List<ChapterVolume> volumes;
   ProjectBible bible;
   ProjectRuntimeMemory memory;
@@ -774,6 +815,21 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   }
 
   @override
+  Future<AssetGenerationRun> createAssetGenerationRun(
+    AssetGenerationRunInput input,
+  ) async {
+    final run = _assetRun(
+      id: 'asset-run-${assetRuns.length + 1}',
+      projectId: input.projectId,
+      kind: input.kind,
+      status: AssetGenerationStatus.pending,
+    );
+    assetRuns.add(run);
+    emit();
+    return run;
+  }
+
+  @override
   Future<ChapterPlan?> findChapterPlan(String id) async {
     return plans.where((plan) => plan.id == id).firstOrNull;
   }
@@ -793,6 +849,11 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   @override
   Future<ChapterGenerationRun?> findChapterGenerationRun(String id) async {
     return runs.where((run) => run.id == id).firstOrNull;
+  }
+
+  @override
+  Future<AssetGenerationRun?> findAssetGenerationRun(String id) async {
+    return assetRuns.where((run) => run.id == id).firstOrNull;
   }
 
   @override
@@ -957,6 +1018,53 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   }
 
   @override
+  Future<ProjectBible> applyAssetGenerationDraft(String runId) async {
+    final run = assetRuns.singleWhere((item) => item.id == runId);
+    final draft = run.draftMarkdown;
+    final saved = switch (run.kind) {
+      AssetGenerationKind.worldBuilding => await saveProjectBible(
+        ProjectBibleInput(
+          projectId: bible.projectId,
+          descriptionMarkdown: bible.descriptionMarkdown,
+          worldBuildingMarkdown: draft,
+          charactersBlueprintMarkdown: bible.charactersBlueprintMarkdown,
+          outlineMasterMarkdown: bible.outlineMasterMarkdown,
+          outlineDetailYaml: bible.outlineDetailYaml,
+        ),
+      ),
+      AssetGenerationKind.charactersBlueprint => await saveProjectBible(
+        ProjectBibleInput(
+          projectId: bible.projectId,
+          descriptionMarkdown: bible.descriptionMarkdown,
+          worldBuildingMarkdown: bible.worldBuildingMarkdown,
+          charactersBlueprintMarkdown: draft,
+          outlineMasterMarkdown: bible.outlineMasterMarkdown,
+          outlineDetailYaml: bible.outlineDetailYaml,
+        ),
+      ),
+      AssetGenerationKind.outlineMaster => await saveProjectBible(
+        ProjectBibleInput(
+          projectId: bible.projectId,
+          descriptionMarkdown: bible.descriptionMarkdown,
+          worldBuildingMarkdown: bible.worldBuildingMarkdown,
+          charactersBlueprintMarkdown: bible.charactersBlueprintMarkdown,
+          outlineMasterMarkdown: draft,
+          outlineDetailYaml: bible.outlineDetailYaml,
+        ),
+      ),
+      AssetGenerationKind.outlineDetailYaml => await saveOutlineDetailYaml(
+        projectId: bible.projectId,
+        outlineDetailYaml: draft,
+      ),
+    };
+    await updateAssetGenerationRunState(
+      id: run.id,
+      status: AssetGenerationStatus.applied,
+    );
+    return saved;
+  }
+
+  @override
   Future<ChapterGenerationRun> updateChapterGenerationRunState({
     required String id,
     required ChapterGenerationStatus status,
@@ -974,11 +1082,59 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   }
 
   @override
+  Future<AssetGenerationRun> updateAssetGenerationRunState({
+    required String id,
+    required AssetGenerationStatus status,
+    AssetGenerationStage? stage,
+    String? providerId,
+    String? modelName,
+    String? errorMessage,
+    String? logs,
+    String? draftMarkdown,
+    DateTime? startedAt,
+    DateTime? completedAt,
+  }) async {
+    final index = assetRuns.indexWhere((run) => run.id == id);
+    final current = assetRuns[index];
+    final updated = AssetGenerationRun(
+      id: current.id,
+      workflowTaskId: current.workflowTaskId,
+      projectId: current.projectId,
+      kind: current.kind,
+      providerId: providerId ?? current.providerId,
+      modelName: modelName ?? current.modelName,
+      status: status,
+      stage: stage,
+      errorMessage: errorMessage,
+      logs: logs ?? current.logs,
+      draftMarkdown: draftMarkdown ?? current.draftMarkdown,
+      createdAt: current.createdAt,
+      updatedAt: _testUpdatedAt,
+      startedAt: startedAt ?? current.startedAt,
+      completedAt: completedAt ?? current.completedAt,
+    );
+    assetRuns[index] = updated;
+    emit();
+    return updated;
+  }
+
+  @override
   Stream<List<ChapterGenerationRun>> watchChapterGenerationRuns(
     String projectId,
   ) async* {
     List<ChapterGenerationRun> snapshot() =>
         runs.where((run) => run.projectId == projectId).toList(growable: false);
+    yield snapshot();
+    yield* _changes.stream.map((_) => snapshot());
+  }
+
+  @override
+  Stream<List<AssetGenerationRun>> watchAssetGenerationRuns(
+    String projectId,
+  ) async* {
+    List<AssetGenerationRun> snapshot() => assetRuns
+        .where((run) => run.projectId == projectId)
+        .toList(growable: false);
     yield snapshot();
     yield* _changes.stream.map((_) => snapshot());
   }
@@ -1159,6 +1315,36 @@ ChapterGenerationRun _run({
     updatedAt: DateTime(2026, 5, 18, 10),
     startedAt: DateTime(2026, 5, 18, 9),
     completedAt: status == ChapterGenerationStatus.running
+        ? null
+        : DateTime(2026, 5, 18, 10),
+  );
+}
+
+AssetGenerationRun _assetRun({
+  required String id,
+  required String projectId,
+  required AssetGenerationKind kind,
+  required AssetGenerationStatus status,
+  String draftMarkdown = '生成草稿。',
+}) {
+  return AssetGenerationRun(
+    id: id,
+    workflowTaskId: 'task-$id',
+    projectId: projectId,
+    kind: kind,
+    providerId: 'provider-1',
+    modelName: 'gpt-4.1-mini',
+    status: status,
+    stage: status == AssetGenerationStatus.running
+        ? AssetGenerationStage.generatingDraft
+        : null,
+    errorMessage: null,
+    logs: '资产生成完成。',
+    draftMarkdown: draftMarkdown,
+    createdAt: DateTime(2026, 5, 18, 9),
+    updatedAt: DateTime(2026, 5, 18, 10),
+    startedAt: DateTime(2026, 5, 18, 9),
+    completedAt: status == AssetGenerationStatus.running
         ? null
         : DateTime(2026, 5, 18, 10),
   );
