@@ -63,6 +63,7 @@ runtimeMemory:
     expect(result.chapter.title, '第一章');
     expect(result.chapter.contentMarkdown, '雾气贴着码头爬上来。');
     expect(result.run.status, ChapterGenerationStatus.succeeded);
+    expect(result.run.logs, contains('生成待审阅 Runtime Memory、角色卡片和关系图 Patch'));
     expect(result.workflowTaskId, result.run.workflowTaskId);
     expect(result.contextWarnings, isEmpty);
     expect(fixture.llmClient.invocationCount, 2);
@@ -77,6 +78,9 @@ runtimeMemory:
     expect(fixture.llmClient.prompts.first, contains('伏笔'));
     expect(fixture.llmClient.prompts.last, contains('结构化记忆 Patch'));
     expect(fixture.llmClient.prompts.last, contains('只记录本章正文明确发生'));
+    expect(fixture.llmClient.prompts.last, contains('不要输出全量快照'));
+    expect(fixture.llmClient.prompts.last, contains('字段缺失表示保留旧值'));
+    expect(fixture.llmClient.prompts.last, isNot(contains('必须输出更新后的完整五字段')));
     expect(fixture.llmClient.prompts.last, contains('未解决悬念'));
     expect(fixture.llmClient.prompts.last, contains('伏笔债务'));
     expect(fixture.llmClient.prompts.last, contains('storySummary'));

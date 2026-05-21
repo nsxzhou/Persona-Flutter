@@ -1305,6 +1305,89 @@ final class ChapterGenerationRunByWorkflowTaskFamily extends $Family
   String toString() => r'chapterGenerationRunByWorkflowTaskProvider';
 }
 
+@ProviderFor(assetGenerationRunByWorkflowTask)
+final assetGenerationRunByWorkflowTaskProvider =
+    AssetGenerationRunByWorkflowTaskFamily._();
+
+final class AssetGenerationRunByWorkflowTaskProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<AssetGenerationRun?>,
+          AssetGenerationRun?,
+          Stream<AssetGenerationRun?>
+        >
+    with
+        $FutureModifier<AssetGenerationRun?>,
+        $StreamProvider<AssetGenerationRun?> {
+  AssetGenerationRunByWorkflowTaskProvider._({
+    required AssetGenerationRunByWorkflowTaskFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'assetGenerationRunByWorkflowTaskProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$assetGenerationRunByWorkflowTaskHash();
+
+  @override
+  String toString() {
+    return r'assetGenerationRunByWorkflowTaskProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<AssetGenerationRun?> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<AssetGenerationRun?> create(Ref ref) {
+    final argument = this.argument as String;
+    return assetGenerationRunByWorkflowTask(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is AssetGenerationRunByWorkflowTaskProvider &&
+        other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$assetGenerationRunByWorkflowTaskHash() =>
+    r'51f7912ea0fc9b5718f8dc41abfdc17126025742';
+
+final class AssetGenerationRunByWorkflowTaskFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<AssetGenerationRun?>, String> {
+  AssetGenerationRunByWorkflowTaskFamily._()
+    : super(
+        retry: null,
+        name: r'assetGenerationRunByWorkflowTaskProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  AssetGenerationRunByWorkflowTaskProvider call(String workflowTaskId) =>
+      AssetGenerationRunByWorkflowTaskProvider._(
+        argument: workflowTaskId,
+        from: this,
+      );
+
+  @override
+  String toString() => r'assetGenerationRunByWorkflowTaskProvider';
+}
+
 @ProviderFor(projectRuntimeMemory)
 final projectRuntimeMemoryProvider = ProjectRuntimeMemoryFamily._();
 

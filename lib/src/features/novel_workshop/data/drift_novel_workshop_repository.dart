@@ -153,6 +153,18 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
   }
 
   @override
+  Stream<AssetGenerationRun?> watchAssetGenerationRunByWorkflowTask(
+    String workflowTaskId,
+  ) {
+    final query = _database.select(_database.assetGenerationRunRecords)
+      ..where((run) => run.workflowTaskId.equals(workflowTaskId))
+      ..limit(1);
+    return query.watchSingleOrNull().map(
+      (row) => row == null ? null : _mapAssetGenerationRun(row),
+    );
+  }
+
+  @override
   Future<ChapterPlan?> findChapterPlan(String id) async {
     final query = _database.select(_database.chapterPlanRecords)
       ..where((plan) => plan.id.equals(id))
@@ -619,6 +631,126 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     return saved;
   }
 
+  Future<ProjectBible> _applyOutlineDetailDraft({
+    required AssetGenerationRun run,
+    required String draft,
+    required ProjectBible bible,
+  }) async {
+    final incoming = const OutlineDetailParser().parse(draft);
+    final targetVolumeId = run.targetVolumeId?.trim();
+    if (bible.outlineDetailYaml.trim().isEmpty) {
+      return saveOutlineDetailYaml(
+        projectId: run.projectId,
+        outlineDetailYaml: _outlineDetailYamlFromDocument(incoming),
+      );
+    }
+
+    var incomingVolumes = incoming.volumes;
+    if (targetVolumeId != null && targetVolumeId.isNotEmpty) {
+      final targetVolume = await _findChapterVolume(targetVolumeId);
+      if (targetVolume == null || targetVolume.projectId != run.projectId) {
+        throw StateError('目标分卷不存在。');
+      }
+      incomingVolumes = incoming.volumes
+          .where((volume) => volume.volumeIndex == targetVolume.volumeIndex)
+          .toList(growable: false);
+      if (incomingVolumes.length != 1) {
+        throw StateError('章节细纲草稿必须只包含目标分卷。');
+      }
+    }
+
+    final existing = const OutlineDetailParser().parse(bible.outlineDetailYaml);
+    final incomingByIndex = {
+      for (final volume in incomingVolumes) volume.volumeIndex: volume,
+    };
+    final volumes = <OutlineVolumeDraft>[];
+    for (final volume in existing.volumes) {
+      volumes.add(incomingByIndex.remove(volume.volumeIndex) ?? volume);
+    }
+    volumes.addAll(incomingByIndex.values);
+    volumes.sort((a, b) => a.volumeIndex.compareTo(b.volumeIndex));
+    final merged = OutlineDetailDocument(volumes: List.unmodifiable(volumes));
+
+    return saveOutlineDetailYaml(
+      projectId: run.projectId,
+      outlineDetailYaml: _outlineDetailYamlFromDocument(merged),
+    );
+  }
+
+  String _outlineDetailYamlFromDocument(OutlineDetailDocument document) {
+    final buffer = StringBuffer('volumes:\n');
+    for (final volume in document.volumes) {
+      buffer
+        ..writeln('  - index: ${volume.volumeIndex}')
+        ..writeln('    title: ${_yamlScalar(volume.title)}')
+        ..writeln('    chapters:');
+      for (final chapter in volume.chapters) {
+        buffer
+          ..writeln('      - index: ${chapter.chapterLocalIndex}')
+          ..writeln(
+            '        title: ${_yamlScalar(chapter.objectiveCard.chapterTitle)}',
+          );
+        _writeYamlScalarField(
+          buffer,
+          'objective',
+          chapter.objectiveCard.objective,
+        );
+        _writeYamlScalarField(
+          buffer,
+          'pressureSource',
+          chapter.objectiveCard.pressureSource,
+        );
+        _writeYamlScalarField(
+          buffer,
+          'payoffTarget',
+          chapter.objectiveCard.payoffTarget,
+        );
+        _writeYamlScalarField(
+          buffer,
+          'relationshipShift',
+          chapter.objectiveCard.relationshipShift,
+        );
+        _writeYamlScalarField(
+          buffer,
+          'hookType',
+          chapter.objectiveCard.hookType,
+        );
+        _writeYamlScalarField(buffer, 'coreEvent', chapter.coreEvent);
+        _writeYamlScalarField(buffer, 'emotionArc', chapter.emotionArc);
+        _writeYamlScalarField(buffer, 'chapterHook', chapter.chapterHook);
+        _writeYamlBlockField(
+          buffer,
+          'outlineMarkdown',
+          chapter.outlineMarkdown,
+        );
+      }
+    }
+    return buffer.toString().trimRight();
+  }
+
+  void _writeYamlScalarField(StringBuffer buffer, String key, String value) {
+    if (value.trim().isEmpty) {
+      return;
+    }
+    buffer.writeln('        $key: ${_yamlScalar(value)}');
+  }
+
+  void _writeYamlBlockField(StringBuffer buffer, String key, String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      return;
+    }
+    buffer.writeln('        $key: |-');
+    for (final line in trimmed.split('\n')) {
+      buffer.writeln('          $line');
+    }
+  }
+
+  String _yamlScalar(String value) {
+    final escaped = value.trim().replaceAll("'", "''");
+    return "'$escaped'";
+  }
+
   Future<void> _saveVolumeBlueprintYaml({
     required String projectId,
     required String volumeBlueprintYaml,
@@ -660,15 +792,78 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
                 id: Value(id),
                 projectId: Value(projectId),
                 name: Value(draft.name),
-                aliases: Value(draft.aliases),
-                tags: Value(draft.tags),
-                faction: Value(draft.faction),
-                role: Value(draft.role),
-                longTermGoal: Value(draft.longTermGoal),
-                currentStatus: Value(draft.currentStatus),
-                secrets: Value(draft.secrets),
-                firstChapterIndex: Value(draft.firstChapterIndex),
-                lastChapterIndex: Value(draft.lastChapterIndex),
+                aliases: Value(
+                  _mergeString(
+                    draft.fields,
+                    'aliases',
+                    draft.aliases,
+                    existing?.aliases,
+                  ),
+                ),
+                tags: Value(
+                  _mergeString(
+                    draft.fields,
+                    'tags',
+                    draft.tags,
+                    existing?.tags,
+                  ),
+                ),
+                faction: Value(
+                  _mergeString(
+                    draft.fields,
+                    'faction',
+                    draft.faction,
+                    existing?.faction,
+                  ),
+                ),
+                role: Value(
+                  _mergeString(
+                    draft.fields,
+                    'role',
+                    draft.role,
+                    existing?.role,
+                  ),
+                ),
+                longTermGoal: Value(
+                  _mergeString(
+                    draft.fields,
+                    'longTermGoal',
+                    draft.longTermGoal,
+                    existing?.longTermGoal,
+                  ),
+                ),
+                currentStatus: Value(
+                  _mergeString(
+                    draft.fields,
+                    'currentStatus',
+                    draft.currentStatus,
+                    existing?.currentStatus,
+                  ),
+                ),
+                secrets: Value(
+                  _mergeString(
+                    draft.fields,
+                    'secrets',
+                    draft.secrets,
+                    existing?.secrets,
+                  ),
+                ),
+                firstChapterIndex: Value(
+                  _mergeInt(
+                    draft.fields,
+                    'firstChapterIndex',
+                    draft.firstChapterIndex,
+                    existing?.firstChapterIndex,
+                  ),
+                ),
+                lastChapterIndex: Value(
+                  _mergeInt(
+                    draft.fields,
+                    'lastChapterIndex',
+                    draft.lastChapterIndex,
+                    existing?.lastChapterIndex,
+                  ),
+                ),
                 createdAt: Value(existing?.createdAt ?? now),
                 updatedAt: Value(now),
               ),
@@ -695,11 +890,47 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
                 projectId: Value(projectId),
                 fromCharacterId: Value(fromId),
                 toCharacterId: Value(toId),
-                relationshipType: Value(draft.relationshipType),
-                strength: Value(draft.strength.clamp(-5, 5)),
-                status: Value(draft.status),
-                description: Value(draft.description),
-                lastChangedChapterIndex: Value(draft.lastChangedChapterIndex),
+                relationshipType: Value(
+                  _mergeString(
+                    draft.fields,
+                    'type',
+                    draft.relationshipType,
+                    existingRelationship?.relationshipType,
+                  ),
+                ),
+                strength: Value(
+                  _mergeInt(
+                        draft.fields,
+                        'strength',
+                        draft.strength.clamp(-5, 5),
+                        existingRelationship?.strength,
+                      ) ??
+                      0,
+                ),
+                status: Value(
+                  _mergeString(
+                    draft.fields,
+                    'status',
+                    draft.status,
+                    existingRelationship?.status,
+                  ),
+                ),
+                description: Value(
+                  _mergeString(
+                    draft.fields,
+                    'description',
+                    draft.description,
+                    existingRelationship?.description,
+                  ),
+                ),
+                lastChangedChapterIndex: Value(
+                  _mergeInt(
+                    draft.fields,
+                    'lastChangedChapterIndex',
+                    draft.lastChangedChapterIndex,
+                    existingRelationship?.lastChangedChapterIndex,
+                  ),
+                ),
                 createdAt: Value(existingRelationship?.createdAt ?? now),
                 updatedAt: Value(now),
               ),
@@ -835,16 +1066,12 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
         charactersYaml: patchYaml,
       );
     }
+    final currentMemory =
+        (await findRuntimeMemory(chapter.projectId))?.state ??
+        const RuntimeMemoryState();
     await saveRuntimeMemory(
       projectId: chapter.projectId,
-      state: RuntimeMemoryState(
-        runtimeState: chapter.memorySyncProposedRuntimeState,
-        runtimeThreads: chapter.memorySyncProposedRuntimeThreads,
-        storySummary: chapter.memorySyncProposedStorySummary,
-        continuityIndex: chapter.memorySyncProposedContinuityIndex,
-        chapterArchiveMarkdown:
-            chapter.memorySyncProposedChapterArchiveMarkdown,
-      ),
+      state: _mergeRuntimeMemoryPatch(currentMemory, patchYaml),
     );
     final now = DateTime.now();
     await (_database.update(
@@ -887,6 +1114,108 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       return value.isNotEmpty;
     }
     return false;
+  }
+
+  String _mergeString(
+    Set<String> fields,
+    String key,
+    String patchValue,
+    String? existingValue,
+  ) {
+    if (fields.contains(key)) {
+      return patchValue.trim();
+    }
+    return existingValue?.trim() ?? '';
+  }
+
+  int? _mergeInt(
+    Set<String> fields,
+    String key,
+    int? patchValue,
+    int? existingValue,
+  ) {
+    if (fields.contains(key)) {
+      return patchValue;
+    }
+    return existingValue;
+  }
+
+  RuntimeMemoryState _mergeRuntimeMemoryPatch(
+    RuntimeMemoryState current,
+    String patchYaml,
+  ) {
+    final trimmed = patchYaml.trim();
+    if (trimmed.isEmpty) {
+      return current;
+    }
+    try {
+      final parsed = loadYaml(trimmed);
+      if (parsed is! YamlMap) {
+        return current;
+      }
+      final memory = parsed['runtimeMemory'];
+      if (memory is! YamlMap) {
+        return current;
+      }
+      return RuntimeMemoryState(
+        runtimeState:
+            _yamlPatchString(memory, 'runtimeState') ?? current.runtimeState,
+        runtimeThreads:
+            _yamlPatchString(memory, 'runtimeThreads') ??
+            current.runtimeThreads,
+        storySummary:
+            _yamlPatchString(memory, 'storySummary') ?? current.storySummary,
+        continuityIndex:
+            _yamlPatchString(memory, 'continuityIndex') ??
+            current.continuityIndex,
+        chapterArchiveMarkdown: _mergeChapterArchive(
+          current.chapterArchiveMarkdown,
+          _yamlPatchString(memory, 'chapterArchiveMarkdown'),
+        ),
+      );
+    } on Object {
+      return current;
+    }
+  }
+
+  String? _yamlPatchString(YamlMap map, String key) {
+    for (final entry in map.entries) {
+      if (entry.key.toString() == key) {
+        return _yamlString(entry.value);
+      }
+    }
+    return null;
+  }
+
+  String _yamlString(Object? value) {
+    if (value == null) {
+      return '';
+    }
+    if (value is YamlScalar) {
+      return value.value?.toString().trim() ?? '';
+    }
+    if (value is String) {
+      return value.trim();
+    }
+    return value.toString().trim();
+  }
+
+  String _mergeChapterArchive(String current, String? patch) {
+    final currentTrimmed = current.trim();
+    final patchTrimmed = patch?.trim();
+    if (patchTrimmed == null) {
+      return currentTrimmed;
+    }
+    if (patchTrimmed.isEmpty) {
+      return '';
+    }
+    if (currentTrimmed.isEmpty) {
+      return patchTrimmed;
+    }
+    if (currentTrimmed.contains(patchTrimmed)) {
+      return currentTrimmed;
+    }
+    return '$currentTrimmed\n\n$patchTrimmed';
   }
 
   @override
@@ -1108,9 +1437,10 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       ),
       AssetGenerationKind.volumeBlueprintYaml =>
         await _applyVolumeBlueprintAndReturnBible(run.projectId, draft, bible),
-      AssetGenerationKind.outlineDetailYaml => await saveOutlineDetailYaml(
-        projectId: run.projectId,
-        outlineDetailYaml: draft,
+      AssetGenerationKind.outlineDetailYaml => await _applyOutlineDetailDraft(
+        run: run,
+        draft: draft,
+        bible: bible,
       ),
     };
 

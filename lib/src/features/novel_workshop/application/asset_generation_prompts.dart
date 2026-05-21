@@ -236,7 +236,7 @@ ${_fallback(assets.storyEngineMarkdown, '暂无。')}
     ChapterVolume? targetVolume,
   ) {
     final targetVolumeBlock = targetVolume == null
-        ? '未指定。若已有分卷规划，请生成全部分卷的章节细纲。'
+        ? '未指定。若已有分卷规划，请优先补全缺少章节细纲的分卷；不要重写已有章节细纲。'
         : [
             '- 卷序：${targetVolume.volumeIndex}',
             '- 卷名：${targetVolume.title}',
@@ -259,7 +259,8 @@ ${_fallback(assets.storyEngineMarkdown, '暂无。')}
 - 每个 chapter 必须有 `index`、`title`。
 - 每个 chapter 可包含 `objective`、`pressureSource`、`payoffTarget`、`relationshipShift`、`hookType`、`coreEvent`、`emotionArc`、`chapterHook`、`outlineMarkdown`。
 - chapter.index 是卷内序号，从 1 开始；全书章节序号由系统按分卷顺序自动推导。
-- 如果提供了目标分卷，只输出该分卷一个 volume 的章节细纲。
+- 如果提供了目标分卷，只输出该分卷一个 volume 的章节细纲；草稿应用时系统只会合并这个目标卷。
+- 如果未提供目标分卷且已有细纲，请只输出需要新增或修订的分卷；草稿应用时未出现的分卷会保留。
 - 不要违背已确认世界观、角色设定和总纲。
 
 ## 章节组织方式

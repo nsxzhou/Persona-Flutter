@@ -24,6 +24,7 @@ class CharacterDraft {
     required this.secrets,
     required this.firstChapterIndex,
     required this.lastChapterIndex,
+    required this.fields,
   });
 
   final String name;
@@ -36,6 +37,7 @@ class CharacterDraft {
   final String secrets;
   final int? firstChapterIndex;
   final int? lastChapterIndex;
+  final Set<String> fields;
 
   NovelCharacterInput toInput(String projectId) {
     return NovelCharacterInput(
@@ -63,6 +65,7 @@ class RelationshipDraft {
     required this.status,
     required this.description,
     required this.lastChangedChapterIndex,
+    required this.fields,
   });
 
   final String fromName;
@@ -72,6 +75,7 @@ class RelationshipDraft {
   final String status;
   final String description;
   final int? lastChangedChapterIndex;
+  final Set<String> fields;
 }
 
 class CharacterGraphParser {
@@ -119,9 +123,10 @@ class CharacterGraphParser {
       role: _string(map, 'role'),
       longTermGoal: _string(map, 'longTermGoal'),
       currentStatus: _string(map, 'currentStatus'),
-      secrets: _string(map, 'secrets'),
+      secrets: _stringListOrString(map, 'secrets', path),
       firstChapterIndex: _optionalPositiveInt(map, 'firstChapterIndex', path),
       lastChapterIndex: _optionalPositiveInt(map, 'lastChapterIndex', path),
+      fields: _fields(map),
     );
   }
 
@@ -139,7 +144,15 @@ class CharacterGraphParser {
         'lastChangedChapterIndex',
         path,
       ),
+      fields: _fields(map),
     );
+  }
+
+  Set<String> _fields(Map<Object?, Object?> map) {
+    return {
+      for (final key in map.keys)
+        if (key != null) key.toString(),
+    };
   }
 
   List<Object?> _optionalList(Object? value, String key) {
@@ -184,7 +197,11 @@ class CharacterGraphParser {
     throw CharacterGraphValidationException('$key 必须是字符串。');
   }
 
-  String _stringListOrString(Map<Object?, Object?> map, String key) {
+  String _stringListOrString(
+    Map<Object?, Object?> map,
+    String key, [
+    String? path,
+  ]) {
     final value = map[key];
     if (value == null) {
       return '';
@@ -196,14 +213,22 @@ class CharacterGraphParser {
       final items = (value as Iterable<Object?>)
           .map((item) {
             if (item is! String) {
-              throw CharacterGraphValidationException('$key 只能包含字符串。');
+              throw CharacterGraphValidationException(
+                '${_fieldPath(path, key)} 只能包含字符串。',
+              );
             }
             return item.trim();
           })
           .where((item) => item.isNotEmpty);
       return items.join('、');
     }
-    throw CharacterGraphValidationException('$key 必须是字符串或字符串列表。');
+    throw CharacterGraphValidationException(
+      '${_fieldPath(path, key)} 必须是字符串或字符串列表。',
+    );
+  }
+
+  String _fieldPath(String? path, String key) {
+    return path == null || path.isEmpty ? key : '$path.$key';
   }
 
   int _int(Map<Object?, Object?> map, String key, String path) {

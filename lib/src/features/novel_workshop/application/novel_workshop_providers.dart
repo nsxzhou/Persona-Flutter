@@ -187,6 +187,16 @@ Stream<ChapterGenerationRun?> chapterGenerationRunByWorkflowTask(
 }
 
 @riverpod
+Stream<AssetGenerationRun?> assetGenerationRunByWorkflowTask(
+  Ref ref,
+  String workflowTaskId,
+) {
+  return ref
+      .watch(novelWorkshopRepositoryProvider)
+      .watchAssetGenerationRunByWorkflowTask(workflowTaskId);
+}
+
+@riverpod
 Future<ProjectRuntimeMemory> projectRuntimeMemory(Ref ref, String projectId) {
   return ref
       .watch(novelWorkshopRepositoryProvider)
@@ -353,6 +363,7 @@ class NovelWorkshopController extends _$NovelWorkshopController {
     if (state.hasError) {
       Error.throwWithStackTrace(state.error!, state.stackTrace!);
     }
+    ref.invalidate(projectRuntimeMemoryProvider(saved.projectId));
     return saved;
   }
 

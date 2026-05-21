@@ -12,6 +12,8 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/persona_page.dart';
 import '../../../core/utils/markdown_utils.dart';
 import '../../../core/ui/skeleton_loader.dart';
+import '../../novel_workshop/application/novel_workshop_providers.dart';
+import '../../novel_workshop/domain/novel_workshop.dart';
 import '../../plot_lab/application/plot_lab_providers.dart';
 import '../../plot_lab/domain/plot_analysis_run.dart';
 import '../../style_lab/application/style_lab_providers.dart';
@@ -443,12 +445,15 @@ class _WorkflowRunDetailScaffoldState
     final plotRun = task.kind == plotAnalysisWorkflowTaskKind
         ? ref.watch(plotAnalysisRunByWorkflowTaskProvider(task.id))
         : const AsyncValue<PlotAnalysisRun?>.data(null);
+    final assetRun = task.kind == assetGenerationWorkflowTaskKind
+        ? ref.watch(assetGenerationRunByWorkflowTaskProvider(task.id))
+        : const AsyncValue<AssetGenerationRun?>.data(null);
     final statusColor = _statusColor(
       Theme.of(context).colorScheme,
       task.status,
     );
     final businessDetailPath = _businessDetailPath(task, styleRun, plotRun);
-    final logs = _logsForTask(task, styleRun, plotRun);
+    final logs = _logsForTask(task, styleRun, plotRun, assetRun);
 
     return PersonaPage(
       eyebrow: '',
@@ -558,8 +563,7 @@ class _WorkflowDetailHeader extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
     final hasErrorMessage = task.errorMessage?.trim().isNotEmpty == true;
-    final stage =
-        task.stage?.trim().isNotEmpty == true ? task.stage! : '未记录阶段';
+    final stage = task.stage?.trim().isNotEmpty == true ? task.stage! : '未记录阶段';
 
     return PersonaPanel(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
@@ -628,8 +632,10 @@ class _WorkflowDetailHeader extends StatelessWidget {
                 ),
               ),
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 child: Row(
                   children: [
                     Icon(
@@ -1161,12 +1167,16 @@ AsyncValue<String> _logsForTask(
   WorkflowTask task,
   AsyncValue<StyleAnalysisRun?> styleRun,
   AsyncValue<PlotAnalysisRun?> plotRun,
+  AsyncValue<AssetGenerationRun?> assetRun,
 ) {
   return switch (task.kind) {
     styleAnalysisWorkflowTaskKind => styleRun.whenData(
       (run) => run?.logs ?? '',
     ),
     plotAnalysisWorkflowTaskKind => plotRun.whenData((run) => run?.logs ?? ''),
+    assetGenerationWorkflowTaskKind => assetRun.whenData(
+      (run) => run?.logs ?? '',
+    ),
     _ => const AsyncValue.data(''),
   };
 }

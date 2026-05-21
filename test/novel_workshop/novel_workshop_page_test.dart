@@ -161,7 +161,7 @@ void main() {
     expect(fixture.repository.bible.outlineMasterMarkdown, '失踪案引出港务处阴谋。');
   });
 
-  testWidgets('workshop reviews recovered asset draft before overwrite', (
+  testWidgets('workshop reviews recovered asset draft before merge', (
     tester,
   ) async {
     final fixture = _WorkshopFixture();
@@ -186,9 +186,9 @@ void main() {
 
     expect(find.text('世界观设定草稿'), findsOneWidget);
     expect(find.textContaining('七个港务家族'), findsOneWidget);
-    expect(find.text('应用草稿会覆盖当前已保存内容。'), findsOneWidget);
+    expect(find.text('应用草稿会合并到当前已保存内容，未出现在草稿中的部分会保留。'), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(FilledButton, '确认覆盖并应用'));
+    await tester.tap(find.widgetWithText(FilledButton, '合并并应用'));
     await tester.pumpAndSettle();
 
     expect(
@@ -271,6 +271,56 @@ void main() {
     expect(fixture.repository.memory.state.chapterArchiveMarkdown, '新归档。');
   });
 
+  testWidgets('runtime memory tab refreshes after applying memory patch', (
+    tester,
+  ) async {
+    final fixture = _WorkshopFixture(
+      runtimeMemory: const RuntimeMemoryState(storySummary: '旧摘要。'),
+      chapters: [
+        _chapter(
+          planId: 'plan-1',
+          index: 1,
+          content: '正文。',
+          memorySyncStatus: MemorySyncStatus.pendingReview,
+          proposedMemory: const RuntimeMemoryState(
+            runtimeState: '新状态。',
+            runtimeThreads: '新线索。',
+            storySummary: '新摘要。',
+            continuityIndex: '新索引。',
+            chapterArchiveMarkdown: '新归档。',
+          ),
+          memorySyncPatchYaml: '''
+runtimeMemory:
+  storySummary: 新摘要。
+''',
+        ),
+      ],
+    );
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Runtime Memory').last);
+    await tester.tap(find.text('Runtime Memory').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('待审阅记忆 Patch'), findsOneWidget);
+    expect(find.text('旧摘要。'), findsOneWidget);
+    expect(find.text('新摘要。'), findsWidgets);
+
+    await tester.ensureVisible(find.widgetWithText(FilledButton, '应用 Patch'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '应用 Patch'));
+    await tester.pumpAndSettle();
+
+    expect(fixture.repository.memory.state.storySummary, '新摘要。');
+    expect(find.text('记忆 Patch 已应用。'), findsOneWidget);
+    expect(find.text('待审阅记忆 Patch'), findsNothing);
+    expect(find.text('旧摘要。'), findsNothing);
+    expect(find.text('新摘要。'), findsWidgets);
+  });
+
   testWidgets('optional prompt assets do not show warning block', (
     tester,
   ) async {
@@ -292,7 +342,7 @@ void main() {
     expect(find.text('未绑定 Plot Profile，生成时会自动跳过'), findsOneWidget);
   });
 
-  testWidgets('character graph exposes edit entry for structured character', (
+  testWidgets('character graph opens switches and closes character detail', (
     tester,
   ) async {
     final fixture = _WorkshopFixture(
@@ -313,6 +363,37 @@ void main() {
           createdAt: _testCreatedAt,
           updatedAt: _testUpdatedAt,
         ),
+        NovelCharacter(
+          id: 'character-2',
+          projectId: 'project-1',
+          name: '周既明',
+          aliases: '',
+          tags: '',
+          faction: '港务处',
+          role: '线人',
+          longTermGoal: '保住自己的身份。',
+          currentStatus: '暗中协助调查。',
+          secrets: '',
+          firstChapterIndex: 1,
+          lastChapterIndex: null,
+          createdAt: _testCreatedAt,
+          updatedAt: _testUpdatedAt,
+        ),
+      ],
+      relationships: [
+        NovelRelationship(
+          id: 'relationship-1',
+          projectId: 'project-1',
+          fromCharacterId: 'character-1',
+          toCharacterId: 'character-2',
+          relationshipType: '合作',
+          strength: 7,
+          status: '互相试探',
+          description: '林岚通过周既明接触港务处线索。',
+          lastChangedChapterIndex: 1,
+          createdAt: _testCreatedAt,
+          updatedAt: _testUpdatedAt,
+        ),
       ],
     );
     addTearDown(fixture.dispose);
@@ -324,12 +405,42 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.widgetWithText(OutlinedButton, '编辑角色'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('relationship-node-character-1')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('relationship-node-character-2')),
+      findsOneWidget,
+    );
 
     await tester.tap(find.widgetWithText(OutlinedButton, '编辑角色'));
     await tester.pumpAndSettle();
 
     expect(find.text('林岚'), findsWidgets);
     expect(find.byTooltip('编辑'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    final secondNode = find.byKey(
+      const ValueKey('relationship-node-character-2'),
+    );
+    await tester.ensureVisible(secondNode);
+    await tester.pumpAndSettle();
+    await tester.tap(secondNode);
+    await tester.pumpAndSettle();
+
+    expect(find.text('周既明'), findsWidgets);
+    expect(find.text('暗中协助调查。'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    final closeButton = find.byTooltip('关闭');
+    await tester.ensureVisible(closeButton);
+    await tester.pumpAndSettle();
+    await tester.tap(closeButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('暗中协助调查。'), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('editor loads from workshop sub-route', (tester) async {
@@ -1332,6 +1443,19 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   Future<ProjectChapter> applyMemorySyncPatch(String chapterId) async {
     final index = chapters.indexWhere((chapter) => chapter.id == chapterId);
     final current = chapters[index];
+    memory = ProjectRuntimeMemory(
+      projectId: current.projectId,
+      state: RuntimeMemoryState(
+        runtimeState: current.memorySyncProposedRuntimeState,
+        runtimeThreads: current.memorySyncProposedRuntimeThreads,
+        storySummary: current.memorySyncProposedStorySummary,
+        continuityIndex: current.memorySyncProposedContinuityIndex,
+        chapterArchiveMarkdown:
+            current.memorySyncProposedChapterArchiveMarkdown,
+      ),
+      createdAt: memory.createdAt,
+      updatedAt: _testUpdatedAt,
+    );
     final saved = ProjectChapter(
       id: current.id,
       projectId: current.projectId,
@@ -1749,6 +1873,24 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
     String workflowTaskId,
   ) async* {
     yield runs.where((run) => run.workflowTaskId == workflowTaskId).firstOrNull;
+    yield* _changes.stream.map(
+      (_) =>
+          runs.where((run) => run.workflowTaskId == workflowTaskId).firstOrNull,
+    );
+  }
+
+  @override
+  Stream<AssetGenerationRun?> watchAssetGenerationRunByWorkflowTask(
+    String workflowTaskId,
+  ) async* {
+    yield assetRuns
+        .where((run) => run.workflowTaskId == workflowTaskId)
+        .firstOrNull;
+    yield* _changes.stream.map(
+      (_) => assetRuns
+          .where((run) => run.workflowTaskId == workflowTaskId)
+          .firstOrNull,
+    );
   }
 
   @override
@@ -1896,7 +2038,11 @@ ProjectChapter _chapter({
   required int index,
   String title = '第一章',
   required String content,
+  MemorySyncStatus memorySyncStatus = MemorySyncStatus.idle,
+  RuntimeMemoryState proposedMemory = const RuntimeMemoryState(),
+  String memorySyncPatchYaml = '',
 }) {
+  final contentHash = content.hashCode.toString();
   return ProjectChapter(
     id: id,
     projectId: 'project-1',
@@ -1904,16 +2050,20 @@ ProjectChapter _chapter({
     chapterIndex: index,
     title: title,
     contentMarkdown: content,
-    contentHash: content.hashCode.toString(),
+    contentHash: contentHash,
     continuityVerdict: ContinuityVerdict.pass,
     continuityReportMarkdown: '',
-    memorySyncStatus: MemorySyncStatus.idle,
-    memorySyncContentHash: '',
-    memorySyncProposedRuntimeState: '',
-    memorySyncProposedRuntimeThreads: '',
-    memorySyncProposedStorySummary: '',
-    memorySyncProposedContinuityIndex: '',
-    memorySyncProposedChapterArchiveMarkdown: '',
+    memorySyncStatus: memorySyncStatus,
+    memorySyncContentHash: memorySyncStatus == MemorySyncStatus.idle
+        ? ''
+        : contentHash,
+    memorySyncProposedRuntimeState: proposedMemory.runtimeState,
+    memorySyncProposedRuntimeThreads: proposedMemory.runtimeThreads,
+    memorySyncProposedStorySummary: proposedMemory.storySummary,
+    memorySyncProposedContinuityIndex: proposedMemory.continuityIndex,
+    memorySyncProposedChapterArchiveMarkdown:
+        proposedMemory.chapterArchiveMarkdown,
+    memorySyncPatchYaml: memorySyncPatchYaml,
     createdAt: DateTime(2026, 5, 18, 9),
     updatedAt: DateTime(2026, 5, 18, 10),
   );

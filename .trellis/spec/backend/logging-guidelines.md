@@ -68,3 +68,46 @@ Never log API keys, full provider credentials, manuscript content, imported sour
 `debugPrint('Provider test failed: $apiKey')`
 #### Correct
 Log only the Provider id and a sanitized failure reason, never the secret itself.
+
+## Scenario: Workflow task detail logs
+
+### 1. Scope / Trigger
+- Trigger: A workflow task kind writes user-visible lifecycle logs into a feature-specific run table and the generic Workflow Runs page must display those logs.
+
+### 2. Signatures
+- Repository contract: `watch<Run>ByWorkflowTask(String workflowTaskId) -> Stream<Run?>`.
+- Riverpod bridge: `<run>ByWorkflowTaskProvider(workflowTaskId)` wraps the repository stream.
+- UI selector: Workflow Runs maps `WorkflowTask.kind` to the matching run provider and reads `run.logs`.
+
+### 3. Contracts
+- Workflow task records hold generic status, stage, title, and failure summary.
+- Feature run records own detailed task logs.
+- Presentation widgets must consume logs through repository and Riverpod contracts, not Drift tables.
+- New task kinds that appear in Workflow Runs need an explicit log mapping, even when they do not have a business-detail route.
+
+### 4. Validation & Error Matrix
+- Missing run for task id -> render empty log text, not a repository error.
+- Unknown task kind -> render empty log text.
+- Provider stream error -> render the existing task-log error branch.
+
+### 5. Good/Base/Bad Cases
+- Good: `novel_asset_generation` resolves `AssetGenerationRun` by `workflowTaskId` and displays `AssetGenerationRun.logs`.
+- Base: style and plot analysis keep their existing run-log mappings.
+- Bad: Writing logs during pipeline execution but returning `AsyncValue.data('')` for that task kind in Workflow Runs.
+
+### 6. Tests Required
+- Widget test for every newly mapped task kind that opens `/workflow-runs/:taskId`, switches to `任务日志`, and asserts persisted log text is visible.
+- Repository/provider tests or fakes must implement any new `watch<Run>ByWorkflowTask` contract.
+
+### 7. Wrong vs Correct
+#### Wrong
+```dart
+_ => const AsyncValue.data('')
+```
+
+#### Correct
+```dart
+assetGenerationWorkflowTaskKind => assetRun.whenData(
+  (run) => run?.logs ?? '',
+)
+```

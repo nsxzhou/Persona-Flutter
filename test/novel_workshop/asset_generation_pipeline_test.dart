@@ -93,6 +93,7 @@ void main() {
     expect(volumePrompt, contains('反噬'));
     expect(outlinePrompt, contains('只输出 YAML'));
     expect(outlinePrompt, contains('根节点必须是 `volumes`'));
+    expect(outlinePrompt, contains('草稿应用时系统只会合并这个目标卷'));
     expect(outlinePrompt, contains('3-5 章'));
     expect(outlinePrompt, contains('压力出现'));
     expect(outlinePrompt, contains('伏笔埋设或回收'));
@@ -175,6 +176,55 @@ volumes:
         .first;
     expect(plans.single.objectiveCard.chapterTitle, '第一章');
   });
+
+  test(
+    'generates character asset when secrets are emitted as a list',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final fixture = await _Fixture.create(
+        database,
+        llmClient: _StaticLlmClient('''
+characters:
+  - name: 林岚
+    aliases:
+      - 林侦探
+    tags:
+      - 调查者
+    faction: 港务处外部顾问
+    role: 主角
+    longTermGoal: 查清旧案真相。
+    currentStatus: 抵达雾港。
+    secrets:
+      - 不要提前揭露旧案身份
+      - 曾经隐瞒关键证词
+    firstChapterIndex: 1
+relationships:
+  - from: 林岚
+    to: 林岚
+    type: 自我冲突
+    strength: -2
+    status: 回避真相
+    description: 对旧案愧疚形成行动压力。
+'''),
+      );
+
+      final result = await fixture.pipeline.generateAsset(
+        projectId: fixture.project.id,
+        kind: AssetGenerationKind.charactersBlueprint,
+      );
+
+      expect(result.run.status, AssetGenerationStatus.succeeded);
+      expect(result.run.draftMarkdown, contains('secrets:'));
+
+      final trace = await fixture.workflowRepository
+          .watchPromptTrace(result.workflowTaskId)
+          .first;
+      expect(trace!.traceMarkdown, contains('generate_charactersBlueprint'));
+      expect(trace.traceMarkdown, isNot(contains('sk-secret-test-key')));
+      expect(trace.traceMarkdown, contains('[REDACTED]'));
+    },
+  );
 }
 
 class _Fixture {

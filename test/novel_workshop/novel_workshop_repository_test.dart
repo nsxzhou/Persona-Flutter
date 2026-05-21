@@ -68,6 +68,169 @@ volumes:
     expect(plans.single.outlineMarkdown, contains('雾气压住码头'));
   });
 
+  test('manual outline detail yaml save remains a full overwrite', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final project = await _saveProject(database);
+    final repository = DriftNovelWorkshopRepository(database);
+
+    await repository.saveOutlineDetailYaml(
+      projectId: project.id,
+      outlineDetailYaml: '''
+volumes:
+  - index: 1
+    title: 第一卷
+    chapters:
+      - index: 1
+        title: 第一章
+  - index: 2
+    title: 第二卷
+    chapters:
+      - index: 1
+        title: 第二卷第一章
+''',
+    );
+
+    final saved = await repository.saveOutlineDetailYaml(
+      projectId: project.id,
+      outlineDetailYaml: '''
+volumes:
+  - index: 2
+    title: 第二卷修订
+    chapters:
+      - index: 1
+        title: 第二卷新第一章
+''',
+    );
+    expect(saved.outlineDetailYaml, isNot(contains('第一卷')));
+    expect(saved.outlineDetailYaml, contains('第二卷修订'));
+  });
+
+  test('target volume outline draft preserves other outline volumes', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final project = await _saveProject(database);
+    final repository = DriftNovelWorkshopRepository(database);
+
+    await repository.saveOutlineDetailYaml(
+      projectId: project.id,
+      outlineDetailYaml: '''
+volumes:
+  - index: 1
+    title: 第一卷
+    chapters:
+      - index: 1
+        title: 第一章
+        objective: 旧第一卷目标。
+  - index: 2
+    title: 第二卷
+    chapters:
+      - index: 1
+        title: 第二卷第一章
+        objective: 保留第二卷目标。
+''',
+    );
+    final targetVolume =
+        (await repository.watchChapterVolumes(project.id).first).singleWhere(
+          (volume) => volume.volumeIndex == 1,
+        );
+    final run = await repository.createVolumeDetailGenerationRun(
+      projectId: project.id,
+      volumeId: targetVolume.id,
+    );
+    await repository.updateAssetGenerationRunState(
+      id: run.id,
+      status: AssetGenerationStatus.succeeded,
+      draftMarkdown: '''
+volumes:
+  - index: 1
+    title: 第一卷修订
+    chapters:
+      - index: 1
+        title: 第一章修订
+        objective: 新第一卷目标。
+''',
+    );
+
+    final saved = await repository.applyAssetGenerationDraft(run.id);
+    final volumes = await repository.watchChapterVolumes(project.id).first;
+    final plans = await repository.watchChapterPlans(project.id).first;
+
+    expect(saved.outlineDetailYaml, contains('第一卷修订'));
+    expect(saved.outlineDetailYaml, contains('第二卷'));
+    expect(volumes.map((volume) => volume.volumeIndex), containsAll([1, 2]));
+    expect(
+      plans
+          .singleWhere((plan) => plan.volumeIndex == 1)
+          .objectiveCard
+          .objective,
+      '新第一卷目标。',
+    );
+    expect(
+      plans
+          .singleWhere((plan) => plan.volumeIndex == 2)
+          .objectiveCard
+          .objective,
+      '保留第二卷目标。',
+    );
+  });
+
+  test(
+    'outline detail asset draft preserves omitted existing volumes',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final project = await _saveProject(database);
+      final repository = DriftNovelWorkshopRepository(database);
+
+      await repository.saveOutlineDetailYaml(
+        projectId: project.id,
+        outlineDetailYaml: '''
+volumes:
+  - index: 1
+    title: 第一卷
+    chapters:
+      - index: 1
+        title: 第一章
+        objective: 旧第一卷目标。
+  - index: 2
+    title: 第二卷
+    chapters:
+      - index: 1
+        title: 第二卷第一章
+        objective: 保留第二卷目标。
+''',
+      );
+      final run = await repository.createAssetGenerationRun(
+        AssetGenerationRunInput(
+          projectId: project.id,
+          kind: AssetGenerationKind.outlineDetailYaml,
+          providerId: project.defaultProviderId!,
+          modelName: project.defaultModelName!,
+        ),
+      );
+      await repository.updateAssetGenerationRunState(
+        id: run.id,
+        status: AssetGenerationStatus.succeeded,
+        draftMarkdown: '''
+volumes:
+  - index: 1
+    title: 第一卷修订
+    chapters:
+      - index: 1
+        title: 第一章修订
+        objective: 新第一卷目标。
+''',
+      );
+
+      final saved = await repository.applyAssetGenerationDraft(run.id);
+
+      expect(saved.outlineDetailYaml, contains('第一卷修订'));
+      expect(saved.outlineDetailYaml, contains('第二卷'));
+      expect(saved.outlineDetailYaml, contains('保留第二卷目标'));
+    },
+  );
+
   test('outline parser reports missing required fields', () {
     expect(
       () => const OutlineDetailParser().parse('volumes: []'),
@@ -112,6 +275,91 @@ volumes:
     final cleared = await repository.findRuntimeMemory(project.id);
     expect(cleared, isNotNull);
     expect(cleared!.state.isEmpty, isTrue);
+  });
+
+  test('character graph patch preserves omitted existing fields', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final project = await _saveProject(database);
+    final repository = DriftNovelWorkshopRepository(database);
+
+    final character = await repository.saveCharacter(
+      input: NovelCharacterInput(
+        projectId: project.id,
+        name: '林岚',
+        aliases: '林调查员',
+        tags: '主角',
+        faction: '外来调查者',
+        role: '主线调查者',
+        longTermGoal: '查清旧案真相。',
+        currentStatus: '刚抵达雾港。',
+        secrets: '隐瞒旧案证词。',
+        firstChapterIndex: 1,
+        lastChapterIndex: 1,
+      ),
+    );
+
+    await repository.applyCharactersYaml(
+      projectId: project.id,
+      charactersYaml: '''
+characters:
+  - name: 林岚
+    currentStatus: 拿到港务处线索。
+    lastChapterIndex: 2
+''',
+    );
+    final saved = await repository.findCharacter(character.id);
+
+    expect(saved!.role, '主线调查者');
+    expect(saved.longTermGoal, '查清旧案真相。');
+    expect(saved.secrets, '隐瞒旧案证词。');
+    expect(saved.currentStatus, '拿到港务处线索。');
+    expect(saved.firstChapterIndex, 1);
+    expect(saved.lastChapterIndex, 2);
+  });
+
+  test('relationship patch preserves omitted existing fields', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final project = await _saveProject(database);
+    final repository = DriftNovelWorkshopRepository(database);
+
+    final from = await repository.saveCharacter(
+      input: NovelCharacterInput(projectId: project.id, name: '林岚'),
+    );
+    final to = await repository.saveCharacter(
+      input: NovelCharacterInput(projectId: project.id, name: '向导'),
+    );
+    final relationship = await repository.saveRelationship(
+      input: NovelRelationshipInput(
+        projectId: project.id,
+        fromCharacterId: from.id,
+        toCharacterId: to.id,
+        relationshipType: '临时合作',
+        strength: 2,
+        status: '互相试探',
+        description: '林岚需要向导进入港务禁区。',
+        lastChangedChapterIndex: 1,
+      ),
+    );
+
+    await repository.applyCharactersYaml(
+      projectId: project.id,
+      charactersYaml: '''
+relationships:
+  - from: 林岚
+    to: 向导
+    status: 信任升温
+    lastChangedChapterIndex: 2
+''',
+    );
+    final saved = await repository.findRelationship(relationship.id);
+
+    expect(saved!.relationshipType, '临时合作');
+    expect(saved.strength, 2);
+    expect(saved.description, '林岚需要向导进入港务禁区。');
+    expect(saved.status, '信任升温');
+    expect(saved.lastChangedChapterIndex, 2);
   });
 
   test('chapter plan and single chapter record round-trip', () async {
@@ -405,11 +653,21 @@ volumes:
     },
   );
 
-  test('applying memory sync proposal writes layered runtime memory', () async {
+  test('memory sync patch merges layered runtime memory fields', () async {
     final database = AppDatabase(NativeDatabase.memory());
     addTearDown(database.close);
     final project = await _saveProject(database);
     final repository = DriftNovelWorkshopRepository(database);
+    await repository.saveRuntimeMemory(
+      projectId: project.id,
+      state: const RuntimeMemoryState(
+        runtimeState: '- 旧状态。',
+        runtimeThreads: '- 旧伏笔。',
+        storySummary: '旧摘要。',
+        continuityIndex: '- 旧索引。',
+        chapterArchiveMarkdown: '## 第 0 章\n\n旧归档。',
+      ),
+    );
     final volume = await repository.saveChapterVolume(
       input: ChapterVolumeInput(
         projectId: project.id,
@@ -442,16 +700,13 @@ volumes:
       MemorySyncProposalInput(
         chapterId: chapter.id,
         contentHash: chapter.contentHash,
-        proposedMemory: const RuntimeMemoryState(
-          runtimeState: '- 抵达雾港。',
-          runtimeThreads: '- 港务处线索待查。',
-          storySummary: '林岚进入雾港。',
-          continuityIndex: '- 港务处线索',
-          chapterArchiveMarkdown: '## 第 1 章\n\n林岚抵达雾港。',
-        ),
         patchYaml: '''
 runtimeMemory:
-  runtimeState: 抵达雾港。
+  runtimeState: '- 抵达雾港。'
+  chapterArchiveMarkdown: |-
+    ## 第 1 章
+
+    林岚抵达雾港。
 ''',
       ),
     );
@@ -461,14 +716,15 @@ runtimeMemory:
 
     expect(synced.memorySyncStatus, MemorySyncStatus.synced);
     expect(memory!.state.runtimeState, '- 抵达雾港。');
-    expect(memory.state.runtimeThreads, '- 港务处线索待查。');
-    expect(memory.state.storySummary, '林岚进入雾港。');
-    expect(memory.state.continuityIndex, '- 港务处线索');
+    expect(memory.state.runtimeThreads, '- 旧伏笔。');
+    expect(memory.state.storySummary, '旧摘要。');
+    expect(memory.state.continuityIndex, '- 旧索引。');
+    expect(memory.state.chapterArchiveMarkdown, contains('第 0 章'));
     expect(memory.state.chapterArchiveMarkdown, contains('第 1 章'));
   });
 
   test(
-    'applying empty memory sync proposal clears layered runtime memory',
+    'applying empty memory sync proposal preserves layered runtime memory',
     () async {
       final database = AppDatabase(NativeDatabase.memory());
       addTearDown(database.close);
@@ -523,7 +779,11 @@ runtimeMemory:
       final memory = await repository.findRuntimeMemory(project.id);
 
       expect(synced.memorySyncStatus, MemorySyncStatus.synced);
-      expect(memory!.state.isEmpty, isTrue);
+      expect(memory!.state.runtimeState, '- 旧状态。');
+      expect(memory.state.runtimeThreads, '- 旧伏笔。');
+      expect(memory.state.storySummary, '旧摘要。');
+      expect(memory.state.continuityIndex, '- 旧索引。');
+      expect(memory.state.chapterArchiveMarkdown, contains('旧归档'));
     },
   );
 

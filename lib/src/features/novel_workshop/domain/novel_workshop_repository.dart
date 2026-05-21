@@ -32,6 +32,10 @@ abstract interface class NovelWorkshopRepository {
     String workflowTaskId,
   );
 
+  Stream<AssetGenerationRun?> watchAssetGenerationRunByWorkflowTask(
+    String workflowTaskId,
+  );
+
   Future<ProjectBible?> findProjectBible(String projectId);
 
   Future<ProjectBible> ensureProjectBible(String projectId);

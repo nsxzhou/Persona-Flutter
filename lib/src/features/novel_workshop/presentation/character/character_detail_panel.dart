@@ -33,31 +33,19 @@ class _CharacterDetailPanelState extends ConsumerState<CharacterDetailPanel> {
   bool _saving = false;
   final _formKey = GlobalKey<FormState>();
 
-  late final TextEditingController _nameCtrl;
-  late final TextEditingController _roleCtrl;
-  late final TextEditingController _statusCtrl;
-  late final TextEditingController _aliasesCtrl;
-  late final TextEditingController _factionCtrl;
-  late final TextEditingController _goalCtrl;
-  late final TextEditingController _secretsCtrl;
-  late final TextEditingController _tagsCtrl;
+  late final TextEditingController _nameCtrl = TextEditingController();
+  late final TextEditingController _roleCtrl = TextEditingController();
+  late final TextEditingController _statusCtrl = TextEditingController();
+  late final TextEditingController _aliasesCtrl = TextEditingController();
+  late final TextEditingController _factionCtrl = TextEditingController();
+  late final TextEditingController _goalCtrl = TextEditingController();
+  late final TextEditingController _secretsCtrl = TextEditingController();
+  late final TextEditingController _tagsCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _initControllers();
-  }
-
-  void _initControllers() {
-    final c = widget.character;
-    _nameCtrl = TextEditingController(text: c.name);
-    _roleCtrl = TextEditingController(text: c.role);
-    _statusCtrl = TextEditingController(text: c.currentStatus);
-    _aliasesCtrl = TextEditingController(text: c.aliases);
-    _factionCtrl = TextEditingController(text: c.faction);
-    _goalCtrl = TextEditingController(text: c.longTermGoal);
-    _secretsCtrl = TextEditingController(text: c.secrets);
-    _tagsCtrl = TextEditingController(text: c.tags);
+    _syncControllers();
   }
 
   @override
@@ -65,8 +53,7 @@ class _CharacterDetailPanelState extends ConsumerState<CharacterDetailPanel> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.character.id != widget.character.id) {
       _editing = false;
-      _disposeControllers();
-      _initControllers();
+      _syncControllers();
     }
   }
 
@@ -216,7 +203,7 @@ class _CharacterDetailPanelState extends ConsumerState<CharacterDetailPanel> {
         .toList();
   }
 
-  void _resetControllers() {
+  void _syncControllers() {
     final c = widget.character;
     _nameCtrl.text = c.name;
     _roleCtrl.text = c.role;
@@ -227,6 +214,8 @@ class _CharacterDetailPanelState extends ConsumerState<CharacterDetailPanel> {
     _secretsCtrl.text = c.secrets;
     _tagsCtrl.text = c.tags;
   }
+
+  void _resetControllers() => _syncControllers();
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;

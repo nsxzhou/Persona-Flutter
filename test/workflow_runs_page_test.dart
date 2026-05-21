@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:persona_flutter/src/core/tasks/application/workflow_task_providers.dart';
 import 'package:persona_flutter/src/core/tasks/domain/workflow_prompt_trace.dart';
 import 'package:persona_flutter/src/core/tasks/domain/workflow_task.dart';
+import 'package:persona_flutter/src/features/novel_workshop/application/novel_workshop_providers.dart';
+import 'package:persona_flutter/src/features/novel_workshop/domain/novel_workshop.dart';
 import 'package:persona_flutter/src/features/plot_lab/application/plot_lab_providers.dart';
 import 'package:persona_flutter/src/features/plot_lab/domain/plot_analysis_run.dart';
 import 'package:persona_flutter/src/features/plot_lab/domain/plot_sample.dart';
@@ -87,13 +89,54 @@ void main() {
     expect(find.text('保存为 Profile'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('workflow detail shows novel asset generation logs', (
+    tester,
+  ) async {
+    final task = WorkflowTask(
+      id: 'task-asset-1',
+      kind: assetGenerationWorkflowTaskKind,
+      status: WorkflowTaskStatus.failed,
+      title: '资产生成：角色索引与关系网',
+      stage: null,
+      errorMessage: 'secrets 必须是字符串。',
+      createdAt: DateTime(2026, 5, 21, 16),
+      updatedAt: DateTime(2026, 5, 21, 16, 6),
+    );
+    final assetRun = _assetRun(workflowTaskId: task.id);
+
+    await tester.pumpWidget(
+      _WorkflowRunsTestApp(task: task, run: _plotRun(), assetRun: assetRun),
+    );
+    await _pumpWorkflowRuns(tester);
+
+    await tester.tap(find.text('资产生成：角色索引与关系网'));
+    await _pumpWorkflowRuns(tester);
+
+    expect(find.text('业务详情'), findsNothing);
+
+    await tester.tap(find.text('任务日志'));
+    await _pumpWorkflowRuns(tester);
+
+    expect(
+      find.byKey(const ValueKey('workflow-log-code-block')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('阶段: 生成草稿'), findsOneWidget);
+    expect(find.textContaining('资产草稿生成失败'), findsOneWidget);
+  });
 }
 
 class _WorkflowRunsTestApp extends StatelessWidget {
-  const _WorkflowRunsTestApp({required this.task, required this.run});
+  const _WorkflowRunsTestApp({
+    required this.task,
+    required this.run,
+    this.assetRun,
+  });
 
   final WorkflowTask task;
   final PlotAnalysisRun run;
+  final AssetGenerationRun? assetRun;
 
   @override
   Widget build(BuildContext context) {
@@ -129,6 +172,11 @@ class _WorkflowRunsTestApp extends StatelessWidget {
         ),
         styleAnalysisRunByWorkflowTaskProvider.overrideWith(
           (ref, workflowTaskId) => const Stream<StyleAnalysisRun?>.empty(),
+        ),
+        assetGenerationRunByWorkflowTaskProvider.overrideWith(
+          (ref, workflowTaskId) => Stream<AssetGenerationRun?>.value(
+            workflowTaskId == assetRun?.workflowTaskId ? assetRun : null,
+          ),
         ),
       ],
       child: MaterialApp.router(routerConfig: _router()),
@@ -235,6 +283,28 @@ PlotAnalysisRun _plotRun() {
     createdAt: DateTime(2026, 5, 16, 11),
     updatedAt: DateTime(2026, 5, 16, 12),
     completedAt: DateTime(2026, 5, 16, 12),
+  );
+}
+
+AssetGenerationRun _assetRun({required String workflowTaskId}) {
+  return AssetGenerationRun(
+    id: 'run-asset-1',
+    workflowTaskId: workflowTaskId,
+    projectId: 'project-1',
+    kind: AssetGenerationKind.charactersBlueprint,
+    providerId: 'provider-1',
+    modelName: 'deepseek-chat',
+    status: AssetGenerationStatus.failed,
+    stage: null,
+    errorMessage: 'secrets 必须是字符串。',
+    logs:
+        '[2026-05-21T16:05:00] 阶段: 生成草稿。调用模型生成角色索引与关系网。\n'
+        '[2026-05-21T16:06:00] 资产草稿生成失败。',
+    draftMarkdown: '',
+    createdAt: DateTime(2026, 5, 21, 16),
+    updatedAt: DateTime(2026, 5, 21, 16, 6),
+    startedAt: DateTime(2026, 5, 21, 16, 5),
+    completedAt: DateTime(2026, 5, 21, 16, 6),
   );
 }
 

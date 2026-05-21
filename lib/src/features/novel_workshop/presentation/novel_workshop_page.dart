@@ -7074,10 +7074,10 @@ class _AssetDraftReviewDialog extends StatelessWidget {
             const SizedBox(height: 12),
             DecoratedBox(
               decoration: BoxDecoration(
-                color: colorScheme.errorContainer.withValues(alpha: 0.16),
+                color: colorScheme.secondaryContainer.withValues(alpha: 0.28),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: colorScheme.error.withValues(alpha: 0.28),
+                  color: colorScheme.secondary.withValues(alpha: 0.28),
                 ),
               ),
               child: Padding(
@@ -7085,11 +7085,13 @@ class _AssetDraftReviewDialog extends StatelessWidget {
                 child: Row(
                   children: [
                     Icon(
-                      Icons.warning_amber_outlined,
-                      color: colorScheme.error,
+                      Icons.merge_type_outlined,
+                      color: colorScheme.secondary,
                     ),
                     const SizedBox(width: 8),
-                    const Expanded(child: Text('应用草稿会覆盖当前已保存内容。')),
+                    const Expanded(
+                      child: Text('应用草稿会合并到当前已保存内容，未出现在草稿中的部分会保留。'),
+                    ),
                   ],
                 ),
               ),
@@ -7129,7 +7131,7 @@ class _AssetDraftReviewDialog extends StatelessWidget {
                     ? null
                     : () => Navigator.of(context).pop(true),
                 icon: const Icon(Icons.check_outlined, size: 18),
-                label: Text(hasExistingContent ? '确认覆盖并应用' : '应用草稿'),
+                label: Text(hasExistingContent ? '合并并应用' : '应用草稿'),
               ),
             ],
           ),

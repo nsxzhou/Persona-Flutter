@@ -244,7 +244,7 @@ class ChapterGenerationPipeline {
       await transition(
         ChapterGenerationStatus.running,
         ChapterGenerationStage.proposingMemoryPatch,
-        message: '阶段: 同步记忆。生成角色卡片和关系图更新提案。',
+        message: '阶段: 同步记忆。生成待审阅 Runtime Memory、角色卡片和关系图 Patch。',
       );
       await _proposeMemoryPatch(
         provider: provider,
@@ -461,19 +461,20 @@ $archive
 - 只输出 YAML。
 - 不要输出 Markdown、代码围栏、解释。
 - 根节点允许 `characters`、`relationships`、`runtimeMemory`。
-- `characters` 中每项必须有 `name`，可更新 `aliases`、`tags`、`faction`、`role`、`longTermGoal`、`currentStatus`、`secrets`、`firstChapterIndex`、`lastChapterIndex`。
-- `relationships` 中每项必须有 `from`、`to`，可更新 `type`、`strength`、`status`、`description`、`lastChangedChapterIndex`。
-- `runtimeMemory` 必须输出更新后的完整五字段：`runtimeState`、`runtimeThreads`、`storySummary`、`continuityIndex`、`chapterArchiveMarkdown`。
+- `characters` 中每项必须有 `name`，只写本章需要新增或修改的字段，可更新 `aliases`、`tags`、`faction`、`role`、`longTermGoal`、`currentStatus`、`secrets`、`firstChapterIndex`、`lastChapterIndex`。
+- `relationships` 中每项必须有 `from`、`to`，只写本章需要新增或修改的字段，可更新 `type`、`strength`、`status`、`description`、`lastChangedChapterIndex`。
+- `runtimeMemory` 只输出本章需要修改或追加的字段，可包含 `runtimeState`、`runtimeThreads`、`storySummary`、`continuityIndex`、`chapterArchiveMarkdown`。
 
 ## 更新原则
-只记录本章正文明确发生或明确确认的变化，不补全、不推测、不替作者规划未来。不要输出全量快照；没有变化的角色和关系不要重复写入。
+只记录本章正文明确发生或明确确认的变化，不补全、不推测、不替作者规划未来。不要输出全量快照；没有变化的角色、关系和 Runtime Memory 字段不要重复写入。
+字段缺失表示保留旧值；只有需要清空字段时才显式输出空字符串。
 
 `runtimeMemory` 用来服务下一章承接：
 - `runtimeState` 记录章节结束后的地点、资源、伤势、任务状态和世界规则变化。
 - `runtimeThreads` 记录未解决悬念、伏笔债务、承诺、威胁、追踪线索和待回收信息。
 - `storySummary` 用 3-6 句更新全局故事摘要，保留因果链和本章对下一章的直接影响。
 - `continuityIndex` 是高密度触发索引，只保留悬念、状态、世界规则变化等下一章必须注意的短条目；不要写人物卡全量状态。
-- `chapterArchiveMarkdown` 是章级归档，在原有归档基础上追加本章经正文验证的连续性记录。
+- `chapterArchiveMarkdown` 只输出本章新增的章级归档片段，系统会追加到原有归档后面。
 
 如果本章没有结构化变化，可以输出空列表或空对象；不要为了填字段编造变化。
 

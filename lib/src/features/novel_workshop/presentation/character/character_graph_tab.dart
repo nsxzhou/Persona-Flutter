@@ -193,9 +193,10 @@ class _CharacterGraphTabState extends ConsumerState<CharacterGraphTab> {
           else
             SizedBox(
               height: 520,
-              child: Stack(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Positioned.fill(
+                  Expanded(
                     child: RelationshipCanvas(
                       characters: characterItems,
                       relationships: relationshipItems,
@@ -205,29 +206,39 @@ class _CharacterGraphTabState extends ConsumerState<CharacterGraphTab> {
                       },
                     ),
                   ),
-                  // Detail panel slides in from the right.
-                  AnimatedSlide(
-                    offset: activeSelectedCharacter != null
-                        ? Offset.zero
-                        : const Offset(1, 0),
+                  AnimatedSwitcher(
                     duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeOutCubic,
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: SizedBox(
-                        width: 340,
-                        child: activeSelectedCharacter != null
-                            ? CharacterDetailPanel(
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeOutCubic,
+                    transitionBuilder: (child, animation) {
+                      return SizeTransition(
+                        sizeFactor: animation,
+                        axis: Axis.horizontal,
+                        axisAlignment: 1,
+                        child: FadeTransition(opacity: animation, child: child),
+                      );
+                    },
+                    child: activeSelectedCharacter == null
+                        ? const SizedBox.shrink(
+                            key: ValueKey('character-detail-empty'),
+                          )
+                        : Padding(
+                            key: ValueKey(
+                              'character-detail-${activeSelectedCharacter.id}',
+                            ),
+                            padding: const EdgeInsets.only(left: 16),
+                            child: SizedBox(
+                              width: 340,
+                              child: CharacterDetailPanel(
                                 character: activeSelectedCharacter,
                                 characters: characterItems,
                                 relationships: relationshipItems,
                                 onClose: () =>
                                     setState(() => _selectedCharacter = null),
                                 onSaved: () => setState(() {}),
-                              )
-                            : const SizedBox.shrink(),
-                      ),
-                    ),
+                              ),
+                            ),
+                          ),
                   ),
                 ],
               ),
