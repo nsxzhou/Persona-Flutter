@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/analysis_lab_widgets.dart';
 import '../../../core/ui/glass_container.dart';
 import '../../../core/ui/persona_page.dart';
 import '../../../core/ui/skeleton_loader.dart';
@@ -412,7 +413,7 @@ class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
     }
     final request = await showGlassDialog<_EnrichmentRequest>(
       context: context,
-      maxWidth: 720,
+      maxWidth: 900,
       maxHeight: MediaQuery.sizeOf(context).height * 0.88,
       builder: (context) => _EnrichmentRequestDialog(
         chapters: candidates,
@@ -1037,6 +1038,8 @@ class _ImportedProjectOverviewTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final totalChars = chapters.fold<int>(
       0,
       (sum, chapter) => sum + chapter.contentMarkdown.trim().length,
@@ -1050,19 +1053,34 @@ class _ImportedProjectOverviewTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '导入加料项目',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+          // -- Project identity --
+          Row(
+            children: [
+              Icon(
+                Icons.auto_fix_high_outlined,
+                color: colorScheme.primary,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '导入加料项目',
+                style: textTheme.labelMedium?.copyWith(
+                  color: colorScheme.primary,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             project.description.trim().isEmpty
                 ? '暂无导入说明。'
                 : project.description,
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
+
+          // -- Metric cards --
           const SizedBox(height: 20),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -1076,7 +1094,7 @@ class _ImportedProjectOverviewTab extends StatelessWidget {
                     detail: '固定导入正文卷',
                   ),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 12),
                 SizedBox(
                   width: 150,
                   child: PersonaMetric(
@@ -1085,7 +1103,7 @@ class _ImportedProjectOverviewTab extends StatelessWidget {
                     detail: '${chapters.length} 章有正文',
                   ),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 12),
                 SizedBox(
                   width: 170,
                   child: PersonaMetric(
@@ -1094,7 +1112,7 @@ class _ImportedProjectOverviewTab extends StatelessWidget {
                     detail: '按当前正文统计',
                   ),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 12),
                 SizedBox(
                   width: 170,
                   child: PersonaMetric(
@@ -1108,14 +1126,28 @@ class _ImportedProjectOverviewTab extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 18),
+
+          // -- Enrichment batch panel --
+          const SizedBox(height: 20),
           PersonaPanel(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const PersonaSectionHeader(
+                PersonaSectionHeader(
                   title: '最近加料批次',
                   description: '成功生成的结果需要预览后手动应用到章节正文。',
+                  trailing: latestBatch != null
+                      ? FilledButton.icon(
+                          onPressed: () => context.go(
+                            '/projects/${project.id}/workshop/editor',
+                          ),
+                          icon: const Icon(Icons.edit_note_outlined, size: 18),
+                          label: const Text('进入编辑器'),
+                          style: FilledButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        )
+                      : null,
                 ),
                 const SizedBox(height: 12),
                 if (latestBatch == null)
@@ -1129,7 +1161,9 @@ class _ImportedProjectOverviewTab extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 14),
+
+          // -- Voice Profile panel --
+          const SizedBox(height: 16),
           PersonaPanel(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1145,80 +1179,138 @@ class _ImportedProjectOverviewTab extends StatelessWidget {
                     ready: item.voiceProfileMarkdown.trim().isNotEmpty,
                   ),
                   error: (error, stackTrace) =>
-                      Text('无法加载 Voice Profile：$error'),
+                      InlineError(message: '无法加载 Voice Profile：$error'),
                   loading: () => const SkeletonBox(width: 220, height: 16),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 14),
-          Align(
-            alignment: Alignment.centerRight,
-            child: FilledButton.icon(
-              onPressed: () =>
-                  context.go('/projects/${project.id}/workshop/editor'),
-              icon: const Icon(Icons.edit_note_outlined, size: 18),
-              label: const Text('进入加料编辑器'),
+
+          // -- Entry button (if no batch yet) --
+          if (latestBatch == null) ...[
+            const SizedBox(height: 16),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.icon(
+                onPressed: () =>
+                    context.go('/projects/${project.id}/workshop/editor'),
+                icon: const Icon(Icons.edit_note_outlined, size: 18),
+                label: const Text('进入加料编辑器'),
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
   }
 }
 
-class _EnrichmentBatchPreview extends ConsumerWidget {
+Color _enrichmentItemStatusColor(
+  ColorScheme colorScheme,
+  ChapterEnrichmentItemStatus status,
+) {
+  return switch (status) {
+    ChapterEnrichmentItemStatus.waiting => colorScheme.onSurfaceVariant,
+    ChapterEnrichmentItemStatus.running => colorScheme.primary,
+    ChapterEnrichmentItemStatus.generated => const Color(0xFF16825D),
+    ChapterEnrichmentItemStatus.failed => colorScheme.error,
+    ChapterEnrichmentItemStatus.applied => colorScheme.primary,
+  };
+}
+
+class _EnrichmentBatchPreview extends ConsumerStatefulWidget {
   const _EnrichmentBatchPreview({required this.batch});
 
   final ChapterEnrichmentBatch batch;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final items = ref.watch(chapterEnrichmentItemsProvider(batch.id));
+  ConsumerState<_EnrichmentBatchPreview> createState() =>
+      _EnrichmentBatchPreviewState();
+}
+
+class _EnrichmentBatchPreviewState
+    extends ConsumerState<_EnrichmentBatchPreview> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final items = ref.watch(chapterEnrichmentItemsProvider(widget.batch.id));
     final controller = ref.watch(novelWorkshopControllerProvider);
     return items.when(
-      data: (itemList) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              PersonaStatusPill(
-                label: _enrichmentBatchStatusLabel(batch.status),
-                icon: Icons.auto_fix_high_outlined,
-              ),
-              PersonaStatusPill(
-                label: '成功 ${batch.generatedCount}',
-                icon: Icons.check_circle_outline,
-              ),
-              PersonaStatusPill(
-                label: '失败 ${batch.failedCount}',
-                icon: Icons.error_outline,
-              ),
-              PersonaStatusPill(
-                label: '已应用 ${batch.appliedCount}',
-                icon: Icons.done_all_outlined,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerRight,
-            child: FilledButton.icon(
-              onPressed: controller.isLoading
-                  ? null
-                  : () => _applyAllGenerated(context, ref, itemList),
-              icon: const Icon(Icons.done_all_outlined, size: 18),
-              label: const Text('批量应用成功项'),
+      data: (itemList) {
+        final visibleItems = _expanded ? itemList : itemList.take(8).toList();
+        final hasMore = itemList.length > 8;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Status pills + batch action
+            Row(
+              children: [
+                Expanded(
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      PersonaStatusPill(
+                        label: _enrichmentBatchStatusLabel(widget.batch.status),
+                        icon: Icons.auto_fix_high_outlined,
+                        color: colorScheme.primary,
+                      ),
+                      PersonaStatusPill(
+                        label: '成功 ${widget.batch.generatedCount}',
+                        icon: Icons.check_circle_outline,
+                        color: const Color(0xFF16825D),
+                      ),
+                      if (widget.batch.failedCount > 0)
+                        PersonaStatusPill(
+                          label: '失败 ${widget.batch.failedCount}',
+                          icon: Icons.error_outline,
+                          color: colorScheme.error,
+                        ),
+                      PersonaStatusPill(
+                        label: '已应用 ${widget.batch.appliedCount}',
+                        icon: Icons.done_all_outlined,
+                        color: colorScheme.tertiary,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                FilledButton.icon(
+                  onPressed: controller.isLoading
+                      ? null
+                      : () => _applyAllGenerated(context, ref, itemList),
+                  icon: const Icon(Icons.done_all_outlined, size: 18),
+                  label: const Text('批量应用'),
+                  style: FilledButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 12),
-          for (final item in itemList.take(8))
-            _EnrichmentItemPreviewTile(item: item),
-        ],
-      ),
-      error: (error, stackTrace) => Text('无法加载加料结果：$error'),
+            const SizedBox(height: 12),
+            // Item list
+            for (final item in visibleItems)
+              _EnrichmentItemPreviewTile(item: item),
+            // Expand/collapse button
+            if (hasMore)
+              Center(
+                child: TextButton.icon(
+                  onPressed: () => setState(() => _expanded = !_expanded),
+                  icon: Icon(
+                    _expanded
+                        ? Icons.expand_less_outlined
+                        : Icons.expand_more_outlined,
+                    size: 18,
+                  ),
+                  label: Text(_expanded ? '收起' : '查看全部 ${itemList.length} 项'),
+                ),
+              ),
+          ],
+        );
+      },
+      error: (error, stackTrace) => InlineError(message: '无法加载加料结果：$error'),
       loading: () => const SkeletonBox(width: 260, height: 16),
     );
   }
@@ -1252,74 +1344,160 @@ class _EnrichmentBatchPreview extends ConsumerWidget {
   }
 }
 
-class _EnrichmentItemPreviewTile extends ConsumerWidget {
+class _EnrichmentItemPreviewTile extends ConsumerStatefulWidget {
   const _EnrichmentItemPreviewTile({required this.item});
 
   final ChapterEnrichmentItem item;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_EnrichmentItemPreviewTile> createState() =>
+      _EnrichmentItemPreviewTileState();
+}
+
+class _EnrichmentItemPreviewTileState
+    extends ConsumerState<_EnrichmentItemPreviewTile> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final item = widget.item;
     final canApply =
         item.status == ChapterEnrichmentItemStatus.generated &&
         item.generatedContentMarkdown.trim().isNotEmpty;
     final canRetry = item.status == ChapterEnrichmentItemStatus.failed;
+    final statusColor = _enrichmentItemStatusColor(colorScheme, item.status);
+    final originalLen = item.originalContentMarkdown.trim().length;
+    final generatedLen = item.generatedContentMarkdown.trim().length;
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outlineVariant,
+      padding: const EdgeInsets.only(bottom: 8),
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: _hovered
+                  ? statusColor.withValues(alpha: 0.4)
+                  : colorScheme.outlineVariant,
+            ),
+            borderRadius: BorderRadius.circular(8),
           ),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '章节 ${item.position + 1} · ${_enrichmentItemStatusLabel(item.status)}',
-                      style: Theme.of(context).textTheme.titleSmall,
+          clipBehavior: Clip.antiAlias,
+          child: IntrinsicHeight(
+            child: Row(
+              children: [
+                // Status color bar
+                Container(width: 4, color: statusColor),
+                // Content
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            // Chapter number + status
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Text(
+                                    '章节 ${item.position + 1}',
+                                    style: textTheme.titleSmall,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  PersonaStatusPill(
+                                    label: _enrichmentItemStatusLabel(
+                                      item.status,
+                                    ),
+                                    color: statusColor,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Word count comparison
+                            if (generatedLen > 0 && originalLen > 0) ...[
+                              Text(
+                                '$originalLen → $generatedLen 字',
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                '+${((generatedLen - originalLen) / originalLen * 100).round()}%',
+                                style: textTheme.labelMedium?.copyWith(
+                                  color: const Color(0xFF16825D),
+                                ),
+                              ),
+                            ],
+                            // Action buttons
+                            AnimatedOpacity(
+                              duration: const Duration(milliseconds: 150),
+                              opacity: _hovered ? 1.0 : 0.6,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (canApply)
+                                    TextButton.icon(
+                                      onPressed: () =>
+                                          _reviewAndApply(context, ref),
+                                      icon: const Icon(
+                                        Icons.check_outlined,
+                                        size: 18,
+                                      ),
+                                      label: const Text('预览应用'),
+                                    ),
+                                  if (canRetry)
+                                    TextButton.icon(
+                                      onPressed: () async {
+                                        await ref
+                                            .read(
+                                              novelWorkshopControllerProvider
+                                                  .notifier,
+                                            )
+                                            .retryChapterEnrichmentItem(
+                                              item.id,
+                                            );
+                                      },
+                                      icon: const Icon(
+                                        Icons.refresh_outlined,
+                                        size: 18,
+                                      ),
+                                      label: const Text('重试'),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (item.errorMessage != null) ...[
+                          const SizedBox(height: 6),
+                          InlineError(message: item.errorMessage!),
+                        ],
+                        if (item.generatedContentMarkdown
+                            .trim()
+                            .isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            item.generatedContentMarkdown.trim(),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                  TextButton.icon(
-                    onPressed: canApply
-                        ? () => _reviewAndApply(context, ref)
-                        : null,
-                    icon: const Icon(Icons.check_outlined, size: 18),
-                    label: const Text('预览应用'),
-                  ),
-                  if (canRetry)
-                    TextButton.icon(
-                      onPressed: () async {
-                        await ref
-                            .read(novelWorkshopControllerProvider.notifier)
-                            .retryChapterEnrichmentItem(item.id);
-                      },
-                      icon: const Icon(Icons.refresh_outlined, size: 18),
-                      label: const Text('重试'),
-                    ),
-                ],
-              ),
-              if (item.errorMessage != null) ...[
-                const SizedBox(height: 6),
-                Text(
-                  item.errorMessage!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ],
-              if (item.generatedContentMarkdown.trim().isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  item.generatedContentMarkdown.trim(),
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ],
+            ),
           ),
         ),
       ),
@@ -1331,14 +1509,14 @@ class _EnrichmentItemPreviewTile extends ConsumerWidget {
       context: context,
       maxWidth: 920,
       maxHeight: MediaQuery.sizeOf(context).height * 0.88,
-      builder: (context) => _EnrichmentDiffDialog(item: item),
+      builder: (context) => _EnrichmentDiffDialog(item: widget.item),
     );
     if (confirmed != true) {
       return;
     }
     await ref
         .read(novelWorkshopControllerProvider.notifier)
-        .applyChapterEnrichmentItem(item.id);
+        .applyChapterEnrichmentItem(widget.item.id);
     if (!context.mounted) return;
     ScaffoldMessenger.of(
       context,
@@ -1354,35 +1532,102 @@ class _EnrichmentDiffDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final originalLen = item.originalContentMarkdown.trim().length;
+    final generatedLen = item.generatedContentMarkdown.trim().length;
+    final diffPercent = originalLen > 0
+        ? ((generatedLen - originalLen) / originalLen * 100).round()
+        : 0;
+
     return ConstrainedBox(
       constraints: const BoxConstraints(maxHeight: 760),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // -- Title --
           Row(
             children: [
-              const Icon(Icons.compare_arrows_outlined),
+              Icon(Icons.compare_arrows_outlined, color: colorScheme.primary),
               const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  '加料预览',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-              ),
+              Expanded(child: Text('加料预览', style: textTheme.titleLarge)),
             ],
           ),
           const SizedBox(height: 12),
+
+          // -- Word count stats bar --
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.text_fields_outlined,
+                    size: 16,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 8),
+                  Text('原文 $originalLen 字', style: textTheme.bodyMedium),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 16,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  Text('生成 $generatedLen 字', style: textTheme.bodyMedium),
+                  const SizedBox(width: 8),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF16825D).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      child: Text(
+                        '+$diffPercent%',
+                        style: textTheme.labelMedium?.copyWith(
+                          color: const Color(0xFF16825D),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // -- Diff columns --
           Flexible(
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final original = _DiffColumn(
-                  title: '生成时原文快照',
+                  title: '原文快照',
                   text: item.originalContentMarkdown,
+                  icon: Icons.description_outlined,
+                  headerBgColor: colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.4,
+                  ),
+                  borderColor: colorScheme.outlineVariant,
                 );
                 final generated = _DiffColumn(
                   title: '加料生成稿',
                   text: item.generatedContentMarkdown,
+                  icon: Icons.auto_fix_high_outlined,
+                  headerBgColor: colorScheme.primary.withValues(alpha: 0.08),
+                  borderColor: colorScheme.primary.withValues(alpha: 0.25),
                 );
                 if (constraints.maxWidth < 760) {
                   return ListView(
@@ -1393,7 +1638,7 @@ class _EnrichmentDiffDialog extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Expanded(child: original),
-                    VerticalDivider(color: colorScheme.outlineVariant),
+                    const SizedBox(width: 12),
                     Expanded(child: generated),
                   ],
                 );
@@ -1401,6 +1646,8 @@ class _EnrichmentDiffDialog extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
+
+          // -- Action row --
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -1425,39 +1672,59 @@ class _EnrichmentDiffDialog extends StatelessWidget {
 }
 
 class _DiffColumn extends StatelessWidget {
-  const _DiffColumn({required this.title, required this.text});
+  const _DiffColumn({
+    required this.title,
+    required this.text,
+    required this.icon,
+    required this.headerBgColor,
+    required this.borderColor,
+  });
 
   final String title;
   final String text;
+  final IconData icon;
+  final Color headerBgColor;
+  final Color borderColor;
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
     return DecoratedBox(
       decoration: BoxDecoration(
-        border: Border.all(color: colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: borderColor),
+        borderRadius: BorderRadius.circular(kPanelRadius),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-            child: Text(title, style: Theme.of(context).textTheme.titleSmall),
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(12),
-              child: SelectableText(
-                text.trim().isEmpty ? '暂无内容。' : text,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(height: 1.55),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(kPanelRadius),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ColoredBox(
+              color: headerBgColor,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+                child: Row(
+                  children: [
+                    Icon(icon, size: 16, color: colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 6),
+                    Text(title, style: textTheme.titleSmall),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+            const Divider(height: 1),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(12),
+                child: SelectableText(
+                  text.trim().isEmpty ? '暂无内容。' : text,
+                  style: textTheme.bodyMedium?.copyWith(height: 1.55),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -5734,7 +6001,18 @@ class _EnrichmentRequestDialog extends StatefulWidget {
 class _EnrichmentRequestDialogState extends State<_EnrichmentRequestDialog> {
   final _instructionController = TextEditingController();
   late final Set<String> _selectedChapterIds;
+  String? _focusedChapterId;
   double _ratio = 20;
+
+  static const _quickInstructions = [
+    '增强心理描写',
+    '补足环境描写',
+    '强化冲突张力',
+    '丰富对话层次',
+    '加深感官细节',
+  ];
+
+  static const _ratioPresets = [10, 20, 50, 100];
 
   @override
   void initState() {
@@ -5747,6 +6025,9 @@ class _EnrichmentRequestDialogState extends State<_EnrichmentRequestDialog> {
     if (_selectedChapterIds.isEmpty && widget.chapters.isNotEmpty) {
       _selectedChapterIds.add(widget.chapters.first.id);
     }
+    _focusedChapterId = _selectedChapterIds.isNotEmpty
+        ? _selectedChapterIds.first
+        : widget.chapters.first.id;
   }
 
   @override
@@ -5757,12 +6038,7 @@ class _EnrichmentRequestDialogState extends State<_EnrichmentRequestDialog> {
 
   void _submit() {
     final instruction = _instructionController.text.trim();
-    if (instruction.isEmpty) {
-      return;
-    }
-    if (_selectedChapterIds.isEmpty) {
-      return;
-    }
+    if (instruction.isEmpty || _selectedChapterIds.isEmpty) return;
     Navigator.of(context).pop(
       _EnrichmentRequest(
         chapterIds: _selectedChapterIds.toList(growable: false),
@@ -5772,77 +6048,320 @@ class _EnrichmentRequestDialogState extends State<_EnrichmentRequestDialog> {
     );
   }
 
+  void _appendInstruction(String text) {
+    final current = _instructionController.text.trim();
+    if (current.isEmpty) {
+      _instructionController.text = text;
+    } else if (!current.contains(text)) {
+      _instructionController.text = '$current，$text';
+    }
+    setState(() {});
+  }
+
+  ProjectChapter? get _previewChapter {
+    if (_focusedChapterId == null) return null;
+    for (final ch in widget.chapters) {
+      if (ch.id == _focusedChapterId) return ch;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final canSubmit = _instructionController.text.trim().isNotEmpty;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
+    final previewChapter = _previewChapter;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 620;
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDialogHeader(colorScheme, textTheme),
+            const SizedBox(height: 16),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildWorkflowSection(
+                      colorScheme,
+                      textTheme,
+                      previewChapter,
+                      compact: compact,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Divider(height: 1, color: colorScheme.outlineVariant),
+            const SizedBox(height: 14),
+            _buildActionRow(colorScheme, textTheme, canSubmit),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildDialogHeader(ColorScheme colorScheme, TextTheme textTheme) {
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Icon(Icons.auto_fix_high_outlined, color: colorScheme.primary),
-            const SizedBox(width: 10),
-            Text('章节加料', style: Theme.of(context).textTheme.titleLarge),
-          ],
-        ),
-        const SizedBox(height: 14),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 240),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              border: Border.all(color: colorScheme.outlineVariant),
-              borderRadius: BorderRadius.circular(8),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: colorScheme.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Icon(
+              Icons.auto_fix_high_outlined,
+              color: colorScheme.primary,
+              size: 20,
             ),
-            child: ListView(
-              shrinkWrap: true,
-              padding: const EdgeInsets.symmetric(vertical: 6),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('章节加料', style: textTheme.titleLarge),
+              const SizedBox(height: 2),
+              Text(
+                '选择章节、填写加料方向，并生成可预览的改写结果。',
+                style: textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWorkflowSection(
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+    ProjectChapter? previewChapter, {
+    required bool compact,
+  }) {
+    if (compact) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildChapterList(colorScheme, textTheme, compact: true),
+          const SizedBox(height: 12),
+          _buildRightWorkflowColumn(
+            colorScheme,
+            textTheme,
+            previewChapter,
+            compact: true,
+          ),
+        ],
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(flex: 5, child: _buildChapterList(colorScheme, textTheme)),
+        const SizedBox(width: 14),
+        Expanded(
+          flex: 7,
+          child: _buildRightWorkflowColumn(
+            colorScheme,
+            textTheme,
+            previewChapter,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRightWorkflowColumn(
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+    ProjectChapter? previewChapter, {
+    bool compact = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildPreviewPane(
+          colorScheme,
+          textTheme,
+          previewChapter,
+          compact: compact,
+        ),
+        const SizedBox(height: 12),
+        compact
+            ? _buildInstructionCardCompact(colorScheme, textTheme)
+            : _buildInstructionCard(colorScheme, textTheme),
+        const SizedBox(height: 12),
+        _buildRatioCard(colorScheme, textTheme, compact: compact),
+      ],
+    );
+  }
+
+  Widget _buildSurface({
+    required ColorScheme colorScheme,
+    required Widget child,
+    Color? backgroundColor,
+  }) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: backgroundColor ?? colorScheme.surface,
+        border: Border.all(color: colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildInstructionCard(ColorScheme colorScheme, TextTheme textTheme) {
+    return _buildSurface(
+      colorScheme: colorScheme,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                for (final chapter in widget.chapters)
-                  CheckboxListTile(
-                    dense: true,
-                    value: _selectedChapterIds.contains(chapter.id),
-                    onChanged: (selected) {
-                      setState(() {
-                        if (selected ?? false) {
-                          _selectedChapterIds.add(chapter.id);
-                        } else {
-                          _selectedChapterIds.remove(chapter.id);
-                        }
-                      });
-                    },
-                    title: Text(
-                      '第 ${chapter.chapterIndex} 章 · ${chapter.title}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    subtitle: Text(
-                      '${chapter.contentMarkdown.trim().length} 字',
-                    ),
+                Text('加料指令', style: textTheme.titleSmall),
+                const SizedBox(width: 8),
+                Text(
+                  '可点选快捷方向后继续补充',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final label in _quickInstructions)
+                  ActionChip(
+                    label: Text(label),
+                    labelStyle: textTheme.bodySmall,
+                    visualDensity: VisualDensity.compact,
+                    side: BorderSide(color: colorScheme.outlineVariant),
+                    backgroundColor: colorScheme.surface,
+                    onPressed: () => _appendInstruction(label),
                   ),
               ],
             ),
-          ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _instructionController,
+              minLines: 4,
+              maxLines: 4,
+              decoration: InputDecoration(
+                hintText: '输入具体加料要求...',
+                border: const OutlineInputBorder(),
+                alignLabelWithHint: true,
+                filled: true,
+                fillColor: colorScheme.surfaceContainerLowest,
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+          ],
         ),
-        const SizedBox(height: 14),
-        TextField(
-          controller: _instructionController,
-          minLines: 4,
-          maxLines: 7,
-          decoration: const InputDecoration(
-            labelText: '加料要求',
-            hintText: '例如：增强心理描写，补足环境压迫感，让冲突更尖锐。',
-            border: OutlineInputBorder(),
-            alignLabelWithHint: true,
-          ),
-          onChanged: (_) => setState(() {}),
-        ),
-        const SizedBox(height: 16),
-        Row(
+      ),
+    );
+  }
+
+  Widget _buildInstructionCardCompact(
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+  ) {
+    return _buildSurface(
+      colorScheme: colorScheme,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Slider(
+            Text('加料指令', style: textTheme.titleSmall),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final label in _quickInstructions)
+                  ActionChip(
+                    label: Text(label),
+                    labelStyle: textTheme.bodySmall,
+                    visualDensity: VisualDensity.compact,
+                    side: BorderSide(color: colorScheme.outlineVariant),
+                    backgroundColor: colorScheme.surface,
+                    onPressed: () => _appendInstruction(label),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _instructionController,
+              minLines: 4,
+              maxLines: 4,
+              decoration: InputDecoration(
+                hintText: '输入具体加料要求...',
+                border: const OutlineInputBorder(),
+                alignLabelWithHint: true,
+                filled: true,
+                fillColor: colorScheme.surfaceContainerLowest,
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRatioCard(
+    ColorScheme colorScheme,
+    TextTheme textTheme, {
+    bool compact = false,
+  }) {
+    if (compact) {
+      return _buildSurface(
+        colorScheme: colorScheme,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(child: Text('扩写比例', style: textTheme.titleSmall)),
+                  Text(
+                    '${_ratio.round()}%',
+                    style: textTheme.titleMedium?.copyWith(
+                      color: colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '在原文基础上扩充约 ${_ratio.round()}% 字数',
+                style: textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Slider(
                 value: _ratio,
                 min: 1,
                 max: 100,
@@ -5850,36 +6369,368 @@ class _EnrichmentRequestDialogState extends State<_EnrichmentRequestDialog> {
                 label: '${_ratio.round()}%',
                 onChanged: (value) => setState(() => _ratio = value),
               ),
-            ),
+              const SizedBox(height: 2),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final preset in _ratioPresets)
+                    ChoiceChip(
+                      label: Text('$preset%'),
+                      labelStyle: textTheme.bodySmall,
+                      selected: _ratio.round() == preset,
+                      onSelected: (_) =>
+                          setState(() => _ratio = preset.toDouble()),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return _buildSurface(
+      colorScheme: colorScheme,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
             SizedBox(
-              width: 68,
-              child: Text(
-                '${_ratio.round()}%',
-                textAlign: TextAlign.end,
-                style: Theme.of(context).textTheme.titleSmall,
+              width: 108,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('扩写比例', style: textTheme.titleSmall),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${_ratio.round()}%',
+                    style: textTheme.titleLarge?.copyWith(
+                      color: colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '在原文基础上扩充约 ${_ratio.round()}% 字数',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  Slider(
+                    value: _ratio,
+                    min: 1,
+                    max: 100,
+                    divisions: 99,
+                    label: '${_ratio.round()}%',
+                    onChanged: (value) => setState(() => _ratio = value),
+                  ),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final preset in _ratioPresets)
+                        ChoiceChip(
+                          label: Text('$preset%'),
+                          labelStyle: textTheme.bodySmall,
+                          selected: _ratio.round() == preset,
+                          onSelected: (_) =>
+                              setState(() => _ratio = preset.toDouble()),
+                        ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ],
         ),
-        const SizedBox(height: 18),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
+      ),
+    );
+  }
+
+  Widget _buildActionRow(
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+    bool canSubmit,
+  ) {
+    final summary = Text(
+      _selectedChapterIds.isEmpty
+          ? '至少选择 1 个章节后才能生成预览。'
+          : '将为已选 ${_selectedChapterIds.length} 章生成预览，应用前不会覆盖正文。',
+      style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+    );
+    final actions = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('取消'),
+        ),
+        const SizedBox(width: 8),
+        FilledButton.icon(
+          onPressed: canSubmit && _selectedChapterIds.isNotEmpty
+              ? _submit
+              : null,
+          icon: const Icon(Icons.auto_fix_high_outlined, size: 18),
+          label: Text('生成 ${_selectedChapterIds.length} 章预览'),
+        ),
+      ],
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 560) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Align(alignment: Alignment.centerLeft, child: summary),
+              const SizedBox(height: 10),
+              actions,
+            ],
+          );
+        }
+
+        return Row(
           children: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('取消'),
+            Expanded(child: summary),
+            const SizedBox(width: 16),
+            actions,
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildChapterList(
+    ColorScheme colorScheme,
+    TextTheme textTheme, {
+    bool compact = false,
+  }) {
+    return _buildSurface(
+      colorScheme: colorScheme,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 12, 10),
+            child: Row(
+              children: [
+                Text('选择章节', style: textTheme.titleMedium),
+                const SizedBox(width: 8),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    child: Text(
+                      '${_selectedChapterIds.length}/${widget.chapters.length}',
+                      style: textTheme.labelMedium?.copyWith(
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                TextButton(
+                  onPressed: () => setState(() {
+                    if (_selectedChapterIds.length == widget.chapters.length) {
+                      _selectedChapterIds.clear();
+                    } else {
+                      _selectedChapterIds.addAll(
+                        widget.chapters.map((ch) => ch.id),
+                      );
+                    }
+                  }),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                  child: Text(
+                    _selectedChapterIds.length == widget.chapters.length
+                        ? '清空'
+                        : '全选',
+                    style: textTheme.bodySmall,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            FilledButton.icon(
-              onPressed: canSubmit && _selectedChapterIds.isNotEmpty
-                  ? _submit
-                  : null,
-              icon: const Icon(Icons.auto_fix_high_outlined, size: 18),
-              label: Text('生成 ${_selectedChapterIds.length} 章预览'),
+          ),
+          const Divider(height: 1),
+          SizedBox(
+            height: compact ? 220 : 520,
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              itemCount: widget.chapters.length,
+              itemBuilder: (context, index) => _buildChapterRow(
+                colorScheme,
+                textTheme,
+                widget.chapters[index],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChapterRow(
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+    ProjectChapter chapter,
+  ) {
+    final isSelected = _selectedChapterIds.contains(chapter.id);
+    final isFocused = _focusedChapterId == chapter.id;
+
+    return InkWell(
+      onTap: () => setState(() {
+        _focusedChapterId = chapter.id;
+        if (isSelected) {
+          _selectedChapterIds.remove(chapter.id);
+        } else {
+          _selectedChapterIds.add(chapter.id);
+        }
+      }),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOutCubic,
+        decoration: BoxDecoration(
+          color: isFocused
+              ? colorScheme.primary.withValues(alpha: 0.06)
+              : Colors.transparent,
+          border: Border(
+            left: BorderSide(
+              color: isSelected ? colorScheme.primary : Colors.transparent,
+              width: 3,
+            ),
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Row(
+          children: [
+            Checkbox(
+              value: isSelected,
+              onChanged: (selected) => setState(() {
+                if (selected ?? false) {
+                  _selectedChapterIds.add(chapter.id);
+                } else {
+                  _selectedChapterIds.remove(chapter.id);
+                }
+                _focusedChapterId = chapter.id;
+              }),
+              visualDensity: VisualDensity.compact,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '第 ${chapter.chapterIndex} 章 · ${chapter.title}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodyMedium,
+                  ),
+                  Text(
+                    '${chapter.contentMarkdown.trim().length} 字',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
-      ],
+      ),
+    );
+  }
+
+  Widget _buildPreviewPane(
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+    ProjectChapter? chapter, {
+    bool compact = false,
+  }) {
+    return _buildSurface(
+      colorScheme: colorScheme,
+      backgroundColor: colorScheme.surfaceContainerLowest,
+      child: SizedBox(
+        height: compact ? 220 : 196,
+        child: chapter == null
+            ? Padding(
+                padding: const EdgeInsets.all(24),
+                child: Center(
+                  child: Text(
+                    '点击左侧章节查看预览',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.description_outlined,
+                          size: 16,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '第 ${chapter.chapterIndex} 章 · ${chapter.title}',
+                            style: textTheme.titleSmall,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${chapter.contentMarkdown.trim().length} 字',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(14),
+                      child: SelectableText(
+                        chapter.contentMarkdown.trim().length > 420
+                            ? '${chapter.contentMarkdown.trim().substring(0, 420)}...'
+                            : chapter.contentMarkdown.trim(),
+                        style: textTheme.bodySmall?.copyWith(
+                          height: 1.55,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+      ),
     );
   }
 }

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/analysis_lab_widgets.dart';
 import '../../../core/ui/glass_container.dart';
 import '../../../core/ui/persona_page.dart';
 import '../../../core/ui/skeleton_loader.dart';
@@ -1468,6 +1470,8 @@ class _NovelImportDialogState extends ConsumerState<_NovelImportDialog> {
     final styleProfiles = ref.watch(styleProfilesProvider);
     final draft = _draft;
     final busy = _parsing || _creating;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return providers.when(
       data: (providerItems) => styleProfiles.when(
@@ -1496,133 +1500,221 @@ class _NovelImportDialogState extends ConsumerState<_NovelImportDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '导入小说加料项目',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              // -- Title with icon --
+              Row(
+                children: [
+                  Icon(Icons.import_export_outlined, color: colorScheme.primary),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      '导入小说加料项目',
+                      style: textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 6),
               Text(
                 '选择 TXT / EPUB 后确认章节切分，再创建只用于整章加料的导入型项目。',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
                 ),
               ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: busy ? null : _pickFile,
-                    icon: const Icon(Icons.upload_file_outlined),
-                    label: Text(_parsing ? '解析中' : '选择文件'),
+              const SizedBox(height: 20),
+
+              // -- File selection area --
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.4,
                   ),
-                  const SizedBox(width: 12),
-                  if (draft != null)
-                    Expanded(
-                      child: Text(
-                        '${draft.sourceFilename} · ${draft.chapters.length} 章 · ${draft.totalCharacterCount} 字',
-                        overflow: TextOverflow.ellipsis,
+                  borderRadius: BorderRadius.circular(kPanelRadius),
+                  border: Border.all(color: colorScheme.outlineVariant),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: busy ? null : _pickFile,
+                        icon: const Icon(Icons.upload_file_outlined),
+                        label: Text(_parsing ? '解析中...' : '选择文件'),
                       ),
-                    ),
-                ],
+                      const SizedBox(width: 12),
+                      if (draft != null)
+                        Expanded(
+                          child: Text(
+                            '${draft.sourceFilename} · ${draft.chapters.length} 章 · ${draft.totalCharacterCount} 字',
+                            overflow: TextOverflow.ellipsis,
+                            style: textTheme.bodyMedium,
+                          ),
+                        )
+                      else
+                        Expanded(
+                          child: Text(
+                            '支持 .txt 和 .epub 格式',
+                            style: textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
+
+              // -- Error message --
               if (_errorMessage != null) ...[
                 const SizedBox(height: 12),
-                Text(
-                  _errorMessage!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                InlineError(message: _errorMessage!),
+              ],
+
+              // -- Settings section --
+              if (draft != null) ...[
+                const SizedBox(height: 20),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: colorScheme.surface,
+                    borderRadius: BorderRadius.circular(kPanelRadius),
+                    border: Border.all(color: colorScheme.outlineVariant),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '基本设置',
+                          style: textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _titleController,
+                          decoration: const InputDecoration(
+                            labelText: '项目标题',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: DropdownButtonFormField<String>(
+                                initialValue: _selectedProviderId,
+                                decoration: const InputDecoration(
+                                  labelText: '默认 Provider',
+                                  border: OutlineInputBorder(),
+                                ),
+                                items: [
+                                  for (final provider in providerItems)
+                                    DropdownMenuItem(
+                                      value: provider.id,
+                                      child: Text(provider.name),
+                                    ),
+                                ],
+                                onChanged: busy
+                                    ? null
+                                    : (id) {
+                                        if (id == null) return;
+                                        final provider = _findById(
+                                          providerItems,
+                                          id,
+                                          (item) => item.id,
+                                        );
+                                        setState(() {
+                                          _selectedProviderId = id;
+                                          _selectedModelName =
+                                              provider?.defaultModel;
+                                        });
+                                      },
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: DropdownButtonFormField<String>(
+                                initialValue: _selectedModelName,
+                                decoration: const InputDecoration(
+                                  labelText: '默认模型',
+                                  border: OutlineInputBorder(),
+                                ),
+                                items: [
+                                  for (final modelName in modelNames)
+                                    DropdownMenuItem(
+                                      value: modelName,
+                                      child: Text(modelName),
+                                    ),
+                                ],
+                                onChanged: busy
+                                    ? null
+                                    : (modelName) => setState(
+                                        () => _selectedModelName = modelName,
+                                      ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<String?>(
+                          initialValue: _selectedStyleProfileId,
+                          decoration: const InputDecoration(
+                            labelText: 'Voice Profile（可选）',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: [
+                            const DropdownMenuItem<String?>(
+                              value: null,
+                              child: Text('不绑定'),
+                            ),
+                            for (final profile in styleItems)
+                              DropdownMenuItem<String?>(
+                                value: profile.id,
+                                child: Text(profile.styleName),
+                              ),
+                          ],
+                          onChanged: busy
+                              ? null
+                              : (id) =>
+                                    setState(() => _selectedStyleProfileId = id),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
+
+              // -- Chapter preview section --
               if (draft != null) ...[
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _titleController,
-                  decoration: const InputDecoration(
-                    labelText: '项目标题',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 20),
                 Row(
                   children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _selectedProviderId,
-                        decoration: const InputDecoration(
-                          labelText: '默认 Provider',
-                          border: OutlineInputBorder(),
-                        ),
-                        items: [
-                          for (final provider in providerItems)
-                            DropdownMenuItem(
-                              value: provider.id,
-                              child: Text(provider.name),
-                            ),
-                        ],
-                        onChanged: busy
-                            ? null
-                            : (id) {
-                                if (id == null) return;
-                                final provider = _findById(
-                                  providerItems,
-                                  id,
-                                  (item) => item.id,
-                                );
-                                setState(() {
-                                  _selectedProviderId = id;
-                                  _selectedModelName = provider?.defaultModel;
-                                });
-                              },
-                      ),
+                    Text(
+                      '章节列表',
+                      style: textTheme.titleMedium,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _selectedModelName,
-                        decoration: const InputDecoration(
-                          labelText: '默认模型',
-                          border: OutlineInputBorder(),
+                    const SizedBox(width: 8),
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
                         ),
-                        items: [
-                          for (final modelName in modelNames)
-                            DropdownMenuItem(
-                              value: modelName,
-                              child: Text(modelName),
-                            ),
-                        ],
-                        onChanged: busy
-                            ? null
-                            : (modelName) => setState(
-                                () => _selectedModelName = modelName,
-                              ),
+                        child: Text(
+                          '${draft.chapters.length}',
+                          style: textTheme.labelMedium?.copyWith(
+                            color: colorScheme.primary,
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<String?>(
-                  initialValue: _selectedStyleProfileId,
-                  decoration: const InputDecoration(
-                    labelText: 'Voice Profile（可选）',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: [
-                    const DropdownMenuItem<String?>(
-                      value: null,
-                      child: Text('不绑定'),
-                    ),
-                    for (final profile in styleItems)
-                      DropdownMenuItem<String?>(
-                        value: profile.id,
-                        child: Text(profile.styleName),
-                      ),
-                  ],
-                  onChanged: busy
-                      ? null
-                      : (id) => setState(() => _selectedStyleProfileId = id),
-                ),
-                const SizedBox(height: 14),
                 Flexible(
                   child: _ImportChapterPreviewList(
                     chapters: draft.chapters,
@@ -1632,7 +1724,9 @@ class _NovelImportDialogState extends ConsumerState<_NovelImportDialog> {
                   ),
                 ),
               ],
-              const SizedBox(height: 18),
+
+              // -- Action row --
+              const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -1651,23 +1745,27 @@ class _NovelImportDialogState extends ConsumerState<_NovelImportDialog> {
                         ? null
                         : _createProject,
                     icon: const Icon(Icons.check_outlined, size: 18),
-                    label: Text(_creating ? '创建中' : '创建项目'),
+                    label: Text(_creating ? '创建中...' : '创建项目'),
                   ),
                 ],
               ),
             ],
           );
         },
-        error: (error, stackTrace) => Text('无法加载 Style Profiles：$error'),
+        error: (error, stackTrace) => InlineError(
+          message: '无法加载 Style Profiles：$error',
+        ),
         loading: () => const Center(child: CircularProgressIndicator()),
       ),
-      error: (error, stackTrace) => Text('无法加载 Providers：$error'),
+      error: (error, stackTrace) => InlineError(
+        message: '无法加载 Providers：$error',
+      ),
       loading: () => const Center(child: CircularProgressIndicator()),
     );
   }
 }
 
-class _ImportChapterPreviewList extends StatelessWidget {
+class _ImportChapterPreviewList extends StatefulWidget {
   const _ImportChapterPreviewList({
     required this.chapters,
     required this.onTitleChanged,
@@ -1681,56 +1779,138 @@ class _ImportChapterPreviewList extends StatelessWidget {
   final ValueChanged<int> onMergeWithNext;
 
   @override
+  State<_ImportChapterPreviewList> createState() =>
+      _ImportChapterPreviewListState();
+}
+
+class _ImportChapterPreviewListState extends State<_ImportChapterPreviewList> {
+  int _hoveredIndex = -1;
+
+  @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return DecoratedBox(
       decoration: BoxDecoration(
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(kPanelRadius),
       ),
       child: ListView.separated(
         shrinkWrap: true,
-        itemCount: chapters.length,
-        separatorBuilder: (context, index) => const Divider(height: 1),
+        itemCount: widget.chapters.length,
+        separatorBuilder: (context, index) => Divider(
+          height: 1,
+          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
         itemBuilder: (context, index) {
-          final chapter = chapters[index];
-          return Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 64,
-                  child: Text(
-                    '${index + 1}',
-                    style: Theme.of(context).textTheme.labelLarge,
-                  ),
-                ),
-                Expanded(
-                  child: TextFormField(
-                    key: ValueKey(chapter.id),
-                    initialValue: chapter.title,
-                    decoration: InputDecoration(
-                      labelText: '${chapter.characterCount} 字',
-                      border: const OutlineInputBorder(),
+          final chapter = widget.chapters[index];
+          final isHovered = _hoveredIndex == index;
+          return MouseRegion(
+            onEnter: (_) => setState(() => _hoveredIndex = index),
+            onExit: (_) => setState(() => _hoveredIndex = -1),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              color: isHovered
+                  ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
+                  : Colors.transparent,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                children: [
+                  // Chapter number badge
+                  Container(
+                    width: 36,
+                    height: 28,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
                     ),
-                    onChanged: (value) => onTitleChanged(index, value),
+                    child: Text(
+                      '${index + 1}',
+                      style: textTheme.labelLarge?.copyWith(
+                        color: colorScheme.primary,
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  tooltip: '合并下一章',
-                  onPressed: index + 1 >= chapters.length
-                      ? null
-                      : () => onMergeWithNext(index),
-                  icon: const Icon(Icons.call_merge_outlined),
-                ),
-                IconButton(
-                  tooltip: '删除章节',
-                  onPressed: chapters.length <= 1
-                      ? null
-                      : () => onDelete(index),
-                  icon: const Icon(Icons.delete_outline),
-                ),
-              ],
+                  const SizedBox(width: 10),
+                  // Chapter title input
+                  Expanded(
+                    child: TextFormField(
+                      key: ValueKey(chapter.id),
+                      initialValue: chapter.title,
+                      style: textTheme.bodyLarge,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        hintText: '章节标题',
+                        suffixText: '${chapter.characterCount} 字',
+                        suffixStyle: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: colorScheme.outlineVariant,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: colorScheme.outlineVariant.withValues(
+                              alpha: 0.5,
+                            ),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: colorScheme.primary,
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+                      onChanged: (value) =>
+                          widget.onTitleChanged(index, value),
+                    ),
+                  ),
+                  // Action buttons — fade in on hover
+                  AnimatedOpacity(
+                    duration: const Duration(milliseconds: 150),
+                    opacity: isHovered ? 1.0 : 0.0,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(width: 4),
+                        IconButton(
+                          tooltip: '合并下一章',
+                          iconSize: 18,
+                          visualDensity: VisualDensity.compact,
+                          onPressed: index + 1 >= widget.chapters.length
+                              ? null
+                              : () => widget.onMergeWithNext(index),
+                          icon: const Icon(Icons.call_merge_outlined),
+                        ),
+                        IconButton(
+                          tooltip: '删除章节',
+                          iconSize: 18,
+                          visualDensity: VisualDensity.compact,
+                          onPressed: widget.chapters.length <= 1
+                              ? null
+                              : () => widget.onDelete(index),
+                          icon: Icon(
+                            Icons.delete_outline,
+                            color: colorScheme.error,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },
