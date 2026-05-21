@@ -1007,7 +1007,10 @@ class _ProjectOverviewTab extends StatelessWidget {
                           title: '暂无运行时记忆',
                           description: '完成正文生成后将自动创建',
                         )
-                      : _RuntimeMemoryGrid(memory: item.state),
+                      : _RuntimeMemoryOverviewSummary(
+                          memory: item.state,
+                          onOpen: () => onSwitchTab(7),
+                        ),
                   error: (error, stackTrace) => Text('无法加载运行时记忆：$error'),
                   loading: () => const SkeletonBox(width: 220, height: 16),
                 ),
@@ -2413,7 +2416,7 @@ class _RuntimeMemoryTabState extends ConsumerState<_RuntimeMemoryTab> {
               else if (_editing)
                 _buildEditForm(context, colorScheme, textTheme)
               else
-                _RuntimeMemoryGrid(memory: item.state),
+                _RuntimeMemoryReadView(memory: item.state),
             ],
           ),
         );
@@ -4136,67 +4139,460 @@ class _PromptAssetStatusStrip extends StatelessWidget {
   }
 }
 
-class _RuntimeMemoryGrid extends StatelessWidget {
-  const _RuntimeMemoryGrid({required this.memory});
+class _RuntimeMemoryOverviewSummary extends StatelessWidget {
+  const _RuntimeMemoryOverviewSummary({
+    required this.memory,
+    required this.onOpen,
+  });
+
+  final RuntimeMemoryState memory;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final fields = _memoryViewModels(memory);
+    final filled = fields
+        .where((field) => field.value.trim().isNotEmpty)
+        .toList(growable: false);
+    final primary = _firstFilledPreview(memory);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.22),
+        border: Border.all(color: colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 620;
+            final content = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.memory_outlined,
+                      size: 18,
+                      color: colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '已记录 ${filled.length}/${fields.length} 项',
+                      style: textTheme.labelLarge?.copyWith(
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  primary,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final field in fields)
+                      _MemoryCompactPill(
+                        icon: field.icon,
+                        label: field.title,
+                        filled: field.value.trim().isNotEmpty,
+                        color: field.color,
+                      ),
+                  ],
+                ),
+              ],
+            );
+            final action = TextButton.icon(
+              onPressed: onOpen,
+              icon: const Icon(Icons.open_in_new_outlined, size: 16),
+              label: const Text('查看详情'),
+            );
+
+            if (compact) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [content, const SizedBox(height: 8), action],
+              );
+            }
+
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: content),
+                const SizedBox(width: 14),
+                action,
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _RuntimeMemoryReadView extends StatefulWidget {
+  const _RuntimeMemoryReadView({required this.memory});
 
   final RuntimeMemoryState memory;
 
   @override
+  State<_RuntimeMemoryReadView> createState() => _RuntimeMemoryReadViewState();
+}
+
+class _RuntimeMemoryReadViewState extends State<_RuntimeMemoryReadView> {
+  int? _expandedIndex;
+
+  @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final fields = _memoryViewModels(widget.memory);
+    final activeFields = fields
+        .where((field) => field.value.trim().isNotEmpty)
+        .length;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        border: Border.all(color: colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '记忆检查表',
+                    style: textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                _MemoryListCount(label: '$activeFields/${fields.length} 项已记录'),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          for (final entry in fields.indexed)
+            _MemoryChecklistRow(
+              model: entry.$2,
+              expanded: _expandedIndex == entry.$1,
+              onTap: () {
+                setState(() {
+                  _expandedIndex = _expandedIndex == entry.$1 ? null : entry.$1;
+                });
+              },
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MemoryChecklistRow extends StatelessWidget {
+  const _MemoryChecklistRow({
+    required this.model,
+    required this.expanded,
+    required this.onTap,
+  });
+
+  final _MemoryViewModel model;
+  final bool expanded;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final text = model.value.trim();
+    final empty = text.isEmpty;
+    final displayText = empty
+        ? '未记录'
+        : expanded
+        ? text
+        : _memoryPreviewText(text);
+
     return LayoutBuilder(
       builder: (context, constraints) {
-        final wide = constraints.maxWidth >= 760;
-        final children = [
-          _MemoryBlock(
-            icon: Icons.play_circle_outline,
-            title: '运行状态',
-            description: '故事推进中的即时状态',
-            value: memory.runtimeState,
-            accentColor: Colors.green,
-          ),
-          _MemoryBlock(
-            icon: Icons.timeline_outlined,
-            title: '剧情线索',
-            description: '未解决的伏笔和进行中的线索',
-            value: memory.runtimeThreads,
-            accentColor: Colors.amber,
-          ),
-          _MemoryBlock(
-            icon: Icons.menu_book_outlined,
-            title: '故事摘要',
-            description: '截至目前的整体故事脉络',
-            value: memory.storySummary,
-            accentColor: Colors.purple,
-          ),
-          _MemoryBlock(
-            icon: Icons.account_tree_outlined,
-            title: '连续性索引',
-            description: '高密度触发点和承接提醒',
-            value: memory.continuityIndex,
-            accentColor: Colors.teal,
-          ),
-          _MemoryBlock(
-            icon: Icons.archive_outlined,
-            title: '章节归档',
-            description: '已审阅章节的连续性记录',
-            value: memory.chapterArchiveMarkdown,
-            accentColor: Colors.indigo,
-          ),
-        ];
-        if (!wide) {
-          return Column(children: children);
-        }
-        return Wrap(
-          spacing: 12,
-          runSpacing: 12,
+        final compact = constraints.maxWidth < 560;
+        final title = Row(
           children: [
-            for (final child in children)
-              SizedBox(width: (constraints.maxWidth - 12) / 2, child: child),
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: empty ? colorScheme.outline : colorScheme.primary,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                model.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
           ],
+        );
+        final body = Text(
+          displayText,
+          maxLines: expanded ? null : 2,
+          overflow: expanded ? null : TextOverflow.ellipsis,
+          style: textTheme.bodyMedium?.copyWith(
+            height: 1.48,
+            color: empty
+                ? colorScheme.onSurfaceVariant.withValues(alpha: 0.7)
+                : colorScheme.onSurface,
+            fontStyle: empty ? FontStyle.italic : null,
+          ),
+        );
+        final arrow = Icon(
+          expanded
+              ? Icons.keyboard_arrow_up_outlined
+              : Icons.keyboard_arrow_down_outlined,
+          size: 20,
+          color: colorScheme.onSurfaceVariant,
+        );
+
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(color: colorScheme.outlineVariant),
+            ),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 13,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (compact)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(child: title),
+                              const SizedBox(width: 12),
+                              arrow,
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          body,
+                        ],
+                      )
+                    else
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(width: 150, child: title),
+                          const SizedBox(width: 14),
+                          Expanded(child: body),
+                          const SizedBox(width: 12),
+                          arrow,
+                        ],
+                      ),
+                    if (expanded && !empty) ...[
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: EdgeInsets.only(
+                          left: compact ? 0 : 164,
+                          right: compact ? 0 : 32,
+                        ),
+                        child: Text(
+                          model.description,
+                          style: textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
         );
       },
     );
   }
+}
+
+class _MemoryListCount extends StatelessWidget {
+  const _MemoryListCount({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.36),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MemoryCompactPill extends StatelessWidget {
+  const _MemoryCompactPill({
+    required this.icon,
+    required this.label,
+    required this.filled,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool filled;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final activeColor = filled ? color : colorScheme.onSurfaceVariant;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: activeColor.withValues(alpha: filled ? 0.08 : 0.04),
+        border: Border.all(color: activeColor.withValues(alpha: 0.24)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 15, color: activeColor),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: filled ? null : colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MemoryViewModel {
+  const _MemoryViewModel({
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.value,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String title;
+  final String description;
+  final String value;
+  final Color color;
+}
+
+List<_MemoryViewModel> _memoryViewModels(RuntimeMemoryState memory) {
+  return [
+    _MemoryViewModel(
+      icon: Icons.play_circle_outline,
+      title: '运行状态',
+      description: '故事推进中的即时状态',
+      value: memory.runtimeState,
+      color: const Color(0xFF16825D),
+    ),
+    _MemoryViewModel(
+      icon: Icons.timeline_outlined,
+      title: '剧情线索',
+      description: '未解决的伏笔和进行中的线索',
+      value: memory.runtimeThreads,
+      color: const Color(0xFFB7791F),
+    ),
+    _MemoryViewModel(
+      icon: Icons.menu_book_outlined,
+      title: '故事摘要',
+      description: '截至目前的整体故事脉络',
+      value: memory.storySummary,
+      color: const Color(0xFF5967C9),
+    ),
+    _MemoryViewModel(
+      icon: Icons.account_tree_outlined,
+      title: '连续性索引',
+      description: '高密度触发点和承接提醒',
+      value: memory.continuityIndex,
+      color: const Color(0xFF00897B),
+    ),
+    _MemoryViewModel(
+      icon: Icons.archive_outlined,
+      title: '章节归档',
+      description: '已审阅章节的连续性记录',
+      value: memory.chapterArchiveMarkdown,
+      color: const Color(0xFF3949AB),
+    ),
+  ];
+}
+
+String _firstFilledPreview(RuntimeMemoryState memory) {
+  for (final value in [
+    memory.runtimeState,
+    memory.runtimeThreads,
+    memory.storySummary,
+    memory.continuityIndex,
+    memory.chapterArchiveMarkdown,
+  ]) {
+    final text = _singleLine(value);
+    if (text.isNotEmpty) {
+      return text;
+    }
+  }
+  return '已有运行时记忆，进入详情查看完整上下文。';
+}
+
+String _memoryPreviewText(String value) {
+  final text = _singleLine(value);
+  if (text.length <= 32) return text;
+  return '${text.substring(0, 32)}...';
+}
+
+String _singleLine(String value) {
+  return value.trim().replaceAll(RegExp(r'\s+'), ' ');
 }
 
 class _MemoryPatchReviewList extends ConsumerWidget {
@@ -4346,99 +4742,6 @@ class _RuntimeMemoryProposalPreview extends StatelessWidget {
                 ),
               ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MemoryBlock extends StatelessWidget {
-  const _MemoryBlock({
-    required this.icon,
-    required this.title,
-    required this.description,
-    required this.value,
-    required this.accentColor,
-  });
-
-  final IconData icon;
-  final String title;
-  final String description;
-  final String value;
-  final Color accentColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final text = value.trim();
-    final isEmpty = text.isEmpty;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border.all(color: colorScheme.outlineVariant),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Colored left accent bar
-              Container(
-                width: 4,
-                decoration: BoxDecoration(
-                  color: accentColor,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(10),
-                    bottomLeft: Radius.circular(10),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(icon, size: 20, color: accentColor),
-                          const SizedBox(width: 8),
-                          Text(
-                            title,
-                            style: textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        description,
-                        style: textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        isEmpty ? '未记录' : text,
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: isEmpty
-                              ? colorScheme.onSurfaceVariant.withValues(
-                                  alpha: 0.6,
-                                )
-                              : null,
-                          fontStyle: isEmpty ? FontStyle.italic : null,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );

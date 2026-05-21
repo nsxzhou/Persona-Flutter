@@ -227,6 +227,43 @@ void main() {
     expect(find.text('可选'), findsOneWidget);
   });
 
+  testWidgets('overview shows compact runtime memory summary only', (
+    tester,
+  ) async {
+    const hiddenThreadDetail =
+        '未解决的秘密监控线索只应在详情页完整展示，刘建国的保密风险、家长追责、学校压力和行动监控都必须保留。';
+    final fixture = _WorkshopFixture(
+      runtimeMemory: const RuntimeMemoryState(
+        runtimeState: '青岚庄家住宅内，诊断书仍由刘建国保管。',
+        runtimeThreads: hiddenThreadDetail,
+        storySummary: '庄子昂决定隐瞒病情。',
+        continuityIndex: '保密状态必须延续。',
+        chapterArchiveMarkdown: '## 第一章\n\n诊断书出现。',
+      ),
+    );
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
+    await tester.pumpAndSettle();
+
+    expect(find.text('已记录 5/5 项'), findsOneWidget);
+    expect(find.text('查看详情'), findsOneWidget);
+    expect(find.textContaining('青岚庄家住宅内'), findsOneWidget);
+    expect(find.textContaining('未解决的秘密监控线索'), findsNothing);
+
+    await tester.ensureVisible(find.widgetWithText(TextButton, '查看详情'));
+    await tester.tap(find.widgetWithText(TextButton, '查看详情'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('记忆检查表'), findsOneWidget);
+    expect(find.text(hiddenThreadDetail), findsNothing);
+
+    await tester.tap(find.text('剧情线索'));
+    await tester.pumpAndSettle();
+
+    expect(find.text(hiddenThreadDetail), findsOneWidget);
+  });
+
   testWidgets('runtime memory tab edits layered continuity fields', (
     tester,
   ) async {
