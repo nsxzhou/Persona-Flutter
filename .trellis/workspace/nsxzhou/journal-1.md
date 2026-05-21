@@ -444,3 +444,37 @@ Implemented imported novel enrichment projects: TXT/EPUB import preview, simplif
 ### Next Steps
 
 - None - task complete
+
+
+## Session 14: Redesign enrichment UI
+
+**Date**: 2026-05-21
+**Task**: Redesign enrichment UI
+**Branch**: `main`
+
+### Summary
+
+Redesigned enrichment workflow UI and improved preview review experience.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a9e3f2b` | (see git log) |
+| `32a8eef` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
