@@ -2293,6 +2293,8 @@ class _RuntimeMemoryTabState extends ConsumerState<_RuntimeMemoryTab> {
   late TextEditingController _runtimeStateCtrl;
   late TextEditingController _threadsCtrl;
   late TextEditingController _summaryCtrl;
+  late TextEditingController _continuityIndexCtrl;
+  late TextEditingController _chapterArchiveCtrl;
 
   @override
   void initState() {
@@ -2300,6 +2302,8 @@ class _RuntimeMemoryTabState extends ConsumerState<_RuntimeMemoryTab> {
     _runtimeStateCtrl = TextEditingController();
     _threadsCtrl = TextEditingController();
     _summaryCtrl = TextEditingController();
+    _continuityIndexCtrl = TextEditingController();
+    _chapterArchiveCtrl = TextEditingController();
   }
 
   @override
@@ -2307,6 +2311,8 @@ class _RuntimeMemoryTabState extends ConsumerState<_RuntimeMemoryTab> {
     _runtimeStateCtrl.dispose();
     _threadsCtrl.dispose();
     _summaryCtrl.dispose();
+    _continuityIndexCtrl.dispose();
+    _chapterArchiveCtrl.dispose();
     super.dispose();
   }
 
@@ -2314,6 +2320,8 @@ class _RuntimeMemoryTabState extends ConsumerState<_RuntimeMemoryTab> {
     _runtimeStateCtrl.text = state.runtimeState;
     _threadsCtrl.text = state.runtimeThreads;
     _summaryCtrl.text = state.storySummary;
+    _continuityIndexCtrl.text = state.continuityIndex;
+    _chapterArchiveCtrl.text = state.chapterArchiveMarkdown;
     setState(() => _editing = true);
   }
 
@@ -2331,6 +2339,8 @@ class _RuntimeMemoryTabState extends ConsumerState<_RuntimeMemoryTab> {
               runtimeState: _runtimeStateCtrl.text,
               runtimeThreads: _threadsCtrl.text,
               storySummary: _summaryCtrl.text,
+              continuityIndex: _continuityIndexCtrl.text,
+              chapterArchiveMarkdown: _chapterArchiveCtrl.text,
             ),
           );
       if (!mounted) return;
@@ -2467,6 +2477,22 @@ class _RuntimeMemoryTabState extends ConsumerState<_RuntimeMemoryTab> {
           label: '故事摘要',
           description: '截至目前的整体故事脉络',
           accentColor: Colors.purple,
+        ),
+        _MemoryEditField(
+          controller: _continuityIndexCtrl,
+          icon: Icons.account_tree_outlined,
+          label: '连续性索引',
+          description: '高密度触发点和承接提醒',
+          accentColor: Colors.teal,
+        ),
+        _MemoryEditField(
+          controller: _chapterArchiveCtrl,
+          icon: Icons.archive_outlined,
+          label: '章节归档',
+          description: '已审阅章节的连续性记录',
+          accentColor: Colors.indigo,
+          minLines: 6,
+          maxLines: 14,
         ),
       ],
     );
@@ -4142,6 +4168,20 @@ class _RuntimeMemoryGrid extends StatelessWidget {
             value: memory.storySummary,
             accentColor: Colors.purple,
           ),
+          _MemoryBlock(
+            icon: Icons.account_tree_outlined,
+            title: '连续性索引',
+            description: '高密度触发点和承接提醒',
+            value: memory.continuityIndex,
+            accentColor: Colors.teal,
+          ),
+          _MemoryBlock(
+            icon: Icons.archive_outlined,
+            title: '章节归档',
+            description: '已审阅章节的连续性记录',
+            value: memory.chapterArchiveMarkdown,
+            accentColor: Colors.indigo,
+          ),
         ];
         if (!wide) {
           return Column(children: children);
@@ -4183,7 +4223,7 @@ class _MemoryPatchReviewList extends ConsumerWidget {
         children: [
           PersonaSectionHeader(
             title: '待审阅记忆 Patch',
-            description: 'AI 生成的角色卡片和关系图变更需要确认后才会应用。',
+            description: 'AI 生成的 Runtime Memory、角色卡片和关系图变更需要确认后才会应用。',
           ),
           const SizedBox(height: 10),
           for (final chapter in pending)
@@ -4212,6 +4252,8 @@ class _MemoryPatchReviewList extends ConsumerWidget {
                           style: const TextStyle(fontFamily: 'monospace'),
                         ),
                       ],
+                      const SizedBox(height: 8),
+                      _RuntimeMemoryProposalPreview(chapter: chapter),
                       const SizedBox(height: 8),
                       Align(
                         alignment: Alignment.centerRight,
@@ -4252,6 +4294,61 @@ class _MemoryPatchReviewList extends ConsumerWidget {
         context,
       ).showSnackBar(SnackBar(content: Text('应用失败：$error')));
     }
+  }
+}
+
+class _RuntimeMemoryProposalPreview extends StatelessWidget {
+  const _RuntimeMemoryProposalPreview({required this.chapter});
+
+  final ProjectChapter chapter;
+
+  @override
+  Widget build(BuildContext context) {
+    final fields = [
+      ('运行状态', chapter.memorySyncProposedRuntimeState),
+      ('剧情线索', chapter.memorySyncProposedRuntimeThreads),
+      ('故事摘要', chapter.memorySyncProposedStorySummary),
+      ('连续性索引', chapter.memorySyncProposedContinuityIndex),
+      ('章节归档', chapter.memorySyncProposedChapterArchiveMarkdown),
+    ].where((field) => field.$2.trim().isNotEmpty).toList(growable: false);
+    if (fields.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Runtime Memory 提案',
+              style: textTheme.labelLarge?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 8),
+            for (final field in fields)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(field.$1, style: textTheme.labelMedium),
+                    const SizedBox(height: 3),
+                    SelectableText(field.$2),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -4437,6 +4534,18 @@ class _RuntimeMemoryEmptyPreview extends StatelessWidget {
         description: '整体故事脉络',
         color: colorScheme.primary,
       ),
+      (
+        icon: Icons.account_tree_outlined,
+        label: '连续性索引',
+        description: '承接触发点',
+        color: const Color(0xFF00897B),
+      ),
+      (
+        icon: Icons.archive_outlined,
+        label: '章节归档',
+        description: '审阅后的历史记录',
+        color: const Color(0xFF3949AB),
+      ),
     ];
 
     return LayoutBuilder(
@@ -4484,6 +4593,8 @@ class _MemoryEditField extends StatelessWidget {
     required this.label,
     required this.description,
     required this.accentColor,
+    this.minLines = 3,
+    this.maxLines = 8,
   });
 
   final TextEditingController controller;
@@ -4491,6 +4602,8 @@ class _MemoryEditField extends StatelessWidget {
   final String label;
   final String description;
   final Color accentColor;
+  final int minLines;
+  final int maxLines;
 
   @override
   Widget build(BuildContext context) {
@@ -4524,8 +4637,8 @@ class _MemoryEditField extends StatelessWidget {
           const SizedBox(height: 8),
           TextField(
             controller: controller,
-            minLines: 3,
-            maxLines: 8,
+            minLines: minLines,
+            maxLines: maxLines,
             decoration: InputDecoration(
               hintText: '记录$label...',
               alignLabelWithHint: true,

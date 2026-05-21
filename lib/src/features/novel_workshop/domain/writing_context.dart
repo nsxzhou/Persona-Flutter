@@ -32,17 +32,23 @@ class RuntimeMemoryState {
     this.runtimeState = '',
     this.runtimeThreads = '',
     this.storySummary = '',
+    this.continuityIndex = '',
+    this.chapterArchiveMarkdown = '',
   });
 
   final String runtimeState;
   final String runtimeThreads;
   final String storySummary;
+  final String continuityIndex;
+  final String chapterArchiveMarkdown;
 
   bool get isEmpty {
     return [
       runtimeState,
       runtimeThreads,
       storySummary,
+      continuityIndex,
+      chapterArchiveMarkdown,
     ].every((value) => value.trim().isEmpty);
   }
 }

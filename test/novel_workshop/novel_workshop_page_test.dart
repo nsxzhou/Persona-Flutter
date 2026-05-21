@@ -83,6 +83,7 @@ void main() {
     expect(find.text('新建分卷'), findsWidgets);
     await tester.enterText(find.widgetWithText(TextFormField, '分卷标题'), '第一卷');
     await tester.ensureVisible(find.widgetWithText(FilledButton, '保存'));
+    await tester.ensureVisible(find.widgetWithText(FilledButton, '保存'));
     await tester.tap(find.widgetWithText(FilledButton, '保存'));
     await tester.pump();
     await tester.pumpAndSettle();
@@ -224,6 +225,50 @@ void main() {
 
     expect(find.text('暂无运行时记忆，生成时会自动跳过'), findsOneWidget);
     expect(find.text('可选'), findsOneWidget);
+  });
+
+  testWidgets('runtime memory tab edits layered continuity fields', (
+    tester,
+  ) async {
+    final fixture = _WorkshopFixture(
+      runtimeMemory: const RuntimeMemoryState(
+        runtimeState: '旧状态。',
+        runtimeThreads: '旧线索。',
+        storySummary: '旧摘要。',
+        continuityIndex: '旧索引。',
+        chapterArchiveMarkdown: '旧归档。',
+      ),
+    );
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Runtime Memory').last);
+    await tester.tap(find.text('Runtime Memory').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('连续性索引'), findsOneWidget);
+    expect(find.text('章节归档'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(OutlinedButton, '编辑'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, '记录连续性索引...'),
+      '新索引。',
+    );
+    await tester.enterText(find.widgetWithText(TextField, '记录章节归档...'), '新归档。');
+    await tester.drag(
+      find.byType(SingleChildScrollView).last,
+      const Offset(0, 600),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.widgetWithText(FilledButton, '保存'));
+    await tester.tap(find.widgetWithText(FilledButton, '保存'));
+    await tester.pumpAndSettle();
+
+    expect(fixture.repository.memory.state.continuityIndex, '新索引。');
+    expect(fixture.repository.memory.state.chapterArchiveMarkdown, '新归档。');
   });
 
   testWidgets('optional prompt assets do not show warning block', (
@@ -1271,6 +1316,9 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
       memorySyncProposedRuntimeState: input.proposedMemory.runtimeState,
       memorySyncProposedRuntimeThreads: input.proposedMemory.runtimeThreads,
       memorySyncProposedStorySummary: input.proposedMemory.storySummary,
+      memorySyncProposedContinuityIndex: input.proposedMemory.continuityIndex,
+      memorySyncProposedChapterArchiveMarkdown:
+          input.proposedMemory.chapterArchiveMarkdown,
       memorySyncPatchYaml: input.patchYaml,
       createdAt: current.createdAt,
       updatedAt: _testUpdatedAt,
@@ -1300,6 +1348,10 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
       memorySyncProposedRuntimeThreads:
           current.memorySyncProposedRuntimeThreads,
       memorySyncProposedStorySummary: current.memorySyncProposedStorySummary,
+      memorySyncProposedContinuityIndex:
+          current.memorySyncProposedContinuityIndex,
+      memorySyncProposedChapterArchiveMarkdown:
+          current.memorySyncProposedChapterArchiveMarkdown,
       memorySyncPatchYaml: current.memorySyncPatchYaml,
       createdAt: current.createdAt,
       updatedAt: _testUpdatedAt,
@@ -1860,6 +1912,8 @@ ProjectChapter _chapter({
     memorySyncProposedRuntimeState: '',
     memorySyncProposedRuntimeThreads: '',
     memorySyncProposedStorySummary: '',
+    memorySyncProposedContinuityIndex: '',
+    memorySyncProposedChapterArchiveMarkdown: '',
     createdAt: DateTime(2026, 5, 18, 9),
     updatedAt: DateTime(2026, 5, 18, 10),
   );

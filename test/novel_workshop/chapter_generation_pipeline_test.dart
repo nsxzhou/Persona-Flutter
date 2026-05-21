@@ -35,7 +35,20 @@ void main() {
       database,
       llmClient: _StaticLlmClient([
         '```markdown\n雾气贴着码头爬上来。\n```',
-        'characters:\n  - name: 林岚\n    currentStatus: 抵达雾港。',
+        '''
+characters:
+  - name: 林岚
+    currentStatus: 抵达雾港。
+runtimeMemory:
+  runtimeState: 抵达雾港。
+  runtimeThreads: 港务处线索待查。
+  storySummary: 林岚抵达雾港。
+  continuityIndex: 港务处线索
+  chapterArchiveMarkdown: |-
+    ## 第 1 章
+
+    林岚抵达雾港。
+''',
       ]),
       withPromptAssets: true,
       withRuntimeMemory: true,
@@ -67,6 +80,16 @@ void main() {
     expect(fixture.llmClient.prompts.last, contains('未解决悬念'));
     expect(fixture.llmClient.prompts.last, contains('伏笔债务'));
     expect(fixture.llmClient.prompts.last, contains('storySummary'));
+    expect(fixture.llmClient.prompts.last, contains('continuityIndex'));
+    expect(fixture.llmClient.prompts.last, contains('chapterArchiveMarkdown'));
+    final proposedChapter = await fixture.novelRepository.findChapter(
+      result.chapter.id,
+    );
+    expect(proposedChapter!.memorySyncProposedContinuityIndex, '港务处线索');
+    expect(
+      proposedChapter.memorySyncProposedChapterArchiveMarkdown,
+      contains('第 1 章'),
+    );
 
     final task = await fixture.workflowRepository.findTask(
       result.workflowTaskId,
@@ -109,6 +132,59 @@ void main() {
     },
   );
 
+  test(
+    'uses temporary chapter archive digest without mutating stored memory',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final fixture = await _Fixture.create(
+        database,
+        llmClient: _StaticLlmClient([
+          '# Chapter Archive Digest\n\n压缩后的归档。',
+          '正文。',
+          '''
+runtimeMemory:
+  runtimeState: 新状态。
+  runtimeThreads: 新线索。
+  storySummary: 新摘要。
+  continuityIndex: 新索引。
+  chapterArchiveMarkdown: 新归档。
+''',
+        ]),
+        withRuntimeMemory: true,
+        longChapterArchive: true,
+      );
+
+      final before = await fixture.novelRepository.findRuntimeMemory(
+        fixture.project.id,
+      );
+      final result = await fixture.pipeline.generateChapter(
+        projectId: fixture.project.id,
+        chapterPlanId: fixture.plan.id,
+      );
+      final after = await fixture.novelRepository.findRuntimeMemory(
+        fixture.project.id,
+      );
+
+      expect(result.chapter.contentMarkdown, '正文。');
+      expect(fixture.llmClient.invocationCount, 3);
+      expect(fixture.llmClient.prompts[0], contains('Chapter Archive Digest'));
+      expect(fixture.llmClient.prompts[0], contains('归档片段 1999'));
+      expect(fixture.llmClient.prompts[1], contains('压缩后的归档'));
+      expect(fixture.llmClient.prompts[1], isNot(contains('归档片段 1999')));
+      expect(before!.state.chapterArchiveMarkdown, contains('归档片段 1999'));
+      expect(
+        after!.state.chapterArchiveMarkdown,
+        before.state.chapterArchiveMarkdown,
+      );
+
+      final trace = await fixture.workflowRepository
+          .watchPromptTrace(result.workflowTaskId)
+          .first;
+      expect(trace!.traceMarkdown, contains('digest_chapter_archive'));
+    },
+  );
+
   test('requires explicit replacement for existing chapter content', () async {
     final database = AppDatabase(NativeDatabase.memory());
     addTearDown(database.close);
@@ -129,7 +205,11 @@ void main() {
       MemorySyncProposalInput(
         chapterId: existing.id,
         contentHash: existing.contentHash,
-        proposedMemory: const RuntimeMemoryState(storySummary: '旧摘要。'),
+        proposedMemory: const RuntimeMemoryState(
+          storySummary: '旧摘要。',
+          continuityIndex: '旧索引。',
+          chapterArchiveMarkdown: '旧归档。',
+        ),
       ),
     );
 
@@ -152,6 +232,8 @@ void main() {
     expect(result.chapter.contentMarkdown, '新正文。');
     expect(result.chapter.memorySyncStatus, MemorySyncStatus.idle);
     expect(result.chapter.memorySyncProposedStorySummary, isEmpty);
+    expect(result.chapter.memorySyncProposedContinuityIndex, isEmpty);
+    expect(result.chapter.memorySyncProposedChapterArchiveMarkdown, isEmpty);
   });
 
   test(
@@ -238,6 +320,7 @@ class _Fixture {
     bool withPromptAssets = false,
     bool withRuntimeMemory = false,
     bool withCharacterGraph = false,
+    bool longChapterArchive = false,
   }) async {
     final providerRepository = DriftProviderConfigRepository(database);
     await providerRepository.saveProvider(
@@ -320,12 +403,20 @@ class _Fixture {
       );
     }
     if (withRuntimeMemory) {
+      final archive = longChapterArchive
+          ? List.generate(
+              2000,
+              (index) => '归档片段 $index：林岚继续追查港务处线索。',
+            ).join('\n')
+          : '## 第 0 章\n\n林岚收到失踪案委托。';
       await novelRepository.saveRuntimeMemory(
         projectId: project.id,
-        state: const RuntimeMemoryState(
+        state: RuntimeMemoryState(
           runtimeState: '- 潮汐即将封城。',
           runtimeThreads: '- 港务处线索未解。',
           storySummary: '林岚追查失踪案。',
+          continuityIndex: '- 港务处线索',
+          chapterArchiveMarkdown: archive,
         ),
       );
     }

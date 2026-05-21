@@ -34,6 +34,8 @@ void main() {
         runtimeState: '- 潮汐即将封城。',
         runtimeThreads: '- 港务处线索未解。',
         storySummary: '林岚追查失踪案。',
+        continuityIndex: '- 潮汐封城\n- 港务处线索',
+        chapterArchiveMarkdown: '## 第 1 章\n\n林岚抵达雾港。',
       ),
       writingRulesMarkdown: '- 使用第三人称有限视角。',
     );
@@ -113,6 +115,17 @@ void main() {
 ### Story Summary
 
 林岚追查失踪案。
+
+### Continuity Index
+
+- 潮汐封城
+- 港务处线索
+
+### Chapter Archive
+
+## 第 1 章
+
+林岚抵达雾港。
 
 ## Writing Rules
 

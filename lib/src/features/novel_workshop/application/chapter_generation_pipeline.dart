@@ -2,6 +2,7 @@ import '../../../core/llm/application/markdown_completion_service.dart';
 import '../../../core/llm/domain/llm_error_utils.dart';
 import '../../../core/tasks/application/prompt_trace_recorder.dart';
 import '../../../core/tasks/application/workflow_task_repository.dart';
+import 'package:yaml/yaml.dart';
 import '../../projects/domain/project_repository.dart';
 import '../../projects/domain/writing_project.dart';
 import '../../settings/domain/provider_config.dart';
@@ -36,6 +37,8 @@ class ChapterGenerationPipeline {
   final WritingContextAssembler _contextAssembler;
   final MarkdownCompletionService _completionService;
   final WorkflowTaskRepository _workflowTaskRepository;
+
+  static const int _promptArchiveDigestThreshold = 45000;
 
   Future<ChapterGenerationResult> generateChapter({
     required String projectId,
@@ -145,38 +148,62 @@ class ChapterGenerationPipeline {
         if (characters.isEmpty) '结构化角色卡片为空。',
         if (runtimeMemory == null || runtimeMemory.state.isEmpty) '运行时记忆为空。',
       ];
-      final bundle = _contextAssembler.assemble(
-        WritingContextSections(
-          outputContract: _outputContract,
-          projectBible: ProjectBiblePromptContext(
-            descriptionMarkdown: bible.descriptionMarkdown,
-            worldBuildingMarkdown: bible.worldBuildingMarkdown,
-            charactersBlueprintMarkdown: bible.charactersBlueprintMarkdown,
-            outlineMasterMarkdown: bible.outlineMasterMarkdown,
-            outlineDetailYaml: bible.outlineDetailYaml,
-          ),
-          chapterPlan: ChapterPlanPromptContext(
-            volumeIndex: plan.volumeIndex,
-            volumeTitle: plan.volumeTitle,
-            chapterLocalIndex: plan.chapterLocalIndex,
-            chapterIndex: plan.chapterIndex,
-            coreEvent: plan.coreEvent,
-            emotionArc: plan.emotionArc,
-            chapterHook: plan.chapterHook,
-            outlineMarkdown: plan.outlineMarkdown,
-          ),
-          chapterObjectiveCard: plan.objectiveCard,
-          voiceProfileMarkdown: assets.voiceProfileMarkdown,
-          storyEngineMarkdown: assets.storyEngineMarkdown,
-          projectContextMarkdown: _projectContextMarkdown(project),
-          characterGraphMarkdown: _characterGraphMarkdown(
-            characters,
-            relationships,
-          ),
-          runtimeMemory: runtimeMemory?.state ?? const RuntimeMemoryState(),
-          writingRulesMarkdown: _writingRulesMarkdown(project),
+      final baseSections = WritingContextSections(
+        outputContract: _outputContract,
+        projectBible: ProjectBiblePromptContext(
+          descriptionMarkdown: bible.descriptionMarkdown,
+          worldBuildingMarkdown: bible.worldBuildingMarkdown,
+          charactersBlueprintMarkdown: bible.charactersBlueprintMarkdown,
+          outlineMasterMarkdown: bible.outlineMasterMarkdown,
+          outlineDetailYaml: bible.outlineDetailYaml,
         ),
+        chapterPlan: ChapterPlanPromptContext(
+          volumeIndex: plan.volumeIndex,
+          volumeTitle: plan.volumeTitle,
+          chapterLocalIndex: plan.chapterLocalIndex,
+          chapterIndex: plan.chapterIndex,
+          coreEvent: plan.coreEvent,
+          emotionArc: plan.emotionArc,
+          chapterHook: plan.chapterHook,
+          outlineMarkdown: plan.outlineMarkdown,
+        ),
+        chapterObjectiveCard: plan.objectiveCard,
+        voiceProfileMarkdown: assets.voiceProfileMarkdown,
+        storyEngineMarkdown: assets.storyEngineMarkdown,
+        projectContextMarkdown: _projectContextMarkdown(project),
+        characterGraphMarkdown: _characterGraphMarkdown(
+          characters,
+          relationships,
+        ),
+        runtimeMemory: runtimeMemory?.state ?? const RuntimeMemoryState(),
+        writingRulesMarkdown: _writingRulesMarkdown(project),
       );
+      var bundle = _contextAssembler.assemble(baseSections);
+      if (_shouldDigestChapterArchive(bundle.promptMarkdown, baseSections)) {
+        final digestedMemory = await _temporaryArchiveDigestMemory(
+          provider: provider,
+          modelName: modelName,
+          traceRecorder: traceRecorder,
+          project: project,
+          plan: plan,
+          memory: baseSections.runtimeMemory,
+        );
+        bundle = _contextAssembler.assemble(
+          WritingContextSections(
+            outputContract: baseSections.outputContract,
+            projectBible: baseSections.projectBible,
+            chapterPlan: baseSections.chapterPlan,
+            chapterObjectiveCard: baseSections.chapterObjectiveCard,
+            voiceProfileMarkdown: baseSections.voiceProfileMarkdown,
+            storyEngineMarkdown: baseSections.storyEngineMarkdown,
+            projectContextMarkdown: baseSections.projectContextMarkdown,
+            characterGraphMarkdown: baseSections.characterGraphMarkdown,
+            runtimeMemory: digestedMemory,
+            writingRulesMarkdown: baseSections.writingRulesMarkdown,
+          ),
+        );
+        contextWarnings.add('章节归档过长，本次生成已使用临时 Chapter Archive Digest。');
+      }
       contextWarnings.addAll(bundle.warnings);
 
       await transition(
@@ -226,6 +253,7 @@ class ChapterGenerationPipeline {
         chapter: chapter,
         project: project,
         plan: plan,
+        currentMemory: runtimeMemory?.state ?? const RuntimeMemoryState(),
         characters: characters,
         relationships: relationships,
       );
@@ -352,6 +380,68 @@ class ChapterGenerationPipeline {
     return buffer.toString().trim();
   }
 
+  bool _shouldDigestChapterArchive(
+    String promptMarkdown,
+    WritingContextSections sections,
+  ) {
+    return promptMarkdown.length > _promptArchiveDigestThreshold &&
+        sections.runtimeMemory.chapterArchiveMarkdown.trim().isNotEmpty;
+  }
+
+  Future<RuntimeMemoryState> _temporaryArchiveDigestMemory({
+    required ProviderConfig provider,
+    required String modelName,
+    required PromptTraceRecorder traceRecorder,
+    required WritingProject project,
+    required ChapterPlan plan,
+    required RuntimeMemoryState memory,
+  }) async {
+    final archive = memory.chapterArchiveMarkdown.trim();
+    if (archive.isEmpty) {
+      return memory;
+    }
+    final prompt =
+        '''
+你是长篇小说项目的连续性归档压缩器。请把下方 Chapter Archive 压缩成仅供本次章节生成使用的 Chapter Archive Digest。
+
+## 输出契约
+- 只输出 Markdown。
+- 不要输出解释、前言、代码围栏。
+- 保留与当前章节承接有关的已发生事实、未解决线索、世界规则变化、因果链。
+- 不要新增事实，不要改写为未来规划，不要加入人物卡全量状态。
+- 控制在 1200 字以内。
+
+## 项目
+- 标题：${project.title}
+- 当前目标章节：第 ${plan.chapterIndex} 章 · ${_chapterTitle(plan)}
+
+## Continuity Index
+${memory.continuityIndex.trim().isEmpty ? '（空）' : memory.continuityIndex.trim()}
+
+## Chapter Archive
+$archive
+''';
+    final digest = _cleanMarkdownDraft(
+      await _completionService.completeMarkdown(
+        provider: provider,
+        prompt: prompt,
+        temperature: 0.2,
+        modelName: modelName,
+        promptTrace: traceRecorder.config(label: 'digest_chapter_archive'),
+      ),
+    );
+    if (digest.trim().isEmpty) {
+      return memory;
+    }
+    return RuntimeMemoryState(
+      runtimeState: memory.runtimeState,
+      runtimeThreads: memory.runtimeThreads,
+      storySummary: memory.storySummary,
+      continuityIndex: memory.continuityIndex,
+      chapterArchiveMarkdown: '# Chapter Archive Digest\n\n${digest.trim()}',
+    );
+  }
+
   Future<void> _proposeMemoryPatch({
     required ProviderConfig provider,
     required String modelName,
@@ -359,6 +449,7 @@ class ChapterGenerationPipeline {
     required ProjectChapter chapter,
     required WritingProject project,
     required ChapterPlan plan,
+    required RuntimeMemoryState currentMemory,
     required List<NovelCharacter> characters,
     required List<NovelRelationship> relationships,
   }) async {
@@ -372,7 +463,7 @@ class ChapterGenerationPipeline {
 - 根节点允许 `characters`、`relationships`、`runtimeMemory`。
 - `characters` 中每项必须有 `name`，可更新 `aliases`、`tags`、`faction`、`role`、`longTermGoal`、`currentStatus`、`secrets`、`firstChapterIndex`、`lastChapterIndex`。
 - `relationships` 中每项必须有 `from`、`to`，可更新 `type`、`strength`、`status`、`description`、`lastChangedChapterIndex`。
-- `runtimeMemory` 可包含 `runtimeState`、`runtimeThreads`、`storySummary`。
+- `runtimeMemory` 必须输出更新后的完整五字段：`runtimeState`、`runtimeThreads`、`storySummary`、`continuityIndex`、`chapterArchiveMarkdown`。
 
 ## 更新原则
 只记录本章正文明确发生或明确确认的变化，不补全、不推测、不替作者规划未来。不要输出全量快照；没有变化的角色和关系不要重复写入。
@@ -381,6 +472,8 @@ class ChapterGenerationPipeline {
 - `runtimeState` 记录章节结束后的地点、资源、伤势、任务状态和世界规则变化。
 - `runtimeThreads` 记录未解决悬念、伏笔债务、承诺、威胁、追踪线索和待回收信息。
 - `storySummary` 用 3-6 句更新全局故事摘要，保留因果链和本章对下一章的直接影响。
+- `continuityIndex` 是高密度触发索引，只保留悬念、状态、世界规则变化等下一章必须注意的短条目；不要写人物卡全量状态。
+- `chapterArchiveMarkdown` 是章级归档，在原有归档基础上追加本章经正文验证的连续性记录。
 
 如果本章没有结构化变化，可以输出空列表或空对象；不要为了填字段编造变化。
 
@@ -390,6 +483,9 @@ class ChapterGenerationPipeline {
 
 ## 已有结构化角色和关系
 ${_characterGraphMarkdown(characters, relationships)}
+
+## 当前 Runtime Memory
+${_runtimeMemoryMarkdown(currentMemory)}
 
 ## 章节正文
 ${chapter.contentMarkdown}
@@ -407,18 +503,92 @@ ${chapter.contentMarkdown}
         MemorySyncProposalInput(
           chapterId: chapter.id,
           contentHash: chapter.contentHash,
+          proposedMemory: currentMemory,
           patchYaml: '',
         ),
       );
       return;
     }
+    final proposedMemory = _parseProposedRuntimeMemory(
+      patchYaml,
+      fallback: currentMemory,
+    );
     await _repository.saveMemorySyncProposal(
       MemorySyncProposalInput(
         chapterId: chapter.id,
         contentHash: chapter.contentHash,
+        proposedMemory: proposedMemory,
         patchYaml: patchYaml,
       ),
     );
+  }
+
+  String _runtimeMemoryMarkdown(RuntimeMemoryState memory) {
+    if (memory.isEmpty) {
+      return '（空）';
+    }
+    return [
+      if (memory.runtimeState.trim().isNotEmpty)
+        '### Runtime State\n\n${memory.runtimeState.trim()}',
+      if (memory.runtimeThreads.trim().isNotEmpty)
+        '### Runtime Threads\n\n${memory.runtimeThreads.trim()}',
+      if (memory.storySummary.trim().isNotEmpty)
+        '### Story Summary\n\n${memory.storySummary.trim()}',
+      if (memory.continuityIndex.trim().isNotEmpty)
+        '### Continuity Index\n\n${memory.continuityIndex.trim()}',
+      if (memory.chapterArchiveMarkdown.trim().isNotEmpty)
+        '### Chapter Archive\n\n${memory.chapterArchiveMarkdown.trim()}',
+    ].join('\n\n');
+  }
+
+  RuntimeMemoryState _parseProposedRuntimeMemory(
+    String patchYaml, {
+    required RuntimeMemoryState fallback,
+  }) {
+    try {
+      final parsed = loadYaml(patchYaml);
+      if (parsed is! YamlMap) {
+        return fallback;
+      }
+      final memory = parsed['runtimeMemory'];
+      if (memory is! YamlMap) {
+        return fallback;
+      }
+      return RuntimeMemoryState(
+        runtimeState: _yamlMapString(memory, 'runtimeState'),
+        runtimeThreads: _yamlMapString(memory, 'runtimeThreads'),
+        storySummary: _yamlMapString(memory, 'storySummary'),
+        continuityIndex: _yamlMapString(memory, 'continuityIndex'),
+        chapterArchiveMarkdown: _yamlMapString(
+          memory,
+          'chapterArchiveMarkdown',
+        ),
+      );
+    } on Object {
+      return fallback;
+    }
+  }
+
+  String _yamlMapString(YamlMap map, String key) {
+    for (final entry in map.entries) {
+      if (entry.key.toString() == key) {
+        return _yamlString(entry.value);
+      }
+    }
+    return '';
+  }
+
+  String _yamlString(Object? value) {
+    if (value == null) {
+      return '';
+    }
+    if (value is YamlScalar) {
+      return value.value?.toString().trim() ?? '';
+    }
+    if (value is String) {
+      return value.trim();
+    }
+    return value.toString().trim();
   }
 
   String _writingRulesMarkdown(WritingProject project) {

@@ -8452,6 +8452,30 @@ class $ProjectRuntimeMemoryRecordsTable extends ProjectRuntimeMemoryRecords
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _continuityIndexMeta = const VerificationMeta(
+    'continuityIndex',
+  );
+  @override
+  late final GeneratedColumn<String> continuityIndex = GeneratedColumn<String>(
+    'continuity_index',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _chapterArchiveMarkdownMeta =
+      const VerificationMeta('chapterArchiveMarkdown');
+  @override
+  late final GeneratedColumn<String> chapterArchiveMarkdown =
+      GeneratedColumn<String>(
+        'chapter_archive_markdown',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(''),
+      );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -8480,6 +8504,8 @@ class $ProjectRuntimeMemoryRecordsTable extends ProjectRuntimeMemoryRecords
     runtimeState,
     runtimeThreads,
     storySummary,
+    continuityIndex,
+    chapterArchiveMarkdown,
     createdAt,
     updatedAt,
   ];
@@ -8530,6 +8556,24 @@ class $ProjectRuntimeMemoryRecordsTable extends ProjectRuntimeMemoryRecords
         ),
       );
     }
+    if (data.containsKey('continuity_index')) {
+      context.handle(
+        _continuityIndexMeta,
+        continuityIndex.isAcceptableOrUnknown(
+          data['continuity_index']!,
+          _continuityIndexMeta,
+        ),
+      );
+    }
+    if (data.containsKey('chapter_archive_markdown')) {
+      context.handle(
+        _chapterArchiveMarkdownMeta,
+        chapterArchiveMarkdown.isAcceptableOrUnknown(
+          data['chapter_archive_markdown']!,
+          _chapterArchiveMarkdownMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -8574,6 +8618,14 @@ class $ProjectRuntimeMemoryRecordsTable extends ProjectRuntimeMemoryRecords
         DriftSqlType.string,
         data['${effectivePrefix}story_summary'],
       )!,
+      continuityIndex: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}continuity_index'],
+      )!,
+      chapterArchiveMarkdown: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}chapter_archive_markdown'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -8597,6 +8649,8 @@ class ProjectRuntimeMemoryRecord extends DataClass
   final String runtimeState;
   final String runtimeThreads;
   final String storySummary;
+  final String continuityIndex;
+  final String chapterArchiveMarkdown;
   final DateTime createdAt;
   final DateTime updatedAt;
   const ProjectRuntimeMemoryRecord({
@@ -8604,6 +8658,8 @@ class ProjectRuntimeMemoryRecord extends DataClass
     required this.runtimeState,
     required this.runtimeThreads,
     required this.storySummary,
+    required this.continuityIndex,
+    required this.chapterArchiveMarkdown,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -8614,6 +8670,8 @@ class ProjectRuntimeMemoryRecord extends DataClass
     map['runtime_state'] = Variable<String>(runtimeState);
     map['runtime_threads'] = Variable<String>(runtimeThreads);
     map['story_summary'] = Variable<String>(storySummary);
+    map['continuity_index'] = Variable<String>(continuityIndex);
+    map['chapter_archive_markdown'] = Variable<String>(chapterArchiveMarkdown);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -8625,6 +8683,8 @@ class ProjectRuntimeMemoryRecord extends DataClass
       runtimeState: Value(runtimeState),
       runtimeThreads: Value(runtimeThreads),
       storySummary: Value(storySummary),
+      continuityIndex: Value(continuityIndex),
+      chapterArchiveMarkdown: Value(chapterArchiveMarkdown),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -8640,6 +8700,10 @@ class ProjectRuntimeMemoryRecord extends DataClass
       runtimeState: serializer.fromJson<String>(json['runtimeState']),
       runtimeThreads: serializer.fromJson<String>(json['runtimeThreads']),
       storySummary: serializer.fromJson<String>(json['storySummary']),
+      continuityIndex: serializer.fromJson<String>(json['continuityIndex']),
+      chapterArchiveMarkdown: serializer.fromJson<String>(
+        json['chapterArchiveMarkdown'],
+      ),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -8652,6 +8716,10 @@ class ProjectRuntimeMemoryRecord extends DataClass
       'runtimeState': serializer.toJson<String>(runtimeState),
       'runtimeThreads': serializer.toJson<String>(runtimeThreads),
       'storySummary': serializer.toJson<String>(storySummary),
+      'continuityIndex': serializer.toJson<String>(continuityIndex),
+      'chapterArchiveMarkdown': serializer.toJson<String>(
+        chapterArchiveMarkdown,
+      ),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -8662,6 +8730,8 @@ class ProjectRuntimeMemoryRecord extends DataClass
     String? runtimeState,
     String? runtimeThreads,
     String? storySummary,
+    String? continuityIndex,
+    String? chapterArchiveMarkdown,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => ProjectRuntimeMemoryRecord(
@@ -8669,6 +8739,9 @@ class ProjectRuntimeMemoryRecord extends DataClass
     runtimeState: runtimeState ?? this.runtimeState,
     runtimeThreads: runtimeThreads ?? this.runtimeThreads,
     storySummary: storySummary ?? this.storySummary,
+    continuityIndex: continuityIndex ?? this.continuityIndex,
+    chapterArchiveMarkdown:
+        chapterArchiveMarkdown ?? this.chapterArchiveMarkdown,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -8686,6 +8759,12 @@ class ProjectRuntimeMemoryRecord extends DataClass
       storySummary: data.storySummary.present
           ? data.storySummary.value
           : this.storySummary,
+      continuityIndex: data.continuityIndex.present
+          ? data.continuityIndex.value
+          : this.continuityIndex,
+      chapterArchiveMarkdown: data.chapterArchiveMarkdown.present
+          ? data.chapterArchiveMarkdown.value
+          : this.chapterArchiveMarkdown,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -8698,6 +8777,8 @@ class ProjectRuntimeMemoryRecord extends DataClass
           ..write('runtimeState: $runtimeState, ')
           ..write('runtimeThreads: $runtimeThreads, ')
           ..write('storySummary: $storySummary, ')
+          ..write('continuityIndex: $continuityIndex, ')
+          ..write('chapterArchiveMarkdown: $chapterArchiveMarkdown, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -8710,6 +8791,8 @@ class ProjectRuntimeMemoryRecord extends DataClass
     runtimeState,
     runtimeThreads,
     storySummary,
+    continuityIndex,
+    chapterArchiveMarkdown,
     createdAt,
     updatedAt,
   );
@@ -8721,6 +8804,8 @@ class ProjectRuntimeMemoryRecord extends DataClass
           other.runtimeState == this.runtimeState &&
           other.runtimeThreads == this.runtimeThreads &&
           other.storySummary == this.storySummary &&
+          other.continuityIndex == this.continuityIndex &&
+          other.chapterArchiveMarkdown == this.chapterArchiveMarkdown &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -8731,6 +8816,8 @@ class ProjectRuntimeMemoryRecordsCompanion
   final Value<String> runtimeState;
   final Value<String> runtimeThreads;
   final Value<String> storySummary;
+  final Value<String> continuityIndex;
+  final Value<String> chapterArchiveMarkdown;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -8739,6 +8826,8 @@ class ProjectRuntimeMemoryRecordsCompanion
     this.runtimeState = const Value.absent(),
     this.runtimeThreads = const Value.absent(),
     this.storySummary = const Value.absent(),
+    this.continuityIndex = const Value.absent(),
+    this.chapterArchiveMarkdown = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -8748,6 +8837,8 @@ class ProjectRuntimeMemoryRecordsCompanion
     this.runtimeState = const Value.absent(),
     this.runtimeThreads = const Value.absent(),
     this.storySummary = const Value.absent(),
+    this.continuityIndex = const Value.absent(),
+    this.chapterArchiveMarkdown = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
@@ -8759,6 +8850,8 @@ class ProjectRuntimeMemoryRecordsCompanion
     Expression<String>? runtimeState,
     Expression<String>? runtimeThreads,
     Expression<String>? storySummary,
+    Expression<String>? continuityIndex,
+    Expression<String>? chapterArchiveMarkdown,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -8768,6 +8861,9 @@ class ProjectRuntimeMemoryRecordsCompanion
       if (runtimeState != null) 'runtime_state': runtimeState,
       if (runtimeThreads != null) 'runtime_threads': runtimeThreads,
       if (storySummary != null) 'story_summary': storySummary,
+      if (continuityIndex != null) 'continuity_index': continuityIndex,
+      if (chapterArchiveMarkdown != null)
+        'chapter_archive_markdown': chapterArchiveMarkdown,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -8779,6 +8875,8 @@ class ProjectRuntimeMemoryRecordsCompanion
     Value<String>? runtimeState,
     Value<String>? runtimeThreads,
     Value<String>? storySummary,
+    Value<String>? continuityIndex,
+    Value<String>? chapterArchiveMarkdown,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
@@ -8788,6 +8886,9 @@ class ProjectRuntimeMemoryRecordsCompanion
       runtimeState: runtimeState ?? this.runtimeState,
       runtimeThreads: runtimeThreads ?? this.runtimeThreads,
       storySummary: storySummary ?? this.storySummary,
+      continuityIndex: continuityIndex ?? this.continuityIndex,
+      chapterArchiveMarkdown:
+          chapterArchiveMarkdown ?? this.chapterArchiveMarkdown,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -8809,6 +8910,14 @@ class ProjectRuntimeMemoryRecordsCompanion
     if (storySummary.present) {
       map['story_summary'] = Variable<String>(storySummary.value);
     }
+    if (continuityIndex.present) {
+      map['continuity_index'] = Variable<String>(continuityIndex.value);
+    }
+    if (chapterArchiveMarkdown.present) {
+      map['chapter_archive_markdown'] = Variable<String>(
+        chapterArchiveMarkdown.value,
+      );
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -8828,6 +8937,8 @@ class ProjectRuntimeMemoryRecordsCompanion
           ..write('runtimeState: $runtimeState, ')
           ..write('runtimeThreads: $runtimeThreads, ')
           ..write('storySummary: $storySummary, ')
+          ..write('continuityIndex: $continuityIndex, ')
+          ..write('chapterArchiveMarkdown: $chapterArchiveMarkdown, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -11317,6 +11428,30 @@ class $ProjectChapterRecordsTable extends ProjectChapterRecords
         requiredDuringInsert: false,
         defaultValue: const Constant(''),
       );
+  static const VerificationMeta _memorySyncProposedContinuityIndexMeta =
+      const VerificationMeta('memorySyncProposedContinuityIndex');
+  @override
+  late final GeneratedColumn<String> memorySyncProposedContinuityIndex =
+      GeneratedColumn<String>(
+        'memory_sync_proposed_continuity_index',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(''),
+      );
+  static const VerificationMeta _memorySyncProposedChapterArchiveMarkdownMeta =
+      const VerificationMeta('memorySyncProposedChapterArchiveMarkdown');
+  @override
+  late final GeneratedColumn<String> memorySyncProposedChapterArchiveMarkdown =
+      GeneratedColumn<String>(
+        'memory_sync_proposed_chapter_archive_markdown',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(''),
+      );
   static const VerificationMeta _memorySyncPatchYamlMeta =
       const VerificationMeta('memorySyncPatchYaml');
   @override
@@ -11367,6 +11502,8 @@ class $ProjectChapterRecordsTable extends ProjectChapterRecords
     memorySyncProposedRuntimeState,
     memorySyncProposedRuntimeThreads,
     memorySyncProposedStorySummary,
+    memorySyncProposedContinuityIndex,
+    memorySyncProposedChapterArchiveMarkdown,
     memorySyncPatchYaml,
     createdAt,
     updatedAt,
@@ -11505,6 +11642,24 @@ class $ProjectChapterRecordsTable extends ProjectChapterRecords
         ),
       );
     }
+    if (data.containsKey('memory_sync_proposed_continuity_index')) {
+      context.handle(
+        _memorySyncProposedContinuityIndexMeta,
+        memorySyncProposedContinuityIndex.isAcceptableOrUnknown(
+          data['memory_sync_proposed_continuity_index']!,
+          _memorySyncProposedContinuityIndexMeta,
+        ),
+      );
+    }
+    if (data.containsKey('memory_sync_proposed_chapter_archive_markdown')) {
+      context.handle(
+        _memorySyncProposedChapterArchiveMarkdownMeta,
+        memorySyncProposedChapterArchiveMarkdown.isAcceptableOrUnknown(
+          data['memory_sync_proposed_chapter_archive_markdown']!,
+          _memorySyncProposedChapterArchiveMarkdownMeta,
+        ),
+      );
+    }
     if (data.containsKey('memory_sync_patch_yaml')) {
       context.handle(
         _memorySyncPatchYamlMeta,
@@ -11599,6 +11754,14 @@ class $ProjectChapterRecordsTable extends ProjectChapterRecords
         DriftSqlType.string,
         data['${effectivePrefix}memory_sync_proposed_story_summary'],
       )!,
+      memorySyncProposedContinuityIndex: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}memory_sync_proposed_continuity_index'],
+      )!,
+      memorySyncProposedChapterArchiveMarkdown: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}memory_sync_proposed_chapter_archive_markdown'],
+      )!,
       memorySyncPatchYaml: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}memory_sync_patch_yaml'],
@@ -11636,6 +11799,8 @@ class ProjectChapterRecord extends DataClass
   final String memorySyncProposedRuntimeState;
   final String memorySyncProposedRuntimeThreads;
   final String memorySyncProposedStorySummary;
+  final String memorySyncProposedContinuityIndex;
+  final String memorySyncProposedChapterArchiveMarkdown;
   final String memorySyncPatchYaml;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -11654,6 +11819,8 @@ class ProjectChapterRecord extends DataClass
     required this.memorySyncProposedRuntimeState,
     required this.memorySyncProposedRuntimeThreads,
     required this.memorySyncProposedStorySummary,
+    required this.memorySyncProposedContinuityIndex,
+    required this.memorySyncProposedChapterArchiveMarkdown,
     required this.memorySyncPatchYaml,
     required this.createdAt,
     required this.updatedAt,
@@ -11683,6 +11850,12 @@ class ProjectChapterRecord extends DataClass
     map['memory_sync_proposed_story_summary'] = Variable<String>(
       memorySyncProposedStorySummary,
     );
+    map['memory_sync_proposed_continuity_index'] = Variable<String>(
+      memorySyncProposedContinuityIndex,
+    );
+    map['memory_sync_proposed_chapter_archive_markdown'] = Variable<String>(
+      memorySyncProposedChapterArchiveMarkdown,
+    );
     map['memory_sync_patch_yaml'] = Variable<String>(memorySyncPatchYaml);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -11705,6 +11878,12 @@ class ProjectChapterRecord extends DataClass
       memorySyncProposedRuntimeState: Value(memorySyncProposedRuntimeState),
       memorySyncProposedRuntimeThreads: Value(memorySyncProposedRuntimeThreads),
       memorySyncProposedStorySummary: Value(memorySyncProposedStorySummary),
+      memorySyncProposedContinuityIndex: Value(
+        memorySyncProposedContinuityIndex,
+      ),
+      memorySyncProposedChapterArchiveMarkdown: Value(
+        memorySyncProposedChapterArchiveMarkdown,
+      ),
       memorySyncPatchYaml: Value(memorySyncPatchYaml),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -11741,6 +11920,12 @@ class ProjectChapterRecord extends DataClass
       memorySyncProposedStorySummary: serializer.fromJson<String>(
         json['memorySyncProposedStorySummary'],
       ),
+      memorySyncProposedContinuityIndex: serializer.fromJson<String>(
+        json['memorySyncProposedContinuityIndex'],
+      ),
+      memorySyncProposedChapterArchiveMarkdown: serializer.fromJson<String>(
+        json['memorySyncProposedChapterArchiveMarkdown'],
+      ),
       memorySyncPatchYaml: serializer.fromJson<String>(
         json['memorySyncPatchYaml'],
       ),
@@ -11774,6 +11959,12 @@ class ProjectChapterRecord extends DataClass
       'memorySyncProposedStorySummary': serializer.toJson<String>(
         memorySyncProposedStorySummary,
       ),
+      'memorySyncProposedContinuityIndex': serializer.toJson<String>(
+        memorySyncProposedContinuityIndex,
+      ),
+      'memorySyncProposedChapterArchiveMarkdown': serializer.toJson<String>(
+        memorySyncProposedChapterArchiveMarkdown,
+      ),
       'memorySyncPatchYaml': serializer.toJson<String>(memorySyncPatchYaml),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -11795,6 +11986,8 @@ class ProjectChapterRecord extends DataClass
     String? memorySyncProposedRuntimeState,
     String? memorySyncProposedRuntimeThreads,
     String? memorySyncProposedStorySummary,
+    String? memorySyncProposedContinuityIndex,
+    String? memorySyncProposedChapterArchiveMarkdown,
     String? memorySyncPatchYaml,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -11818,6 +12011,12 @@ class ProjectChapterRecord extends DataClass
         this.memorySyncProposedRuntimeThreads,
     memorySyncProposedStorySummary:
         memorySyncProposedStorySummary ?? this.memorySyncProposedStorySummary,
+    memorySyncProposedContinuityIndex:
+        memorySyncProposedContinuityIndex ??
+        this.memorySyncProposedContinuityIndex,
+    memorySyncProposedChapterArchiveMarkdown:
+        memorySyncProposedChapterArchiveMarkdown ??
+        this.memorySyncProposedChapterArchiveMarkdown,
     memorySyncPatchYaml: memorySyncPatchYaml ?? this.memorySyncPatchYaml,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -11863,6 +12062,14 @@ class ProjectChapterRecord extends DataClass
           data.memorySyncProposedStorySummary.present
           ? data.memorySyncProposedStorySummary.value
           : this.memorySyncProposedStorySummary,
+      memorySyncProposedContinuityIndex:
+          data.memorySyncProposedContinuityIndex.present
+          ? data.memorySyncProposedContinuityIndex.value
+          : this.memorySyncProposedContinuityIndex,
+      memorySyncProposedChapterArchiveMarkdown:
+          data.memorySyncProposedChapterArchiveMarkdown.present
+          ? data.memorySyncProposedChapterArchiveMarkdown.value
+          : this.memorySyncProposedChapterArchiveMarkdown,
       memorySyncPatchYaml: data.memorySyncPatchYaml.present
           ? data.memorySyncPatchYaml.value
           : this.memorySyncPatchYaml,
@@ -11894,6 +12101,12 @@ class ProjectChapterRecord extends DataClass
           ..write(
             'memorySyncProposedStorySummary: $memorySyncProposedStorySummary, ',
           )
+          ..write(
+            'memorySyncProposedContinuityIndex: $memorySyncProposedContinuityIndex, ',
+          )
+          ..write(
+            'memorySyncProposedChapterArchiveMarkdown: $memorySyncProposedChapterArchiveMarkdown, ',
+          )
           ..write('memorySyncPatchYaml: $memorySyncPatchYaml, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
@@ -11917,6 +12130,8 @@ class ProjectChapterRecord extends DataClass
     memorySyncProposedRuntimeState,
     memorySyncProposedRuntimeThreads,
     memorySyncProposedStorySummary,
+    memorySyncProposedContinuityIndex,
+    memorySyncProposedChapterArchiveMarkdown,
     memorySyncPatchYaml,
     createdAt,
     updatedAt,
@@ -11942,6 +12157,10 @@ class ProjectChapterRecord extends DataClass
               this.memorySyncProposedRuntimeThreads &&
           other.memorySyncProposedStorySummary ==
               this.memorySyncProposedStorySummary &&
+          other.memorySyncProposedContinuityIndex ==
+              this.memorySyncProposedContinuityIndex &&
+          other.memorySyncProposedChapterArchiveMarkdown ==
+              this.memorySyncProposedChapterArchiveMarkdown &&
           other.memorySyncPatchYaml == this.memorySyncPatchYaml &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
@@ -11963,6 +12182,8 @@ class ProjectChapterRecordsCompanion
   final Value<String> memorySyncProposedRuntimeState;
   final Value<String> memorySyncProposedRuntimeThreads;
   final Value<String> memorySyncProposedStorySummary;
+  final Value<String> memorySyncProposedContinuityIndex;
+  final Value<String> memorySyncProposedChapterArchiveMarkdown;
   final Value<String> memorySyncPatchYaml;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -11982,6 +12203,8 @@ class ProjectChapterRecordsCompanion
     this.memorySyncProposedRuntimeState = const Value.absent(),
     this.memorySyncProposedRuntimeThreads = const Value.absent(),
     this.memorySyncProposedStorySummary = const Value.absent(),
+    this.memorySyncProposedContinuityIndex = const Value.absent(),
+    this.memorySyncProposedChapterArchiveMarkdown = const Value.absent(),
     this.memorySyncPatchYaml = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -12002,6 +12225,8 @@ class ProjectChapterRecordsCompanion
     this.memorySyncProposedRuntimeState = const Value.absent(),
     this.memorySyncProposedRuntimeThreads = const Value.absent(),
     this.memorySyncProposedStorySummary = const Value.absent(),
+    this.memorySyncProposedContinuityIndex = const Value.absent(),
+    this.memorySyncProposedChapterArchiveMarkdown = const Value.absent(),
     this.memorySyncPatchYaml = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -12027,6 +12252,8 @@ class ProjectChapterRecordsCompanion
     Expression<String>? memorySyncProposedRuntimeState,
     Expression<String>? memorySyncProposedRuntimeThreads,
     Expression<String>? memorySyncProposedStorySummary,
+    Expression<String>? memorySyncProposedContinuityIndex,
+    Expression<String>? memorySyncProposedChapterArchiveMarkdown,
     Expression<String>? memorySyncPatchYaml,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -12053,6 +12280,12 @@ class ProjectChapterRecordsCompanion
             memorySyncProposedRuntimeThreads,
       if (memorySyncProposedStorySummary != null)
         'memory_sync_proposed_story_summary': memorySyncProposedStorySummary,
+      if (memorySyncProposedContinuityIndex != null)
+        'memory_sync_proposed_continuity_index':
+            memorySyncProposedContinuityIndex,
+      if (memorySyncProposedChapterArchiveMarkdown != null)
+        'memory_sync_proposed_chapter_archive_markdown':
+            memorySyncProposedChapterArchiveMarkdown,
       if (memorySyncPatchYaml != null)
         'memory_sync_patch_yaml': memorySyncPatchYaml,
       if (createdAt != null) 'created_at': createdAt,
@@ -12076,6 +12309,8 @@ class ProjectChapterRecordsCompanion
     Value<String>? memorySyncProposedRuntimeState,
     Value<String>? memorySyncProposedRuntimeThreads,
     Value<String>? memorySyncProposedStorySummary,
+    Value<String>? memorySyncProposedContinuityIndex,
+    Value<String>? memorySyncProposedChapterArchiveMarkdown,
     Value<String>? memorySyncPatchYaml,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -12102,6 +12337,12 @@ class ProjectChapterRecordsCompanion
           this.memorySyncProposedRuntimeThreads,
       memorySyncProposedStorySummary:
           memorySyncProposedStorySummary ?? this.memorySyncProposedStorySummary,
+      memorySyncProposedContinuityIndex:
+          memorySyncProposedContinuityIndex ??
+          this.memorySyncProposedContinuityIndex,
+      memorySyncProposedChapterArchiveMarkdown:
+          memorySyncProposedChapterArchiveMarkdown ??
+          this.memorySyncProposedChapterArchiveMarkdown,
       memorySyncPatchYaml: memorySyncPatchYaml ?? this.memorySyncPatchYaml,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -12164,6 +12405,16 @@ class ProjectChapterRecordsCompanion
         memorySyncProposedStorySummary.value,
       );
     }
+    if (memorySyncProposedContinuityIndex.present) {
+      map['memory_sync_proposed_continuity_index'] = Variable<String>(
+        memorySyncProposedContinuityIndex.value,
+      );
+    }
+    if (memorySyncProposedChapterArchiveMarkdown.present) {
+      map['memory_sync_proposed_chapter_archive_markdown'] = Variable<String>(
+        memorySyncProposedChapterArchiveMarkdown.value,
+      );
+    }
     if (memorySyncPatchYaml.present) {
       map['memory_sync_patch_yaml'] = Variable<String>(
         memorySyncPatchYaml.value,
@@ -12203,6 +12454,12 @@ class ProjectChapterRecordsCompanion
           )
           ..write(
             'memorySyncProposedStorySummary: $memorySyncProposedStorySummary, ',
+          )
+          ..write(
+            'memorySyncProposedContinuityIndex: $memorySyncProposedContinuityIndex, ',
+          )
+          ..write(
+            'memorySyncProposedChapterArchiveMarkdown: $memorySyncProposedChapterArchiveMarkdown, ',
           )
           ..write('memorySyncPatchYaml: $memorySyncPatchYaml, ')
           ..write('createdAt: $createdAt, ')
@@ -27523,6 +27780,8 @@ typedef $$ProjectRuntimeMemoryRecordsTableCreateCompanionBuilder =
       Value<String> runtimeState,
       Value<String> runtimeThreads,
       Value<String> storySummary,
+      Value<String> continuityIndex,
+      Value<String> chapterArchiveMarkdown,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<int> rowid,
@@ -27533,6 +27792,8 @@ typedef $$ProjectRuntimeMemoryRecordsTableUpdateCompanionBuilder =
       Value<String> runtimeState,
       Value<String> runtimeThreads,
       Value<String> storySummary,
+      Value<String> continuityIndex,
+      Value<String> chapterArchiveMarkdown,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -27564,6 +27825,16 @@ class $$ProjectRuntimeMemoryRecordsTableFilterComposer
 
   ColumnFilters<String> get storySummary => $composableBuilder(
     column: $table.storySummary,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get continuityIndex => $composableBuilder(
+    column: $table.continuityIndex,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get chapterArchiveMarkdown => $composableBuilder(
+    column: $table.chapterArchiveMarkdown,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -27607,6 +27878,16 @@ class $$ProjectRuntimeMemoryRecordsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get continuityIndex => $composableBuilder(
+    column: $table.continuityIndex,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get chapterArchiveMarkdown => $composableBuilder(
+    column: $table.chapterArchiveMarkdown,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -27642,6 +27923,16 @@ class $$ProjectRuntimeMemoryRecordsTableAnnotationComposer
 
   GeneratedColumn<String> get storySummary => $composableBuilder(
     column: $table.storySummary,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get continuityIndex => $composableBuilder(
+    column: $table.continuityIndex,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get chapterArchiveMarkdown => $composableBuilder(
+    column: $table.chapterArchiveMarkdown,
     builder: (column) => column,
   );
 
@@ -27702,6 +27993,8 @@ class $$ProjectRuntimeMemoryRecordsTableTableManager
                 Value<String> runtimeState = const Value.absent(),
                 Value<String> runtimeThreads = const Value.absent(),
                 Value<String> storySummary = const Value.absent(),
+                Value<String> continuityIndex = const Value.absent(),
+                Value<String> chapterArchiveMarkdown = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -27710,6 +28003,8 @@ class $$ProjectRuntimeMemoryRecordsTableTableManager
                 runtimeState: runtimeState,
                 runtimeThreads: runtimeThreads,
                 storySummary: storySummary,
+                continuityIndex: continuityIndex,
+                chapterArchiveMarkdown: chapterArchiveMarkdown,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -27720,6 +28015,8 @@ class $$ProjectRuntimeMemoryRecordsTableTableManager
                 Value<String> runtimeState = const Value.absent(),
                 Value<String> runtimeThreads = const Value.absent(),
                 Value<String> storySummary = const Value.absent(),
+                Value<String> continuityIndex = const Value.absent(),
+                Value<String> chapterArchiveMarkdown = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<int> rowid = const Value.absent(),
@@ -27728,6 +28025,8 @@ class $$ProjectRuntimeMemoryRecordsTableTableManager
                 runtimeState: runtimeState,
                 runtimeThreads: runtimeThreads,
                 storySummary: storySummary,
+                continuityIndex: continuityIndex,
+                chapterArchiveMarkdown: chapterArchiveMarkdown,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -29498,6 +29797,8 @@ typedef $$ProjectChapterRecordsTableCreateCompanionBuilder =
       Value<String> memorySyncProposedRuntimeState,
       Value<String> memorySyncProposedRuntimeThreads,
       Value<String> memorySyncProposedStorySummary,
+      Value<String> memorySyncProposedContinuityIndex,
+      Value<String> memorySyncProposedChapterArchiveMarkdown,
       Value<String> memorySyncPatchYaml,
       required DateTime createdAt,
       required DateTime updatedAt,
@@ -29519,6 +29820,8 @@ typedef $$ProjectChapterRecordsTableUpdateCompanionBuilder =
       Value<String> memorySyncProposedRuntimeState,
       Value<String> memorySyncProposedRuntimeThreads,
       Value<String> memorySyncProposedStorySummary,
+      Value<String> memorySyncProposedContinuityIndex,
+      Value<String> memorySyncProposedChapterArchiveMarkdown,
       Value<String> memorySyncPatchYaml,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -29708,6 +30011,18 @@ class $$ProjectChapterRecordsTableFilterComposer
   ColumnFilters<String> get memorySyncProposedStorySummary =>
       $composableBuilder(
         column: $table.memorySyncProposedStorySummary,
+        builder: (column) => ColumnFilters(column),
+      );
+
+  ColumnFilters<String> get memorySyncProposedContinuityIndex =>
+      $composableBuilder(
+        column: $table.memorySyncProposedContinuityIndex,
+        builder: (column) => ColumnFilters(column),
+      );
+
+  ColumnFilters<String> get memorySyncProposedChapterArchiveMarkdown =>
+      $composableBuilder(
+        column: $table.memorySyncProposedChapterArchiveMarkdown,
         builder: (column) => ColumnFilters(column),
       );
 
@@ -29903,6 +30218,18 @@ class $$ProjectChapterRecordsTableOrderingComposer
         builder: (column) => ColumnOrderings(column),
       );
 
+  ColumnOrderings<String> get memorySyncProposedContinuityIndex =>
+      $composableBuilder(
+        column: $table.memorySyncProposedContinuityIndex,
+        builder: (column) => ColumnOrderings(column),
+      );
+
+  ColumnOrderings<String> get memorySyncProposedChapterArchiveMarkdown =>
+      $composableBuilder(
+        column: $table.memorySyncProposedChapterArchiveMarkdown,
+        builder: (column) => ColumnOrderings(column),
+      );
+
   ColumnOrderings<String> get memorySyncPatchYaml => $composableBuilder(
     column: $table.memorySyncPatchYaml,
     builder: (column) => ColumnOrderings(column),
@@ -30030,6 +30357,18 @@ class $$ProjectChapterRecordsTableAnnotationComposer
   GeneratedColumn<String> get memorySyncProposedStorySummary =>
       $composableBuilder(
         column: $table.memorySyncProposedStorySummary,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<String> get memorySyncProposedContinuityIndex =>
+      $composableBuilder(
+        column: $table.memorySyncProposedContinuityIndex,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<String> get memorySyncProposedChapterArchiveMarkdown =>
+      $composableBuilder(
+        column: $table.memorySyncProposedChapterArchiveMarkdown,
         builder: (column) => column,
       );
 
@@ -30211,6 +30550,10 @@ class $$ProjectChapterRecordsTableTableManager
                     const Value.absent(),
                 Value<String> memorySyncProposedStorySummary =
                     const Value.absent(),
+                Value<String> memorySyncProposedContinuityIndex =
+                    const Value.absent(),
+                Value<String> memorySyncProposedChapterArchiveMarkdown =
+                    const Value.absent(),
                 Value<String> memorySyncPatchYaml = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -30231,6 +30574,10 @@ class $$ProjectChapterRecordsTableTableManager
                 memorySyncProposedRuntimeThreads:
                     memorySyncProposedRuntimeThreads,
                 memorySyncProposedStorySummary: memorySyncProposedStorySummary,
+                memorySyncProposedContinuityIndex:
+                    memorySyncProposedContinuityIndex,
+                memorySyncProposedChapterArchiveMarkdown:
+                    memorySyncProposedChapterArchiveMarkdown,
                 memorySyncPatchYaml: memorySyncPatchYaml,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -30255,6 +30602,10 @@ class $$ProjectChapterRecordsTableTableManager
                     const Value.absent(),
                 Value<String> memorySyncProposedStorySummary =
                     const Value.absent(),
+                Value<String> memorySyncProposedContinuityIndex =
+                    const Value.absent(),
+                Value<String> memorySyncProposedChapterArchiveMarkdown =
+                    const Value.absent(),
                 Value<String> memorySyncPatchYaml = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
@@ -30275,6 +30626,10 @@ class $$ProjectChapterRecordsTableTableManager
                 memorySyncProposedRuntimeThreads:
                     memorySyncProposedRuntimeThreads,
                 memorySyncProposedStorySummary: memorySyncProposedStorySummary,
+                memorySyncProposedContinuityIndex:
+                    memorySyncProposedContinuityIndex,
+                memorySyncProposedChapterArchiveMarkdown:
+                    memorySyncProposedChapterArchiveMarkdown,
                 memorySyncPatchYaml: memorySyncPatchYaml,
                 createdAt: createdAt,
                 updatedAt: updatedAt,

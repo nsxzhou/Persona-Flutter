@@ -118,6 +118,8 @@ class WritingContextAssembler {
       _subsection('Runtime State', memory.runtimeState),
       _subsection('Runtime Threads', memory.runtimeThreads),
       _subsection('Story Summary', memory.storySummary),
+      _subsection('Continuity Index', memory.continuityIndex),
+      _subsection('Chapter Archive', memory.chapterArchiveMarkdown),
     ].whereType<String>().toList(growable: false);
     blocks.add('## Runtime Memory\n\n${parts.join('\n\n')}');
   }

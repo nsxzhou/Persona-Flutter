@@ -221,6 +221,8 @@ class ProjectChapter {
     required this.memorySyncProposedRuntimeState,
     required this.memorySyncProposedRuntimeThreads,
     required this.memorySyncProposedStorySummary,
+    this.memorySyncProposedContinuityIndex = '',
+    this.memorySyncProposedChapterArchiveMarkdown = '',
     this.memorySyncPatchYaml = '',
     required this.createdAt,
     required this.updatedAt,
@@ -240,6 +242,8 @@ class ProjectChapter {
   final String memorySyncProposedRuntimeState;
   final String memorySyncProposedRuntimeThreads;
   final String memorySyncProposedStorySummary;
+  final String memorySyncProposedContinuityIndex;
+  final String memorySyncProposedChapterArchiveMarkdown;
   final String memorySyncPatchYaml;
   final DateTime createdAt;
   final DateTime updatedAt;

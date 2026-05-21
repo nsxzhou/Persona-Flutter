@@ -100,9 +100,13 @@ volumes:
         runtimeState: '- 潮汐封城。',
         runtimeThreads: '- 港务处线索未解。',
         storySummary: '林岚追查失踪案。',
+        continuityIndex: '- 潮汐封城\n- 港务处线索',
+        chapterArchiveMarkdown: '## 第 1 章\n\n林岚抵达雾港。',
       ),
     );
     expect(updated.state.runtimeState, contains('潮汐'));
+    expect(updated.state.continuityIndex, contains('港务处'));
+    expect(updated.state.chapterArchiveMarkdown, contains('第 1 章'));
 
     await repository.clearRuntimeMemory(project.id);
     final cleared = await repository.findRuntimeMemory(project.id);
@@ -365,11 +369,18 @@ volumes:
             runtimeState: '- 旧正文状态。',
             runtimeThreads: '- 旧伏笔。',
             storySummary: '旧摘要。',
+            continuityIndex: '- 旧索引。',
+            chapterArchiveMarkdown: '## 第 1 章\n\n旧归档。',
           ),
         ),
       );
       expect(proposal.memorySyncStatus, MemorySyncStatus.pendingReview);
       expect(proposal.memorySyncProposedStorySummary, '旧摘要。');
+      expect(proposal.memorySyncProposedContinuityIndex, '- 旧索引。');
+      expect(
+        proposal.memorySyncProposedChapterArchiveMarkdown,
+        contains('旧归档'),
+      );
 
       final edited = await repository.saveChapter(
         id: chapter.id,
@@ -389,6 +400,130 @@ volumes:
       expect(edited.memorySyncProposedRuntimeState, isEmpty);
       expect(edited.memorySyncProposedRuntimeThreads, isEmpty);
       expect(edited.memorySyncProposedStorySummary, isEmpty);
+      expect(edited.memorySyncProposedContinuityIndex, isEmpty);
+      expect(edited.memorySyncProposedChapterArchiveMarkdown, isEmpty);
+    },
+  );
+
+  test('applying memory sync proposal writes layered runtime memory', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final project = await _saveProject(database);
+    final repository = DriftNovelWorkshopRepository(database);
+    final volume = await repository.saveChapterVolume(
+      input: ChapterVolumeInput(
+        projectId: project.id,
+        volumeIndex: 1,
+        title: '第一卷',
+      ),
+    );
+    final plan = await repository.saveChapterPlan(
+      input: ChapterPlanInput(
+        projectId: project.id,
+        volumeId: volume.id,
+        volumeIndex: volume.volumeIndex,
+        volumeTitle: volume.title,
+        chapterLocalIndex: 1,
+        chapterIndex: 1,
+        objectiveCard: const ChapterObjectiveCard(objective: '推进调查。'),
+      ),
+    );
+    final chapter = await repository.saveChapter(
+      input: ProjectChapterInput(
+        projectId: project.id,
+        chapterPlanId: plan.id,
+        chapterIndex: 1,
+        title: '第一章',
+        contentMarkdown: '正文。',
+      ),
+    );
+
+    await repository.saveMemorySyncProposal(
+      MemorySyncProposalInput(
+        chapterId: chapter.id,
+        contentHash: chapter.contentHash,
+        proposedMemory: const RuntimeMemoryState(
+          runtimeState: '- 抵达雾港。',
+          runtimeThreads: '- 港务处线索待查。',
+          storySummary: '林岚进入雾港。',
+          continuityIndex: '- 港务处线索',
+          chapterArchiveMarkdown: '## 第 1 章\n\n林岚抵达雾港。',
+        ),
+        patchYaml: '''
+runtimeMemory:
+  runtimeState: 抵达雾港。
+''',
+      ),
+    );
+
+    final synced = await repository.applyMemorySyncPatch(chapter.id);
+    final memory = await repository.findRuntimeMemory(project.id);
+
+    expect(synced.memorySyncStatus, MemorySyncStatus.synced);
+    expect(memory!.state.runtimeState, '- 抵达雾港。');
+    expect(memory.state.runtimeThreads, '- 港务处线索待查。');
+    expect(memory.state.storySummary, '林岚进入雾港。');
+    expect(memory.state.continuityIndex, '- 港务处线索');
+    expect(memory.state.chapterArchiveMarkdown, contains('第 1 章'));
+  });
+
+  test(
+    'applying empty memory sync proposal clears layered runtime memory',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final project = await _saveProject(database);
+      final repository = DriftNovelWorkshopRepository(database);
+      await repository.saveRuntimeMemory(
+        projectId: project.id,
+        state: const RuntimeMemoryState(
+          runtimeState: '- 旧状态。',
+          runtimeThreads: '- 旧伏笔。',
+          storySummary: '旧摘要。',
+          continuityIndex: '- 旧索引。',
+          chapterArchiveMarkdown: '## 第 1 章\n\n旧归档。',
+        ),
+      );
+      final volume = await repository.saveChapterVolume(
+        input: ChapterVolumeInput(
+          projectId: project.id,
+          volumeIndex: 1,
+          title: '第一卷',
+        ),
+      );
+      final plan = await repository.saveChapterPlan(
+        input: ChapterPlanInput(
+          projectId: project.id,
+          volumeId: volume.id,
+          volumeIndex: volume.volumeIndex,
+          volumeTitle: volume.title,
+          chapterLocalIndex: 1,
+          chapterIndex: 1,
+          objectiveCard: const ChapterObjectiveCard(objective: '推进调查。'),
+        ),
+      );
+      final chapter = await repository.saveChapter(
+        input: ProjectChapterInput(
+          projectId: project.id,
+          chapterPlanId: plan.id,
+          chapterIndex: 1,
+          title: '第一章',
+          contentMarkdown: '正文。',
+        ),
+      );
+
+      await repository.saveMemorySyncProposal(
+        MemorySyncProposalInput(
+          chapterId: chapter.id,
+          contentHash: chapter.contentHash,
+        ),
+      );
+
+      final synced = await repository.applyMemorySyncPatch(chapter.id);
+      final memory = await repository.findRuntimeMemory(project.id);
+
+      expect(synced.memorySyncStatus, MemorySyncStatus.synced);
+      expect(memory!.state.isEmpty, isTrue);
     },
   );
 

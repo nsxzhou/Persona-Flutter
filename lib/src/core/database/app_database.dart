@@ -230,6 +230,9 @@ class ProjectRuntimeMemoryRecords extends Table {
   TextColumn get runtimeState => text().withDefault(const Constant(''))();
   TextColumn get runtimeThreads => text().withDefault(const Constant(''))();
   TextColumn get storySummary => text().withDefault(const Constant(''))();
+  TextColumn get continuityIndex => text().withDefault(const Constant(''))();
+  TextColumn get chapterArchiveMarkdown =>
+      text().withDefault(const Constant(''))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
@@ -330,6 +333,10 @@ class ProjectChapterRecords extends Table {
   TextColumn get memorySyncProposedRuntimeThreads =>
       text().withDefault(const Constant(''))();
   TextColumn get memorySyncProposedStorySummary =>
+      text().withDefault(const Constant(''))();
+  TextColumn get memorySyncProposedContinuityIndex =>
+      text().withDefault(const Constant(''))();
+  TextColumn get memorySyncProposedChapterArchiveMarkdown =>
       text().withDefault(const Constant(''))();
   TextColumn get memorySyncPatchYaml =>
       text().withDefault(const Constant(''))();
@@ -532,7 +539,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 19;
+  int get schemaVersion => 20;
 
   @override
   MigrationStrategy get migration {
@@ -765,6 +772,48 @@ class AppDatabase extends _$AppDatabase {
               projectChapterRecords,
               'memory_sync_proposed_characters_status',
             );
+          }
+        }
+        if (from < 20) {
+          if (await _tableExists('project_runtime_memory_records')) {
+            if (!await _columnExists(
+              'project_runtime_memory_records',
+              'continuity_index',
+            )) {
+              await migrator.addColumn(
+                projectRuntimeMemoryRecords,
+                projectRuntimeMemoryRecords.continuityIndex,
+              );
+            }
+            if (!await _columnExists(
+              'project_runtime_memory_records',
+              'chapter_archive_markdown',
+            )) {
+              await migrator.addColumn(
+                projectRuntimeMemoryRecords,
+                projectRuntimeMemoryRecords.chapterArchiveMarkdown,
+              );
+            }
+          }
+          if (await _tableExists('project_chapter_records')) {
+            if (!await _columnExists(
+              'project_chapter_records',
+              'memory_sync_proposed_continuity_index',
+            )) {
+              await migrator.addColumn(
+                projectChapterRecords,
+                projectChapterRecords.memorySyncProposedContinuityIndex,
+              );
+            }
+            if (!await _columnExists(
+              'project_chapter_records',
+              'memory_sync_proposed_chapter_archive_markdown',
+            )) {
+              await migrator.addColumn(
+                projectChapterRecords,
+                projectChapterRecords.memorySyncProposedChapterArchiveMarkdown,
+              );
+            }
           }
         }
       },

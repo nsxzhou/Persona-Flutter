@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
+import 'package:yaml/yaml.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/tasks/domain/workflow_task.dart';
@@ -354,6 +355,8 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
             runtimeState: Value(state.runtimeState.trim()),
             runtimeThreads: Value(state.runtimeThreads.trim()),
             storySummary: Value(state.storySummary.trim()),
+            continuityIndex: Value(state.continuityIndex.trim()),
+            chapterArchiveMarkdown: Value(state.chapterArchiveMarkdown.trim()),
             createdAt: Value(existing?.createdAt ?? now),
             updatedAt: Value(now),
           ),
@@ -749,6 +752,12 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
             memorySyncProposedStorySummary: contentChanged
                 ? const Value('')
                 : const Value.absent(),
+            memorySyncProposedContinuityIndex: contentChanged
+                ? const Value('')
+                : const Value.absent(),
+            memorySyncProposedChapterArchiveMarkdown: contentChanged
+                ? const Value('')
+                : const Value.absent(),
             memorySyncPatchYaml: contentChanged
                 ? const Value('')
                 : const Value.absent(),
@@ -790,6 +799,12 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
         memorySyncProposedStorySummary: Value(
           input.proposedMemory.storySummary.trim(),
         ),
+        memorySyncProposedContinuityIndex: Value(
+          input.proposedMemory.continuityIndex.trim(),
+        ),
+        memorySyncProposedChapterArchiveMarkdown: Value(
+          input.proposedMemory.chapterArchiveMarkdown.trim(),
+        ),
         memorySyncPatchYaml: Value(input.patchYaml.trim()),
         updatedAt: Value(now),
       ),
@@ -814,26 +829,23 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       throw StateError('记忆同步提案已过期。');
     }
     final patchYaml = chapter.memorySyncPatchYaml.trim();
-    if (patchYaml.isNotEmpty) {
+    if (_hasCharacterGraphPatch(patchYaml)) {
       await applyCharactersYaml(
         projectId: chapter.projectId,
         charactersYaml: patchYaml,
       );
     }
-    if (!RuntimeMemoryState(
-      runtimeState: chapter.memorySyncProposedRuntimeState,
-      runtimeThreads: chapter.memorySyncProposedRuntimeThreads,
-      storySummary: chapter.memorySyncProposedStorySummary,
-    ).isEmpty) {
-      await saveRuntimeMemory(
-        projectId: chapter.projectId,
-        state: RuntimeMemoryState(
-          runtimeState: chapter.memorySyncProposedRuntimeState,
-          runtimeThreads: chapter.memorySyncProposedRuntimeThreads,
-          storySummary: chapter.memorySyncProposedStorySummary,
-        ),
-      );
-    }
+    await saveRuntimeMemory(
+      projectId: chapter.projectId,
+      state: RuntimeMemoryState(
+        runtimeState: chapter.memorySyncProposedRuntimeState,
+        runtimeThreads: chapter.memorySyncProposedRuntimeThreads,
+        storySummary: chapter.memorySyncProposedStorySummary,
+        continuityIndex: chapter.memorySyncProposedContinuityIndex,
+        chapterArchiveMarkdown:
+            chapter.memorySyncProposedChapterArchiveMarkdown,
+      ),
+    );
     final now = DateTime.now();
     await (_database.update(
       _database.projectChapterRecords,
@@ -848,6 +860,33 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       throw StateError('Project chapter was not updated.');
     }
     return saved;
+  }
+
+  bool _hasCharacterGraphPatch(String patchYaml) {
+    final trimmed = patchYaml.trim();
+    if (trimmed.isEmpty) {
+      return false;
+    }
+    try {
+      final parsed = loadYaml(trimmed);
+      if (parsed is! YamlMap) {
+        return false;
+      }
+      return _hasYamlItems(parsed['characters']) ||
+          _hasYamlItems(parsed['relationships']);
+    } on Object {
+      return true;
+    }
+  }
+
+  bool _hasYamlItems(Object? value) {
+    if (value is YamlList) {
+      return value.isNotEmpty;
+    }
+    if (value is List<Object?>) {
+      return value.isNotEmpty;
+    }
+    return false;
   }
 
   @override
@@ -1714,6 +1753,8 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
         runtimeState: row.runtimeState,
         runtimeThreads: row.runtimeThreads,
         storySummary: row.storySummary,
+        continuityIndex: row.continuityIndex,
+        chapterArchiveMarkdown: row.chapterArchiveMarkdown,
       ),
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
@@ -1762,6 +1803,9 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       memorySyncProposedRuntimeState: row.memorySyncProposedRuntimeState,
       memorySyncProposedRuntimeThreads: row.memorySyncProposedRuntimeThreads,
       memorySyncProposedStorySummary: row.memorySyncProposedStorySummary,
+      memorySyncProposedContinuityIndex: row.memorySyncProposedContinuityIndex,
+      memorySyncProposedChapterArchiveMarkdown:
+          row.memorySyncProposedChapterArchiveMarkdown,
       memorySyncPatchYaml: row.memorySyncPatchYaml,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,

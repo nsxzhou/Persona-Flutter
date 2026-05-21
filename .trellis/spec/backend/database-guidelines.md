@@ -225,6 +225,90 @@ Expose a generic task writer and let UI or feature services update workflow task
 #### Correct
 Keep `WorkflowTaskRepository` read-only and update run/task records together inside the owning feature repository.
 
+## Scenario: Novel Workshop layered Runtime Memory
+
+### 1. Scope / Trigger
+- Trigger: Novel Workshop chapter generation persists and reuses project-level Runtime Memory for long-form continuity.
+- This is a database schema and cross-layer contract because Drift tables, domain models, prompt assembly, LLM proposal parsing, review UI, and repository writes all depend on the same five Runtime Memory fields.
+
+### 2. Signatures
+- Drift schema version: `20`.
+- Domain state: `RuntimeMemoryState`.
+- Current memory table: `ProjectRuntimeMemoryRecords`, one row per `projectId`.
+- Chapter proposal table: `ProjectChapterRecords`, one pending proposal per chapter row.
+- Repository reads/writes:
+  - `NovelWorkshopRepository.findRuntimeMemory(String projectId)`
+  - `NovelWorkshopRepository.saveRuntimeMemory({required String projectId, required RuntimeMemoryState state})`
+  - `NovelWorkshopRepository.saveMemorySyncProposal(MemorySyncProposalInput input)`
+  - `NovelWorkshopRepository.applyMemorySyncPatch(String chapterId)`
+- Runtime Memory fields:
+  - `runtimeState: Text`
+  - `runtimeThreads: Text`
+  - `storySummary: Text`
+  - `continuityIndex: Text`
+  - `chapterArchiveMarkdown: Text`
+- Proposal fields on `ProjectChapterRecords`:
+  - `memorySyncProposedRuntimeState: Text`
+  - `memorySyncProposedRuntimeThreads: Text`
+  - `memorySyncProposedStorySummary: Text`
+  - `memorySyncProposedContinuityIndex: Text`
+  - `memorySyncProposedChapterArchiveMarkdown: Text`
+  - `memorySyncPatchYaml: Text`
+  - `memorySyncContentHash: Text`
+  - `memorySyncStatus: Text`
+
+### 3. Contracts
+- `ProjectRuntimeMemoryRecords` remains the single current project-level Runtime Memory source; do not add embedding/vector stores, keyword retrieval tables, or a separate long-term memory subsystem for this feature.
+- Existing databases migrating to schema version 20 must add `continuity_index`, `chapter_archive_markdown`, `memory_sync_proposed_continuity_index`, and `memory_sync_proposed_chapter_archive_markdown` with empty-string defaults.
+- `saveRuntimeMemory` trims and stores all five fields.
+- `saveMemorySyncProposal` stores a complete five-field Runtime Memory proposal in `ProjectChapterRecords` and sets `memorySyncStatus` to `pendingReview`.
+- `applyMemorySyncPatch` must require `memorySyncStatus == pendingReview` and `memorySyncContentHash == contentHash`, then replace all five stored Runtime Memory fields from the proposal. This replacement must happen even when all proposed fields are empty, because an empty reviewed proposal means "clear Runtime Memory".
+- Character and relationship updates remain in structured character/relationship tables through `memorySyncPatchYaml`. `continuityIndex` must not duplicate full character-card or relationship state.
+- Editing or regenerating chapter content changes `contentHash` and must clear all pending proposed memory fields plus `memorySyncPatchYaml`, then reset `memorySyncStatus` to `idle`.
+- `WritingContextAssembler` renders non-empty Runtime Memory fields as subsections named `Runtime State`, `Runtime Threads`, `Story Summary`, `Continuity Index`, and `Chapter Archive`.
+- Chapter generation normally injects full Runtime Memory. If the assembled prompt exceeds the internal archive digest threshold, only the prompt-local `chapterArchiveMarkdown` value may be replaced with a `Chapter Archive Digest`; the database value must not change.
+- Temporary archive digest calls must use the same provider/model for the generation run and write a prompt trace with label `digest_chapter_archive`.
+
+### 4. Validation & Error Matrix
+- Missing project on `saveRuntimeMemory` -> repository error before writing.
+- `saveMemorySyncProposal` for missing chapter -> repository error.
+- Proposal `contentHash` differs from the current chapter `contentHash` -> reject the proposal as stale.
+- `applyMemorySyncPatch` when status is not `pendingReview` -> reject with "no pending review" behavior.
+- `applyMemorySyncPatch` when proposal hash differs from chapter hash -> reject as stale and do not write Runtime Memory.
+- `memorySyncPatchYaml` with no non-empty `characters` or `relationships` patch -> skip character graph parsing; still apply the Runtime Memory replacement.
+- Oversized prompt with empty `chapterArchiveMarkdown` -> skip temporary digest.
+- Temporary digest failure -> generation run should fail through the normal LLM error path; do not persist partial digest content.
+
+### 5. Good/Base/Bad Cases
+- Good: generated chapter creates a pending proposal containing character/relationship YAML plus five proposed Runtime Memory fields; user review applies the proposal; the next chapter prompt includes the updated five subsections.
+- Base: user manually edits Runtime Memory in the existing Runtime Memory surface and saves all five fields to the single project memory row.
+- Bad: persist a generated `Chapter Archive Digest` back into `ProjectRuntimeMemoryRecords.chapter_archive_markdown`.
+- Bad: add `charactersStatus` or full character-card facts back into Runtime Memory instead of using `NovelCharacterRecords` and `NovelRelationshipRecords`.
+- Bad: ignore an all-empty proposal during apply and leave old Runtime Memory in place.
+
+### 6. Tests Required
+- Repository test for saving, reading, clearing, and mapping all five `RuntimeMemoryState` fields.
+- Migration test or schema smoke coverage that new Runtime Memory/proposal columns default to empty strings.
+- Repository test for `saveMemorySyncProposal` persisting all five proposed fields.
+- Repository test for `applyMemorySyncPatch` writing all five fields when `contentHash` matches.
+- Repository test for applying an empty proposal to clear existing Runtime Memory.
+- Repository test that chapter content edits clear proposed Runtime Memory fields, patch YAML, content hash binding, and status.
+- Context assembler test that all five subsections render and empty fields are omitted.
+- Pipeline test that proposal prompt requests five-field `runtimeMemory` and parsed proposals are saved.
+- Pipeline test that oversized prompts use traced temporary archive digest and leave stored `chapterArchiveMarkdown` unchanged.
+- Widget tests for Runtime Memory editing and pending proposal review surfaces showing `continuityIndex` and `chapterArchiveMarkdown`.
+
+### 7. Wrong vs Correct
+#### Wrong
+Skip `saveRuntimeMemory` when a pending proposal contains an empty `RuntimeMemoryState`, because the code treats it as "no change".
+#### Correct
+Always replace the stored five-field Runtime Memory from a valid reviewed proposal; an empty proposal is a valid clear operation.
+
+#### Wrong
+Use `continuityIndex` as another character sheet that repeats goals, injuries, alliances, and relationship strength from structured records.
+#### Correct
+Use `continuityIndex` only for compact continuity triggers such as unresolved promises, state/rule changes, active threats, and follow-up cues; keep character and relationship facts in structured tables.
+
 ## Scenario: Workflow Prompt Trace storage
 
 ### 1. Scope / Trigger
