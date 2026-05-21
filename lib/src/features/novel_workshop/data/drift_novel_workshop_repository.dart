@@ -351,7 +351,6 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
         .insertOnConflictUpdate(
           ProjectRuntimeMemoryRecordsCompanion(
             projectId: Value(projectId),
-            charactersStatus: Value(state.charactersStatus.trim()),
             runtimeState: Value(state.runtimeState.trim()),
             runtimeThreads: Value(state.runtimeThreads.trim()),
             storySummary: Value(state.storySummary.trim()),
@@ -741,9 +740,6 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
             memorySyncContentHash: contentChanged
                 ? const Value('')
                 : const Value.absent(),
-            memorySyncProposedCharactersStatus: contentChanged
-                ? const Value('')
-                : const Value.absent(),
             memorySyncProposedRuntimeState: contentChanged
                 ? const Value('')
                 : const Value.absent(),
@@ -785,9 +781,6 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       ProjectChapterRecordsCompanion(
         memorySyncStatus: Value(MemorySyncStatus.pendingReview.name),
         memorySyncContentHash: Value(input.contentHash),
-        memorySyncProposedCharactersStatus: Value(
-          input.proposedMemory.charactersStatus.trim(),
-        ),
         memorySyncProposedRuntimeState: Value(
           input.proposedMemory.runtimeState.trim(),
         ),
@@ -828,7 +821,6 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       );
     }
     if (!RuntimeMemoryState(
-      charactersStatus: chapter.memorySyncProposedCharactersStatus,
       runtimeState: chapter.memorySyncProposedRuntimeState,
       runtimeThreads: chapter.memorySyncProposedRuntimeThreads,
       storySummary: chapter.memorySyncProposedStorySummary,
@@ -836,7 +828,6 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       await saveRuntimeMemory(
         projectId: chapter.projectId,
         state: RuntimeMemoryState(
-          charactersStatus: chapter.memorySyncProposedCharactersStatus,
           runtimeState: chapter.memorySyncProposedRuntimeState,
           runtimeThreads: chapter.memorySyncProposedRuntimeThreads,
           storySummary: chapter.memorySyncProposedStorySummary,
@@ -1720,7 +1711,6 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     return ProjectRuntimeMemory(
       projectId: row.projectId,
       state: RuntimeMemoryState(
-        charactersStatus: row.charactersStatus,
         runtimeState: row.runtimeState,
         runtimeThreads: row.runtimeThreads,
         storySummary: row.storySummary,
@@ -1769,8 +1759,6 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       continuityReportMarkdown: row.continuityReportMarkdown,
       memorySyncStatus: MemorySyncStatus.values.byName(row.memorySyncStatus),
       memorySyncContentHash: row.memorySyncContentHash,
-      memorySyncProposedCharactersStatus:
-          row.memorySyncProposedCharactersStatus,
       memorySyncProposedRuntimeState: row.memorySyncProposedRuntimeState,
       memorySyncProposedRuntimeThreads: row.memorySyncProposedRuntimeThreads,
       memorySyncProposedStorySummary: row.memorySyncProposedStorySummary,

@@ -997,7 +997,7 @@ class _ProjectOverviewTab extends StatelessWidget {
               children: [
                 const PersonaSectionHeader(
                   title: '运行时记忆',
-                  description: '角色状态、剧情线、故事摘要',
+                  description: '局势、线索、故事摘要',
                 ),
                 const SizedBox(height: 12),
                 memory.when(
@@ -2368,7 +2368,7 @@ class _RuntimeMemoryTabState extends ConsumerState<_RuntimeMemoryTab> {
                 children: [
                   Expanded(
                     child: Text(
-                      '创作过程中持续追踪运行状态、剧情线索和故事摘要。角色状态由结构化角色卡片维护。',
+                      '创作过程中持续追踪运行状态、剧情线索和故事摘要。角色状态由角色索引与关系网维护。',
                       style: textTheme.bodyMedium?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),

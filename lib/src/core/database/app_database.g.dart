@@ -8416,18 +8416,6 @@ class $ProjectRuntimeMemoryRecordsTable extends ProjectRuntimeMemoryRecords
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _charactersStatusMeta = const VerificationMeta(
-    'charactersStatus',
-  );
-  @override
-  late final GeneratedColumn<String> charactersStatus = GeneratedColumn<String>(
-    'characters_status',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(''),
-  );
   static const VerificationMeta _runtimeStateMeta = const VerificationMeta(
     'runtimeState',
   );
@@ -8489,7 +8477,6 @@ class $ProjectRuntimeMemoryRecordsTable extends ProjectRuntimeMemoryRecords
   @override
   List<GeneratedColumn> get $columns => [
     projectId,
-    charactersStatus,
     runtimeState,
     runtimeThreads,
     storySummary,
@@ -8515,15 +8502,6 @@ class $ProjectRuntimeMemoryRecordsTable extends ProjectRuntimeMemoryRecords
       );
     } else if (isInserting) {
       context.missing(_projectIdMeta);
-    }
-    if (data.containsKey('characters_status')) {
-      context.handle(
-        _charactersStatusMeta,
-        charactersStatus.isAcceptableOrUnknown(
-          data['characters_status']!,
-          _charactersStatusMeta,
-        ),
-      );
     }
     if (data.containsKey('runtime_state')) {
       context.handle(
@@ -8584,10 +8562,6 @@ class $ProjectRuntimeMemoryRecordsTable extends ProjectRuntimeMemoryRecords
         DriftSqlType.string,
         data['${effectivePrefix}project_id'],
       )!,
-      charactersStatus: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}characters_status'],
-      )!,
       runtimeState: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}runtime_state'],
@@ -8620,7 +8594,6 @@ class $ProjectRuntimeMemoryRecordsTable extends ProjectRuntimeMemoryRecords
 class ProjectRuntimeMemoryRecord extends DataClass
     implements Insertable<ProjectRuntimeMemoryRecord> {
   final String projectId;
-  final String charactersStatus;
   final String runtimeState;
   final String runtimeThreads;
   final String storySummary;
@@ -8628,7 +8601,6 @@ class ProjectRuntimeMemoryRecord extends DataClass
   final DateTime updatedAt;
   const ProjectRuntimeMemoryRecord({
     required this.projectId,
-    required this.charactersStatus,
     required this.runtimeState,
     required this.runtimeThreads,
     required this.storySummary,
@@ -8639,7 +8611,6 @@ class ProjectRuntimeMemoryRecord extends DataClass
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['project_id'] = Variable<String>(projectId);
-    map['characters_status'] = Variable<String>(charactersStatus);
     map['runtime_state'] = Variable<String>(runtimeState);
     map['runtime_threads'] = Variable<String>(runtimeThreads);
     map['story_summary'] = Variable<String>(storySummary);
@@ -8651,7 +8622,6 @@ class ProjectRuntimeMemoryRecord extends DataClass
   ProjectRuntimeMemoryRecordsCompanion toCompanion(bool nullToAbsent) {
     return ProjectRuntimeMemoryRecordsCompanion(
       projectId: Value(projectId),
-      charactersStatus: Value(charactersStatus),
       runtimeState: Value(runtimeState),
       runtimeThreads: Value(runtimeThreads),
       storySummary: Value(storySummary),
@@ -8667,7 +8637,6 @@ class ProjectRuntimeMemoryRecord extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return ProjectRuntimeMemoryRecord(
       projectId: serializer.fromJson<String>(json['projectId']),
-      charactersStatus: serializer.fromJson<String>(json['charactersStatus']),
       runtimeState: serializer.fromJson<String>(json['runtimeState']),
       runtimeThreads: serializer.fromJson<String>(json['runtimeThreads']),
       storySummary: serializer.fromJson<String>(json['storySummary']),
@@ -8680,7 +8649,6 @@ class ProjectRuntimeMemoryRecord extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'projectId': serializer.toJson<String>(projectId),
-      'charactersStatus': serializer.toJson<String>(charactersStatus),
       'runtimeState': serializer.toJson<String>(runtimeState),
       'runtimeThreads': serializer.toJson<String>(runtimeThreads),
       'storySummary': serializer.toJson<String>(storySummary),
@@ -8691,7 +8659,6 @@ class ProjectRuntimeMemoryRecord extends DataClass
 
   ProjectRuntimeMemoryRecord copyWith({
     String? projectId,
-    String? charactersStatus,
     String? runtimeState,
     String? runtimeThreads,
     String? storySummary,
@@ -8699,7 +8666,6 @@ class ProjectRuntimeMemoryRecord extends DataClass
     DateTime? updatedAt,
   }) => ProjectRuntimeMemoryRecord(
     projectId: projectId ?? this.projectId,
-    charactersStatus: charactersStatus ?? this.charactersStatus,
     runtimeState: runtimeState ?? this.runtimeState,
     runtimeThreads: runtimeThreads ?? this.runtimeThreads,
     storySummary: storySummary ?? this.storySummary,
@@ -8711,9 +8677,6 @@ class ProjectRuntimeMemoryRecord extends DataClass
   ) {
     return ProjectRuntimeMemoryRecord(
       projectId: data.projectId.present ? data.projectId.value : this.projectId,
-      charactersStatus: data.charactersStatus.present
-          ? data.charactersStatus.value
-          : this.charactersStatus,
       runtimeState: data.runtimeState.present
           ? data.runtimeState.value
           : this.runtimeState,
@@ -8732,7 +8695,6 @@ class ProjectRuntimeMemoryRecord extends DataClass
   String toString() {
     return (StringBuffer('ProjectRuntimeMemoryRecord(')
           ..write('projectId: $projectId, ')
-          ..write('charactersStatus: $charactersStatus, ')
           ..write('runtimeState: $runtimeState, ')
           ..write('runtimeThreads: $runtimeThreads, ')
           ..write('storySummary: $storySummary, ')
@@ -8745,7 +8707,6 @@ class ProjectRuntimeMemoryRecord extends DataClass
   @override
   int get hashCode => Object.hash(
     projectId,
-    charactersStatus,
     runtimeState,
     runtimeThreads,
     storySummary,
@@ -8757,7 +8718,6 @@ class ProjectRuntimeMemoryRecord extends DataClass
       identical(this, other) ||
       (other is ProjectRuntimeMemoryRecord &&
           other.projectId == this.projectId &&
-          other.charactersStatus == this.charactersStatus &&
           other.runtimeState == this.runtimeState &&
           other.runtimeThreads == this.runtimeThreads &&
           other.storySummary == this.storySummary &&
@@ -8768,7 +8728,6 @@ class ProjectRuntimeMemoryRecord extends DataClass
 class ProjectRuntimeMemoryRecordsCompanion
     extends UpdateCompanion<ProjectRuntimeMemoryRecord> {
   final Value<String> projectId;
-  final Value<String> charactersStatus;
   final Value<String> runtimeState;
   final Value<String> runtimeThreads;
   final Value<String> storySummary;
@@ -8777,7 +8736,6 @@ class ProjectRuntimeMemoryRecordsCompanion
   final Value<int> rowid;
   const ProjectRuntimeMemoryRecordsCompanion({
     this.projectId = const Value.absent(),
-    this.charactersStatus = const Value.absent(),
     this.runtimeState = const Value.absent(),
     this.runtimeThreads = const Value.absent(),
     this.storySummary = const Value.absent(),
@@ -8787,7 +8745,6 @@ class ProjectRuntimeMemoryRecordsCompanion
   });
   ProjectRuntimeMemoryRecordsCompanion.insert({
     required String projectId,
-    this.charactersStatus = const Value.absent(),
     this.runtimeState = const Value.absent(),
     this.runtimeThreads = const Value.absent(),
     this.storySummary = const Value.absent(),
@@ -8799,7 +8756,6 @@ class ProjectRuntimeMemoryRecordsCompanion
        updatedAt = Value(updatedAt);
   static Insertable<ProjectRuntimeMemoryRecord> custom({
     Expression<String>? projectId,
-    Expression<String>? charactersStatus,
     Expression<String>? runtimeState,
     Expression<String>? runtimeThreads,
     Expression<String>? storySummary,
@@ -8809,7 +8765,6 @@ class ProjectRuntimeMemoryRecordsCompanion
   }) {
     return RawValuesInsertable({
       if (projectId != null) 'project_id': projectId,
-      if (charactersStatus != null) 'characters_status': charactersStatus,
       if (runtimeState != null) 'runtime_state': runtimeState,
       if (runtimeThreads != null) 'runtime_threads': runtimeThreads,
       if (storySummary != null) 'story_summary': storySummary,
@@ -8821,7 +8776,6 @@ class ProjectRuntimeMemoryRecordsCompanion
 
   ProjectRuntimeMemoryRecordsCompanion copyWith({
     Value<String>? projectId,
-    Value<String>? charactersStatus,
     Value<String>? runtimeState,
     Value<String>? runtimeThreads,
     Value<String>? storySummary,
@@ -8831,7 +8785,6 @@ class ProjectRuntimeMemoryRecordsCompanion
   }) {
     return ProjectRuntimeMemoryRecordsCompanion(
       projectId: projectId ?? this.projectId,
-      charactersStatus: charactersStatus ?? this.charactersStatus,
       runtimeState: runtimeState ?? this.runtimeState,
       runtimeThreads: runtimeThreads ?? this.runtimeThreads,
       storySummary: storySummary ?? this.storySummary,
@@ -8846,9 +8799,6 @@ class ProjectRuntimeMemoryRecordsCompanion
     final map = <String, Expression>{};
     if (projectId.present) {
       map['project_id'] = Variable<String>(projectId.value);
-    }
-    if (charactersStatus.present) {
-      map['characters_status'] = Variable<String>(charactersStatus.value);
     }
     if (runtimeState.present) {
       map['runtime_state'] = Variable<String>(runtimeState.value);
@@ -8875,7 +8825,6 @@ class ProjectRuntimeMemoryRecordsCompanion
   String toString() {
     return (StringBuffer('ProjectRuntimeMemoryRecordsCompanion(')
           ..write('projectId: $projectId, ')
-          ..write('charactersStatus: $charactersStatus, ')
           ..write('runtimeState: $runtimeState, ')
           ..write('runtimeThreads: $runtimeThreads, ')
           ..write('storySummary: $storySummary, ')
@@ -11332,18 +11281,6 @@ class $ProjectChapterRecordsTable extends ProjectChapterRecords
         requiredDuringInsert: false,
         defaultValue: const Constant(''),
       );
-  static const VerificationMeta _memorySyncProposedCharactersStatusMeta =
-      const VerificationMeta('memorySyncProposedCharactersStatus');
-  @override
-  late final GeneratedColumn<String> memorySyncProposedCharactersStatus =
-      GeneratedColumn<String>(
-        'memory_sync_proposed_characters_status',
-        aliasedName,
-        false,
-        type: DriftSqlType.string,
-        requiredDuringInsert: false,
-        defaultValue: const Constant(''),
-      );
   static const VerificationMeta _memorySyncProposedRuntimeStateMeta =
       const VerificationMeta('memorySyncProposedRuntimeState');
   @override
@@ -11427,7 +11364,6 @@ class $ProjectChapterRecordsTable extends ProjectChapterRecords
     continuityReportMarkdown,
     memorySyncStatus,
     memorySyncContentHash,
-    memorySyncProposedCharactersStatus,
     memorySyncProposedRuntimeState,
     memorySyncProposedRuntimeThreads,
     memorySyncProposedStorySummary,
@@ -11542,15 +11478,6 @@ class $ProjectChapterRecordsTable extends ProjectChapterRecords
         ),
       );
     }
-    if (data.containsKey('memory_sync_proposed_characters_status')) {
-      context.handle(
-        _memorySyncProposedCharactersStatusMeta,
-        memorySyncProposedCharactersStatus.isAcceptableOrUnknown(
-          data['memory_sync_proposed_characters_status']!,
-          _memorySyncProposedCharactersStatusMeta,
-        ),
-      );
-    }
     if (data.containsKey('memory_sync_proposed_runtime_state')) {
       context.handle(
         _memorySyncProposedRuntimeStateMeta,
@@ -11660,10 +11587,6 @@ class $ProjectChapterRecordsTable extends ProjectChapterRecords
         DriftSqlType.string,
         data['${effectivePrefix}memory_sync_content_hash'],
       )!,
-      memorySyncProposedCharactersStatus: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}memory_sync_proposed_characters_status'],
-      )!,
       memorySyncProposedRuntimeState: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}memory_sync_proposed_runtime_state'],
@@ -11710,7 +11633,6 @@ class ProjectChapterRecord extends DataClass
   final String continuityReportMarkdown;
   final String memorySyncStatus;
   final String memorySyncContentHash;
-  final String memorySyncProposedCharactersStatus;
   final String memorySyncProposedRuntimeState;
   final String memorySyncProposedRuntimeThreads;
   final String memorySyncProposedStorySummary;
@@ -11729,7 +11651,6 @@ class ProjectChapterRecord extends DataClass
     required this.continuityReportMarkdown,
     required this.memorySyncStatus,
     required this.memorySyncContentHash,
-    required this.memorySyncProposedCharactersStatus,
     required this.memorySyncProposedRuntimeState,
     required this.memorySyncProposedRuntimeThreads,
     required this.memorySyncProposedStorySummary,
@@ -11753,9 +11674,6 @@ class ProjectChapterRecord extends DataClass
     );
     map['memory_sync_status'] = Variable<String>(memorySyncStatus);
     map['memory_sync_content_hash'] = Variable<String>(memorySyncContentHash);
-    map['memory_sync_proposed_characters_status'] = Variable<String>(
-      memorySyncProposedCharactersStatus,
-    );
     map['memory_sync_proposed_runtime_state'] = Variable<String>(
       memorySyncProposedRuntimeState,
     );
@@ -11784,9 +11702,6 @@ class ProjectChapterRecord extends DataClass
       continuityReportMarkdown: Value(continuityReportMarkdown),
       memorySyncStatus: Value(memorySyncStatus),
       memorySyncContentHash: Value(memorySyncContentHash),
-      memorySyncProposedCharactersStatus: Value(
-        memorySyncProposedCharactersStatus,
-      ),
       memorySyncProposedRuntimeState: Value(memorySyncProposedRuntimeState),
       memorySyncProposedRuntimeThreads: Value(memorySyncProposedRuntimeThreads),
       memorySyncProposedStorySummary: Value(memorySyncProposedStorySummary),
@@ -11816,9 +11731,6 @@ class ProjectChapterRecord extends DataClass
       memorySyncStatus: serializer.fromJson<String>(json['memorySyncStatus']),
       memorySyncContentHash: serializer.fromJson<String>(
         json['memorySyncContentHash'],
-      ),
-      memorySyncProposedCharactersStatus: serializer.fromJson<String>(
-        json['memorySyncProposedCharactersStatus'],
       ),
       memorySyncProposedRuntimeState: serializer.fromJson<String>(
         json['memorySyncProposedRuntimeState'],
@@ -11853,9 +11765,6 @@ class ProjectChapterRecord extends DataClass
       ),
       'memorySyncStatus': serializer.toJson<String>(memorySyncStatus),
       'memorySyncContentHash': serializer.toJson<String>(memorySyncContentHash),
-      'memorySyncProposedCharactersStatus': serializer.toJson<String>(
-        memorySyncProposedCharactersStatus,
-      ),
       'memorySyncProposedRuntimeState': serializer.toJson<String>(
         memorySyncProposedRuntimeState,
       ),
@@ -11883,7 +11792,6 @@ class ProjectChapterRecord extends DataClass
     String? continuityReportMarkdown,
     String? memorySyncStatus,
     String? memorySyncContentHash,
-    String? memorySyncProposedCharactersStatus,
     String? memorySyncProposedRuntimeState,
     String? memorySyncProposedRuntimeThreads,
     String? memorySyncProposedStorySummary,
@@ -11903,9 +11811,6 @@ class ProjectChapterRecord extends DataClass
         continuityReportMarkdown ?? this.continuityReportMarkdown,
     memorySyncStatus: memorySyncStatus ?? this.memorySyncStatus,
     memorySyncContentHash: memorySyncContentHash ?? this.memorySyncContentHash,
-    memorySyncProposedCharactersStatus:
-        memorySyncProposedCharactersStatus ??
-        this.memorySyncProposedCharactersStatus,
     memorySyncProposedRuntimeState:
         memorySyncProposedRuntimeState ?? this.memorySyncProposedRuntimeState,
     memorySyncProposedRuntimeThreads:
@@ -11946,10 +11851,6 @@ class ProjectChapterRecord extends DataClass
       memorySyncContentHash: data.memorySyncContentHash.present
           ? data.memorySyncContentHash.value
           : this.memorySyncContentHash,
-      memorySyncProposedCharactersStatus:
-          data.memorySyncProposedCharactersStatus.present
-          ? data.memorySyncProposedCharactersStatus.value
-          : this.memorySyncProposedCharactersStatus,
       memorySyncProposedRuntimeState:
           data.memorySyncProposedRuntimeState.present
           ? data.memorySyncProposedRuntimeState.value
@@ -11985,9 +11886,6 @@ class ProjectChapterRecord extends DataClass
           ..write('memorySyncStatus: $memorySyncStatus, ')
           ..write('memorySyncContentHash: $memorySyncContentHash, ')
           ..write(
-            'memorySyncProposedCharactersStatus: $memorySyncProposedCharactersStatus, ',
-          )
-          ..write(
             'memorySyncProposedRuntimeState: $memorySyncProposedRuntimeState, ',
           )
           ..write(
@@ -12016,7 +11914,6 @@ class ProjectChapterRecord extends DataClass
     continuityReportMarkdown,
     memorySyncStatus,
     memorySyncContentHash,
-    memorySyncProposedCharactersStatus,
     memorySyncProposedRuntimeState,
     memorySyncProposedRuntimeThreads,
     memorySyncProposedStorySummary,
@@ -12039,8 +11936,6 @@ class ProjectChapterRecord extends DataClass
           other.continuityReportMarkdown == this.continuityReportMarkdown &&
           other.memorySyncStatus == this.memorySyncStatus &&
           other.memorySyncContentHash == this.memorySyncContentHash &&
-          other.memorySyncProposedCharactersStatus ==
-              this.memorySyncProposedCharactersStatus &&
           other.memorySyncProposedRuntimeState ==
               this.memorySyncProposedRuntimeState &&
           other.memorySyncProposedRuntimeThreads ==
@@ -12065,7 +11960,6 @@ class ProjectChapterRecordsCompanion
   final Value<String> continuityReportMarkdown;
   final Value<String> memorySyncStatus;
   final Value<String> memorySyncContentHash;
-  final Value<String> memorySyncProposedCharactersStatus;
   final Value<String> memorySyncProposedRuntimeState;
   final Value<String> memorySyncProposedRuntimeThreads;
   final Value<String> memorySyncProposedStorySummary;
@@ -12085,7 +11979,6 @@ class ProjectChapterRecordsCompanion
     this.continuityReportMarkdown = const Value.absent(),
     this.memorySyncStatus = const Value.absent(),
     this.memorySyncContentHash = const Value.absent(),
-    this.memorySyncProposedCharactersStatus = const Value.absent(),
     this.memorySyncProposedRuntimeState = const Value.absent(),
     this.memorySyncProposedRuntimeThreads = const Value.absent(),
     this.memorySyncProposedStorySummary = const Value.absent(),
@@ -12106,7 +11999,6 @@ class ProjectChapterRecordsCompanion
     this.continuityReportMarkdown = const Value.absent(),
     this.memorySyncStatus = const Value.absent(),
     this.memorySyncContentHash = const Value.absent(),
-    this.memorySyncProposedCharactersStatus = const Value.absent(),
     this.memorySyncProposedRuntimeState = const Value.absent(),
     this.memorySyncProposedRuntimeThreads = const Value.absent(),
     this.memorySyncProposedStorySummary = const Value.absent(),
@@ -12132,7 +12024,6 @@ class ProjectChapterRecordsCompanion
     Expression<String>? continuityReportMarkdown,
     Expression<String>? memorySyncStatus,
     Expression<String>? memorySyncContentHash,
-    Expression<String>? memorySyncProposedCharactersStatus,
     Expression<String>? memorySyncProposedRuntimeState,
     Expression<String>? memorySyncProposedRuntimeThreads,
     Expression<String>? memorySyncProposedStorySummary,
@@ -12155,9 +12046,6 @@ class ProjectChapterRecordsCompanion
       if (memorySyncStatus != null) 'memory_sync_status': memorySyncStatus,
       if (memorySyncContentHash != null)
         'memory_sync_content_hash': memorySyncContentHash,
-      if (memorySyncProposedCharactersStatus != null)
-        'memory_sync_proposed_characters_status':
-            memorySyncProposedCharactersStatus,
       if (memorySyncProposedRuntimeState != null)
         'memory_sync_proposed_runtime_state': memorySyncProposedRuntimeState,
       if (memorySyncProposedRuntimeThreads != null)
@@ -12185,7 +12073,6 @@ class ProjectChapterRecordsCompanion
     Value<String>? continuityReportMarkdown,
     Value<String>? memorySyncStatus,
     Value<String>? memorySyncContentHash,
-    Value<String>? memorySyncProposedCharactersStatus,
     Value<String>? memorySyncProposedRuntimeState,
     Value<String>? memorySyncProposedRuntimeThreads,
     Value<String>? memorySyncProposedStorySummary,
@@ -12208,9 +12095,6 @@ class ProjectChapterRecordsCompanion
       memorySyncStatus: memorySyncStatus ?? this.memorySyncStatus,
       memorySyncContentHash:
           memorySyncContentHash ?? this.memorySyncContentHash,
-      memorySyncProposedCharactersStatus:
-          memorySyncProposedCharactersStatus ??
-          this.memorySyncProposedCharactersStatus,
       memorySyncProposedRuntimeState:
           memorySyncProposedRuntimeState ?? this.memorySyncProposedRuntimeState,
       memorySyncProposedRuntimeThreads:
@@ -12265,11 +12149,6 @@ class ProjectChapterRecordsCompanion
         memorySyncContentHash.value,
       );
     }
-    if (memorySyncProposedCharactersStatus.present) {
-      map['memory_sync_proposed_characters_status'] = Variable<String>(
-        memorySyncProposedCharactersStatus.value,
-      );
-    }
     if (memorySyncProposedRuntimeState.present) {
       map['memory_sync_proposed_runtime_state'] = Variable<String>(
         memorySyncProposedRuntimeState.value,
@@ -12316,9 +12195,6 @@ class ProjectChapterRecordsCompanion
           ..write('continuityReportMarkdown: $continuityReportMarkdown, ')
           ..write('memorySyncStatus: $memorySyncStatus, ')
           ..write('memorySyncContentHash: $memorySyncContentHash, ')
-          ..write(
-            'memorySyncProposedCharactersStatus: $memorySyncProposedCharactersStatus, ',
-          )
           ..write(
             'memorySyncProposedRuntimeState: $memorySyncProposedRuntimeState, ',
           )
@@ -27644,7 +27520,6 @@ typedef $$PlotProfileRecordsTableProcessedTableManager =
 typedef $$ProjectRuntimeMemoryRecordsTableCreateCompanionBuilder =
     ProjectRuntimeMemoryRecordsCompanion Function({
       required String projectId,
-      Value<String> charactersStatus,
       Value<String> runtimeState,
       Value<String> runtimeThreads,
       Value<String> storySummary,
@@ -27655,7 +27530,6 @@ typedef $$ProjectRuntimeMemoryRecordsTableCreateCompanionBuilder =
 typedef $$ProjectRuntimeMemoryRecordsTableUpdateCompanionBuilder =
     ProjectRuntimeMemoryRecordsCompanion Function({
       Value<String> projectId,
-      Value<String> charactersStatus,
       Value<String> runtimeState,
       Value<String> runtimeThreads,
       Value<String> storySummary,
@@ -27675,11 +27549,6 @@ class $$ProjectRuntimeMemoryRecordsTableFilterComposer
   });
   ColumnFilters<String> get projectId => $composableBuilder(
     column: $table.projectId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get charactersStatus => $composableBuilder(
-    column: $table.charactersStatus,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -27723,11 +27592,6 @@ class $$ProjectRuntimeMemoryRecordsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get charactersStatus => $composableBuilder(
-    column: $table.charactersStatus,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<String> get runtimeState => $composableBuilder(
     column: $table.runtimeState,
     builder: (column) => ColumnOrderings(column),
@@ -27765,11 +27629,6 @@ class $$ProjectRuntimeMemoryRecordsTableAnnotationComposer
   });
   GeneratedColumn<String> get projectId =>
       $composableBuilder(column: $table.projectId, builder: (column) => column);
-
-  GeneratedColumn<String> get charactersStatus => $composableBuilder(
-    column: $table.charactersStatus,
-    builder: (column) => column,
-  );
 
   GeneratedColumn<String> get runtimeState => $composableBuilder(
     column: $table.runtimeState,
@@ -27840,7 +27699,6 @@ class $$ProjectRuntimeMemoryRecordsTableTableManager
           updateCompanionCallback:
               ({
                 Value<String> projectId = const Value.absent(),
-                Value<String> charactersStatus = const Value.absent(),
                 Value<String> runtimeState = const Value.absent(),
                 Value<String> runtimeThreads = const Value.absent(),
                 Value<String> storySummary = const Value.absent(),
@@ -27849,7 +27707,6 @@ class $$ProjectRuntimeMemoryRecordsTableTableManager
                 Value<int> rowid = const Value.absent(),
               }) => ProjectRuntimeMemoryRecordsCompanion(
                 projectId: projectId,
-                charactersStatus: charactersStatus,
                 runtimeState: runtimeState,
                 runtimeThreads: runtimeThreads,
                 storySummary: storySummary,
@@ -27860,7 +27717,6 @@ class $$ProjectRuntimeMemoryRecordsTableTableManager
           createCompanionCallback:
               ({
                 required String projectId,
-                Value<String> charactersStatus = const Value.absent(),
                 Value<String> runtimeState = const Value.absent(),
                 Value<String> runtimeThreads = const Value.absent(),
                 Value<String> storySummary = const Value.absent(),
@@ -27869,7 +27725,6 @@ class $$ProjectRuntimeMemoryRecordsTableTableManager
                 Value<int> rowid = const Value.absent(),
               }) => ProjectRuntimeMemoryRecordsCompanion.insert(
                 projectId: projectId,
-                charactersStatus: charactersStatus,
                 runtimeState: runtimeState,
                 runtimeThreads: runtimeThreads,
                 storySummary: storySummary,
@@ -29640,7 +29495,6 @@ typedef $$ProjectChapterRecordsTableCreateCompanionBuilder =
       Value<String> continuityReportMarkdown,
       Value<String> memorySyncStatus,
       Value<String> memorySyncContentHash,
-      Value<String> memorySyncProposedCharactersStatus,
       Value<String> memorySyncProposedRuntimeState,
       Value<String> memorySyncProposedRuntimeThreads,
       Value<String> memorySyncProposedStorySummary,
@@ -29662,7 +29516,6 @@ typedef $$ProjectChapterRecordsTableUpdateCompanionBuilder =
       Value<String> continuityReportMarkdown,
       Value<String> memorySyncStatus,
       Value<String> memorySyncContentHash,
-      Value<String> memorySyncProposedCharactersStatus,
       Value<String> memorySyncProposedRuntimeState,
       Value<String> memorySyncProposedRuntimeThreads,
       Value<String> memorySyncProposedStorySummary,
@@ -29839,12 +29692,6 @@ class $$ProjectChapterRecordsTableFilterComposer
     column: $table.memorySyncContentHash,
     builder: (column) => ColumnFilters(column),
   );
-
-  ColumnFilters<String> get memorySyncProposedCharactersStatus =>
-      $composableBuilder(
-        column: $table.memorySyncProposedCharactersStatus,
-        builder: (column) => ColumnFilters(column),
-      );
 
   ColumnFilters<String> get memorySyncProposedRuntimeState =>
       $composableBuilder(
@@ -30038,12 +29885,6 @@ class $$ProjectChapterRecordsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get memorySyncProposedCharactersStatus =>
-      $composableBuilder(
-        column: $table.memorySyncProposedCharactersStatus,
-        builder: (column) => ColumnOrderings(column),
-      );
-
   ColumnOrderings<String> get memorySyncProposedRuntimeState =>
       $composableBuilder(
         column: $table.memorySyncProposedRuntimeState,
@@ -30173,12 +30014,6 @@ class $$ProjectChapterRecordsTableAnnotationComposer
     column: $table.memorySyncContentHash,
     builder: (column) => column,
   );
-
-  GeneratedColumn<String> get memorySyncProposedCharactersStatus =>
-      $composableBuilder(
-        column: $table.memorySyncProposedCharactersStatus,
-        builder: (column) => column,
-      );
 
   GeneratedColumn<String> get memorySyncProposedRuntimeState =>
       $composableBuilder(
@@ -30370,8 +30205,6 @@ class $$ProjectChapterRecordsTableTableManager
                 Value<String> continuityReportMarkdown = const Value.absent(),
                 Value<String> memorySyncStatus = const Value.absent(),
                 Value<String> memorySyncContentHash = const Value.absent(),
-                Value<String> memorySyncProposedCharactersStatus =
-                    const Value.absent(),
                 Value<String> memorySyncProposedRuntimeState =
                     const Value.absent(),
                 Value<String> memorySyncProposedRuntimeThreads =
@@ -30394,8 +30227,6 @@ class $$ProjectChapterRecordsTableTableManager
                 continuityReportMarkdown: continuityReportMarkdown,
                 memorySyncStatus: memorySyncStatus,
                 memorySyncContentHash: memorySyncContentHash,
-                memorySyncProposedCharactersStatus:
-                    memorySyncProposedCharactersStatus,
                 memorySyncProposedRuntimeState: memorySyncProposedRuntimeState,
                 memorySyncProposedRuntimeThreads:
                     memorySyncProposedRuntimeThreads,
@@ -30418,8 +30249,6 @@ class $$ProjectChapterRecordsTableTableManager
                 Value<String> continuityReportMarkdown = const Value.absent(),
                 Value<String> memorySyncStatus = const Value.absent(),
                 Value<String> memorySyncContentHash = const Value.absent(),
-                Value<String> memorySyncProposedCharactersStatus =
-                    const Value.absent(),
                 Value<String> memorySyncProposedRuntimeState =
                     const Value.absent(),
                 Value<String> memorySyncProposedRuntimeThreads =
@@ -30442,8 +30271,6 @@ class $$ProjectChapterRecordsTableTableManager
                 continuityReportMarkdown: continuityReportMarkdown,
                 memorySyncStatus: memorySyncStatus,
                 memorySyncContentHash: memorySyncContentHash,
-                memorySyncProposedCharactersStatus:
-                    memorySyncProposedCharactersStatus,
                 memorySyncProposedRuntimeState: memorySyncProposedRuntimeState,
                 memorySyncProposedRuntimeThreads:
                     memorySyncProposedRuntimeThreads,

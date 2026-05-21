@@ -29,20 +29,17 @@ class ChapterObjectiveCard {
 
 class RuntimeMemoryState {
   const RuntimeMemoryState({
-    this.charactersStatus = '',
     this.runtimeState = '',
     this.runtimeThreads = '',
     this.storySummary = '',
   });
 
-  final String charactersStatus;
   final String runtimeState;
   final String runtimeThreads;
   final String storySummary;
 
   bool get isEmpty {
     return [
-      charactersStatus,
       runtimeState,
       runtimeThreads,
       storySummary,

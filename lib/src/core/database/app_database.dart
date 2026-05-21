@@ -227,7 +227,6 @@ class PlotProfileRecords extends Table {
 
 class ProjectRuntimeMemoryRecords extends Table {
   TextColumn get projectId => text()();
-  TextColumn get charactersStatus => text().withDefault(const Constant(''))();
   TextColumn get runtimeState => text().withDefault(const Constant(''))();
   TextColumn get runtimeThreads => text().withDefault(const Constant(''))();
   TextColumn get storySummary => text().withDefault(const Constant(''))();
@@ -325,8 +324,6 @@ class ProjectChapterRecords extends Table {
   TextColumn get memorySyncStatus =>
       text().withDefault(const Constant('idle'))();
   TextColumn get memorySyncContentHash =>
-      text().withDefault(const Constant(''))();
-  TextColumn get memorySyncProposedCharactersStatus =>
       text().withDefault(const Constant(''))();
   TextColumn get memorySyncProposedRuntimeState =>
       text().withDefault(const Constant(''))();
@@ -535,7 +532,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 18;
+  int get schemaVersion => 19;
 
   @override
   MigrationStrategy get migration {
@@ -746,6 +743,28 @@ class AppDatabase extends _$AppDatabase {
           }
           if (!await _tableExists('chapter_enrichment_item_records')) {
             await migrator.createTable(chapterEnrichmentItemRecords);
+          }
+        }
+        if (from < 19) {
+          if (await _tableExists('project_runtime_memory_records') &&
+              await _columnExists(
+                'project_runtime_memory_records',
+                'characters_status',
+              )) {
+            await migrator.dropColumn(
+              projectRuntimeMemoryRecords,
+              'characters_status',
+            );
+          }
+          if (await _tableExists('project_chapter_records') &&
+              await _columnExists(
+                'project_chapter_records',
+                'memory_sync_proposed_characters_status',
+              )) {
+            await migrator.dropColumn(
+              projectChapterRecords,
+              'memory_sync_proposed_characters_status',
+            );
           }
         }
       },

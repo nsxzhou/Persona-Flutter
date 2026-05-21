@@ -97,13 +97,11 @@ volumes:
     final updated = await repository.saveRuntimeMemory(
       projectId: project.id,
       state: const RuntimeMemoryState(
-        charactersStatus: '- 林岚：抵达雾港。',
         runtimeState: '- 潮汐封城。',
         runtimeThreads: '- 港务处线索未解。',
         storySummary: '林岚追查失踪案。',
       ),
     );
-    expect(updated.state.charactersStatus, contains('林岚'));
     expect(updated.state.runtimeState, contains('潮汐'));
 
     await repository.clearRuntimeMemory(project.id);
@@ -364,7 +362,6 @@ volumes:
           chapterId: chapter.id,
           contentHash: chapter.contentHash,
           proposedMemory: const RuntimeMemoryState(
-            charactersStatus: '- 林岚：发现旧线索。',
             runtimeState: '- 旧正文状态。',
             runtimeThreads: '- 旧伏笔。',
             storySummary: '旧摘要。',
@@ -389,7 +386,6 @@ volumes:
       expect(edited.contentHash, isNot(chapter.contentHash));
       expect(edited.memorySyncStatus, MemorySyncStatus.idle);
       expect(edited.memorySyncContentHash, isEmpty);
-      expect(edited.memorySyncProposedCharactersStatus, isEmpty);
       expect(edited.memorySyncProposedRuntimeState, isEmpty);
       expect(edited.memorySyncProposedRuntimeThreads, isEmpty);
       expect(edited.memorySyncProposedStorySummary, isEmpty);

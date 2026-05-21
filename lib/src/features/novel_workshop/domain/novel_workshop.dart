@@ -218,7 +218,6 @@ class ProjectChapter {
     required this.continuityReportMarkdown,
     required this.memorySyncStatus,
     required this.memorySyncContentHash,
-    required this.memorySyncProposedCharactersStatus,
     required this.memorySyncProposedRuntimeState,
     required this.memorySyncProposedRuntimeThreads,
     required this.memorySyncProposedStorySummary,
@@ -238,7 +237,6 @@ class ProjectChapter {
   final String continuityReportMarkdown;
   final MemorySyncStatus memorySyncStatus;
   final String memorySyncContentHash;
-  final String memorySyncProposedCharactersStatus;
   final String memorySyncProposedRuntimeState;
   final String memorySyncProposedRuntimeThreads;
   final String memorySyncProposedStorySummary;

@@ -115,7 +115,6 @@ class WritingContextAssembler {
       return;
     }
     final parts = <String?>[
-      _subsection('Characters Status', memory.charactersStatus),
       _subsection('Runtime State', memory.runtimeState),
       _subsection('Runtime Threads', memory.runtimeThreads),
       _subsection('Story Summary', memory.storySummary),

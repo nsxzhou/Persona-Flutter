@@ -1268,7 +1268,6 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
       continuityReportMarkdown: current.continuityReportMarkdown,
       memorySyncStatus: MemorySyncStatus.pendingReview,
       memorySyncContentHash: input.contentHash,
-      memorySyncProposedCharactersStatus: input.proposedMemory.charactersStatus,
       memorySyncProposedRuntimeState: input.proposedMemory.runtimeState,
       memorySyncProposedRuntimeThreads: input.proposedMemory.runtimeThreads,
       memorySyncProposedStorySummary: input.proposedMemory.storySummary,
@@ -1297,8 +1296,6 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
       continuityReportMarkdown: current.continuityReportMarkdown,
       memorySyncStatus: MemorySyncStatus.synced,
       memorySyncContentHash: current.memorySyncContentHash,
-      memorySyncProposedCharactersStatus:
-          current.memorySyncProposedCharactersStatus,
       memorySyncProposedRuntimeState: current.memorySyncProposedRuntimeState,
       memorySyncProposedRuntimeThreads:
           current.memorySyncProposedRuntimeThreads,
@@ -1860,7 +1857,6 @@ ProjectChapter _chapter({
     continuityReportMarkdown: '',
     memorySyncStatus: MemorySyncStatus.idle,
     memorySyncContentHash: '',
-    memorySyncProposedCharactersStatus: '',
     memorySyncProposedRuntimeState: '',
     memorySyncProposedRuntimeThreads: '',
     memorySyncProposedStorySummary: '',

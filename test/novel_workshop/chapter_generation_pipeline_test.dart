@@ -323,7 +323,6 @@ class _Fixture {
       await novelRepository.saveRuntimeMemory(
         projectId: project.id,
         state: const RuntimeMemoryState(
-          charactersStatus: '- 林岚：刚抵达雾港。',
           runtimeState: '- 潮汐即将封城。',
           runtimeThreads: '- 港务处线索未解。',
           storySummary: '林岚追查失踪案。',

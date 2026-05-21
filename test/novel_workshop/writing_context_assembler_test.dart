@@ -31,7 +31,6 @@ void main() {
       storyEngineMarkdown: '# Plot Writing Guide\n\n目标 -> 阻碍 -> 半兑现。',
       projectContextMarkdown: '# Project Context\n\n雾港长期被潮汐封锁。',
       runtimeMemory: RuntimeMemoryState(
-        charactersStatus: '- 林岚：刚抵达雾港。',
         runtimeState: '- 潮汐即将封城。',
         runtimeThreads: '- 港务处线索未解。',
         storySummary: '林岚追查失踪案。',
@@ -102,10 +101,6 @@ void main() {
 雾港长期被潮汐封锁。
 
 ## Runtime Memory
-
-### Characters Status
-
-- 林岚：刚抵达雾港。
 
 ### Runtime State
 
