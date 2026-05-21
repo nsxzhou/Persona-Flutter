@@ -336,7 +336,7 @@ Route chapter generation through `ChapterGenerationPipeline`, and let `DriftNove
 - Drift table/column: `ProjectRecords.origin`, default `standard`.
 - Import API: `NovelImportParser.importFile(...)`, `NovelImportService.createImportedProject(...)`.
 - Enrichment tables: `ChapterEnrichmentBatchRecords`, `ChapterEnrichmentItemRecords`.
-- Repository APIs: `createChapterEnrichmentBatch`, `updateChapterEnrichmentBatchState`, `updateChapterEnrichmentItemState`, `applyChapterEnrichmentItem`, `watchChapterEnrichmentBatches`, `watchChapterEnrichmentItems`.
+- Repository APIs: `createChapterEnrichmentBatch`, `updateChapterEnrichmentBatchState`, `updateChapterEnrichmentItemState`, `applyChapterEnrichmentItem`, `deleteChapterEnrichmentItem`, `watchChapterEnrichmentBatches`, `watchChapterEnrichmentItems`.
 - Application API: `ChapterEnrichmentPipeline.enrichChapters({projectId, chapterIds, instruction, expansionRatioPercent = 20})`.
 - Workflow kind: `novel_chapter_enrichment`.
 
@@ -345,6 +345,7 @@ Route chapter generation through `ChapterGenerationPipeline`, and let `DriftNove
 - Imported projects store their manuscript in the existing chapter tree: one volume titled `导入正文`, one `ChapterPlan` per imported chapter, and one `ProjectChapter` containing the imported body.
 - Enrichment is only valid for `ProjectOrigin.importedEnrichment` projects.
 - Enrichment batch/item rows store preview output; generated text must not overwrite `ProjectChapterRecords` until `applyChapterEnrichmentItem` is called.
+- `deleteChapterEnrichmentItem` hard-deletes only the preview item, never the chapter body or parent batch. Batch `totalCount` remains the original attempted item count; generated/failed/applied counts must refresh from remaining items.
 - Each enrichment batch owns one workflow task. Batch state and workflow task state are updated together by the owning repository.
 - Each enrichment item stores the original chapter snapshot and generated preview text for diff/preview surfaces.
 - The enrichment prompt may use Voice Profile only. It must not inject Plot Profile, Story Engine, or Runtime Memory.
@@ -359,17 +360,19 @@ Route chapter generation through `ChapterGenerationPipeline`, and let `DriftNove
 - Empty instruction -> repository validation error.
 - One item LLM failure -> mark that item failed and continue remaining items; final batch becomes `partialFailed` when at least one item succeeds.
 - Applying a non-generated item or empty generated content -> repository validation error.
+- Deleting a missing enrichment item id -> repository validation error.
 
 ### 5. Good/Base/Bad Cases
-- Good: import TXT, preview/edit chapters, create imported project, run enrichment for selected chapters, preview generated items, then apply selected generated items.
+- Good: import TXT, preview/edit chapters, create imported project, run enrichment for selected chapters, preview generated items, then apply selected generated items or delete unwanted preview items.
 - Base: imported project without Voice Profile can still run enrichment; prompt instructs the model to preserve original style.
 - Bad: create separate manuscript storage tables for imported text when `ChapterVolume` / `ChapterPlan` / `ProjectChapter` already model the chapter tree.
 - Bad: auto-overwrite chapter content immediately after LLM output.
+- Bad: treat deleted preview items as applied/failed or decrement the batch `totalCount`.
 
 ### 6. Tests Required
 - Parser tests for TXT heading split, no-heading fallback, and empty file rejection.
 - Project repository tests for `origin` round-trip and legacy migration default.
-- Repository tests for enrichment batch/item creation, counts, workflow task state sync, and apply behavior.
+- Repository tests for enrichment batch/item creation, counts, workflow task state sync, apply behavior, and preview deletion count refresh.
 - Pipeline tests for success, standard-project rejection, prompt scope, and per-item failure continuation.
 - Widget tests should use fakes and must not make live LLM calls.
 

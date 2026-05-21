@@ -1495,6 +1495,18 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     return saved;
   }
 
+  @override
+  Future<void> deleteChapterEnrichmentItem(String itemId) async {
+    final item = await findChapterEnrichmentItem(itemId);
+    if (item == null) {
+      throw StateError('Chapter enrichment item does not exist: $itemId');
+    }
+    await (_database.delete(
+      _database.chapterEnrichmentItemRecords,
+    )..where((row) => row.id.equals(itemId))).go();
+    await _refreshChapterEnrichmentBatchCounts(item.batchId);
+  }
+
   Future<void> _validateChapterPlanInput(ChapterPlanInput input) async {
     await _requireProject(input.projectId);
     final volume = await _findChapterVolume(input.volumeId);

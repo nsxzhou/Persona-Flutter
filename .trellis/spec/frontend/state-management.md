@@ -104,6 +104,7 @@ Persona Flutter has no remote server in the baseline. Local persisted data is ex
 - The editor chapter navigator groups chapters by `ChapterVolume`; chapter creation requires a volume-backed `ChapterPlanInput`.
 - For imported enrichment projects, the editor still shows the chapter tree but hides new chapter creation controls; the primary action is `加料`, not normal chapter generation.
 - Imported enrichment result application is preview-first: UI must call `NovelWorkshopRepository.applyChapterEnrichmentItem` only after the user chooses to apply a generated item.
+- Imported enrichment preview deletion is explicit: UI must call `NovelWorkshopRepository.deleteChapterEnrichmentItem` only after the user confirms deletion, and deletion must not modify the chapter body.
 - Full Prompt Trace rendering remains owned by Workflow Runs; Novel Workshop may link to `/workflow-runs/:taskId`.
 
 ### 4. Validation & Error Matrix
@@ -116,10 +117,12 @@ Persona Flutter has no remote server in the baseline. Local persisted data is ex
 - Existing saved chapter content before generation -> confirm overwrite before calling `generateChapter(..., replaceExisting: true)`.
 - Imported editor with dirty local text before enrichment -> require saving first so the enrichment snapshot matches persisted content.
 - Imported project overview with no enrichment batch -> render an empty enrichment state, not normal generation metrics.
+- Deleting an enrichment preview item -> remove it from the batch list and keep the chapter body unchanged.
 
 ### 5. Good/Base/Bad Cases
 - Good: Project row opens `/projects/<id>/workshop`; the page reads project-scoped providers and links generation diagnostics to Workflow Runs.
 - Good: Imported project opens the same route but renders the imported 3-tab branch and routes selected chapters to `ChapterEnrichmentPipeline`.
+- Good: Imported enrichment review exposes cancel, delete, and apply as distinct actions.
 - Base: Manual chapter plans are created inside the workspace until automatic splitting exists.
 - Bad: Add a shell sidebar destination that opens an unscoped workspace without a project id.
 - Bad: Let the page import Drift table records or call LLM services directly.
@@ -128,6 +131,7 @@ Persona Flutter has no remote server in the baseline. Local persisted data is ex
 ### 6. Tests Required
 - Widget test that active project rows expose `打开工作台` and archived rows do not.
 - Widget test that `/projects/:projectId/workshop` handles empty chapters, plan creation/editing, dirty editor prompts, overwrite confirmation, running generation lockout, and Workflow Runs navigation.
+- Widget tests for imported enrichment review must assert cancel does nothing, delete removes only the preview item, and apply overwrites the chapter body.
 - Provider/controller tests or widget fakes must avoid live LLM calls.
 
 ### 7. Wrong vs Correct

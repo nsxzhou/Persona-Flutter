@@ -247,6 +247,85 @@ volumes:
   );
 
   test(
+    'chapter enrichment item deletion removes preview and refreshes counts',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final project = await _saveProject(database);
+      final repository = DriftNovelWorkshopRepository(database);
+      final volume = await repository.saveChapterVolume(
+        input: ChapterVolumeInput(
+          projectId: project.id,
+          volumeIndex: 1,
+          title: '导入正文',
+        ),
+      );
+      final plan = await repository.saveChapterPlan(
+        input: ChapterPlanInput(
+          projectId: project.id,
+          volumeId: volume.id,
+          volumeIndex: 1,
+          volumeTitle: volume.title,
+          chapterLocalIndex: 1,
+          chapterIndex: 1,
+          objectiveCard: const ChapterObjectiveCard(chapterTitle: '第一章'),
+        ),
+      );
+      final chapter = await repository.saveChapter(
+        input: ProjectChapterInput(
+          projectId: project.id,
+          chapterPlanId: plan.id,
+          chapterIndex: 1,
+          title: '第一章',
+          contentMarkdown: '旧正文。',
+        ),
+      );
+
+      final batch = await repository.createChapterEnrichmentBatch(
+        ChapterEnrichmentBatchInput(
+          projectId: project.id,
+          chapterIds: [chapter.id],
+          instruction: '增强心理描写。',
+          expansionRatioPercent: 20,
+          providerId: project.defaultProviderId!,
+          modelName: project.defaultModelName!,
+        ),
+      );
+      final item =
+          (await repository.watchChapterEnrichmentItems(batch.id).first).single;
+      final generated = await repository.updateChapterEnrichmentItemState(
+        id: item.id,
+        status: ChapterEnrichmentItemStatus.generated,
+        originalContentMarkdown: chapter.contentMarkdown,
+        generatedContentMarkdown: '新正文。',
+      );
+      expect(
+        (await repository.findChapterEnrichmentBatch(batch.id))!.generatedCount,
+        1,
+      );
+
+      await repository.deleteChapterEnrichmentItem(generated.id);
+
+      expect(await repository.findChapterEnrichmentItem(generated.id), isNull);
+      expect(
+        await repository.watchChapterEnrichmentItems(batch.id).first,
+        isEmpty,
+      );
+      final refreshedBatch = await repository.findChapterEnrichmentBatch(
+        batch.id,
+      );
+      expect(refreshedBatch!.totalCount, 1);
+      expect(refreshedBatch.generatedCount, 0);
+      expect(refreshedBatch.failedCount, 0);
+      expect(refreshedBatch.appliedCount, 0);
+      expect(
+        (await repository.findChapter(chapter.id))!.contentMarkdown,
+        '旧正文。',
+      );
+    },
+  );
+
+  test(
     'editing chapter content clears previous memory sync proposal',
     () async {
       final database = AppDatabase(NativeDatabase.memory());

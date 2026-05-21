@@ -506,6 +506,100 @@ void main() {
     expect(find.byKey(const ValueKey('novel-workshop-editor')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('enrichment preview exposes cancel delete apply actions', (
+    tester,
+  ) async {
+    final fixture = _WorkshopFixture(
+      projectOrigin: ProjectOrigin.importedEnrichment,
+      plans: [
+        _plan(id: 'plan-1', index: 1, title: '第一章', objective: '主角进入雾港。'),
+      ],
+      chapters: [_chapter(planId: 'plan-1', index: 1, content: '旧正文。')],
+      enrichmentBatches: [_enrichmentBatch()],
+      enrichmentItems: [_enrichmentItem()],
+    );
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
+    await tester.pumpAndSettle();
+
+    expect(find.text('最近加料批次'), findsOneWidget);
+    await tester.ensureVisible(find.text('预览应用'));
+    await tester.tap(find.text('预览应用'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('取消'), findsOneWidget);
+    expect(find.text('删除结果'), findsOneWidget);
+    expect(find.text('应用到章节'), findsOneWidget);
+    expect(find.text('删除 1 字'), findsOneWidget);
+    expect(find.text('新增 1 字'), findsOneWidget);
+
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+
+    expect(fixture.repository.enrichmentItems, hasLength(1));
+    expect(fixture.repository.chapters.single.contentMarkdown, '旧正文。');
+  });
+
+  testWidgets(
+    'enrichment preview delete removes item without changing chapter',
+    (tester) async {
+      final fixture = _WorkshopFixture(
+        projectOrigin: ProjectOrigin.importedEnrichment,
+        plans: [
+          _plan(id: 'plan-1', index: 1, title: '第一章', objective: '主角进入雾港。'),
+        ],
+        chapters: [_chapter(planId: 'plan-1', index: 1, content: '旧正文。')],
+        enrichmentBatches: [_enrichmentBatch()],
+        enrichmentItems: [_enrichmentItem()],
+      );
+      addTearDown(fixture.dispose);
+
+      await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('预览应用'));
+      await tester.tap(find.text('预览应用'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('删除结果'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('确认删除'));
+      await tester.pumpAndSettle();
+
+      expect(fixture.repository.enrichmentItems, isEmpty);
+      expect(fixture.repository.chapters.single.contentMarkdown, '旧正文。');
+      expect(find.text('加料结果已删除。'), findsOneWidget);
+    },
+  );
+
+  testWidgets('enrichment preview apply still overwrites chapter', (
+    tester,
+  ) async {
+    final fixture = _WorkshopFixture(
+      projectOrigin: ProjectOrigin.importedEnrichment,
+      plans: [
+        _plan(id: 'plan-1', index: 1, title: '第一章', objective: '主角进入雾港。'),
+      ],
+      chapters: [_chapter(planId: 'plan-1', index: 1, content: '旧正文。')],
+      enrichmentBatches: [_enrichmentBatch()],
+      enrichmentItems: [_enrichmentItem()],
+    );
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('预览应用'));
+    await tester.tap(find.text('预览应用'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('应用到章节'));
+    await tester.pumpAndSettle();
+
+    expect(fixture.repository.enrichmentItems, hasLength(1));
+    expect(fixture.repository.chapters.single.contentMarkdown, '新正文。');
+    expect(find.text('加料结果已应用。'), findsOneWidget);
+  });
 }
 
 class _WorkshopTestApp extends StatelessWidget {
@@ -536,14 +630,18 @@ class _WorkshopTestApp extends StatelessWidget {
           routes: [
             GoRoute(
               path: '/projects/:projectId/workshop',
-              builder: (context, state) => NovelWorkshopPage(
-                projectId: state.pathParameters['projectId']!,
+              builder: (context, state) => Scaffold(
+                body: NovelWorkshopPage(
+                  projectId: state.pathParameters['projectId']!,
+                ),
               ),
               routes: [
                 GoRoute(
                   path: 'editor',
-                  builder: (context, state) => NovelEditorPage(
-                    projectId: state.pathParameters['projectId']!,
+                  builder: (context, state) => Scaffold(
+                    body: NovelEditorPage(
+                      projectId: state.pathParameters['projectId']!,
+                    ),
                   ),
                 ),
               ],
@@ -567,6 +665,7 @@ class _WorkshopTestApp extends StatelessWidget {
 class _WorkshopFixture {
   _WorkshopFixture({
     ProjectStatus projectStatus = ProjectStatus.active,
+    ProjectOrigin projectOrigin = ProjectOrigin.standard,
     List<ChapterPlan> plans = const [],
     List<ProjectChapter> chapters = const [],
     List<ChapterGenerationRun> runs = const [],
@@ -577,8 +676,11 @@ class _WorkshopFixture {
     bool bindPromptAssets = true,
     List<NovelCharacter> characters = const [],
     List<NovelRelationship> relationships = const [],
+    List<ChapterEnrichmentBatch> enrichmentBatches = const [],
+    List<ChapterEnrichmentItem> enrichmentItems = const [],
   }) : projectRepository = _FakeProjectRepository(
          status: projectStatus,
+         origin: projectOrigin,
          bindPromptAssets: bindPromptAssets,
        ),
        repository = _FakeNovelWorkshopRepository(
@@ -589,6 +691,8 @@ class _WorkshopFixture {
          runtimeMemory: runtimeMemory,
          characters: characters,
          relationships: relationships,
+         enrichmentBatches: enrichmentBatches,
+         enrichmentItems: enrichmentItems,
        ),
        styleRepository = _FakeStyleLabRepository(),
        plotRepository = _FakePlotLabRepository() {
@@ -660,6 +764,7 @@ class _FakeChapterGenerationPipeline implements ChapterGenerationPipeline {
 class _FakeProjectRepository implements ProjectRepository {
   _FakeProjectRepository({
     ProjectStatus status = ProjectStatus.active,
+    ProjectOrigin origin = ProjectOrigin.standard,
     bool bindPromptAssets = true,
   }) {
     _project = WritingProject(
@@ -671,6 +776,7 @@ class _FakeProjectRepository implements ProjectRepository {
       defaultModelName: 'gpt-4.1-mini',
       styleProfileId: bindPromptAssets ? 'style-1' : null,
       plotProfileId: bindPromptAssets ? 'plot-1' : null,
+      origin: origin,
       createdAt: DateTime(2026, 5, 18, 9),
       updatedAt: DateTime(2026, 5, 18, 10),
     );
@@ -821,9 +927,13 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
     required RuntimeMemoryState runtimeMemory,
     required List<NovelCharacter> characters,
     required List<NovelRelationship> relationships,
+    required List<ChapterEnrichmentBatch> enrichmentBatches,
+    required List<ChapterEnrichmentItem> enrichmentItems,
   }) : plans = [...plans],
        chapters = [...chapters],
        runs = [...runs],
+       enrichmentBatches = [...enrichmentBatches],
+       enrichmentItems = [...enrichmentItems],
        characters = [...characters],
        relationships = [...relationships],
        volumes = withDefaultVolume
@@ -859,8 +969,8 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   final List<ProjectChapter> chapters;
   final List<ChapterGenerationRun> runs;
   final List<AssetGenerationRun> assetRuns = [];
-  final List<ChapterEnrichmentBatch> enrichmentBatches = [];
-  final List<ChapterEnrichmentItem> enrichmentItems = [];
+  final List<ChapterEnrichmentBatch> enrichmentBatches;
+  final List<ChapterEnrichmentItem> enrichmentItems;
   final List<NovelCharacter> characters;
   final List<NovelRelationship> relationships;
   final List<ChapterVolume> volumes;
@@ -893,6 +1003,16 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
         contentMarkdown: item.generatedContentMarkdown,
       ),
     );
+  }
+
+  @override
+  Future<void> deleteChapterEnrichmentItem(String itemId) async {
+    final index = enrichmentItems.indexWhere((entry) => entry.id == itemId);
+    if (index < 0) {
+      throw StateError('Chapter enrichment item does not exist: $itemId');
+    }
+    enrichmentItems.removeAt(index);
+    emit();
   }
 
   @override
@@ -1746,6 +1866,51 @@ ProjectChapter _chapter({
     memorySyncProposedStorySummary: '',
     createdAt: DateTime(2026, 5, 18, 9),
     updatedAt: DateTime(2026, 5, 18, 10),
+  );
+}
+
+ChapterEnrichmentBatch _enrichmentBatch() {
+  return ChapterEnrichmentBatch(
+    id: 'enrichment-batch-1',
+    workflowTaskId: 'enrichment-task-1',
+    projectId: 'project-1',
+    instruction: '增强心理描写。',
+    expansionRatioPercent: 20,
+    providerId: 'provider-1',
+    modelName: 'model-1',
+    status: ChapterEnrichmentBatchStatus.succeeded,
+    errorMessage: null,
+    totalCount: 1,
+    generatedCount: 1,
+    failedCount: 0,
+    appliedCount: 0,
+    logs: '',
+    createdAt: _testCreatedAt,
+    updatedAt: _testUpdatedAt,
+    startedAt: _testCreatedAt,
+    completedAt: _testUpdatedAt,
+  );
+}
+
+ChapterEnrichmentItem _enrichmentItem() {
+  return ChapterEnrichmentItem(
+    id: 'enrichment-item-1',
+    batchId: 'enrichment-batch-1',
+    projectId: 'project-1',
+    chapterId: 'chapter-1',
+    position: 0,
+    status: ChapterEnrichmentItemStatus.generated,
+    errorMessage: null,
+    originalContentMarkdown: '旧正文。',
+    generatedContentMarkdown: '新正文。',
+    providerId: 'provider-1',
+    modelName: 'model-1',
+    logs: '',
+    createdAt: _testCreatedAt,
+    updatedAt: _testUpdatedAt,
+    startedAt: _testCreatedAt,
+    completedAt: _testUpdatedAt,
+    appliedAt: null,
   );
 }
 

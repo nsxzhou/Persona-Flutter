@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:diff_match_patch/diff_match_patch.dart' as dmp;
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/analysis_lab_widgets.dart';
@@ -1505,24 +1506,39 @@ class _EnrichmentItemPreviewTileState
   }
 
   Future<void> _reviewAndApply(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showGlassDialog<bool>(
+    final action = await showGlassDialog<_EnrichmentReviewAction>(
       context: context,
       maxWidth: 920,
       maxHeight: MediaQuery.sizeOf(context).height * 0.88,
       builder: (context) => _EnrichmentDiffDialog(item: widget.item),
     );
-    if (confirmed != true) {
-      return;
+    switch (action) {
+      case _EnrichmentReviewAction.apply:
+        await ref
+            .read(novelWorkshopControllerProvider.notifier)
+            .applyChapterEnrichmentItem(widget.item.id);
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('加料结果已应用。')));
+        return;
+      case _EnrichmentReviewAction.delete:
+        await ref
+            .read(novelWorkshopControllerProvider.notifier)
+            .deleteChapterEnrichmentItem(widget.item.id);
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('加料结果已删除。')));
+        return;
+      case _EnrichmentReviewAction.cancel:
+      case null:
+        return;
     }
-    await ref
-        .read(novelWorkshopControllerProvider.notifier)
-        .applyChapterEnrichmentItem(widget.item.id);
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('加料结果已应用。')));
   }
 }
+
+enum _EnrichmentReviewAction { apply, delete, cancel }
 
 class _EnrichmentDiffDialog extends StatelessWidget {
   const _EnrichmentDiffDialog({required this.item});
@@ -1538,6 +1554,19 @@ class _EnrichmentDiffDialog extends StatelessWidget {
     final diffPercent = originalLen > 0
         ? ((generatedLen - originalLen) / originalLen * 100).round()
         : 0;
+    final diffs = dmp.diff(
+      item.originalContentMarkdown.trim(),
+      item.generatedContentMarkdown.trim(),
+      timeout: 0.25,
+      checklines: true,
+    );
+    dmp.cleanupSemantic(diffs);
+    final removedLen = diffs
+        .where((diff) => diff.operation == dmp.DIFF_DELETE)
+        .fold<int>(0, (sum, diff) => sum + diff.text.length);
+    final insertedLen = diffs
+        .where((diff) => diff.operation == dmp.DIFF_INSERT)
+        .fold<int>(0, (sum, diff) => sum + diff.text.length);
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxHeight: 760),
@@ -1555,7 +1584,6 @@ class _EnrichmentDiffDialog extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // -- Word count stats bar --
           DecoratedBox(
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
@@ -1566,43 +1594,41 @@ class _EnrichmentDiffDialog extends StatelessWidget {
             ),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              child: Row(
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Icon(
                     Icons.text_fields_outlined,
                     size: 16,
                     color: colorScheme.onSurfaceVariant,
                   ),
-                  const SizedBox(width: 8),
                   Text('原文 $originalLen 字', style: textTheme.bodyMedium),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: Icon(
-                      Icons.arrow_forward_rounded,
-                      size: 16,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+                  Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 16,
+                    color: colorScheme.onSurfaceVariant,
                   ),
                   Text('生成 $generatedLen 字', style: textTheme.bodyMedium),
-                  const SizedBox(width: 8),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF16825D).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      child: Text(
-                        '+$diffPercent%',
-                        style: textTheme.labelMedium?.copyWith(
-                          color: const Color(0xFF16825D),
-                        ),
-                      ),
-                    ),
+                  _DiffStatChip(
+                    label: diffPercent >= 0
+                        ? '+$diffPercent%'
+                        : '$diffPercent%',
+                    color: diffPercent >= 0
+                        ? const Color(0xFF16825D)
+                        : colorScheme.error,
                   ),
+                  if (removedLen > 0)
+                    _DiffStatChip(
+                      label: '删除 $removedLen 字',
+                      color: colorScheme.error,
+                    ),
+                  if (insertedLen > 0)
+                    _DiffStatChip(
+                      label: '新增 $insertedLen 字',
+                      color: const Color(0xFF16825D),
+                    ),
                 ],
               ),
             ),
@@ -1615,7 +1641,8 @@ class _EnrichmentDiffDialog extends StatelessWidget {
               builder: (context, constraints) {
                 final original = _DiffColumn(
                   title: '原文快照',
-                  text: item.originalContentMarkdown,
+                  diffs: diffs,
+                  side: _DiffSide.original,
                   icon: Icons.description_outlined,
                   headerBgColor: colorScheme.surfaceContainerHighest.withValues(
                     alpha: 0.4,
@@ -1624,14 +1651,19 @@ class _EnrichmentDiffDialog extends StatelessWidget {
                 );
                 final generated = _DiffColumn(
                   title: '加料生成稿',
-                  text: item.generatedContentMarkdown,
+                  diffs: diffs,
+                  side: _DiffSide.generated,
                   icon: Icons.auto_fix_high_outlined,
                   headerBgColor: colorScheme.primary.withValues(alpha: 0.08),
                   borderColor: colorScheme.primary.withValues(alpha: 0.25),
                 );
                 if (constraints.maxWidth < 760) {
                   return ListView(
-                    children: [original, const SizedBox(height: 12), generated],
+                    children: [
+                      SizedBox(height: 260, child: original),
+                      const SizedBox(height: 12),
+                      SizedBox(height: 260, child: generated),
+                    ],
                   );
                 }
                 return Row(
@@ -1652,14 +1684,27 @@ class _EnrichmentDiffDialog extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
+                onPressed: () =>
+                    Navigator.of(context).pop(_EnrichmentReviewAction.cancel),
                 child: const Text('取消'),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                onPressed: () => _confirmDelete(context),
+                icon: const Icon(Icons.delete_outline, size: 18),
+                label: const Text('删除结果'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: colorScheme.error,
+                  side: BorderSide(color: colorScheme.error),
+                ),
               ),
               const SizedBox(width: 8),
               FilledButton.icon(
                 onPressed: item.generatedContentMarkdown.trim().isEmpty
                     ? null
-                    : () => Navigator.of(context).pop(true),
+                    : () => Navigator.of(
+                        context,
+                      ).pop(_EnrichmentReviewAction.apply),
                 icon: const Icon(Icons.check_outlined, size: 18),
                 label: const Text('应用到章节'),
               ),
@@ -1669,19 +1714,73 @@ class _EnrichmentDiffDialog extends StatelessWidget {
       ),
     );
   }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('删除加料结果？'),
+        content: const Text('这只会删除本次生成的预览结果，不会修改章节正文。删除后无法从该批次中应用它。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(context).pop(true),
+            icon: const Icon(Icons.delete_outline, size: 18),
+            label: const Text('确认删除'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) {
+      return;
+    }
+    Navigator.of(context).pop(_EnrichmentReviewAction.delete);
+  }
 }
+
+class _DiffStatChip extends StatelessWidget {
+  const _DiffStatChip({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        child: Text(
+          label,
+          style: textTheme.labelMedium?.copyWith(color: color),
+        ),
+      ),
+    );
+  }
+}
+
+enum _DiffSide { original, generated }
 
 class _DiffColumn extends StatelessWidget {
   const _DiffColumn({
     required this.title,
-    required this.text,
+    required this.diffs,
+    required this.side,
     required this.icon,
     required this.headerBgColor,
     required this.borderColor,
   });
 
   final String title;
-  final String text;
+  final List<dmp.Diff> diffs;
+  final _DiffSide side;
   final IconData icon;
   final Color headerBgColor;
   final Color borderColor;
@@ -1717,9 +1816,11 @@ class _DiffColumn extends StatelessWidget {
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(12),
-                child: SelectableText(
-                  text.trim().isEmpty ? '暂无内容。' : text,
-                  style: textTheme.bodyMedium?.copyWith(height: 1.55),
+                child: SelectableText.rich(
+                  TextSpan(
+                    style: textTheme.bodyMedium?.copyWith(height: 1.55),
+                    children: _buildDiffSpans(context),
+                  ),
                 ),
               ),
             ),
@@ -1727,6 +1828,47 @@ class _DiffColumn extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  List<TextSpan> _buildDiffSpans(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final baseStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+      height: 1.55,
+      color: colorScheme.onSurface,
+    );
+    final deleteStyle = baseStyle?.copyWith(
+      backgroundColor: colorScheme.errorContainer.withValues(alpha: 0.55),
+      color: colorScheme.onErrorContainer,
+      decoration: TextDecoration.lineThrough,
+      decorationColor: colorScheme.error,
+    );
+    final insertStyle = baseStyle?.copyWith(
+      backgroundColor: const Color(0xFF16825D).withValues(alpha: 0.12),
+      color: colorScheme.onSurface,
+      fontWeight: FontWeight.w600,
+    );
+    final spans = <TextSpan>[];
+    for (final diff in diffs) {
+      if (diff.text.isEmpty) {
+        continue;
+      }
+      switch (diff.operation) {
+        case dmp.DIFF_EQUAL:
+          spans.add(TextSpan(text: diff.text, style: baseStyle));
+        case dmp.DIFF_DELETE:
+          if (side == _DiffSide.original) {
+            spans.add(TextSpan(text: diff.text, style: deleteStyle));
+          }
+        case dmp.DIFF_INSERT:
+          if (side == _DiffSide.generated) {
+            spans.add(TextSpan(text: diff.text, style: insertStyle));
+          }
+      }
+    }
+    if (spans.isEmpty) {
+      return [TextSpan(text: '暂无内容。', style: baseStyle)];
+    }
+    return spans;
   }
 }
 

@@ -416,6 +416,18 @@ class NovelWorkshopController extends _$NovelWorkshopController {
     return saved;
   }
 
+  Future<void> deleteChapterEnrichmentItem(String itemId) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref
+          .read(novelWorkshopRepositoryProvider)
+          .deleteChapterEnrichmentItem(itemId);
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
+  }
+
   Future<ChapterEnrichmentResult> retryChapterEnrichmentItem(
     String itemId,
   ) async {

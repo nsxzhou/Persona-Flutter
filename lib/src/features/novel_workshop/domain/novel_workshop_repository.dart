@@ -185,4 +185,6 @@ abstract interface class NovelWorkshopRepository {
   });
 
   Future<ProjectChapter> applyChapterEnrichmentItem(String itemId);
+
+  Future<void> deleteChapterEnrichmentItem(String itemId);
 }
