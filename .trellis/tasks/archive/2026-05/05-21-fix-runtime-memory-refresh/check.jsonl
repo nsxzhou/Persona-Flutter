@@ -1,0 +1,6 @@
+{"file":".trellis/spec/backend/error-handling.md","reason":"Verify errors still propagate through AsyncValue."}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Verify generated/provider boundaries remain consistent."}
+{"file":".trellis/spec/backend/logging-guidelines.md","reason":"Verify workflow log text is accurate and safe."}
+{"file":".trellis/spec/frontend/hook-guidelines.md","reason":"Verify Riverpod provider refresh behavior."}
+{"file":".trellis/spec/frontend/state-management.md","reason":"Verify Runtime Memory workspace state contract."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Verify end-to-end data refresh across layers."}
