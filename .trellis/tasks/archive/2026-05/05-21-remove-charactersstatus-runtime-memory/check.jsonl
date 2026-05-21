@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Check schema version, migration, generated files, and repository tests after column removal."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Check no generated files were manually edited and repository boundaries remain typed."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Check user-visible Runtime Memory behavior and widget tests stay current."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Check the removed field has no stale cross-layer references."}
