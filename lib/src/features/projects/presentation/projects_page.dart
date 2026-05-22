@@ -1503,7 +1503,10 @@ class _NovelImportDialogState extends ConsumerState<_NovelImportDialog> {
               // -- Title with icon --
               Row(
                 children: [
-                  Icon(Icons.import_export_outlined, color: colorScheme.primary),
+                  Icon(
+                    Icons.import_export_outlined,
+                    color: colorScheme.primary,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -1585,10 +1588,7 @@ class _NovelImportDialogState extends ConsumerState<_NovelImportDialog> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          '基本设置',
-                          style: textTheme.titleMedium,
-                        ),
+                        Text('基本设置', style: textTheme.titleMedium),
                         const SizedBox(height: 12),
                         TextFormField(
                           controller: _titleController,
@@ -1675,8 +1675,9 @@ class _NovelImportDialogState extends ConsumerState<_NovelImportDialog> {
                           ],
                           onChanged: busy
                               ? null
-                              : (id) =>
-                                    setState(() => _selectedStyleProfileId = id),
+                              : (id) => setState(
+                                  () => _selectedStyleProfileId = id,
+                                ),
                         ),
                       ],
                     ),
@@ -1689,10 +1690,7 @@ class _NovelImportDialogState extends ConsumerState<_NovelImportDialog> {
                 const SizedBox(height: 20),
                 Row(
                   children: [
-                    Text(
-                      '章节列表',
-                      style: textTheme.titleMedium,
-                    ),
+                    Text('章节列表', style: textTheme.titleMedium),
                     const SizedBox(width: 8),
                     DecoratedBox(
                       decoration: BoxDecoration(
@@ -1752,14 +1750,12 @@ class _NovelImportDialogState extends ConsumerState<_NovelImportDialog> {
             ],
           );
         },
-        error: (error, stackTrace) => InlineError(
-          message: '无法加载 Style Profiles：$error',
-        ),
+        error: (error, stackTrace) =>
+            InlineError(message: '无法加载 Style Profiles：$error'),
         loading: () => const Center(child: CircularProgressIndicator()),
       ),
-      error: (error, stackTrace) => InlineError(
-        message: '无法加载 Providers：$error',
-      ),
+      error: (error, stackTrace) =>
+          InlineError(message: '无法加载 Providers：$error'),
       loading: () => const Center(child: CircularProgressIndicator()),
     );
   }
@@ -1873,8 +1869,7 @@ class _ImportChapterPreviewListState extends State<_ImportChapterPreviewList> {
                           ),
                         ),
                       ),
-                      onChanged: (value) =>
-                          widget.onTitleChanged(index, value),
+                      onChanged: (value) => widget.onTitleChanged(index, value),
                     ),
                   ),
                   // Action buttons — fade in on hover

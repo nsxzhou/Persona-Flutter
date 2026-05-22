@@ -404,6 +404,30 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
   }
 
   @override
+  Future<bool> hasRunningAssetGeneration({
+    required String projectId,
+    required AssetGenerationKind kind,
+    String? targetVolumeId,
+  }) async {
+    final normalizedVolumeId = targetVolumeId?.trim();
+    final query = _database.select(_database.assetGenerationRunRecords)
+      ..where(
+        (run) =>
+            run.projectId.equals(projectId) &
+            run.kind.equals(kind.name) &
+            (run.status.equals(AssetGenerationStatus.pending.name) |
+                run.status.equals(AssetGenerationStatus.running.name)),
+      )
+      ..limit(1);
+    if (normalizedVolumeId == null || normalizedVolumeId.isEmpty) {
+      query.where((run) => run.targetVolumeId.isNull());
+    } else {
+      query.where((run) => run.targetVolumeId.equals(normalizedVolumeId));
+    }
+    return await query.getSingleOrNull() != null;
+  }
+
+  @override
   Future<ProjectRuntimeMemory?> findRuntimeMemory(String projectId) async {
     final query = _database.select(_database.projectRuntimeMemoryRecords)
       ..where((memory) => memory.projectId.equals(projectId))
@@ -1329,6 +1353,12 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     final taskId = _uuid.v4();
 
     await _database.transaction(() async {
+      if (await hasRunningAssetGeneration(
+        projectId: input.projectId,
+        kind: input.kind,
+      )) {
+        throw StateError('项目已有运行中的${_assetKindLabel(input.kind)}生成任务。');
+      }
       await _database
           .into(_database.workflowTaskRecords)
           .insert(
@@ -1388,6 +1418,13 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     final runId = _uuid.v4();
     final taskId = _uuid.v4();
     await _database.transaction(() async {
+      if (await hasRunningAssetGeneration(
+        projectId: projectId,
+        kind: AssetGenerationKind.outlineDetailYaml,
+        targetVolumeId: volumeId,
+      )) {
+        throw StateError('该分卷已有运行中的章节细纲生成任务。');
+      }
       await _database
           .into(_database.workflowTaskRecords)
           .insert(

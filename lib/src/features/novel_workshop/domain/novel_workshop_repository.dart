@@ -80,6 +80,12 @@ abstract interface class NovelWorkshopRepository {
 
   Future<bool> hasRunningChapterGenerationBatch(String projectId);
 
+  Future<bool> hasRunningAssetGeneration({
+    required String projectId,
+    required AssetGenerationKind kind,
+    String? targetVolumeId,
+  });
+
   Future<ProjectRuntimeMemory?> findRuntimeMemory(String projectId);
 
   Future<ProjectRuntimeMemory> ensureRuntimeMemory(String projectId);

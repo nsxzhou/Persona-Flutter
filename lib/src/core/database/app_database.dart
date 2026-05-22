@@ -598,6 +598,15 @@ class AssetGenerationRunRecords extends Table {
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
+  static Future<File> databaseFile() async {
+    final supportDir = await getApplicationSupportDirectory();
+    final dbDir = Directory(p.join(supportDir.path, 'Persona'));
+    if (!dbDir.existsSync()) {
+      dbDir.createSync(recursive: true);
+    }
+    return File(p.join(dbDir.path, 'persona.sqlite'));
+  }
+
   @override
   int get schemaVersion => 22;
 
@@ -1100,12 +1109,7 @@ class AppDatabase extends _$AppDatabase {
 
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
-    final supportDir = await getApplicationSupportDirectory();
-    final dbDir = Directory(p.join(supportDir.path, 'Persona'));
-    if (!dbDir.existsSync()) {
-      dbDir.createSync(recursive: true);
-    }
-    final file = File(p.join(dbDir.path, 'persona.sqlite'));
+    final file = await AppDatabase.databaseFile();
     return NativeDatabase.createInBackground(file);
   });
 }

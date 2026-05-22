@@ -477,18 +477,18 @@ class _ProviderCommandBar extends StatelessWidget {
                 label: provider.systemPrompt.trim().isEmpty
                     ? 'Prompt 未配置'
                     : provider.isSystemPromptEnabled
-                        ? 'Prompt 已启用'
-                        : 'Prompt 已禁用',
+                    ? 'Prompt 已启用'
+                    : 'Prompt 已禁用',
                 icon: provider.systemPrompt.trim().isEmpty
                     ? Icons.notes_outlined
                     : provider.isSystemPromptEnabled
-                        ? Icons.check_circle_outline
-                        : Icons.pause_circle_outline,
+                    ? Icons.check_circle_outline
+                    : Icons.pause_circle_outline,
                 color: provider.systemPrompt.trim().isEmpty
                     ? null
                     : provider.isSystemPromptEnabled
-                        ? const Color(0xFF16825D)
-                        : colorScheme.onSurfaceVariant,
+                    ? const Color(0xFF16825D)
+                    : colorScheme.onSurfaceVariant,
               ),
             ],
           );
@@ -942,7 +942,9 @@ class _PromptInspectorTab extends StatelessWidget {
             contentPadding: const EdgeInsets.symmetric(horizontal: 12),
             title: Text(
               '启用 Provider Prompt',
-              style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+              style: textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
             subtitle: Text(
               isSystemPromptEnabled

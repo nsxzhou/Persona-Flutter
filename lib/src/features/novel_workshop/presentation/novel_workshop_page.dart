@@ -2265,6 +2265,7 @@ class _BibleMarkdownEditorTabState
   late final TextEditingController _controller;
   late String _loadedMarkdown;
   bool _editing = false;
+  bool _generatingAsset = false;
 
   String get _currentMarkdown => _markdownFor(widget.bible, widget.field);
 
@@ -2311,6 +2312,7 @@ class _BibleMarkdownEditorTabState
     final trimmed = _loadedMarkdown.trim();
     final state = ref.watch(novelWorkshopControllerProvider);
     final generating =
+        _generatingAsset ||
         widget.latestRun?.status == AssetGenerationStatus.pending ||
         widget.latestRun?.status == AssetGenerationStatus.running;
     return SingleChildScrollView(
@@ -2440,6 +2442,10 @@ class _BibleMarkdownEditorTabState
   }
 
   Future<void> _generateAsset(String currentMarkdown) async {
+    if (_generatingAsset) {
+      return;
+    }
+    setState(() => _generatingAsset = true);
     try {
       final result = await ref
           .read(novelWorkshopControllerProvider.notifier)
@@ -2451,6 +2457,10 @@ class _BibleMarkdownEditorTabState
       await _reviewDraft(result.run, currentMarkdown);
     } on Object {
       // The controller listener renders the error where available.
+    } finally {
+      if (mounted) {
+        setState(() => _generatingAsset = false);
+      }
     }
   }
 
@@ -3417,6 +3427,7 @@ class _ChapterPlanningTabState extends ConsumerState<_ChapterPlanningTab> {
   late final TextEditingController _yamlController;
   late String _loadedYaml;
   bool _editingYaml = false;
+  final Set<String> _generatingVolumeIds = <String>{};
 
   bool get _isDirty => _yamlController.text != _loadedYaml;
 
@@ -3578,6 +3589,9 @@ class _ChapterPlanningTabState extends ConsumerState<_ChapterPlanningTab> {
                         .toList(growable: false),
                     chapters: widget.chapters,
                     runs: widget.runs,
+                    generatingVolumeDetail: _generatingVolumeIds.contains(
+                      volume.id,
+                    ),
                     onEditVolume: () => widget.onEditVolume(volume),
                     onGenerateVolumeDetail: () =>
                         _generateVolumeDetail(context, volume),
@@ -3673,6 +3687,10 @@ class _ChapterPlanningTabState extends ConsumerState<_ChapterPlanningTab> {
     BuildContext context,
     ChapterVolume volume,
   ) async {
+    if (!_generatingVolumeIds.add(volume.id)) {
+      return;
+    }
+    setState(() {});
     try {
       final result = await ref
           .read(novelWorkshopControllerProvider.notifier)
@@ -3698,6 +3716,11 @@ class _ChapterPlanningTabState extends ConsumerState<_ChapterPlanningTab> {
       }
     } on Object {
       // The controller listener renders the error where available.
+    } finally {
+      _generatingVolumeIds.remove(volume.id);
+      if (mounted) {
+        setState(() {});
+      }
     }
   }
 
@@ -3910,7 +3933,41 @@ class _OutlineAssetGenerationButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    return _OutlineAssetGenerationButtonBody(
+      projectId: projectId,
+      assetRun: assetRun,
+      outlineDetailYaml: outlineDetailYaml,
+      generating: generating,
+    );
+  }
+}
+
+class _OutlineAssetGenerationButtonBody extends ConsumerStatefulWidget {
+  const _OutlineAssetGenerationButtonBody({
+    required this.projectId,
+    required this.assetRun,
+    required this.outlineDetailYaml,
+    required this.generating,
+  });
+
+  final String projectId;
+  final AssetGenerationRun? assetRun;
+  final String outlineDetailYaml;
+  final bool generating;
+
+  @override
+  ConsumerState<_OutlineAssetGenerationButtonBody> createState() =>
+      _OutlineAssetGenerationButtonBodyState();
+}
+
+class _OutlineAssetGenerationButtonBodyState
+    extends ConsumerState<_OutlineAssetGenerationButtonBody> {
+  bool _generatingDraft = false;
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(novelWorkshopControllerProvider);
+    final generating = _generatingDraft || widget.generating;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -3918,7 +3975,7 @@ class _OutlineAssetGenerationButton extends ConsumerWidget {
           key: const ValueKey('generate-asset-outlineDetailYaml'),
           onPressed: state.isLoading || generating
               ? null
-              : () => _generateDraft(context, ref),
+              : () => _generateDraft(context),
           icon: generating
               ? const SizedBox(
                   width: 18,
@@ -3928,12 +3985,12 @@ class _OutlineAssetGenerationButton extends ConsumerWidget {
               : const Icon(Icons.auto_fix_high_outlined, size: 18),
           label: Text(generating ? '生成中' : '生成全部分卷'),
         ),
-        if (_canReview(assetRun)) ...[
+        if (_canReview(widget.assetRun)) ...[
           const SizedBox(width: 8),
           TextButton.icon(
             onPressed: state.isLoading
                 ? null
-                : () => _reviewDraft(context, ref, assetRun!),
+                : () => _reviewDraft(context, widget.assetRun!),
             icon: const Icon(Icons.rate_review_outlined, size: 18),
             label: const Text('查看草稿'),
           ),
@@ -3942,24 +3999,31 @@ class _OutlineAssetGenerationButton extends ConsumerWidget {
     );
   }
 
-  Future<void> _generateDraft(BuildContext context, WidgetRef ref) async {
+  Future<void> _generateDraft(BuildContext context) async {
+    if (_generatingDraft) {
+      return;
+    }
+    setState(() => _generatingDraft = true);
     try {
       final result = await ref
           .read(novelWorkshopControllerProvider.notifier)
           .generateAsset(
-            projectId: projectId,
+            projectId: widget.projectId,
             kind: AssetGenerationKind.volumeBlueprintYaml,
           );
       if (!context.mounted) return;
-      await _reviewDraft(context, ref, result.run);
+      await _reviewDraft(context, result.run);
     } on Object {
       // The controller listener renders the error where available.
+    } finally {
+      if (mounted) {
+        setState(() => _generatingDraft = false);
+      }
     }
   }
 
   Future<void> _reviewDraft(
     BuildContext context,
-    WidgetRef ref,
     AssetGenerationRun run,
   ) async {
     final shouldApply = await showGlassDialog<bool>(
@@ -3968,7 +4032,7 @@ class _OutlineAssetGenerationButton extends ConsumerWidget {
       builder: (context) => _AssetDraftReviewDialog(
         title: '分卷规划草稿',
         run: run,
-        hasExistingContent: outlineDetailYaml.trim().isNotEmpty,
+        hasExistingContent: widget.outlineDetailYaml.trim().isNotEmpty,
       ),
     );
     if (shouldApply != true) return;
@@ -4143,6 +4207,7 @@ class _VolumePlanSection extends StatelessWidget {
     required this.plans,
     required this.chapters,
     required this.runs,
+    required this.generatingVolumeDetail,
     required this.onEditVolume,
     required this.onGenerateVolumeDetail,
     required this.onCreatePlan,
@@ -4153,6 +4218,7 @@ class _VolumePlanSection extends StatelessWidget {
   final List<ChapterPlan> plans;
   final List<ProjectChapter> chapters;
   final List<ChapterGenerationRun> runs;
+  final bool generatingVolumeDetail;
   final VoidCallback onEditVolume;
   final VoidCallback onGenerateVolumeDetail;
   final VoidCallback onCreatePlan;
@@ -4206,9 +4272,17 @@ class _VolumePlanSection extends StatelessWidget {
                     ),
                   ),
                   IconButton(
-                    tooltip: '生成本卷细纲',
-                    onPressed: onGenerateVolumeDetail,
-                    icon: const Icon(Icons.auto_fix_high_outlined),
+                    tooltip: generatingVolumeDetail ? '本卷细纲生成中' : '生成本卷细纲',
+                    onPressed: generatingVolumeDetail
+                        ? null
+                        : onGenerateVolumeDetail,
+                    icon: generatingVolumeDetail
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.auto_fix_high_outlined),
                   ),
                   IconButton(
                     tooltip: '编辑分卷',

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:persona_flutter/src/features/novel_workshop/application/asset_generation_pipeline.dart';
 import 'package:persona_flutter/src/features/novel_workshop/application/chapter_generation_pipeline.dart';
 import 'package:persona_flutter/src/features/novel_workshop/application/novel_workshop_providers.dart';
 import 'package:persona_flutter/src/features/novel_workshop/domain/novel_workshop.dart';
@@ -199,6 +200,39 @@ void main() {
       fixture.repository.assetRuns.single.status,
       AssetGenerationStatus.applied,
     );
+  });
+
+  testWidgets('outline asset generation button ignores rapid repeated taps', (
+    tester,
+  ) async {
+    final fixture = _WorkshopFixture(withDefaultVolume: false);
+    fixture.assetPipeline.pauseGeneration = true;
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('分卷与章节细纲').last);
+    await tester.pumpAndSettle();
+
+    final button = find.byKey(
+      const ValueKey('generate-asset-outlineDetailYaml'),
+    );
+    await tester.tap(button);
+    await tester.tap(button, warnIfMissed: false);
+    await tester.pump();
+
+    expect(fixture.assetPipeline.generateCalls, 1);
+    expect(find.text('生成中'), findsOneWidget);
+    expect(tester.widget<OutlinedButton>(button).onPressed, isNull);
+
+    fixture.assetPipeline.completePausedGeneration();
+    await tester.pump();
+    await tester.pump();
+    if (find.text('分卷规划草稿').evaluate().isNotEmpty) {
+      await tester.tap(find.text('取消'));
+      await tester.pump();
+    }
   });
 
   testWidgets('empty runtime memory is neutral in overview and prompt stack', (
@@ -1207,6 +1241,9 @@ class _WorkshopTestApp extends StatelessWidget {
           fixture.providerRepository,
         ),
         novelWorkshopRepositoryProvider.overrideWithValue(fixture.repository),
+        assetGenerationPipelineProvider.overrideWithValue(
+          fixture.assetPipeline,
+        ),
         chapterGenerationPipelineProvider.overrideWithValue(fixture.pipeline),
         styleLabRepositoryProvider.overrideWithValue(fixture.styleRepository),
         plotLabRepositoryProvider.overrideWithValue(fixture.plotRepository),
@@ -1285,6 +1322,7 @@ class _WorkshopFixture {
        styleRepository = _FakeStyleLabRepository(),
        plotRepository = _FakePlotLabRepository() {
     pipeline = _FakeChapterGenerationPipeline(repository);
+    assetPipeline = _FakeAssetGenerationPipeline(repository);
   }
 
   final _FakeProjectRepository projectRepository;
@@ -1293,12 +1331,64 @@ class _WorkshopFixture {
   final _FakeNovelWorkshopRepository repository;
   final _FakeStyleLabRepository styleRepository;
   final _FakePlotLabRepository plotRepository;
+  late final _FakeAssetGenerationPipeline assetPipeline;
   late final _FakeChapterGenerationPipeline pipeline;
 
   void dispose() {
     projectRepository.dispose();
     providerRepository.dispose();
     repository.dispose();
+  }
+}
+
+class _FakeAssetGenerationPipeline implements AssetGenerationPipeline {
+  _FakeAssetGenerationPipeline(this.repository);
+
+  final _FakeNovelWorkshopRepository repository;
+  int generateCalls = 0;
+  bool pauseGeneration = false;
+  Completer<void>? _pausedGeneration;
+
+  @override
+  Future<AssetGenerationResult> generateAsset({
+    required String projectId,
+    required AssetGenerationKind kind,
+    String? targetVolumeId,
+  }) async {
+    generateCalls += 1;
+    if (pauseGeneration) {
+      _pausedGeneration = Completer<void>();
+      await _pausedGeneration!.future;
+    }
+    final run = targetVolumeId == null
+        ? await repository.createAssetGenerationRun(
+            AssetGenerationRunInput(
+              projectId: projectId,
+              kind: kind,
+              providerId: '',
+              modelName: '',
+            ),
+          )
+        : await repository.createVolumeDetailGenerationRun(
+            projectId: projectId,
+            volumeId: targetVolumeId,
+          );
+    final completed = await repository.updateAssetGenerationRunState(
+      id: run.id,
+      status: AssetGenerationStatus.succeeded,
+      draftMarkdown: '生成草稿。',
+      completedAt: _testUpdatedAt,
+    );
+    return AssetGenerationResult(
+      run: completed,
+      workflowTaskId: completed.workflowTaskId,
+    );
+  }
+
+  void completePausedGeneration() {
+    _pausedGeneration?.complete();
+    _pausedGeneration = null;
+    pauseGeneration = false;
   }
 }
 
@@ -1879,6 +1969,7 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
       projectId: projectId,
       kind: AssetGenerationKind.outlineDetailYaml,
       status: AssetGenerationStatus.pending,
+      targetVolumeId: volumeId,
     );
     assetRuns.add(run);
     emit();
@@ -1983,6 +2074,22 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
           batch.projectId == projectId &&
           (batch.status == ChapterGenerationBatchStatus.pending ||
               batch.status == ChapterGenerationBatchStatus.running),
+    );
+  }
+
+  @override
+  Future<bool> hasRunningAssetGeneration({
+    required String projectId,
+    required AssetGenerationKind kind,
+    String? targetVolumeId,
+  }) async {
+    return assetRuns.any(
+      (run) =>
+          run.projectId == projectId &&
+          run.kind == kind &&
+          run.targetVolumeId == targetVolumeId &&
+          (run.status == AssetGenerationStatus.pending ||
+              run.status == AssetGenerationStatus.running),
     );
   }
 
@@ -2507,6 +2614,7 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
       id: current.id,
       workflowTaskId: current.workflowTaskId,
       projectId: current.projectId,
+      targetVolumeId: current.targetVolumeId,
       kind: current.kind,
       providerId: providerId ?? current.providerId,
       modelName: modelName ?? current.modelName,
@@ -2981,13 +3089,14 @@ AssetGenerationRun _assetRun({
   required String projectId,
   required AssetGenerationKind kind,
   required AssetGenerationStatus status,
+  String? targetVolumeId,
   String draftMarkdown = '生成草稿。',
 }) {
   return AssetGenerationRun(
     id: id,
     workflowTaskId: 'task-$id',
     projectId: projectId,
-    targetVolumeId: null,
+    targetVolumeId: targetVolumeId,
     kind: kind,
     providerId: 'provider-1',
     modelName: 'gpt-4.1-mini',

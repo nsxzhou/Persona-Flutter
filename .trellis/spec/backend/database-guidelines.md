@@ -43,6 +43,57 @@ Use descriptive table class names ending in `Records` for persisted task-like re
 
 ---
 
+## Scenario: Local database backup and restore
+
+### 1. Scope / Trigger
+- Trigger: Settings exposes full local backup/restore for the app's Drift-backed SQLite database.
+- This is a cross-layer infrastructure contract because the database file path, backup service, Riverpod database provider, Settings UI, and tests must agree on replacement semantics.
+
+### 2. Signatures
+- Database file resolver: `AppDatabase.databaseFile()`.
+- Database provider: `appDatabaseProvider`.
+- Backup service: `LocalBackupService`.
+- Backup operations:
+  - `LocalBackupService.exportBytes()`
+  - `LocalBackupService.writeBackup(File destination)`
+  - `LocalBackupService.restoreFrom(File source)`
+  - `LocalBackupService.validateRestoreSource(File source)`
+
+### 3. Contracts
+- The canonical database path is `<application support>/Persona/persona.sqlite`.
+- A backup is a full plain SQLite snapshot. It includes Provider API keys and must be treated as sensitive local data.
+- Export must use SQLite `VACUUM INTO` through Drift instead of directly copying the live database file.
+- Restore replaces the whole local database file. It is not a merge/import operation.
+- Restore must close the active Drift database before replacing the file and refresh the Riverpod database provider afterward.
+- Restore must create a timestamped `pre-restore-*.sqlite` rollback copy before replacing the current database.
+
+### 4. Validation & Error Matrix
+- Missing backup file -> throw before closing/replacing the current database.
+- Corrupt or non-SQLite backup -> throw before closing/replacing the current database.
+- Backup `PRAGMA user_version` greater than current `schemaVersion` -> reject as a future-version backup.
+- Backup `user_version` less than or equal to current `schemaVersion` -> allow restore; existing Drift migrations upgrade older backups when reopened.
+- File replacement failure after rollback copy -> restore the rollback copy, then rethrow.
+
+### 5. Good/Base/Bad Cases
+- Good: export via `VACUUM INTO`, validate restore input, keep rollback copy, replace the file, then invalidate the database provider.
+- Base: user exports a plain `.sqlite` file and stores it outside the app.
+- Bad: hot-copy `persona.sqlite` while Drift is open and assume the file is consistent.
+- Bad: restore a future-version backup and let the app fail later during startup or queries.
+
+### 6. Tests Required
+- Service test that exported backup opens as SQLite and has the current `user_version`.
+- Service test that corrupt backups and future-version backups are rejected.
+- Service test that restore creates a rollback copy and replaces data.
+- Widget test that Settings warns about API keys, confirms restore, and disables duplicate backup/restore actions while busy.
+
+### 7. Wrong vs Correct
+#### Wrong
+Copy the live database file directly from the application support directory.
+#### Correct
+Use `VACUUM INTO` to create a consistent snapshot, then write that snapshot to the user-selected backup path.
+
+---
+
 ## Scenario: Provider configuration storage
 
 ### 1. Scope / Trigger

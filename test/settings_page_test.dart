@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:persona_flutter/src/core/database/local_backup_service.dart';
 import 'package:persona_flutter/src/core/llm/domain/llm_client.dart';
 import 'package:persona_flutter/src/core/llm/domain/llm_request.dart';
 import 'package:persona_flutter/src/core/llm/domain/llm_stream_event.dart';
+import 'package:persona_flutter/src/features/settings/application/local_backup_providers.dart';
 import 'package:persona_flutter/src/features/settings/application/provider_config_providers.dart';
 import 'package:persona_flutter/src/features/settings/domain/provider_config.dart';
 import 'package:persona_flutter/src/features/settings/presentation/provider_detail_page.dart';
@@ -19,6 +23,9 @@ void main() {
           providerConfigsProvider.overrideWith(
             (ref) => Stream<List<ProviderConfig>>.value(const []),
           ),
+          localBackupControllerProvider.overrideWith(
+            _ReadyBackupController.new,
+          ),
         ],
         child: const MaterialApp(home: SettingsPage()),
       ),
@@ -28,8 +35,86 @@ void main() {
 
     expect(find.text('Provider 控制台'), findsOneWidget);
     expect(find.text('尚未配置 Provider'), findsOneWidget);
-    expect(find.text('待开发'), findsWidgets);
+    expect(find.text('待开发'), findsNothing);
+    expect(find.text('本地备份'), findsOneWidget);
+    expect(find.text('导出备份'), findsOneWidget);
+    expect(find.text('恢复备份'), findsOneWidget);
+    expect(find.textContaining('Provider API Key'), findsOneWidget);
     expect(find.text('新增 Provider'), findsWidgets);
+  });
+
+  testWidgets('settings page confirms restore before dispatching action', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = _RecordingBackupController();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          providerConfigsProvider.overrideWith(
+            (ref) => Stream<List<ProviderConfig>>.value(const []),
+          ),
+          localBackupControllerProvider.overrideWith(() => controller),
+        ],
+        child: const MaterialApp(home: SettingsPage()),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('恢复备份'));
+    await tester.tap(find.text('恢复备份'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('恢复本地备份'), findsOneWidget);
+    expect(find.textContaining('覆盖当前全部本地数据'), findsOneWidget);
+
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+
+    expect(controller.restoreCount, 0);
+
+    await tester.ensureVisible(find.text('恢复备份'));
+    await tester.tap(find.text('恢复备份'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('选择备份并恢复'));
+    await tester.pumpAndSettle();
+
+    expect(controller.restoreCount, 1);
+  });
+
+  testWidgets('settings page disables backup actions while busy', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          providerConfigsProvider.overrideWith(
+            (ref) => Stream<List<ProviderConfig>>.value(const []),
+          ),
+          localBackupControllerProvider.overrideWithBuild(
+            (ref, notifier) => Completer<LocalBackupState>().future,
+          ),
+        ],
+        child: const MaterialApp(home: SettingsPage()),
+      ),
+    );
+
+    await tester.pump();
+
+    final exportButton = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, '导出备份'),
+    );
+    final restoreButton = tester.widget<OutlinedButton>(
+      find.widgetWithText(OutlinedButton, '恢复备份'),
+    );
+    expect(exportButton.onPressed, isNull);
+    expect(restoreButton.onPressed, isNull);
   });
 
   testWidgets(
@@ -59,6 +144,9 @@ void main() {
           overrides: [
             providerConfigsProvider.overrideWith(
               (ref) => Stream<List<ProviderConfig>>.value(providers),
+            ),
+            localBackupControllerProvider.overrideWith(
+              _ReadyBackupController.new,
             ),
           ],
           child: const MaterialApp(home: SettingsPage()),
@@ -98,6 +186,9 @@ void main() {
         overrides: [
           providerConfigsProvider.overrideWith(
             (ref) => Stream<List<ProviderConfig>>.value([provider]),
+          ),
+          localBackupControllerProvider.overrideWith(
+            _ReadyBackupController.new,
           ),
         ],
         child: const MaterialApp(home: SettingsPage()),
@@ -326,5 +417,33 @@ class _RecordingLlmClient implements LlmClient {
     lastRequest = request;
     yield const LlmStreamDelta('模型回复');
     yield const LlmStreamDone();
+  }
+}
+
+class _ReadyBackupController extends LocalBackupController {
+  @override
+  FutureOr<LocalBackupState> build() => const LocalBackupState();
+}
+
+class _RecordingBackupController extends LocalBackupController {
+  int restoreCount = 0;
+
+  @override
+  FutureOr<LocalBackupState> build() => const LocalBackupState();
+
+  @override
+  Future<void> restoreBackup() async {
+    restoreCount += 1;
+    state = AsyncData(
+      LocalBackupState(
+        result: LocalBackupResult(
+          operation: LocalBackupOperation.restore,
+          targetPath: '/tmp/persona-backup.sqlite',
+          rollbackPath: '/tmp/pre-restore.sqlite',
+          completedAt: DateTime(2026, 5, 22),
+          message: '已恢复 schema v22 备份。',
+        ),
+      ),
+    );
   }
 }

@@ -54,7 +54,18 @@ class AssetGenerationPipeline {
     required AssetGenerationKind kind,
     String? targetVolumeId,
   }) async {
-    final run = targetVolumeId == null
+    final normalizedVolumeId = targetVolumeId?.trim();
+    final scopedKind = normalizedVolumeId == null || normalizedVolumeId.isEmpty
+        ? kind
+        : AssetGenerationKind.outlineDetailYaml;
+    if (await _repository.hasRunningAssetGeneration(
+      projectId: projectId,
+      kind: scopedKind,
+      targetVolumeId: normalizedVolumeId,
+    )) {
+      throw StateError(_runningAssetMessage(scopedKind, normalizedVolumeId));
+    }
+    final run = normalizedVolumeId == null || normalizedVolumeId.isEmpty
         ? await _repository.createAssetGenerationRun(
             AssetGenerationRunInput(
               projectId: projectId,
@@ -65,7 +76,7 @@ class AssetGenerationPipeline {
           )
         : await _repository.createVolumeDetailGenerationRun(
             projectId: projectId,
-            volumeId: targetVolumeId,
+            volumeId: normalizedVolumeId,
           );
     var currentRun = run;
     var currentStage = currentRun.stage;
@@ -189,6 +200,16 @@ class AssetGenerationPipeline {
       );
       rethrow;
     }
+  }
+
+  String _runningAssetMessage(
+    AssetGenerationKind kind,
+    String? targetVolumeId,
+  ) {
+    if (targetVolumeId != null && targetVolumeId.isNotEmpty) {
+      return '该分卷已有运行中的章节细纲生成任务。';
+    }
+    return '项目已有运行中的${_kindLabel(kind)}生成任务。';
   }
 
   Future<WritingProject> _requireProject(String projectId) async {

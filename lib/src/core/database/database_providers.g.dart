@@ -9,6 +9,48 @@ part of 'database_providers.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
+@ProviderFor(appDatabaseGeneration)
+final appDatabaseGenerationProvider = AppDatabaseGenerationProvider._();
+
+final class AppDatabaseGenerationProvider
+    extends $FunctionalProvider<int, int, int>
+    with $Provider<int> {
+  AppDatabaseGenerationProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'appDatabaseGenerationProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$appDatabaseGenerationHash();
+
+  @$internal
+  @override
+  $ProviderElement<int> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  int create(Ref ref) {
+    return appDatabaseGeneration(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(int value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<int>(value),
+    );
+  }
+}
+
+String _$appDatabaseGenerationHash() =>
+    r'ad3a2fa5461f2bb29ed0338699620158c1276562';
+
 @ProviderFor(appDatabase)
 final appDatabaseProvider = AppDatabaseProvider._();
 
@@ -48,4 +90,4 @@ final class AppDatabaseProvider
   }
 }
 
-String _$appDatabaseHash() => r'44154e51c3f3079ee293d8ad0ebd1e17cca871ed';
+String _$appDatabaseHash() => r'e183f9b708d26a74695ce50aa048aaff6ce2fa77';

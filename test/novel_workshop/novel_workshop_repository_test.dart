@@ -231,6 +231,125 @@ volumes:
     },
   );
 
+  test(
+    'tracks active whole-project asset generation by project and kind',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final project = await _saveProject(database);
+      final repository = DriftNovelWorkshopRepository(database);
+
+      expect(
+        await repository.hasRunningAssetGeneration(
+          projectId: project.id,
+          kind: AssetGenerationKind.worldBuilding,
+        ),
+        isFalse,
+      );
+
+      final run = await repository.createAssetGenerationRun(
+        AssetGenerationRunInput(
+          projectId: project.id,
+          kind: AssetGenerationKind.worldBuilding,
+          providerId: project.defaultProviderId!,
+          modelName: project.defaultModelName!,
+        ),
+      );
+
+      expect(
+        await repository.hasRunningAssetGeneration(
+          projectId: project.id,
+          kind: AssetGenerationKind.worldBuilding,
+        ),
+        isTrue,
+      );
+      expect(
+        await repository.hasRunningAssetGeneration(
+          projectId: project.id,
+          kind: AssetGenerationKind.outlineMaster,
+        ),
+        isFalse,
+      );
+
+      await repository.updateAssetGenerationRunState(
+        id: run.id,
+        status: AssetGenerationStatus.failed,
+      );
+
+      expect(
+        await repository.hasRunningAssetGeneration(
+          projectId: project.id,
+          kind: AssetGenerationKind.worldBuilding,
+        ),
+        isFalse,
+      );
+    },
+  );
+
+  test('tracks active volume detail generation by target volume', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final project = await _saveProject(database);
+    final repository = DriftNovelWorkshopRepository(database);
+    final first = await repository.saveChapterVolume(
+      input: ChapterVolumeInput(
+        projectId: project.id,
+        volumeIndex: 1,
+        title: '第一卷',
+      ),
+    );
+    final second = await repository.saveChapterVolume(
+      input: ChapterVolumeInput(
+        projectId: project.id,
+        volumeIndex: 2,
+        title: '第二卷',
+      ),
+    );
+
+    final run = await repository.createVolumeDetailGenerationRun(
+      projectId: project.id,
+      volumeId: first.id,
+    );
+
+    expect(
+      await repository.hasRunningAssetGeneration(
+        projectId: project.id,
+        kind: AssetGenerationKind.outlineDetailYaml,
+        targetVolumeId: first.id,
+      ),
+      isTrue,
+    );
+    expect(
+      await repository.hasRunningAssetGeneration(
+        projectId: project.id,
+        kind: AssetGenerationKind.outlineDetailYaml,
+        targetVolumeId: second.id,
+      ),
+      isFalse,
+    );
+    expect(
+      await repository.hasRunningAssetGeneration(
+        projectId: project.id,
+        kind: AssetGenerationKind.outlineDetailYaml,
+      ),
+      isFalse,
+    );
+
+    await repository.updateAssetGenerationRunState(
+      id: run.id,
+      status: AssetGenerationStatus.succeeded,
+    );
+
+    expect(
+      await repository.hasRunningAssetGeneration(
+        projectId: project.id,
+        kind: AssetGenerationKind.outlineDetailYaml,
+        targetVolumeId: first.id,
+      ),
+      isFalse,
+    );
+  });
+
   test('outline parser reports missing required fields', () {
     expect(
       () => const OutlineDetailParser().parse('volumes: []'),

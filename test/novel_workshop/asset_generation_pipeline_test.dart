@@ -225,6 +225,96 @@ relationships:
       expect(trace.traceMarkdown, contains('[REDACTED]'));
     },
   );
+
+  test('rejects duplicate active whole-project asset generation', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final fixture = await _Fixture.create(
+      database,
+      llmClient: _StaticLlmClient('# 世界观\n\n雾港由七个港务家族控制。'),
+    );
+    await fixture.novelRepository.createAssetGenerationRun(
+      AssetGenerationRunInput(
+        projectId: fixture.project.id,
+        kind: AssetGenerationKind.worldBuilding,
+        providerId: '',
+        modelName: '',
+      ),
+    );
+    final tasksBefore = await fixture.workflowRepository
+        .watchRecentTasks()
+        .first;
+
+    await expectLater(
+      fixture.pipeline.generateAsset(
+        projectId: fixture.project.id,
+        kind: AssetGenerationKind.worldBuilding,
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains('项目已有运行中的世界观设定生成任务'),
+        ),
+      ),
+    );
+
+    final tasksAfter = await fixture.workflowRepository
+        .watchRecentTasks()
+        .first;
+    expect(tasksAfter.length, tasksBefore.length);
+  });
+
+  test('rejects duplicate active volume detail asset generation', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final fixture = await _Fixture.create(
+      database,
+      llmClient: _StaticLlmClient('''
+volumes:
+  - index: 1
+    title: 第一卷
+    chapters:
+      - index: 1
+        title: 第一章
+        objective: 主角进入雾港。
+'''),
+    );
+    final volume = await fixture.novelRepository.saveChapterVolume(
+      input: ChapterVolumeInput(
+        projectId: fixture.project.id,
+        volumeIndex: 1,
+        title: '第一卷',
+      ),
+    );
+    await fixture.novelRepository.createVolumeDetailGenerationRun(
+      projectId: fixture.project.id,
+      volumeId: volume.id,
+    );
+    final tasksBefore = await fixture.workflowRepository
+        .watchRecentTasks()
+        .first;
+
+    await expectLater(
+      fixture.pipeline.generateAsset(
+        projectId: fixture.project.id,
+        kind: AssetGenerationKind.outlineDetailYaml,
+        targetVolumeId: volume.id,
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains('该分卷已有运行中的章节细纲生成任务'),
+        ),
+      ),
+    );
+
+    final tasksAfter = await fixture.workflowRepository
+        .watchRecentTasks()
+        .first;
+    expect(tasksAfter.length, tasksBefore.length);
+  });
 }
 
 class _Fixture {
