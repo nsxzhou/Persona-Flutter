@@ -1,8 +1,4 @@
-import 'dart:convert';
-import 'dart:io';
-
-import 'package:epubx/epubx.dart';
-
+import '../../../core/analysis/sample_import_text_tools.dart';
 import '../domain/novel_import.dart';
 
 const maxImportedChapterContentChars = 300000;
@@ -19,7 +15,7 @@ class NovelImportParser {
   const NovelImportParser();
 
   Future<NovelImportDraft> importFile(String path) async {
-    final filename = _filename(path);
+    final filename = importFilename(path);
     final lower = filename.toLowerCase();
     if (lower.endsWith('.txt')) {
       return importTxt(path);
@@ -31,9 +27,8 @@ class NovelImportParser {
   }
 
   Future<NovelImportDraft> importTxt(String path) async {
-    final file = File(path);
-    final filename = _filename(path);
-    final content = await file.readAsString(encoding: utf8);
+    final filename = importFilename(path);
+    final content = await readImportedTextFile(path);
     return parseTxt(
       content,
       title: filename.replaceFirst(RegExp(r'\.txt$', caseSensitive: false), ''),
@@ -105,15 +100,12 @@ class NovelImportParser {
   }
 
   Future<NovelImportDraft> importEpub(String path) async {
-    final file = File(path);
-    final filename = _filename(path);
-    final book = await EpubReader.readBook(await file.readAsBytes());
-    final chapterTexts = <_EpubChapterText>[];
-    _collectEpubChapters(book.Chapters ?? const [], chapterTexts);
+    final filename = importFilename(path);
+    final book = await readImportedEpubBook(path);
     final chapters = <NovelImportChapterDraft>[];
     final warnings = <NovelImportWarning>[];
-    for (final chapter in chapterTexts) {
-      final text = _normalizeTxt(_htmlToText(chapter.html));
+    for (final chapter in book.chapters) {
+      final text = _normalizeTxt(htmlToImportedText(chapter.html));
       if (text.isEmpty) {
         warnings.add(NovelImportWarning.skippedEmptyChapter);
         continue;
@@ -131,7 +123,7 @@ class NovelImportParser {
     if (chapters.isEmpty) {
       throw const NovelImportException('EPUB 中没有可导入的章节正文。');
     }
-    final bookTitle = book.Title?.trim();
+    final bookTitle = book.title?.trim();
     return NovelImportDraft(
       sourceType: NovelImportSourceType.epub,
       title: bookTitle == null || bookTitle.isEmpty
@@ -166,41 +158,6 @@ class NovelImportParser {
     return '$marker $tail'.trim();
   }
 
-  void _collectEpubChapters(
-    List<EpubChapter> source,
-    List<_EpubChapterText> target,
-  ) {
-    for (final chapter in source) {
-      target.add(
-        _EpubChapterText(
-          title: chapter.Title ?? '',
-          html: chapter.HtmlContent ?? '',
-        ),
-      );
-      final children = chapter.SubChapters;
-      if (children != null && children.isNotEmpty) {
-        _collectEpubChapters(children, target);
-      }
-    }
-  }
-
-  String _htmlToText(String html) {
-    if (html.trim().isEmpty) {
-      return '';
-    }
-    return html
-        .replaceAll(RegExp(r'<(script|style)[^>]*>.*?</\1>', dotAll: true), ' ')
-        .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
-        .replaceAll(RegExp(r'</p\s*>', caseSensitive: false), '\n\n')
-        .replaceAll(RegExp(r'<[^>]+>'), ' ')
-        .replaceAll('&nbsp;', ' ')
-        .replaceAll('&amp;', '&')
-        .replaceAll('&lt;', '<')
-        .replaceAll('&gt;', '>')
-        .replaceAll('&quot;', '"')
-        .replaceAll('&#39;', "'");
-  }
-
   String _normalizeTxt(String text) {
     final lines = text
         .replaceAll('\r\n', '\n')
@@ -223,16 +180,4 @@ class NovelImportParser {
     }
     return collapsed.join('\n').trim();
   }
-
-  String _filename(String path) {
-    final file = File(path);
-    return file.uri.pathSegments.isEmpty ? path : file.uri.pathSegments.last;
-  }
-}
-
-class _EpubChapterText {
-  const _EpubChapterText({required this.title, required this.html});
-
-  final String title;
-  final String html;
 }

@@ -38,9 +38,9 @@ Keep application services independent of Flutter widgets. Presentation code call
 
 Shared analysis utilities live in `lib/src/core/analysis/` when they are reused
 by more than one analysis lab. Examples include text chunking, input signal
-detection, and provider-error sanitization. Feature-specific prompt builders,
-document parsers, and domain-specific classification wrappers stay in the
-feature's `application/` directory.
+detection, provider-error sanitization, and shared TXT/EPUB import text
+parsing. Feature-specific prompt builders, document parsers, and domain-specific
+classification wrappers stay in the feature's `application/` directory.
 
 Shared task primitives live in `lib/src/core/tasks/`, as shown by:
 
