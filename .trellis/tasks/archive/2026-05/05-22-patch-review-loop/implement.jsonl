@@ -1,0 +1,9 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "Task changes domain, repository contract, Drift persistence behavior, and tests."}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Discarded memory sync status is persisted through existing Drift-backed chapter records."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Invalid memory sync status transitions must fail clearly using existing repository/controller conventions."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Repository and workflow-state changes must follow project quality conventions."}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Task changes Novel Workshop UI and Riverpod controller behavior."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Patch review actions/status UI should follow existing Flutter widget composition patterns."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Controller invalidation and async state handling must match project Riverpod conventions."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Widget tests and presentation changes must follow project quality conventions."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "The feature spans domain, data, application, UI, and tests."}

@@ -1,0 +1,9 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "Verify domain/repository/data changes against backend guidelines."}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Check persisted enum/status behavior and Drift implications."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Check invalid transition failures and async error propagation."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Check repository tests and backend code quality."}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Verify UI/controller changes against frontend guidelines."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Check patch review UI composition and labels."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Check Riverpod invalidation and async state consistency."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Check widget test coverage and presentation quality."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Review cross-layer consistency from enum through UI and tests."}
