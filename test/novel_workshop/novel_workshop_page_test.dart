@@ -2825,6 +2825,23 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   }
 
   @override
+  Stream<ChapterEnrichmentBatch?> watchChapterEnrichmentBatchByWorkflowTask(
+    String workflowTaskId,
+  ) async* {
+    yield enrichmentBatches
+        .where((batch) => batch.workflowTaskId == workflowTaskId)
+        .firstOrNull;
+    yield* _changes.stream.map(
+      (_) => enrichmentBatches
+          .where((batch) => batch.workflowTaskId == workflowTaskId)
+          .firstOrNull,
+    );
+  }
+
+  @override
+  Future<void> abandonWorkflowTask(String workflowTaskId) async {}
+
+  @override
   Stream<List<ChapterPlan>> watchChapterPlans(String projectId) async* {
     List<ChapterPlan> snapshot() => plans
         .where((plan) => plan.projectId == projectId)

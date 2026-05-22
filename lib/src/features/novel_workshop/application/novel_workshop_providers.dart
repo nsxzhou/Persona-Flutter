@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/database/database_providers.dart';
+import '../../../core/tasks/application/workflow_task_cancellation_registry.dart';
 import '../../../core/tasks/application/workflow_task_providers.dart';
 import '../../plot_lab/application/plot_lab_providers.dart';
 import '../../projects/application/project_providers.dart';
@@ -65,6 +66,7 @@ AssetGenerationPipeline assetGenerationPipeline(Ref ref) {
     promptAssetResolver: ref.watch(projectPromptAssetResolverProvider),
     completionService: ref.watch(markdownCompletionServiceProvider),
     workflowTaskRepository: ref.watch(workflowTaskRepositoryProvider),
+    cancellationRegistry: ref.watch(workflowTaskCancellationRegistryProvider),
   );
 }
 
@@ -79,6 +81,7 @@ ChapterGenerationPipeline chapterGenerationPipeline(Ref ref) {
     contextRetriever: ref.watch(writingContextRetrieverProvider),
     completionService: ref.watch(markdownCompletionServiceProvider),
     workflowTaskRepository: ref.watch(workflowTaskRepositoryProvider),
+    cancellationRegistry: ref.watch(workflowTaskCancellationRegistryProvider),
   );
 }
 
@@ -91,6 +94,7 @@ ChapterEnrichmentPipeline chapterEnrichmentPipeline(Ref ref) {
     promptAssetResolver: ref.watch(projectPromptAssetResolverProvider),
     completionService: ref.watch(markdownCompletionServiceProvider),
     workflowTaskRepository: ref.watch(workflowTaskRepositoryProvider),
+    cancellationRegistry: ref.watch(workflowTaskCancellationRegistryProvider),
   );
 }
 
@@ -223,6 +227,16 @@ Stream<AssetGenerationRun?> assetGenerationRunByWorkflowTask(
   return ref
       .watch(novelWorkshopRepositoryProvider)
       .watchAssetGenerationRunByWorkflowTask(workflowTaskId);
+}
+
+@riverpod
+Stream<ChapterEnrichmentBatch?> chapterEnrichmentBatchByWorkflowTask(
+  Ref ref,
+  String workflowTaskId,
+) {
+  return ref
+      .watch(novelWorkshopRepositoryProvider)
+      .watchChapterEnrichmentBatchByWorkflowTask(workflowTaskId);
 }
 
 @riverpod

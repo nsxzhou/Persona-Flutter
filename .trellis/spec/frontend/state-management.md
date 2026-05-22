@@ -142,3 +142,53 @@ Persona Flutter has no remote server in the baseline. Local persisted data is ex
 Add `novelWorkshop(path: '/novel-workshop')` to `AppRoute` and make the page infer a current project from global state.
 #### Correct
 Keep the first workspace project-scoped under `/projects/:projectId/workshop` and enter it from an active project row.
+
+## Scenario: Workflow Runs preview inbox and abandon controls
+
+### 1. Scope / Trigger
+- Trigger: Workflow Runs displays long-running task status and completed Novel Workshop outputs.
+- This is a frontend state contract because a single page coordinates workflow task streams, feature-specific run streams, command providers, and user actions for concurrent completed tasks.
+
+### 2. Signatures
+- Page: `WorkflowRunsPage`
+- Detail page: `WorkflowRunDetailPage(taskId)`
+- Command provider: `workflowTaskControllerProvider.notifier.abandon(taskId)`
+- Preview sources:
+  - `assetGenerationRunByWorkflowTaskProvider(workflowTaskId)`
+  - `chapterGenerationRunByWorkflowTaskProvider(workflowTaskId)`
+  - `chapterEnrichmentBatchByWorkflowTaskProvider(workflowTaskId)`
+  - `chapterEnrichmentItemsProvider(batchId)`
+
+### 3. Contracts
+- Pending/running task rows and details expose an abandon action with confirmation before dispatching the controller command.
+- Abandoned tasks render `已放弃` and must not appear in the completed preview inbox.
+- The preview inbox only includes succeeded Novel Workshop tasks that have reviewable output: asset generation, chapter generation, and chapter enrichment.
+- Preview inbox entries are sorted by `updatedAt desc` and multiple entries must stay visible at the same time.
+- Inbox actions must include `打开预览` and `忽略`; `应用` is shown only when the entry has a directly applicable asset draft or generated enrichment items.
+- Generic succeeded tasks without reviewable output remain available through the normal task list and Prompt Trace detail, not the preview inbox.
+- Workflow task detail owns Prompt Trace rendering and may show task output previews above trace/log tabs. Feature pages can link to `/workflow-runs/:taskId` for diagnostics.
+
+### 4. Validation & Error Matrix
+- Run stream loading -> show a locating/loading summary, not a blank row.
+- Run stream error -> keep the task row visible and show the load error in the summary or preview panel.
+- Asset draft empty -> disable direct apply and leave Prompt Trace available.
+- Chapter generation has a chapter id but no run draft -> route to project editor/workshop rather than pretending there is a pending draft.
+- Enrichment batch has no generated items -> disable direct batch apply.
+- Clicking `忽略` removes only that inbox entry from the local page session; it does not delete persisted task data.
+
+### 5. Good/Base/Bad Cases
+- Good: Two completed Novel tasks appear together in the inbox; opening one detail does not remove or replace the other.
+- Base: A succeeded task without reviewable output is opened from the task table to inspect Prompt Trace.
+- Bad: Stack multiple completion dialogs as concurrent tasks finish.
+- Bad: Put plot/style analysis successes into the review inbox when they only have Prompt Trace or existing business detail pages.
+
+### 6. Tests Required
+- Widget tests for abandon button and confirmation on running/pending tasks.
+- Widget tests for abandoned state rendering and exclusion from the inbox.
+- Widget tests for multiple succeeded Novel outputs, inbox sorting/actions, and detail preview rendering.
+
+### 7. Wrong vs Correct
+#### Wrong
+Automatically open a modal dialog for each completed task and let later completions replace earlier previews.
+#### Correct
+Queue completed Novel outputs in the Workflow Runs preview inbox, where each entry can be opened, applied when safe, or ignored independently.

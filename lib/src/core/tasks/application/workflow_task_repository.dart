@@ -8,6 +8,8 @@ abstract interface class WorkflowTaskRepository {
 
   Future<WorkflowTask?> findTask(String id);
 
+  Future<void> abandonTask(String id);
+
   Stream<WorkflowPromptTrace?> watchPromptTrace(String workflowTaskId);
 
   Future<void> upsertPromptTrace({

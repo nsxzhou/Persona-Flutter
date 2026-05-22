@@ -1,3 +1,4 @@
+import '../domain/llm_cancellation.dart';
 import '../domain/llm_error_utils.dart';
 import '../domain/llm_message.dart';
 import '../domain/llm_stream_event.dart';
@@ -17,10 +18,12 @@ class MarkdownCompletionService {
     int maxAttempts = 3,
     String? modelName,
     LlmPromptTraceConfig? promptTrace,
+    LlmCancellationToken? cancellationToken,
   }) async {
     Object? lastError;
     for (var attempt = 1; attempt <= maxAttempts; attempt += 1) {
       try {
+        cancellationToken?.throwIfCancelled();
         final buffer = StringBuffer();
         await for (final event in _invocation.streamChat(
           provider: provider,
@@ -29,16 +32,21 @@ class MarkdownCompletionService {
           temperature: temperature,
           modelName: modelName,
           promptTrace: promptTrace,
+          cancellationToken: cancellationToken,
         )) {
+          cancellationToken?.throwIfCancelled();
           if (event is LlmStreamDelta) {
             buffer.write(event.text);
           }
         }
+        cancellationToken?.throwIfCancelled();
         final text = buffer.toString().trim();
         if (text.isNotEmpty) {
           return text;
         }
         lastError = const EmptyMarkdownCompletionException('模型返回了空内容。');
+      } on LlmCancellationException {
+        rethrow;
       } on Object catch (error) {
         lastError = error;
       }

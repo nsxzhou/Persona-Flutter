@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:http/http.dart' as http;
 import 'package:langchain_core/chat_models.dart' as lc;
 import 'package:langchain_core/prompts.dart' as lc;
@@ -5,6 +7,7 @@ import 'package:langchain_openai/langchain_openai.dart' as openai;
 
 import '../../../features/settings/domain/provider_config.dart';
 import '../domain/llm_client.dart';
+import '../domain/llm_cancellation.dart';
 import '../domain/llm_error_utils.dart';
 import '../domain/llm_message.dart';
 import '../domain/llm_request.dart';
@@ -26,7 +29,18 @@ class LangChainLlmClient implements LlmClient {
     required ProviderConfig provider,
     required LlmRequest request,
   }) async* {
-    final model = _modelFactory?.call(provider) ?? _createModel(provider);
+    final scopedClient = request.cancellationToken == null
+        ? null
+        : http.Client();
+    StreamSubscription<void>? cancellationSubscription;
+    if (request.cancellationToken != null) {
+      cancellationSubscription = request.cancellationToken!.onCancel.listen(
+        (_) => scopedClient?.close(),
+      );
+    }
+    final model =
+        _modelFactory?.call(provider) ??
+        _createModel(provider, client: scopedClient ?? _client);
     final prompt = lc.PromptValue.chat(_toLangChainMessages(request.messages));
     final options = openai.ChatOpenAIOptions(
       model: request.model,
@@ -34,23 +48,37 @@ class LangChainLlmClient implements LlmClient {
     );
 
     try {
+      request.cancellationToken?.throwIfCancelled();
       await for (final chunk in model.stream(prompt, options: options)) {
+        request.cancellationToken?.throwIfCancelled();
         final text = chunk.output.content;
         if (text.isNotEmpty) {
           yield LlmStreamDelta(text);
         }
       }
+      request.cancellationToken?.throwIfCancelled();
       yield const LlmStreamDone();
+    } on LlmCancellationException {
+      rethrow;
     } on Object catch (error) {
+      if (request.cancellationToken?.isCancelled ?? false) {
+        throw const LlmCancellationException();
+      }
       throw LlmClientException(_sanitizeError(error, provider));
+    } finally {
+      await cancellationSubscription?.cancel();
+      scopedClient?.close();
     }
   }
 
-  lc.BaseChatModel<lc.ChatModelOptions> _createModel(ProviderConfig provider) {
+  lc.BaseChatModel<lc.ChatModelOptions> _createModel(
+    ProviderConfig provider, {
+    http.Client? client,
+  }) {
     return openai.ChatOpenAI(
       apiKey: provider.apiKey,
       baseUrl: _normalizeBaseUrl(provider.baseUrl),
-      client: _client,
+      client: client,
       defaultOptions: openai.ChatOpenAIOptions(model: provider.defaultModel),
     );
   }

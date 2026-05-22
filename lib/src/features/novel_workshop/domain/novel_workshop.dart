@@ -13,11 +13,23 @@ enum MemorySyncStatus {
   stale,
 }
 
-enum ChapterGenerationStatus { pending, running, succeeded, failed }
+enum ChapterGenerationStatus { pending, running, succeeded, failed, abandoned }
 
-enum ChapterGenerationBatchStatus { pending, running, succeeded, failed }
+enum ChapterGenerationBatchStatus {
+  pending,
+  running,
+  succeeded,
+  failed,
+  abandoned,
+}
 
-enum ChapterGenerationBatchItemStatus { waiting, running, synced, failed }
+enum ChapterGenerationBatchItemStatus {
+  waiting,
+  running,
+  synced,
+  failed,
+  abandoned,
+}
 
 enum ChapterGenerationStage {
   preparingContext,
@@ -35,7 +47,14 @@ enum AssetGenerationKind {
   outlineDetailYaml,
 }
 
-enum AssetGenerationStatus { pending, running, succeeded, failed, applied }
+enum AssetGenerationStatus {
+  pending,
+  running,
+  succeeded,
+  failed,
+  applied,
+  abandoned,
+}
 
 enum AssetGenerationStage { preparingContext, generatingDraft, savingDraft }
 
@@ -45,6 +64,7 @@ enum ChapterEnrichmentBatchStatus {
   succeeded,
   partialFailed,
   failed,
+  abandoned,
 }
 
 enum ChapterEnrichmentItemStatus {
@@ -53,6 +73,7 @@ enum ChapterEnrichmentItemStatus {
   generated,
   failed,
   applied,
+  abandoned,
 }
 
 const chapterGenerationWorkflowTaskKind = 'novel_chapter_generation';

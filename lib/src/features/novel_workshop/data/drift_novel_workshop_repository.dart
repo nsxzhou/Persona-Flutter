@@ -192,6 +192,18 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
   }
 
   @override
+  Stream<ChapterEnrichmentBatch?> watchChapterEnrichmentBatchByWorkflowTask(
+    String workflowTaskId,
+  ) {
+    final query = _database.select(_database.chapterEnrichmentBatchRecords)
+      ..where((batch) => batch.workflowTaskId.equals(workflowTaskId))
+      ..limit(1);
+    return query.watchSingleOrNull().map(
+      (row) => row == null ? null : _mapEnrichmentBatch(row),
+    );
+  }
+
+  @override
   Future<ChapterPlan?> findChapterPlan(String id) async {
     final query = _database.select(_database.chapterPlanRecords)
       ..where((plan) => plan.id.equals(id))
@@ -290,6 +302,70 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       ..limit(1);
     final row = await query.getSingleOrNull();
     return row == null ? null : _mapEnrichmentItem(row);
+  }
+
+  @override
+  Future<void> abandonWorkflowTask(String workflowTaskId) async {
+    final now = DateTime.now();
+    await _database.transaction(() async {
+      var handled = false;
+      final generationRun =
+          await (_database.select(_database.chapterGenerationRunRecords)
+                ..where((run) => run.workflowTaskId.equals(workflowTaskId))
+                ..limit(1))
+              .getSingleOrNull();
+      if (generationRun != null) {
+        handled =
+            await _abandonChapterGenerationRun(generationRun, now) || handled;
+      }
+
+      final generationBatch =
+          await (_database.select(_database.chapterGenerationBatchRecords)
+                ..where((batch) => batch.workflowTaskId.equals(workflowTaskId))
+                ..limit(1))
+              .getSingleOrNull();
+      if (generationBatch != null) {
+        handled =
+            await _abandonChapterGenerationBatch(generationBatch, now) ||
+            handled;
+      }
+
+      final assetRun =
+          await (_database.select(_database.assetGenerationRunRecords)
+                ..where((run) => run.workflowTaskId.equals(workflowTaskId))
+                ..limit(1))
+              .getSingleOrNull();
+      if (assetRun != null) {
+        handled = await _abandonAssetGenerationRun(assetRun, now) || handled;
+      }
+
+      final enrichmentBatch =
+          await (_database.select(_database.chapterEnrichmentBatchRecords)
+                ..where((batch) => batch.workflowTaskId.equals(workflowTaskId))
+                ..limit(1))
+              .getSingleOrNull();
+      if (enrichmentBatch != null) {
+        handled =
+            await _abandonChapterEnrichmentBatch(enrichmentBatch, now) ||
+            handled;
+      }
+
+      if (handled) {
+        await (_database.update(
+          _database.workflowTaskRecords,
+        )..where((task) => task.id.equals(workflowTaskId))).write(
+          WorkflowTaskRecordsCompanion(
+            status: Value(WorkflowTaskStatus.abandoned.name),
+            stage: const Value(null),
+            errorMessage: const Value(null),
+            updatedAt: Value(now),
+          ),
+        );
+        await (_database.delete(
+          _database.workflowPromptTraceRecords,
+        )..where((trace) => trace.workflowTaskId.equals(workflowTaskId))).go();
+      }
+    });
   }
 
   @override
@@ -2731,6 +2807,7 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       ChapterGenerationStatus.running => WorkflowTaskStatus.running,
       ChapterGenerationStatus.succeeded => WorkflowTaskStatus.succeeded,
       ChapterGenerationStatus.failed => WorkflowTaskStatus.failed,
+      ChapterGenerationStatus.abandoned => WorkflowTaskStatus.abandoned,
     };
   }
 
@@ -2742,6 +2819,7 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       ChapterGenerationBatchStatus.running => WorkflowTaskStatus.running,
       ChapterGenerationBatchStatus.succeeded => WorkflowTaskStatus.succeeded,
       ChapterGenerationBatchStatus.failed => WorkflowTaskStatus.failed,
+      ChapterGenerationBatchStatus.abandoned => WorkflowTaskStatus.abandoned,
     };
   }
 
@@ -2752,6 +2830,7 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       AssetGenerationStatus.succeeded => WorkflowTaskStatus.succeeded,
       AssetGenerationStatus.failed => WorkflowTaskStatus.failed,
       AssetGenerationStatus.applied => WorkflowTaskStatus.succeeded,
+      AssetGenerationStatus.abandoned => WorkflowTaskStatus.abandoned,
     };
   }
 
@@ -2764,7 +2843,144 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       ChapterEnrichmentBatchStatus.succeeded => WorkflowTaskStatus.succeeded,
       ChapterEnrichmentBatchStatus.partialFailed => WorkflowTaskStatus.failed,
       ChapterEnrichmentBatchStatus.failed => WorkflowTaskStatus.failed,
+      ChapterEnrichmentBatchStatus.abandoned => WorkflowTaskStatus.abandoned,
     };
+  }
+
+  Future<bool> _abandonChapterGenerationRun(
+    ChapterGenerationRunRecord run,
+    DateTime now,
+  ) async {
+    if (run.status == ChapterGenerationStatus.succeeded.name) {
+      return false;
+    }
+    await (_database.update(
+      _database.chapterGenerationRunRecords,
+    )..where((row) => row.id.equals(run.id))).write(
+      ChapterGenerationRunRecordsCompanion(
+        status: Value(ChapterGenerationStatus.abandoned.name),
+        stage: const Value(null),
+        errorMessage: const Value(null),
+        contextWarningsMarkdown: const Value(''),
+        draftMarkdown: const Value(''),
+        continuityVerdict: Value(ContinuityVerdict.pass.name),
+        continuityReportMarkdown: const Value(''),
+        completedAt: Value(now),
+        updatedAt: Value(now),
+      ),
+    );
+    return true;
+  }
+
+  Future<bool> _abandonChapterGenerationBatch(
+    ChapterGenerationBatchRecord batch,
+    DateTime now,
+  ) async {
+    if (batch.status == ChapterGenerationBatchStatus.succeeded.name) {
+      return false;
+    }
+    await (_database.update(_database.chapterGenerationBatchItemRecords)..where(
+          (item) =>
+              item.batchId.equals(batch.id) &
+              item.status.isIn([
+                ChapterGenerationBatchItemStatus.waiting.name,
+                ChapterGenerationBatchItemStatus.running.name,
+                ChapterGenerationBatchItemStatus.failed.name,
+              ]),
+        ))
+        .write(
+          ChapterGenerationBatchItemRecordsCompanion(
+            status: Value(ChapterGenerationBatchItemStatus.abandoned.name),
+            errorMessage: const Value(null),
+            logs: const Value(''),
+            completedAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
+    final counts = await _chapterGenerationBatchCounts(batch.id);
+    await (_database.update(
+      _database.chapterGenerationBatchRecords,
+    )..where((row) => row.id.equals(batch.id))).write(
+      ChapterGenerationBatchRecordsCompanion(
+        status: Value(ChapterGenerationBatchStatus.abandoned.name),
+        errorMessage: const Value(null),
+        syncedCount: Value(counts.syncedCount),
+        failedCount: Value(counts.failedCount),
+        logs: const Value(''),
+        completedAt: Value(now),
+        updatedAt: Value(now),
+      ),
+    );
+    return true;
+  }
+
+  Future<bool> _abandonAssetGenerationRun(
+    AssetGenerationRunRecord run,
+    DateTime now,
+  ) async {
+    if (run.status == AssetGenerationStatus.applied.name) {
+      return false;
+    }
+    await (_database.update(
+      _database.assetGenerationRunRecords,
+    )..where((row) => row.id.equals(run.id))).write(
+      AssetGenerationRunRecordsCompanion(
+        status: Value(AssetGenerationStatus.abandoned.name),
+        stage: const Value(null),
+        errorMessage: const Value(null),
+        logs: const Value(''),
+        draftMarkdown: const Value(''),
+        completedAt: Value(now),
+        updatedAt: Value(now),
+      ),
+    );
+    return true;
+  }
+
+  Future<bool> _abandonChapterEnrichmentBatch(
+    ChapterEnrichmentBatchRecord batch,
+    DateTime now,
+  ) async {
+    if (batch.status == ChapterEnrichmentBatchStatus.succeeded.name) {
+      return false;
+    }
+    await (_database.update(_database.chapterEnrichmentItemRecords)..where(
+          (item) =>
+              item.batchId.equals(batch.id) &
+              item.status.isIn([
+                ChapterEnrichmentItemStatus.waiting.name,
+                ChapterEnrichmentItemStatus.running.name,
+                ChapterEnrichmentItemStatus.generated.name,
+                ChapterEnrichmentItemStatus.failed.name,
+              ]),
+        ))
+        .write(
+          ChapterEnrichmentItemRecordsCompanion(
+            status: Value(ChapterEnrichmentItemStatus.abandoned.name),
+            errorMessage: const Value(null),
+            originalContentMarkdown: const Value(''),
+            generatedContentMarkdown: const Value(''),
+            logs: const Value(''),
+            completedAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
+    final counts = await _chapterEnrichmentCounts(batch.id);
+    await (_database.update(
+      _database.chapterEnrichmentBatchRecords,
+    )..where((row) => row.id.equals(batch.id))).write(
+      ChapterEnrichmentBatchRecordsCompanion(
+        status: Value(ChapterEnrichmentBatchStatus.abandoned.name),
+        errorMessage: const Value(null),
+        generatedCount: Value(counts.generatedCount),
+        failedCount: Value(counts.failedCount),
+        appliedCount: Value(counts.appliedCount),
+        logs: const Value(''),
+        completedAt: Value(now),
+        updatedAt: Value(now),
+      ),
+    );
+    return true;
   }
 
   Future<void> _updateWorkflowTaskForGenerationRun({

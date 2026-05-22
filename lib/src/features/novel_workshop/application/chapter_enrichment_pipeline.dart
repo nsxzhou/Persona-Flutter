@@ -1,6 +1,8 @@
 import '../../../core/llm/application/markdown_completion_service.dart';
+import '../../../core/llm/domain/llm_cancellation.dart';
 import '../../../core/llm/domain/llm_error_utils.dart';
 import '../../../core/tasks/application/prompt_trace_recorder.dart';
+import '../../../core/tasks/application/workflow_task_cancellation_registry.dart';
 import '../../../core/tasks/application/workflow_task_repository.dart';
 import '../../projects/domain/project_repository.dart';
 import '../../projects/domain/writing_project.dart';
@@ -18,12 +20,14 @@ class ChapterEnrichmentPipeline {
     required ProjectPromptAssetResolver promptAssetResolver,
     required MarkdownCompletionService completionService,
     required WorkflowTaskRepository workflowTaskRepository,
+    required WorkflowTaskCancellationRegistry cancellationRegistry,
   }) : _repository = repository,
        _projectRepository = projectRepository,
        _providerRepository = providerRepository,
        _promptAssetResolver = promptAssetResolver,
        _completionService = completionService,
-       _workflowTaskRepository = workflowTaskRepository;
+       _workflowTaskRepository = workflowTaskRepository,
+       _cancellationRegistry = cancellationRegistry;
 
   final NovelWorkshopRepository _repository;
   final ProjectRepository _projectRepository;
@@ -31,6 +35,7 @@ class ChapterEnrichmentPipeline {
   final ProjectPromptAssetResolver _promptAssetResolver;
   final MarkdownCompletionService _completionService;
   final WorkflowTaskRepository _workflowTaskRepository;
+  final WorkflowTaskCancellationRegistry _cancellationRegistry;
 
   Future<ChapterEnrichmentResult> enrichChapters({
     required String projectId,
@@ -86,6 +91,13 @@ class ChapterEnrichmentPipeline {
     Set<String>? onlyItemIds,
   }) async {
     var batch = await _requireBatch(batchId);
+    if (batch.status == ChapterEnrichmentBatchStatus.abandoned) {
+      return ChapterEnrichmentResult(
+        batch: batch,
+        items: await _repository.watchChapterEnrichmentItems(batch.id).first,
+        workflowTaskId: batch.workflowTaskId,
+      );
+    }
     final project = await _requireProject(batch.projectId);
     if (project.origin != ProjectOrigin.importedEnrichment) {
       throw StateError('只有导入加料项目可以使用章节加料。');
@@ -109,6 +121,9 @@ class ChapterEnrichmentPipeline {
     }
 
     final log = StringBuffer(batch.logs);
+    final cancellationToken = _cancellationRegistry.register(
+      batch.workflowTaskId,
+    );
     final traceRecorder = PromptTraceRecorder(
       repository: _workflowTaskRepository,
       workflowTaskId: batch.workflowTaskId,
@@ -142,53 +157,64 @@ class ChapterEnrichmentPipeline {
       );
     }
 
-    await updateBatch(
-      ChapterEnrichmentBatchStatus.running,
-      message: '阶段: 开始章节加料。共 ${pendingItems.length} 个待处理章节。',
-      startedAt: DateTime.now(),
-    );
-
-    for (final item in pendingItems) {
-      await _processItem(
-        batch: batch,
-        item: item,
-        project: project,
-        provider: provider,
-        modelName: modelName,
-        traceRecorder: traceRecorder,
+    try {
+      cancellationToken.throwIfCancelled();
+      await updateBatch(
+        ChapterEnrichmentBatchStatus.running,
+        message: '阶段: 开始章节加料。共 ${pendingItems.length} 个待处理章节。',
+        startedAt: DateTime.now(),
       );
+
+      for (final item in pendingItems) {
+        cancellationToken.throwIfCancelled();
+        await _processItem(
+          batch: batch,
+          item: item,
+          project: project,
+          provider: provider,
+          modelName: modelName,
+          traceRecorder: traceRecorder,
+          cancellationToken: cancellationToken,
+        );
+      }
+
+      final latestItems = await _repository
+          .watchChapterEnrichmentItems(batch.id)
+          .first;
+      final failed = latestItems
+          .where((item) => item.status == ChapterEnrichmentItemStatus.failed)
+          .length;
+      final generatedOrApplied = latestItems
+          .where(
+            (item) =>
+                item.status == ChapterEnrichmentItemStatus.generated ||
+                item.status == ChapterEnrichmentItemStatus.applied,
+          )
+          .length;
+      final status = failed == 0
+          ? ChapterEnrichmentBatchStatus.succeeded
+          : generatedOrApplied == 0
+          ? ChapterEnrichmentBatchStatus.failed
+          : ChapterEnrichmentBatchStatus.partialFailed;
+      await updateBatch(
+        status,
+        message: failed == 0 ? '章节加料完成。' : '章节加料部分失败。',
+        errorMessage: failed == 0 ? null : '$failed 个章节加料失败，可单独重试。',
+        completedAt: DateTime.now(),
+      );
+
+      return ChapterEnrichmentResult(
+        batch: batch,
+        items: await _repository.watchChapterEnrichmentItems(batch.id).first,
+        workflowTaskId: batch.workflowTaskId,
+      );
+    } on LlmCancellationException {
+      await _repository.abandonWorkflowTask(batch.workflowTaskId);
+      rethrow;
+    } finally {
+      _cancellationRegistry.unregister(batch.workflowTaskId, cancellationToken);
+      await cancellationToken.dispose();
     }
-
-    final latestItems = await _repository
-        .watchChapterEnrichmentItems(batch.id)
-        .first;
-    final failed = latestItems
-        .where((item) => item.status == ChapterEnrichmentItemStatus.failed)
-        .length;
-    final generatedOrApplied = latestItems
-        .where(
-          (item) =>
-              item.status == ChapterEnrichmentItemStatus.generated ||
-              item.status == ChapterEnrichmentItemStatus.applied,
-        )
-        .length;
-    final status = failed == 0
-        ? ChapterEnrichmentBatchStatus.succeeded
-        : generatedOrApplied == 0
-        ? ChapterEnrichmentBatchStatus.failed
-        : ChapterEnrichmentBatchStatus.partialFailed;
-    await updateBatch(
-      status,
-      message: failed == 0 ? '章节加料完成。' : '章节加料部分失败。',
-      errorMessage: failed == 0 ? null : '$failed 个章节加料失败，可单独重试。',
-      completedAt: DateTime.now(),
-    );
-
-    return ChapterEnrichmentResult(
-      batch: batch,
-      items: await _repository.watchChapterEnrichmentItems(batch.id).first,
-      workflowTaskId: batch.workflowTaskId,
-    );
   }
 
   Future<void> _processItem({
@@ -198,6 +224,7 @@ class ChapterEnrichmentPipeline {
     required ProviderConfig provider,
     required String modelName,
     required PromptTraceRecorder traceRecorder,
+    required LlmCancellationToken cancellationToken,
   }) async {
     final startedAt = DateTime.now();
     ProviderConfig? resolvedProvider = provider;
@@ -220,6 +247,7 @@ class ChapterEnrichmentPipeline {
         logs: _itemLog('开始处理章节：${chapter.title}'),
         startedAt: startedAt,
       );
+      cancellationToken.throwIfCancelled();
 
       final assets = await _promptAssetResolver.resolve(project.id);
       final prompt = _buildPrompt(
@@ -237,7 +265,9 @@ class ChapterEnrichmentPipeline {
         promptTrace: traceRecorder.config(
           label: 'enrich_chapter_${chapter.chapterIndex}',
         ),
+        cancellationToken: cancellationToken,
       );
+      cancellationToken.throwIfCancelled();
       final content = _cleanMarkdownDraft(generated);
       if (content.trim().isEmpty) {
         throw StateError('模型返回了空加料结果。');
@@ -253,6 +283,8 @@ class ChapterEnrichmentPipeline {
         logs: _itemLog('加料预览已生成。'),
         completedAt: DateTime.now(),
       );
+    } on LlmCancellationException {
+      rethrow;
     } on Object catch (error) {
       await _repository.updateChapterEnrichmentItemState(
         id: item.id,

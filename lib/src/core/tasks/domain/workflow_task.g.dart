@@ -35,4 +35,5 @@ const _$WorkflowTaskStatusEnumMap = {
   WorkflowTaskStatus.running: 'running',
   WorkflowTaskStatus.succeeded: 'succeeded',
   WorkflowTaskStatus.failed: 'failed',
+  WorkflowTaskStatus.abandoned: 'abandoned',
 };

@@ -6,6 +6,7 @@ import 'package:persona_flutter/src/core/llm/application/markdown_completion_ser
 import 'package:persona_flutter/src/core/llm/domain/llm_client.dart';
 import 'package:persona_flutter/src/core/llm/domain/llm_request.dart';
 import 'package:persona_flutter/src/core/llm/domain/llm_stream_event.dart';
+import 'package:persona_flutter/src/core/tasks/application/workflow_task_cancellation_registry.dart';
 import 'package:persona_flutter/src/core/tasks/data/drift_workflow_task_repository.dart';
 import 'package:persona_flutter/src/core/tasks/domain/workflow_task.dart';
 import 'package:persona_flutter/src/features/novel_workshop/application/chapter_generation_pipeline.dart';
@@ -865,6 +866,7 @@ class _Fixture {
         invocation: LlmInvocationService(client: llmClient),
       ),
       workflowTaskRepository: workflowRepository,
+      cancellationRegistry: WorkflowTaskCancellationRegistry(),
     );
     return _Fixture(
       project: project,

@@ -15,6 +15,7 @@ import 'package:persona_flutter/src/features/settings/application/provider_confi
 import 'package:persona_flutter/src/features/settings/domain/provider_config.dart';
 import 'package:persona_flutter/src/features/style_lab/application/style_lab_providers.dart';
 import 'package:persona_flutter/src/features/style_lab/domain/style_analysis_run.dart';
+import 'package:persona_flutter/src/features/workflow_runs/application/workflow_task_controller.dart';
 import 'package:persona_flutter/src/features/workflow_runs/presentation/workflow_runs_page.dart';
 
 void main() {
@@ -37,7 +38,7 @@ void main() {
 
     expect(find.text('打开详情'), findsOneWidget);
 
-    await tester.tap(find.text('剧情分析：雾线剧情'));
+    await tester.tap(find.text('剧情分析：雾线剧情').last);
     await _pumpWorkflowRuns(tester);
 
     expect(find.text('运行时 Prompt Trace'), findsOneWidget);
@@ -125,18 +126,117 @@ void main() {
     expect(find.textContaining('阶段: 生成草稿'), findsOneWidget);
     expect(find.textContaining('资产草稿生成失败'), findsOneWidget);
   });
+
+  testWidgets('workflow runs shows abandon action for running task', (
+    tester,
+  ) async {
+    final task = WorkflowTask(
+      id: 'task-running-1',
+      kind: assetGenerationWorkflowTaskKind,
+      status: WorkflowTaskStatus.running,
+      title: '资产生成：世界观设定',
+      stage: 'generatingDraft',
+      createdAt: DateTime(2026, 5, 22, 10),
+      updatedAt: DateTime(2026, 5, 22, 10, 1),
+    );
+
+    await tester.pumpWidget(_WorkflowRunsTestApp(task: task, run: _plotRun()));
+    await _pumpWorkflowRuns(tester);
+
+    expect(find.text('放弃'), findsOneWidget);
+    await tester.tap(find.text('放弃'));
+    await _pumpWorkflowRuns(tester);
+
+    expect(find.text('放弃任务'), findsWidgets);
+  });
+
+  testWidgets('workflow preview inbox lists multiple completed previews', (
+    tester,
+  ) async {
+    final plotRun = _plotRun();
+    final plotTask = WorkflowTask(
+      id: plotRun.workflowTaskId,
+      kind: plotAnalysisWorkflowTaskKind,
+      status: WorkflowTaskStatus.succeeded,
+      title: '剧情分析：雾线剧情',
+      createdAt: DateTime(2026, 5, 16, 11),
+      updatedAt: DateTime(2026, 5, 16, 12),
+    );
+    final assetTask = WorkflowTask(
+      id: 'task-asset-preview',
+      kind: assetGenerationWorkflowTaskKind,
+      status: WorkflowTaskStatus.succeeded,
+      title: '资产生成：世界观设定',
+      createdAt: DateTime(2026, 5, 22, 9),
+      updatedAt: DateTime(2026, 5, 22, 9, 30),
+    );
+    final chapterTask = WorkflowTask(
+      id: 'task-chapter-preview',
+      kind: chapterGenerationWorkflowTaskKind,
+      status: WorkflowTaskStatus.succeeded,
+      title: '章节生成：第 1 章',
+      createdAt: DateTime(2026, 5, 22, 10),
+      updatedAt: DateTime(2026, 5, 22, 10, 30),
+    );
+    final abandonedTask = WorkflowTask(
+      id: 'task-abandoned',
+      kind: assetGenerationWorkflowTaskKind,
+      status: WorkflowTaskStatus.abandoned,
+      title: '资产生成：已放弃',
+      createdAt: DateTime(2026, 5, 22, 8),
+      updatedAt: DateTime(2026, 5, 22, 8, 10),
+    );
+
+    await tester.pumpWidget(
+      _WorkflowRunsTestApp(
+        task: plotTask,
+        run: plotRun,
+        tasks: [assetTask, plotTask, chapterTask, abandonedTask],
+        assetRun: _assetRun(
+          workflowTaskId: assetTask.id,
+          status: AssetGenerationStatus.succeeded,
+          draftMarkdown: '# 世界观\n\n雾港。',
+        ),
+        chapterRun: _chapterRun(workflowTaskId: chapterTask.id),
+      ),
+    );
+    await _pumpWorkflowRuns(tester);
+
+    expect(find.text('完成预览'), findsOneWidget);
+    expect(find.text('打开预览'), findsNWidgets(2));
+    expect(find.text('应用'), findsOneWidget);
+    expect(find.text('忽略'), findsNWidgets(2));
+    expect(find.textContaining('资产草稿待审阅'), findsOneWidget);
+    expect(find.textContaining('章节已生成'), findsOneWidget);
+    expect(find.text('已放弃'), findsOneWidget);
+    expect(find.textContaining('已放弃', findRichText: true), findsWidgets);
+
+    await tester.tap(find.text('忽略').first);
+    await _pumpWorkflowRuns(tester);
+
+    expect(find.text('打开预览'), findsOneWidget);
+
+    await tester.tap(find.text('打开预览'));
+    await _pumpWorkflowRuns(tester);
+
+    expect(find.text('任务产出预览'), findsOneWidget);
+  });
 }
 
 class _WorkflowRunsTestApp extends StatelessWidget {
   const _WorkflowRunsTestApp({
     required this.task,
     required this.run,
+    this.tasks,
     this.assetRun,
+    this.chapterRun,
   });
 
   final WorkflowTask task;
   final PlotAnalysisRun run;
+  final List<WorkflowTask>? tasks;
   final AssetGenerationRun? assetRun;
+  final ChapterGenerationRun? chapterRun;
 
   @override
   Widget build(BuildContext context) {
@@ -144,10 +244,12 @@ class _WorkflowRunsTestApp extends StatelessWidget {
     return ProviderScope(
       overrides: [
         recentWorkflowTasksProvider.overrideWith(
-          (ref) => Stream<List<WorkflowTask>>.value([task]),
+          (ref) => Stream<List<WorkflowTask>>.value(tasks ?? [task]),
         ),
         workflowTaskProvider.overrideWith(
-          (ref, id) => Stream<WorkflowTask?>.value(id == task.id ? task : null),
+          (ref, id) => Stream<WorkflowTask?>.value(
+            (tasks ?? [task]).where((item) => item.id == id).firstOrNull,
+          ),
         ),
         workflowPromptTraceProvider.overrideWith(
           (ref, workflowTaskId) => Stream<WorkflowPromptTrace?>.value(
@@ -178,10 +280,27 @@ class _WorkflowRunsTestApp extends StatelessWidget {
             workflowTaskId == assetRun?.workflowTaskId ? assetRun : null,
           ),
         ),
+        chapterGenerationRunByWorkflowTaskProvider.overrideWith(
+          (ref, workflowTaskId) => Stream<ChapterGenerationRun?>.value(
+            workflowTaskId == chapterRun?.workflowTaskId ? chapterRun : null,
+          ),
+        ),
+        chapterEnrichmentBatchByWorkflowTaskProvider.overrideWith(
+          (ref, workflowTaskId) =>
+              const Stream<ChapterEnrichmentBatch?>.empty(),
+        ),
+        workflowTaskControllerProvider.overrideWith(
+          () => _NoopWorkflowTaskController(),
+        ),
       ],
       child: MaterialApp.router(routerConfig: _router()),
     );
   }
+}
+
+class _NoopWorkflowTaskController extends WorkflowTaskController {
+  @override
+  Future<void> abandon(String taskId) async {}
 }
 
 Future<void> _pumpWorkflowRuns(WidgetTester tester) async {
@@ -286,7 +405,11 @@ PlotAnalysisRun _plotRun() {
   );
 }
 
-AssetGenerationRun _assetRun({required String workflowTaskId}) {
+AssetGenerationRun _assetRun({
+  required String workflowTaskId,
+  AssetGenerationStatus status = AssetGenerationStatus.failed,
+  String draftMarkdown = '',
+}) {
   return AssetGenerationRun(
     id: 'run-asset-1',
     workflowTaskId: workflowTaskId,
@@ -294,17 +417,41 @@ AssetGenerationRun _assetRun({required String workflowTaskId}) {
     kind: AssetGenerationKind.charactersBlueprint,
     providerId: 'provider-1',
     modelName: 'deepseek-chat',
-    status: AssetGenerationStatus.failed,
+    status: status,
     stage: null,
     errorMessage: 'secrets 必须是字符串。',
     logs:
         '[2026-05-21T16:05:00] 阶段: 生成草稿。调用模型生成角色索引与关系网。\n'
         '[2026-05-21T16:06:00] 资产草稿生成失败。',
-    draftMarkdown: '',
+    draftMarkdown: draftMarkdown,
     createdAt: DateTime(2026, 5, 21, 16),
     updatedAt: DateTime(2026, 5, 21, 16, 6),
     startedAt: DateTime(2026, 5, 21, 16, 5),
     completedAt: DateTime(2026, 5, 21, 16, 6),
+  );
+}
+
+ChapterGenerationRun _chapterRun({required String workflowTaskId}) {
+  return ChapterGenerationRun(
+    id: 'run-chapter-1',
+    workflowTaskId: workflowTaskId,
+    projectId: 'project-1',
+    chapterPlanId: 'plan-1',
+    chapterId: 'chapter-1',
+    providerId: 'provider-1',
+    modelName: 'deepseek-chat',
+    status: ChapterGenerationStatus.succeeded,
+    stage: null,
+    errorMessage: null,
+    logs: '[2026-05-22T10:30:00] 章节生成完成。',
+    contextWarningsMarkdown: '',
+    draftMarkdown: '# 第 1 章\n\n雾港醒来。',
+    continuityVerdict: ContinuityVerdict.pass,
+    continuityReportMarkdown: '# Continuity Audit\n\n通过。',
+    createdAt: DateTime(2026, 5, 22, 10),
+    updatedAt: DateTime(2026, 5, 22, 10, 30),
+    startedAt: DateTime(2026, 5, 22, 10),
+    completedAt: DateTime(2026, 5, 22, 10, 30),
   );
 }
 

@@ -1,6 +1,8 @@
 import '../../../core/llm/application/markdown_completion_service.dart';
+import '../../../core/llm/domain/llm_cancellation.dart';
 import '../../../core/llm/domain/llm_error_utils.dart';
 import '../../../core/tasks/application/prompt_trace_recorder.dart';
+import '../../../core/tasks/application/workflow_task_cancellation_registry.dart';
 import '../../../core/tasks/application/workflow_task_repository.dart';
 import 'package:yaml/yaml.dart';
 import '../../projects/domain/project_repository.dart';
@@ -24,6 +26,7 @@ class ChapterGenerationPipeline {
     required WritingContextRetriever contextRetriever,
     required MarkdownCompletionService completionService,
     required WorkflowTaskRepository workflowTaskRepository,
+    required WorkflowTaskCancellationRegistry cancellationRegistry,
   }) : _repository = repository,
        _projectRepository = projectRepository,
        _providerRepository = providerRepository,
@@ -31,7 +34,8 @@ class ChapterGenerationPipeline {
        _contextAssembler = contextAssembler,
        _contextRetriever = contextRetriever,
        _completionService = completionService,
-       _workflowTaskRepository = workflowTaskRepository;
+       _workflowTaskRepository = workflowTaskRepository,
+       _cancellationRegistry = cancellationRegistry;
 
   final NovelWorkshopRepository _repository;
   final ProjectRepository _projectRepository;
@@ -41,6 +45,7 @@ class ChapterGenerationPipeline {
   final WritingContextRetriever _contextRetriever;
   final MarkdownCompletionService _completionService;
   final WorkflowTaskRepository _workflowTaskRepository;
+  final WorkflowTaskCancellationRegistry _cancellationRegistry;
 
   static const int _promptArchiveDigestThreshold = 45000;
   static const int _maxBatchDraftAttempts = 2;
@@ -99,6 +104,9 @@ class ChapterGenerationPipeline {
     );
 
     var currentRun = run;
+    final cancellationToken = _cancellationRegistry.register(
+      run.workflowTaskId,
+    );
     var currentStage = currentRun.stage;
     final log = StringBuffer(currentRun.logs);
     ProviderConfig? resolvedProvider;
@@ -141,6 +149,7 @@ class ChapterGenerationPipeline {
     }
 
     try {
+      cancellationToken.throwIfCancelled();
       final project = await _requireProject(projectId);
       final provider = await _requireProvider(project);
       final modelName = _requireModelName(project, provider);
@@ -173,6 +182,7 @@ class ChapterGenerationPipeline {
         modelName: modelName,
         startedAt: DateTime.now(),
       );
+      cancellationToken.throwIfCancelled();
 
       var context = await _buildGenerationContext(
         projectId: projectId,
@@ -182,6 +192,7 @@ class ChapterGenerationPipeline {
         provider: provider,
         modelName: modelName,
         traceRecorder: traceRecorder,
+        cancellationToken: cancellationToken,
       );
       final contextWarnings = [...context.warnings];
       var bundle = context.bundle;
@@ -195,6 +206,7 @@ class ChapterGenerationPipeline {
           project: project,
           plan: plan,
           memory: originalRuntimeMemory,
+          cancellationToken: cancellationToken,
         );
         baseSections = _sectionsWithRuntimeReferenceDigest(
           baseSections,
@@ -210,6 +222,7 @@ class ChapterGenerationPipeline {
         message: '阶段: 生成正文。调用模型生成纯 Markdown 章节正文。',
         contextWarningsMarkdown: _warningsMarkdown(contextWarnings),
       );
+      cancellationToken.throwIfCancelled();
 
       final generated = await _completionService.completeMarkdown(
         provider: provider,
@@ -217,7 +230,9 @@ class ChapterGenerationPipeline {
         temperature: 0.75,
         modelName: modelName,
         promptTrace: traceRecorder.config(label: 'generate_chapter_draft'),
+        cancellationToken: cancellationToken,
       );
+      cancellationToken.throwIfCancelled();
       final content = _cleanMarkdownDraft(generated);
       if (content.trim().isEmpty) {
         throw StateError('模型返回了空章节正文。');
@@ -237,6 +252,7 @@ class ChapterGenerationPipeline {
         plan: plan,
         sections: baseSections,
         content: content,
+        cancellationToken: cancellationToken,
       );
       await transition(
         audit.verdict == ContinuityVerdict.fail
@@ -256,6 +272,7 @@ class ChapterGenerationPipeline {
             ? DateTime.now()
             : null,
       );
+      cancellationToken.throwIfCancelled();
       if (audit.verdict == ContinuityVerdict.fail) {
         throw StateError('连续性审计未通过，请查看审计报告后重新生成。');
       }
@@ -267,6 +284,7 @@ class ChapterGenerationPipeline {
             ? '阶段: 保存正文。审计为 warning，写入章节并暂停记忆同步。'
             : '阶段: 保存正文。写入当前章节正文。',
       );
+      cancellationToken.throwIfCancelled();
       final chapter = await _repository.saveChapter(
         id: existingChapter?.id,
         input: ProjectChapterInput(
@@ -312,7 +330,9 @@ class ChapterGenerationPipeline {
         currentMemory: originalRuntimeMemory,
         characters: context.characters,
         relationships: context.relationships,
+        cancellationToken: cancellationToken,
       );
+      cancellationToken.throwIfCancelled();
 
       await transition(
         ChapterGenerationStatus.succeeded,
@@ -329,6 +349,9 @@ class ChapterGenerationPipeline {
         contextWarnings: List.unmodifiable(contextWarnings),
         workflowTaskId: currentRun.workflowTaskId,
       );
+    } on LlmCancellationException {
+      await _repository.abandonWorkflowTask(currentRun.workflowTaskId);
+      rethrow;
     } on Object catch (error) {
       if (currentRun.status != ChapterGenerationStatus.failed) {
         await transition(
@@ -340,6 +363,12 @@ class ChapterGenerationPipeline {
         );
       }
       rethrow;
+    } finally {
+      _cancellationRegistry.unregister(
+        currentRun.workflowTaskId,
+        cancellationToken,
+      );
+      await cancellationToken.dispose();
     }
   }
 
@@ -373,7 +402,8 @@ class ChapterGenerationPipeline {
   ) async {
     var batch = await _requireGenerationBatch(batchId);
     if (batch.status == ChapterGenerationBatchStatus.failed ||
-        batch.status == ChapterGenerationBatchStatus.succeeded) {
+        batch.status == ChapterGenerationBatchStatus.succeeded ||
+        batch.status == ChapterGenerationBatchStatus.abandoned) {
       return ChapterGenerationBatchResult(
         batch: batch,
         items: await _repository
@@ -388,6 +418,9 @@ class ChapterGenerationPipeline {
     }
     final provider = await _requireProvider(project);
     final modelName = _requireModelName(project, provider);
+    final cancellationToken = _cancellationRegistry.register(
+      batch.workflowTaskId,
+    );
     final log = StringBuffer(batch.logs);
 
     Future<void> updateBatch(
@@ -412,65 +445,79 @@ class ChapterGenerationPipeline {
       );
     }
 
-    await updateBatch(
-      ChapterGenerationBatchStatus.running,
-      message: '阶段: 开始批量草稿。按章节顺序执行双门禁。',
-      startedAt: batch.startedAt ?? DateTime.now(),
-    );
-
-    var items = await _repository
-        .watchChapterGenerationBatchItems(batch.id)
-        .first;
-    for (final initialItem in items) {
-      final latestBatch = await _requireGenerationBatch(batch.id);
-      if (latestBatch.status == ChapterGenerationBatchStatus.failed) {
-        return ChapterGenerationBatchResult(
-          batch: latestBatch,
-          items: await _repository
-              .watchChapterGenerationBatchItems(batch.id)
-              .first,
-          workflowTaskId: latestBatch.workflowTaskId,
-        );
-      }
-      batch = latestBatch;
-      if (initialItem.status == ChapterGenerationBatchItemStatus.synced) {
-        continue;
-      }
-      final item = await _processBatchItem(
-        batch: batch,
-        item: initialItem,
-        project: project,
-        provider: provider,
-        modelName: modelName,
+    try {
+      cancellationToken.throwIfCancelled();
+      await updateBatch(
+        ChapterGenerationBatchStatus.running,
+        message: '阶段: 开始批量草稿。按章节顺序执行双门禁。',
+        startedAt: batch.startedAt ?? DateTime.now(),
       );
-      if (item.status == ChapterGenerationBatchItemStatus.failed) {
-        await updateBatch(
-          ChapterGenerationBatchStatus.failed,
-          message: '批量草稿停止：章节检查点未通过。',
-          errorMessage: item.errorMessage ?? '章节检查点未通过。',
-          completedAt: DateTime.now(),
-        );
-        items = await _repository
-            .watchChapterGenerationBatchItems(batch.id)
-            .first;
-        return ChapterGenerationBatchResult(
-          batch: batch,
-          items: items,
-          workflowTaskId: batch.workflowTaskId,
-        );
-      }
-    }
 
-    await updateBatch(
-      ChapterGenerationBatchStatus.succeeded,
-      message: '批量草稿完成。',
-      completedAt: DateTime.now(),
-    );
-    return ChapterGenerationBatchResult(
-      batch: batch,
-      items: await _repository.watchChapterGenerationBatchItems(batch.id).first,
-      workflowTaskId: batch.workflowTaskId,
-    );
+      var items = await _repository
+          .watchChapterGenerationBatchItems(batch.id)
+          .first;
+      for (final initialItem in items) {
+        cancellationToken.throwIfCancelled();
+        final latestBatch = await _requireGenerationBatch(batch.id);
+        if (latestBatch.status == ChapterGenerationBatchStatus.failed ||
+            latestBatch.status == ChapterGenerationBatchStatus.abandoned) {
+          return ChapterGenerationBatchResult(
+            batch: latestBatch,
+            items: await _repository
+                .watchChapterGenerationBatchItems(batch.id)
+                .first,
+            workflowTaskId: latestBatch.workflowTaskId,
+          );
+        }
+        batch = latestBatch;
+        if (initialItem.status == ChapterGenerationBatchItemStatus.synced) {
+          continue;
+        }
+        final item = await _processBatchItem(
+          batch: batch,
+          item: initialItem,
+          project: project,
+          provider: provider,
+          modelName: modelName,
+          cancellationToken: cancellationToken,
+        );
+        if (item.status == ChapterGenerationBatchItemStatus.failed) {
+          await updateBatch(
+            ChapterGenerationBatchStatus.failed,
+            message: '批量草稿停止：章节检查点未通过。',
+            errorMessage: item.errorMessage ?? '章节检查点未通过。',
+            completedAt: DateTime.now(),
+          );
+          items = await _repository
+              .watchChapterGenerationBatchItems(batch.id)
+              .first;
+          return ChapterGenerationBatchResult(
+            batch: batch,
+            items: items,
+            workflowTaskId: batch.workflowTaskId,
+          );
+        }
+      }
+
+      await updateBatch(
+        ChapterGenerationBatchStatus.succeeded,
+        message: '批量草稿完成。',
+        completedAt: DateTime.now(),
+      );
+      return ChapterGenerationBatchResult(
+        batch: batch,
+        items: await _repository
+            .watchChapterGenerationBatchItems(batch.id)
+            .first,
+        workflowTaskId: batch.workflowTaskId,
+      );
+    } on LlmCancellationException {
+      await _repository.abandonWorkflowTask(batch.workflowTaskId);
+      rethrow;
+    } finally {
+      _cancellationRegistry.unregister(batch.workflowTaskId, cancellationToken);
+      await cancellationToken.dispose();
+    }
   }
 
   Future<ChapterGenerationBatchResult> stopChapterGenerationBatch(
@@ -556,6 +603,7 @@ class ChapterGenerationPipeline {
     required WritingProject project,
     required ProviderConfig provider,
     required String modelName,
+    required LlmCancellationToken cancellationToken,
   }) async {
     var currentItem = item;
     final itemLog = StringBuffer(currentItem.logs);
@@ -595,6 +643,7 @@ class ChapterGenerationPipeline {
       message: '开始处理批量章节。',
       startedAt: currentItem.startedAt ?? DateTime.now(),
     );
+    cancellationToken.throwIfCancelled();
 
     var chapter = currentItem.chapterId == null
         ? await _repository.findChapterByPlan(currentItem.chapterPlanId)
@@ -607,6 +656,7 @@ class ChapterGenerationPipeline {
     while (chapter == null ||
         chapter.contentMarkdown.trim().isEmpty ||
         chapter.continuityVerdict != ContinuityVerdict.pass) {
+      cancellationToken.throwIfCancelled();
       if (currentItem.draftAttemptCount >= _maxBatchDraftAttempts) {
         await updateItem(
           ChapterGenerationBatchItemStatus.failed,
@@ -640,6 +690,7 @@ class ChapterGenerationPipeline {
           chapterPlanId: currentItem.chapterPlanId,
           replaceExisting: generatedByThisBatch,
         );
+        cancellationToken.throwIfCancelled();
         generatedByThisBatch = true;
         chapter = result.chapter;
         await updateItem(
@@ -649,6 +700,9 @@ class ChapterGenerationPipeline {
           latestRunId: result.run.id,
         );
       } on Object catch (error) {
+        if (error is LlmCancellationException) {
+          rethrow;
+        }
         final run = await _latestRunForPlan(
           projectId: batch.projectId,
           chapterPlanId: currentItem.chapterPlanId,
@@ -664,6 +718,7 @@ class ChapterGenerationPipeline {
     }
 
     while (true) {
+      cancellationToken.throwIfCancelled();
       final stableChapter = chapter;
       if (stableChapter == null) {
         await updateItem(
@@ -716,12 +771,14 @@ class ChapterGenerationPipeline {
           provider: provider,
           modelName: modelName,
           chapter: chapter,
+          cancellationToken: cancellationToken,
         );
         final review = await _reviewMemoryPatch(
           provider: provider,
           modelName: modelName,
           project: project,
           chapter: chapter,
+          cancellationToken: cancellationToken,
         );
         await updateItem(
           ChapterGenerationBatchItemStatus.running,
@@ -743,6 +800,9 @@ class ChapterGenerationPipeline {
           await _repository.discardMemorySyncPatch(chapter.id);
         }
       } on Object catch (error) {
+        if (error is LlmCancellationException) {
+          rethrow;
+        }
         await updateItem(
           ChapterGenerationBatchItemStatus.running,
           message: 'Memory Patch 审阅尝试失败：${_sanitizeError(error, provider)}',
@@ -868,6 +928,7 @@ class ChapterGenerationPipeline {
     ProviderConfig? provider,
     String? modelName,
     PromptTraceRecorder? traceRecorder,
+    LlmCancellationToken? cancellationToken,
   }) async {
     final resolvedProject = project ?? await _requireProject(projectId);
     final resolvedPlan = plan ?? await _requirePlan(projectId, chapterPlanId);
@@ -924,6 +985,7 @@ class ChapterGenerationPipeline {
       provider: provider,
       modelName: modelName,
       traceRecorder: traceRecorder,
+      cancellationToken: cancellationToken,
     );
     final bundle = _contextAssembler.assemble(retrieved.sections);
     return _GenerationContext(
@@ -952,6 +1014,7 @@ class ChapterGenerationPipeline {
     required ChapterPlan plan,
     required WritingContextSections sections,
     required String content,
+    LlmCancellationToken? cancellationToken,
   }) async {
     final generated = await _completionService.completeMarkdown(
       provider: provider,
@@ -964,6 +1027,7 @@ class ChapterGenerationPipeline {
       temperature: 0.2,
       modelName: modelName,
       promptTrace: traceRecorder.config(label: 'audit_continuity'),
+      cancellationToken: cancellationToken,
     );
     return _parseContinuityAudit(_cleanMarkdownDraft(generated));
   }
@@ -1236,6 +1300,7 @@ $trimmed
     required WritingProject project,
     required ChapterPlan plan,
     required RuntimeMemoryState memory,
+    LlmCancellationToken? cancellationToken,
   }) async {
     final archive = memory.chapterArchiveMarkdown.trim();
     if (archive.isEmpty) {
@@ -1269,6 +1334,7 @@ $archive
         temperature: 0.2,
         modelName: modelName,
         promptTrace: traceRecorder.config(label: 'digest_chapter_archive'),
+        cancellationToken: cancellationToken,
       ),
     );
     if (digest.trim().isEmpty) {
@@ -1293,6 +1359,7 @@ $archive
     required RuntimeMemoryState currentMemory,
     required List<NovelCharacter> characters,
     required List<NovelRelationship> relationships,
+    LlmCancellationToken? cancellationToken,
   }) async {
     final prompt =
         '''
@@ -1338,6 +1405,7 @@ ${chapter.contentMarkdown}
       temperature: 0.25,
       modelName: modelName,
       promptTrace: traceRecorder?.config(label: 'propose_memory_patch'),
+      cancellationToken: cancellationToken,
     );
     final patchYaml = _cleanMarkdownDraft(generated);
     if (patchYaml.trim().isEmpty) {
@@ -1370,6 +1438,7 @@ ${chapter.contentMarkdown}
     required ProviderConfig provider,
     required String modelName,
     required ProjectChapter chapter,
+    required LlmCancellationToken cancellationToken,
   }) async {
     if (chapter.memorySyncStatus == MemorySyncStatus.pendingReview &&
         chapter.memorySyncContentHash == chapter.contentHash) {
@@ -1395,6 +1464,7 @@ ${chapter.contentMarkdown}
       currentMemory: memory?.state ?? const RuntimeMemoryState(),
       characters: characters,
       relationships: relationships,
+      cancellationToken: cancellationToken,
     );
     final updated = await _repository.findChapter(chapter.id);
     if (updated == null) {
@@ -1408,6 +1478,7 @@ ${chapter.contentMarkdown}
     required String modelName,
     required WritingProject project,
     required ProjectChapter chapter,
+    required LlmCancellationToken cancellationToken,
   }) async {
     final memory = await _repository.findRuntimeMemory(project.id);
     final generated = await _completionService.completeMarkdown(
@@ -1419,6 +1490,7 @@ ${chapter.contentMarkdown}
       ),
       temperature: 0.15,
       modelName: modelName,
+      cancellationToken: cancellationToken,
     );
     return _parseContinuityAudit(_cleanMarkdownDraft(generated));
   }

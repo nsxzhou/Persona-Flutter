@@ -44,6 +44,10 @@ abstract interface class NovelWorkshopRepository {
     String workflowTaskId,
   );
 
+  Stream<ChapterEnrichmentBatch?> watchChapterEnrichmentBatchByWorkflowTask(
+    String workflowTaskId,
+  );
+
   Future<ProjectBible?> findProjectBible(String projectId);
 
   Future<ProjectBible> ensureProjectBible(String projectId);
@@ -73,6 +77,8 @@ abstract interface class NovelWorkshopRepository {
   Future<ChapterEnrichmentBatch?> findChapterEnrichmentBatch(String id);
 
   Future<ChapterEnrichmentItem?> findChapterEnrichmentItem(String id);
+
+  Future<void> abandonWorkflowTask(String workflowTaskId);
 
   Future<bool> hasRunningChapterGeneration(String chapterPlanId);
 

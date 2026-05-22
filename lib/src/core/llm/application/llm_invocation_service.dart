@@ -1,5 +1,6 @@
 import '../../../features/settings/domain/provider_config.dart';
 import '../domain/llm_client.dart';
+import '../domain/llm_cancellation.dart';
 import '../domain/llm_error_utils.dart';
 import '../domain/llm_message.dart';
 import '../domain/llm_request.dart';
@@ -17,6 +18,7 @@ class LlmInvocationService {
     double temperature = 0.7,
     String? modelName,
     LlmPromptTraceConfig? promptTrace,
+    LlmCancellationToken? cancellationToken,
   }) async* {
     final resolvedModelName = modelName?.trim().isNotEmpty == true
         ? modelName!.trim()
@@ -34,19 +36,23 @@ class LlmInvocationService {
     final output = StringBuffer();
 
     try {
+      cancellationToken?.throwIfCancelled();
       await for (final event in _client.streamChat(
         provider: provider,
         request: LlmRequest(
           messages: requestMessages,
           model: resolvedModelName,
           temperature: temperature,
+          cancellationToken: cancellationToken,
         ),
       )) {
+        cancellationToken?.throwIfCancelled();
         if (event is LlmStreamDelta) {
           output.write(event.text);
         }
         yield event;
       }
+      cancellationToken?.throwIfCancelled();
       await _recordTrace(
         promptTrace,
         LlmPromptTraceEvent(
@@ -59,6 +65,20 @@ class LlmInvocationService {
           output: output.toString(),
         ),
       );
+    } on LlmCancellationException {
+      await _recordTrace(
+        promptTrace,
+        LlmPromptTraceEvent(
+          label: promptTrace?.label ?? 'chat',
+          modelName: resolvedModelName,
+          temperature: temperature,
+          messages: requestMessages,
+          startedAt: startedAt,
+          completedAt: DateTime.now(),
+          errorSummary: 'cancelled',
+        ),
+      );
+      rethrow;
     } on Object catch (error) {
       await _recordTrace(
         promptTrace,

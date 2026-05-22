@@ -10,14 +10,15 @@ import '../../../core/tasks/domain/workflow_prompt_trace.dart';
 import '../../../core/tasks/domain/workflow_task.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/persona_page.dart';
-import '../../../core/utils/markdown_utils.dart';
 import '../../../core/ui/skeleton_loader.dart';
+import '../../../core/utils/markdown_utils.dart';
 import '../../novel_workshop/application/novel_workshop_providers.dart';
 import '../../novel_workshop/domain/novel_workshop.dart';
 import '../../plot_lab/application/plot_lab_providers.dart';
 import '../../plot_lab/domain/plot_analysis_run.dart';
 import '../../style_lab/application/style_lab_providers.dart';
 import '../../style_lab/domain/style_analysis_run.dart';
+import '../application/workflow_task_controller.dart';
 
 class WorkflowRunsPage extends ConsumerWidget {
   const WorkflowRunsPage({super.key});
@@ -71,6 +72,8 @@ class WorkflowRunsPage extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 18),
+                _WorkflowPreviewInbox(items: items),
+                if (items.isNotEmpty) const SizedBox(height: 18),
                 if (items.isEmpty)
                   const _EmptyWorkflowRuns()
                 else
@@ -101,6 +104,225 @@ class _EmptyWorkflowRuns extends StatelessWidget {
       title: '尚未创建本地工作流任务。',
       description: '这里会显示最近的本地长任务、失败原因和可恢复任务。',
     );
+  }
+}
+
+class _WorkflowPreviewInbox extends ConsumerStatefulWidget {
+  const _WorkflowPreviewInbox({required this.items});
+
+  final List<WorkflowTask> items;
+
+  @override
+  ConsumerState<_WorkflowPreviewInbox> createState() =>
+      _WorkflowPreviewInboxState();
+}
+
+class _WorkflowPreviewInboxState extends ConsumerState<_WorkflowPreviewInbox> {
+  final Set<String> _dismissedTaskIds = {};
+
+  @override
+  Widget build(BuildContext context) {
+    final previewTasks =
+        widget.items
+            .where(
+              (item) =>
+                  item.status == WorkflowTaskStatus.succeeded &&
+                  _hasWorkflowPreview(item.kind) &&
+                  !_dismissedTaskIds.contains(item.id),
+            )
+            .toList(growable: false)
+          ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    if (previewTasks.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return PersonaPanel(
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.all(18),
+            child: PersonaSectionHeader(
+              title: '完成预览',
+              description: '集中查看多个已完成任务的可审阅产出。',
+            ),
+          ),
+          const Divider(height: 1),
+          for (final task in previewTasks)
+            _WorkflowPreviewTile(
+              task: task,
+              onDismiss: () => setState(() => _dismissedTaskIds.add(task.id)),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WorkflowPreviewTile extends ConsumerWidget {
+  const _WorkflowPreviewTile({required this.task, required this.onDismiss});
+
+  final WorkflowTask task;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final assetRun = task.kind == assetGenerationWorkflowTaskKind
+        ? ref.watch(assetGenerationRunByWorkflowTaskProvider(task.id))
+        : const AsyncValue<AssetGenerationRun?>.data(null);
+    final chapterRun = task.kind == chapterGenerationWorkflowTaskKind
+        ? ref.watch(chapterGenerationRunByWorkflowTaskProvider(task.id))
+        : const AsyncValue<ChapterGenerationRun?>.data(null);
+    final enrichmentBatch = task.kind == chapterEnrichmentWorkflowTaskKind
+        ? ref.watch(chapterEnrichmentBatchByWorkflowTaskProvider(task.id))
+        : const AsyncValue<ChapterEnrichmentBatch?>.data(null);
+    final enrichmentItems =
+        task.kind == chapterEnrichmentWorkflowTaskKind &&
+            enrichmentBatch.hasValue &&
+            enrichmentBatch.value != null
+        ? ref.watch(chapterEnrichmentItemsProvider(enrichmentBatch.value!.id))
+        : const AsyncValue<List<ChapterEnrichmentItem>>.data([]);
+    final preview = _previewSummary(
+      task,
+      assetRun,
+      chapterRun,
+      enrichmentBatch,
+    );
+    final canApply = _canApplyPreview(task, assetRun, enrichmentItems);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+      child: Row(
+        children: [
+          Icon(_previewIcon(task.kind), color: colorScheme.primary, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(task.title, style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: 3),
+                Text(
+                  preview,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            _formatRunTime(task.updatedAt),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.end,
+            children: [
+              OutlinedButton.icon(
+                onPressed: () => context.go('/workflow-runs/${task.id}'),
+                icon: const Icon(Icons.visibility_outlined, size: 16),
+                label: const Text('打开预览'),
+                style: OutlinedButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+              if (canApply)
+                FilledButton.icon(
+                  onPressed: () => _applyPreview(
+                    context,
+                    ref,
+                    task,
+                    assetRun,
+                    enrichmentItems,
+                  ),
+                  icon: const Icon(Icons.check_outlined, size: 16),
+                  label: const Text('应用'),
+                  style: FilledButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              TextButton(onPressed: onDismiss, child: const Text('忽略')),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _canApplyPreview(
+    WorkflowTask task,
+    AsyncValue<AssetGenerationRun?> assetRun,
+    AsyncValue<List<ChapterEnrichmentItem>> enrichmentItems,
+  ) {
+    return switch (task.kind) {
+      assetGenerationWorkflowTaskKind =>
+        assetRun.hasValue &&
+            assetRun.value?.draftMarkdown.trim().isNotEmpty == true,
+      chapterEnrichmentWorkflowTaskKind =>
+        enrichmentItems.hasValue &&
+            enrichmentItems.value?.any(
+                  (item) =>
+                      item.status == ChapterEnrichmentItemStatus.generated &&
+                      item.generatedContentMarkdown.trim().isNotEmpty,
+                ) ==
+                true,
+      _ => false,
+    };
+  }
+
+  Future<void> _applyPreview(
+    BuildContext context,
+    WidgetRef ref,
+    WorkflowTask task,
+    AsyncValue<AssetGenerationRun?> assetRun,
+    AsyncValue<List<ChapterEnrichmentItem>> enrichmentItems,
+  ) async {
+    try {
+      switch (task.kind) {
+        case assetGenerationWorkflowTaskKind:
+          final run = assetRun.value;
+          if (run == null || run.draftMarkdown.trim().isEmpty) return;
+          await ref
+              .read(novelWorkshopControllerProvider.notifier)
+              .applyAssetDraft(run.id);
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('资产草稿已应用。')));
+        case chapterEnrichmentWorkflowTaskKind:
+          final ids = enrichmentItems.value
+              ?.where(
+                (item) =>
+                    item.status == ChapterEnrichmentItemStatus.generated &&
+                    item.generatedContentMarkdown.trim().isNotEmpty,
+              )
+              .map((item) => item.id)
+              .toList(growable: false);
+          if (ids == null || ids.isEmpty) return;
+          await ref
+              .read(novelWorkshopControllerProvider.notifier)
+              .applyChapterEnrichmentItems(ids);
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('已应用 ${ids.length} 个加料结果。')));
+        default:
+          return;
+      }
+    } on Object catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('应用失败：$error')));
+    }
   }
 }
 
@@ -311,6 +533,19 @@ class _WorkflowRunRowState extends ConsumerState<_WorkflowRunRow> {
                     _WorkflowDetailState(run: plotRun),
                     const SizedBox(width: 14),
                   ],
+                  if (_canAbandon(widget.item)) ...[
+                    OutlinedButton.icon(
+                      onPressed: () => _confirmAbandon(context),
+                      icon: const Icon(Icons.cancel_outlined, size: 16),
+                      label: const Text('放弃'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: colorScheme.error,
+                        side: BorderSide(color: colorScheme.error),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                  ],
                   Text(
                     _formatRunTime(widget.item.updatedAt),
                     style: textTheme.labelMedium?.copyWith(
@@ -334,6 +569,44 @@ class _WorkflowRunRowState extends ConsumerState<_WorkflowRunRow> {
         ),
       ),
     );
+  }
+
+  Future<void> _confirmAbandon(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('放弃任务'),
+        content: Text('将终止「${widget.item.title}」并清空该任务尚未应用的产出。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(context).pop(true),
+            icon: const Icon(Icons.cancel_outlined, size: 18),
+            label: const Text('放弃任务'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+    try {
+      await ref
+          .read(workflowTaskControllerProvider.notifier)
+          .abandon(widget.item.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        this.context,
+      ).showSnackBar(const SnackBar(content: Text('任务已放弃。')));
+    } on Object catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        this.context,
+      ).showSnackBar(SnackBar(content: Text('放弃失败：$error')));
+    }
   }
 }
 
@@ -448,6 +721,12 @@ class _WorkflowRunDetailScaffoldState
     final assetRun = task.kind == assetGenerationWorkflowTaskKind
         ? ref.watch(assetGenerationRunByWorkflowTaskProvider(task.id))
         : const AsyncValue<AssetGenerationRun?>.data(null);
+    final chapterRun = task.kind == chapterGenerationWorkflowTaskKind
+        ? ref.watch(chapterGenerationRunByWorkflowTaskProvider(task.id))
+        : const AsyncValue<ChapterGenerationRun?>.data(null);
+    final enrichmentBatch = task.kind == chapterEnrichmentWorkflowTaskKind
+        ? ref.watch(chapterEnrichmentBatchByWorkflowTaskProvider(task.id))
+        : const AsyncValue<ChapterEnrichmentBatch?>.data(null);
     final statusColor = _statusColor(
       Theme.of(context).colorScheme,
       task.status,
@@ -465,6 +744,13 @@ class _WorkflowRunDetailScaffoldState
           task: task,
           statusColor: statusColor,
           businessDetailPath: businessDetailPath,
+          onAbandon: _canAbandon(task) ? () => _confirmAbandon(task) : null,
+        ),
+        _WorkflowOutputPreviewPanel(
+          task: task,
+          assetRun: assetRun,
+          chapterRun: chapterRun,
+          enrichmentBatch: enrichmentBatch,
         ),
         PersonaPanel(
           padding: EdgeInsets.zero,
@@ -543,6 +829,42 @@ class _WorkflowRunDetailScaffoldState
       context,
     ).showSnackBar(const SnackBar(content: Text('Prompt Trace 已复制。')));
   }
+
+  Future<void> _confirmAbandon(WorkflowTask task) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('放弃任务'),
+        content: Text('将终止「${task.title}」并清空该任务尚未应用的产出。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(context).pop(true),
+            icon: const Icon(Icons.cancel_outlined, size: 18),
+            label: const Text('放弃任务'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+    try {
+      await ref.read(workflowTaskControllerProvider.notifier).abandon(task.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('任务已放弃。')));
+    } on Object catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('放弃失败：$error')));
+    }
+  }
 }
 
 enum _TraceMode { rendered, raw }
@@ -552,11 +874,13 @@ class _WorkflowDetailHeader extends StatelessWidget {
     required this.task,
     required this.statusColor,
     required this.businessDetailPath,
+    required this.onAbandon,
   });
 
   final WorkflowTask task;
   final Color statusColor;
   final String? businessDetailPath;
+  final VoidCallback? onAbandon;
 
   @override
   Widget build(BuildContext context) {
@@ -593,6 +917,18 @@ class _WorkflowDetailHeader extends StatelessWidget {
                 icon: const Icon(Icons.arrow_back_outlined),
                 label: const Text('返回任务列表'),
               ),
+              if (onAbandon != null) ...[
+                const SizedBox(width: 10),
+                OutlinedButton.icon(
+                  onPressed: onAbandon,
+                  icon: const Icon(Icons.cancel_outlined),
+                  label: const Text('放弃任务'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: colorScheme.error,
+                    side: BorderSide(color: colorScheme.error),
+                  ),
+                ),
+              ],
               if (businessDetailPath != null) ...[
                 const SizedBox(width: 10),
                 FilledButton.icon(
@@ -712,6 +1048,486 @@ class _MetaDot extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
       child: Icon(Icons.circle, size: 4, color: color.withValues(alpha: 0.4)),
+    );
+  }
+}
+
+class _WorkflowOutputPreviewPanel extends ConsumerWidget {
+  const _WorkflowOutputPreviewPanel({
+    required this.task,
+    required this.assetRun,
+    required this.chapterRun,
+    required this.enrichmentBatch,
+  });
+
+  final WorkflowTask task;
+  final AsyncValue<AssetGenerationRun?> assetRun;
+  final AsyncValue<ChapterGenerationRun?> chapterRun;
+  final AsyncValue<ChapterEnrichmentBatch?> enrichmentBatch;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!_hasWorkflowPreview(task.kind)) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: PersonaPanel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const PersonaSectionHeader(
+              title: '任务产出预览',
+              description: '查看并处理该任务生成的可审阅内容。',
+            ),
+            const SizedBox(height: 12),
+            if (task.status == WorkflowTaskStatus.abandoned)
+              const PersonaEmptyStateCard(
+                icon: Icons.cancel_outlined,
+                title: '任务已放弃',
+                description: '该任务尚未应用的草稿、预览和 trace 已清空。',
+              )
+            else
+              switch (task.kind) {
+                assetGenerationWorkflowTaskKind => _AssetWorkflowOutputPreview(
+                  run: assetRun,
+                ),
+                chapterGenerationWorkflowTaskKind =>
+                  _ChapterWorkflowOutputPreview(run: chapterRun),
+                chapterEnrichmentWorkflowTaskKind =>
+                  _EnrichmentWorkflowOutputPreview(batch: enrichmentBatch),
+                _ => const SizedBox.shrink(),
+              },
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AssetWorkflowOutputPreview extends ConsumerWidget {
+  const _AssetWorkflowOutputPreview({required this.run});
+
+  final AsyncValue<AssetGenerationRun?> run;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return run.when(
+      data: (item) {
+        if (item == null) {
+          return const PersonaEmptyStateCard(
+            icon: Icons.link_off_outlined,
+            title: '资产任务记录缺失',
+            description: '仍可在下方查看 Prompt Trace。',
+          );
+        }
+        final draft = item.draftMarkdown.trim();
+        if (draft.isEmpty) {
+          return const PersonaEmptyStateCard(
+            icon: Icons.rate_review_outlined,
+            title: '暂无资产草稿',
+            description: '该任务没有可应用的资产草稿，可继续查看 trace。',
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _PreviewMetadataRow(
+              children: [
+                _CompactMeta(label: '类型', value: _assetKindLabel(item.kind)),
+                _CompactMeta(label: '字符', value: '${draft.length}'),
+              ],
+            ),
+            const SizedBox(height: 10),
+            _PreviewMarkdownSurface(text: draft),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.icon(
+                onPressed: item.status == AssetGenerationStatus.applied
+                    ? null
+                    : () => _applyAssetDraft(context, ref, item.id),
+                icon: const Icon(Icons.check_outlined, size: 18),
+                label: Text(
+                  item.status == AssetGenerationStatus.applied ? '已应用' : '应用草稿',
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+      error: (error, stackTrace) => _InlineError(message: '无法加载资产草稿：$error'),
+      loading: () => const SkeletonBox(width: 260, height: 16),
+    );
+  }
+
+  Future<void> _applyAssetDraft(
+    BuildContext context,
+    WidgetRef ref,
+    String runId,
+  ) async {
+    try {
+      await ref
+          .read(novelWorkshopControllerProvider.notifier)
+          .applyAssetDraft(runId);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('资产草稿已应用。')));
+    } on Object catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('应用失败：$error')));
+    }
+  }
+}
+
+class _ChapterWorkflowOutputPreview extends StatelessWidget {
+  const _ChapterWorkflowOutputPreview({required this.run});
+
+  final AsyncValue<ChapterGenerationRun?> run;
+
+  @override
+  Widget build(BuildContext context) {
+    return run.when(
+      data: (item) {
+        if (item == null) {
+          return const PersonaEmptyStateCard(
+            icon: Icons.link_off_outlined,
+            title: '章节生成记录缺失',
+            description: '仍可在下方查看 Prompt Trace。',
+          );
+        }
+        final draft = item.draftMarkdown.trim();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _PreviewMetadataRow(
+              children: [
+                _CompactMeta(label: '连续性', value: item.continuityVerdict.name),
+                if (item.chapterId != null)
+                  _CompactMeta(label: '章节', value: item.chapterId!),
+                _CompactMeta(label: '字符', value: '${draft.length}'),
+              ],
+            ),
+            if (draft.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              _PreviewMarkdownSurface(text: draft),
+            ] else
+              const PersonaEmptyStateCard(
+                icon: Icons.article_outlined,
+                title: '章节已生成',
+                description: '正文已写入章节记录，可从项目工作台进入编辑器查看。',
+              ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: OutlinedButton.icon(
+                onPressed: () =>
+                    context.go('/projects/${item.projectId}/workshop/editor'),
+                icon: const Icon(Icons.edit_note_outlined, size: 18),
+                label: const Text('打开生成章节'),
+              ),
+            ),
+          ],
+        );
+      },
+      error: (error, stackTrace) => _InlineError(message: '无法加载章节结果：$error'),
+      loading: () => const SkeletonBox(width: 260, height: 16),
+    );
+  }
+}
+
+class _EnrichmentWorkflowOutputPreview extends ConsumerWidget {
+  const _EnrichmentWorkflowOutputPreview({required this.batch});
+
+  final AsyncValue<ChapterEnrichmentBatch?> batch;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return batch.when(
+      data: (item) {
+        if (item == null) {
+          return const PersonaEmptyStateCard(
+            icon: Icons.link_off_outlined,
+            title: '加料批次缺失',
+            description: '仍可在下方查看 Prompt Trace。',
+          );
+        }
+        final items = ref.watch(chapterEnrichmentItemsProvider(item.id));
+        return items.when(
+          data: (itemList) {
+            final generated = itemList
+                .where(
+                  (item) =>
+                      item.status == ChapterEnrichmentItemStatus.generated &&
+                      item.generatedContentMarkdown.trim().isNotEmpty,
+                )
+                .toList(growable: false);
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _PreviewMetadataRow(
+                  children: [
+                    _CompactMeta(label: '总数', value: '${item.totalCount}'),
+                    _CompactMeta(label: '预览', value: '${item.generatedCount}'),
+                    _CompactMeta(label: '已应用', value: '${item.appliedCount}'),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                if (itemList.isEmpty)
+                  const PersonaEmptyStateCard(
+                    icon: Icons.library_add_check_outlined,
+                    title: '暂无加料条目',
+                    description: '该批次没有可展示的逐项预览。',
+                  )
+                else
+                  Column(
+                    children: [
+                      for (final entry in itemList)
+                        _EnrichmentOutputTile(item: entry),
+                    ],
+                  ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: FilledButton.icon(
+                    onPressed: generated.isEmpty
+                        ? null
+                        : () => _applyGenerated(context, ref, generated),
+                    icon: const Icon(Icons.done_all_outlined, size: 18),
+                    label: const Text('应用全部可用预览'),
+                  ),
+                ),
+              ],
+            );
+          },
+          error: (error, stackTrace) =>
+              _InlineError(message: '无法加载加料条目：$error'),
+          loading: () => const SkeletonBox(width: 260, height: 16),
+        );
+      },
+      error: (error, stackTrace) => _InlineError(message: '无法加载加料批次：$error'),
+      loading: () => const SkeletonBox(width: 260, height: 16),
+    );
+  }
+
+  Future<void> _applyGenerated(
+    BuildContext context,
+    WidgetRef ref,
+    List<ChapterEnrichmentItem> items,
+  ) async {
+    try {
+      await ref
+          .read(novelWorkshopControllerProvider.notifier)
+          .applyChapterEnrichmentItems(
+            items.map((item) => item.id).toList(growable: false),
+          );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('已应用 ${items.length} 个加料结果。')));
+    } on Object catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('应用失败：$error')));
+    }
+  }
+}
+
+class _EnrichmentOutputTile extends ConsumerWidget {
+  const _EnrichmentOutputTile({required this.item});
+
+  final ChapterEnrichmentItem item;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final canApply =
+        item.status == ChapterEnrichmentItemStatus.generated &&
+        item.generatedContentMarkdown.trim().isNotEmpty;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border.all(color: colorScheme.outlineVariant),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '章节 ${item.position + 1}',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                  ),
+                  PersonaStatusPill(
+                    label: _enrichmentItemStatusLabel(item.status),
+                    icon: _enrichmentItemStatusIcon(item.status),
+                    color: _enrichmentItemStatusColor(colorScheme, item.status),
+                  ),
+                ],
+              ),
+              if (item.generatedContentMarkdown.trim().isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  item.generatedContentMarkdown.trim(),
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+              if (canApply) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Wrap(
+                    spacing: 8,
+                    children: [
+                      TextButton.icon(
+                        onPressed: () => _deleteItem(context, ref, item.id),
+                        icon: const Icon(Icons.delete_outline, size: 18),
+                        label: const Text('忽略'),
+                      ),
+                      FilledButton.icon(
+                        onPressed: () => _applyItem(context, ref, item.id),
+                        icon: const Icon(Icons.check_outlined, size: 18),
+                        label: const Text('应用'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _applyItem(
+    BuildContext context,
+    WidgetRef ref,
+    String itemId,
+  ) async {
+    try {
+      await ref
+          .read(novelWorkshopControllerProvider.notifier)
+          .applyChapterEnrichmentItem(itemId);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('加料结果已应用。')));
+    } on Object catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('应用失败：$error')));
+    }
+  }
+
+  Future<void> _deleteItem(
+    BuildContext context,
+    WidgetRef ref,
+    String itemId,
+  ) async {
+    try {
+      await ref
+          .read(novelWorkshopControllerProvider.notifier)
+          .deleteChapterEnrichmentItem(itemId);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('加料结果已忽略。')));
+    } on Object catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('忽略失败：$error')));
+    }
+  }
+}
+
+class _PreviewMetadataRow extends StatelessWidget {
+  const _PreviewMetadataRow({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(spacing: 12, runSpacing: 8, children: children);
+  }
+}
+
+class _PreviewMarkdownSurface extends StatelessWidget {
+  const _PreviewMarkdownSurface({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 360),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(14),
+          child: SelectableText(
+            text,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(height: 1.55),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InlineError extends StatelessWidget {
+  const _InlineError({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.errorContainer.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorScheme.error.withValues(alpha: 0.2)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Icon(Icons.error_outline, size: 18, color: colorScheme.error),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                message,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: colorScheme.error),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1496,6 +2312,7 @@ Color _statusColor(ColorScheme colorScheme, WorkflowTaskStatus status) {
     WorkflowTaskStatus.failed => colorScheme.error,
     WorkflowTaskStatus.succeeded => const Color(0xFF16825D),
     WorkflowTaskStatus.pending => colorScheme.tertiary,
+    WorkflowTaskStatus.abandoned => colorScheme.onSurfaceVariant,
   };
 }
 
@@ -1505,6 +2322,7 @@ IconData _statusIcon(WorkflowTaskStatus status) {
     WorkflowTaskStatus.failed => Icons.error_outline,
     WorkflowTaskStatus.succeeded => Icons.check_circle_outline,
     WorkflowTaskStatus.pending => Icons.schedule,
+    WorkflowTaskStatus.abandoned => Icons.cancel_outlined,
   };
 }
 
@@ -1514,6 +2332,107 @@ String _statusLabel(WorkflowTaskStatus status) {
     WorkflowTaskStatus.failed => '失败',
     WorkflowTaskStatus.succeeded => '完成',
     WorkflowTaskStatus.pending => '排队中',
+    WorkflowTaskStatus.abandoned => '已放弃',
+  };
+}
+
+bool _canAbandon(WorkflowTask task) {
+  return task.status == WorkflowTaskStatus.pending ||
+      task.status == WorkflowTaskStatus.running;
+}
+
+bool _hasWorkflowPreview(String kind) {
+  return kind == assetGenerationWorkflowTaskKind ||
+      kind == chapterGenerationWorkflowTaskKind ||
+      kind == chapterEnrichmentWorkflowTaskKind;
+}
+
+IconData _previewIcon(String kind) {
+  return switch (kind) {
+    assetGenerationWorkflowTaskKind => Icons.rate_review_outlined,
+    chapterGenerationWorkflowTaskKind => Icons.article_outlined,
+    chapterEnrichmentWorkflowTaskKind => Icons.library_add_check_outlined,
+    _ => Icons.visibility_outlined,
+  };
+}
+
+String _assetKindLabel(AssetGenerationKind kind) {
+  return switch (kind) {
+    AssetGenerationKind.worldBuilding => '世界观设定',
+    AssetGenerationKind.charactersBlueprint => '角色索引与关系网',
+    AssetGenerationKind.outlineMaster => '总纲',
+    AssetGenerationKind.volumeBlueprintYaml => '分卷蓝图',
+    AssetGenerationKind.outlineDetailYaml => '章节细纲',
+  };
+}
+
+String _enrichmentItemStatusLabel(ChapterEnrichmentItemStatus status) {
+  return switch (status) {
+    ChapterEnrichmentItemStatus.waiting => '等待中',
+    ChapterEnrichmentItemStatus.running => '加料中',
+    ChapterEnrichmentItemStatus.generated => '待应用',
+    ChapterEnrichmentItemStatus.failed => '失败',
+    ChapterEnrichmentItemStatus.applied => '已应用',
+    ChapterEnrichmentItemStatus.abandoned => '已放弃',
+  };
+}
+
+IconData _enrichmentItemStatusIcon(ChapterEnrichmentItemStatus status) {
+  return switch (status) {
+    ChapterEnrichmentItemStatus.waiting => Icons.schedule_outlined,
+    ChapterEnrichmentItemStatus.running => Icons.sync,
+    ChapterEnrichmentItemStatus.generated => Icons.rate_review_outlined,
+    ChapterEnrichmentItemStatus.failed => Icons.error_outline,
+    ChapterEnrichmentItemStatus.applied => Icons.check_circle_outline,
+    ChapterEnrichmentItemStatus.abandoned => Icons.cancel_outlined,
+  };
+}
+
+Color _enrichmentItemStatusColor(
+  ColorScheme colorScheme,
+  ChapterEnrichmentItemStatus status,
+) {
+  return switch (status) {
+    ChapterEnrichmentItemStatus.waiting => colorScheme.onSurfaceVariant,
+    ChapterEnrichmentItemStatus.running => colorScheme.primary,
+    ChapterEnrichmentItemStatus.generated => const Color(0xFF16825D),
+    ChapterEnrichmentItemStatus.failed => colorScheme.error,
+    ChapterEnrichmentItemStatus.applied => colorScheme.primary,
+    ChapterEnrichmentItemStatus.abandoned => colorScheme.onSurfaceVariant,
+  };
+}
+
+String _previewSummary(
+  WorkflowTask task,
+  AsyncValue<AssetGenerationRun?> assetRun,
+  AsyncValue<ChapterGenerationRun?> chapterRun,
+  AsyncValue<ChapterEnrichmentBatch?> enrichmentBatch,
+) {
+  return switch (task.kind) {
+    assetGenerationWorkflowTaskKind => switch (assetRun) {
+      AsyncData(value: final run?) when run.draftMarkdown.trim().isNotEmpty =>
+        '资产草稿待审阅，${run.draftMarkdown.trim().length} 字符。',
+      AsyncData() => '资产任务已完成，可查看 Prompt Trace。',
+      AsyncLoading() => '正在定位资产草稿...',
+      AsyncError(:final error) => '资产草稿加载失败：$error',
+    },
+    chapterGenerationWorkflowTaskKind => switch (chapterRun) {
+      AsyncData(value: final run?) when run.chapterId != null =>
+        '章节已生成，可从任务详情跳转到生成记录。',
+      AsyncData(value: final run?) when run.draftMarkdown.trim().isNotEmpty =>
+        '章节草稿待检查，${run.draftMarkdown.trim().length} 字符。',
+      AsyncLoading() => '正在定位章节结果...',
+      AsyncError(:final error) => '章节结果加载失败：$error',
+      _ => '章节任务已完成。',
+    },
+    chapterEnrichmentWorkflowTaskKind => switch (enrichmentBatch) {
+      AsyncData(value: final batch?) =>
+        '章节加料完成：${batch.generatedCount} 个预览，${batch.appliedCount} 个已应用。',
+      AsyncLoading() => '正在定位加料预览...',
+      AsyncError(:final error) => '加料预览加载失败：$error',
+      _ => '章节加料任务已完成。',
+    },
+    _ => '任务已完成，可查看详情与 Prompt Trace。',
   };
 }
 

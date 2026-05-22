@@ -296,7 +296,7 @@ final class AssetGenerationPipelineProvider
 }
 
 String _$assetGenerationPipelineHash() =>
-    r'a2d34947184c75b139de59ca21b4029b6df0bce1';
+    r'f6c7d05e0ba8ec5b29dd3a1e73848b4c12f637a1';
 
 @ProviderFor(chapterGenerationPipeline)
 final chapterGenerationPipelineProvider = ChapterGenerationPipelineProvider._();
@@ -344,7 +344,7 @@ final class ChapterGenerationPipelineProvider
 }
 
 String _$chapterGenerationPipelineHash() =>
-    r'513f520ced447660fa47cbbfbcfe1fa2a73db7d8';
+    r'510fe0b051d2edef40f97e0787c2cda214a1b52f';
 
 @ProviderFor(chapterEnrichmentPipeline)
 final chapterEnrichmentPipelineProvider = ChapterEnrichmentPipelineProvider._();
@@ -392,7 +392,7 @@ final class ChapterEnrichmentPipelineProvider
 }
 
 String _$chapterEnrichmentPipelineHash() =>
-    r'9e4aa88f0dae8dafef52177d2af8dce357133471';
+    r'0088f597f8ea4a1959608fc508a970ee6ef3a5a2';
 
 @ProviderFor(novelImportParser)
 final novelImportParserProvider = NovelImportParserProvider._();
@@ -1601,6 +1601,90 @@ final class AssetGenerationRunByWorkflowTaskFamily extends $Family
 
   @override
   String toString() => r'assetGenerationRunByWorkflowTaskProvider';
+}
+
+@ProviderFor(chapterEnrichmentBatchByWorkflowTask)
+final chapterEnrichmentBatchByWorkflowTaskProvider =
+    ChapterEnrichmentBatchByWorkflowTaskFamily._();
+
+final class ChapterEnrichmentBatchByWorkflowTaskProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<ChapterEnrichmentBatch?>,
+          ChapterEnrichmentBatch?,
+          Stream<ChapterEnrichmentBatch?>
+        >
+    with
+        $FutureModifier<ChapterEnrichmentBatch?>,
+        $StreamProvider<ChapterEnrichmentBatch?> {
+  ChapterEnrichmentBatchByWorkflowTaskProvider._({
+    required ChapterEnrichmentBatchByWorkflowTaskFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'chapterEnrichmentBatchByWorkflowTaskProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() =>
+      _$chapterEnrichmentBatchByWorkflowTaskHash();
+
+  @override
+  String toString() {
+    return r'chapterEnrichmentBatchByWorkflowTaskProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<ChapterEnrichmentBatch?> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<ChapterEnrichmentBatch?> create(Ref ref) {
+    final argument = this.argument as String;
+    return chapterEnrichmentBatchByWorkflowTask(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ChapterEnrichmentBatchByWorkflowTaskProvider &&
+        other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$chapterEnrichmentBatchByWorkflowTaskHash() =>
+    r'3bcb7cec8b6485f05607a36157a68b685ac1d0f9';
+
+final class ChapterEnrichmentBatchByWorkflowTaskFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<ChapterEnrichmentBatch?>, String> {
+  ChapterEnrichmentBatchByWorkflowTaskFamily._()
+    : super(
+        retry: null,
+        name: r'chapterEnrichmentBatchByWorkflowTaskProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  ChapterEnrichmentBatchByWorkflowTaskProvider call(String workflowTaskId) =>
+      ChapterEnrichmentBatchByWorkflowTaskProvider._(
+        argument: workflowTaskId,
+        from: this,
+      );
+
+  @override
+  String toString() => r'chapterEnrichmentBatchByWorkflowTaskProvider';
 }
 
 @ProviderFor(projectRuntimeMemory)

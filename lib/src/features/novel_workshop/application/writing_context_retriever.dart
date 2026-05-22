@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../../../core/llm/application/markdown_completion_service.dart';
+import '../../../core/llm/domain/llm_cancellation.dart';
 import '../../../core/tasks/application/prompt_trace_recorder.dart';
 import '../../projects/domain/writing_project.dart';
 import '../../settings/domain/provider_config.dart';
@@ -32,6 +33,7 @@ class WritingContextRetriever {
     ProviderConfig? provider,
     String? modelName,
     PromptTraceRecorder? traceRecorder,
+    LlmCancellationToken? cancellationToken,
   }) async {
     final queryTerms = _queryTerms(
       project: project,
@@ -67,6 +69,7 @@ class WritingContextRetriever {
               promptTrace: traceRecorder?.config(
                 label: 'select_generation_context_$attempt',
               ),
+              cancellationToken: cancellationToken,
             ),
           );
           if (selector.hasSelection) {

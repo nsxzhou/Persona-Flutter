@@ -3,9 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:persona_flutter/src/core/database/app_database.dart';
 import 'package:persona_flutter/src/core/llm/application/llm_invocation_service.dart';
 import 'package:persona_flutter/src/core/llm/application/markdown_completion_service.dart';
+import 'package:persona_flutter/src/core/llm/domain/llm_cancellation.dart';
 import 'package:persona_flutter/src/core/llm/domain/llm_client.dart';
 import 'package:persona_flutter/src/core/llm/domain/llm_request.dart';
 import 'package:persona_flutter/src/core/llm/domain/llm_stream_event.dart';
+import 'package:persona_flutter/src/core/tasks/application/workflow_task_cancellation_registry.dart';
 import 'package:persona_flutter/src/core/tasks/data/drift_workflow_task_repository.dart';
 import 'package:persona_flutter/src/core/tasks/domain/workflow_task.dart';
 import 'package:persona_flutter/src/features/novel_workshop/application/asset_generation_pipeline.dart';
@@ -315,6 +317,110 @@ volumes:
         .first;
     expect(tasksAfter.length, tasksBefore.length);
   });
+
+  test('abandoning asset workflow clears draft and prompt trace', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final fixture = await _Fixture.create(
+      database,
+      llmClient: _StaticLlmClient('# 世界观\n\n雾港由七个港务家族控制。'),
+    );
+
+    final result = await fixture.pipeline.generateAsset(
+      projectId: fixture.project.id,
+      kind: AssetGenerationKind.worldBuilding,
+    );
+
+    await fixture.novelRepository.abandonWorkflowTask(result.workflowTaskId);
+
+    final run = await fixture.novelRepository.findAssetGenerationRun(
+      result.run.id,
+    );
+    expect(run!.status, AssetGenerationStatus.abandoned);
+    expect(run.draftMarkdown, isEmpty);
+
+    final task = await fixture.workflowRepository.findTask(
+      result.workflowTaskId,
+    );
+    expect(task!.status, WorkflowTaskStatus.abandoned);
+
+    final trace = await fixture.workflowRepository
+        .watchPromptTrace(result.workflowTaskId)
+        .first;
+    expect(trace, isNull);
+  });
+
+  test(
+    'abandoning applied asset workflow leaves applied records unchanged',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final fixture = await _Fixture.create(
+        database,
+        llmClient: _StaticLlmClient('# 世界观\n\n雾港由七个港务家族控制。'),
+      );
+
+      final result = await fixture.pipeline.generateAsset(
+        projectId: fixture.project.id,
+        kind: AssetGenerationKind.worldBuilding,
+      );
+      final applied = await fixture.novelRepository.applyAssetGenerationDraft(
+        result.run.id,
+      );
+
+      await fixture.novelRepository.abandonWorkflowTask(result.workflowTaskId);
+
+      final run = await fixture.novelRepository.findAssetGenerationRun(
+        result.run.id,
+      );
+      expect(run!.status, AssetGenerationStatus.applied);
+      expect(run.draftMarkdown, result.run.draftMarkdown);
+      expect(applied.worldBuildingMarkdown, result.run.draftMarkdown);
+
+      final task = await fixture.workflowRepository.findTask(
+        result.workflowTaskId,
+      );
+      expect(task!.status, WorkflowTaskStatus.succeeded);
+    },
+  );
+
+  test('cancelling registered asset workflow abandons run and task', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    late _Fixture fixture;
+    late WorkflowTaskCancellationRegistry registry;
+    fixture = await _Fixture.create(
+      database,
+      llmClient: _CancellingLlmClient(() {
+        fixture.workflowRepository.watchRecentTasks().first.then((tasks) {
+          registry.cancel(tasks.single.id);
+        });
+      }),
+      cancellationRegistryFactory: () {
+        registry = WorkflowTaskCancellationRegistry();
+        return registry;
+      },
+    );
+
+    await expectLater(
+      fixture.pipeline.generateAsset(
+        projectId: fixture.project.id,
+        kind: AssetGenerationKind.worldBuilding,
+      ),
+      throwsA(isA<LlmCancellationException>()),
+    );
+
+    final runs = await fixture.novelRepository
+        .watchAssetGenerationRuns(fixture.project.id)
+        .first;
+    expect(runs.single.status, AssetGenerationStatus.abandoned);
+    expect(runs.single.draftMarkdown, isEmpty);
+
+    final task = await fixture.workflowRepository.findTask(
+      runs.single.workflowTaskId,
+    );
+    expect(task!.status, WorkflowTaskStatus.abandoned);
+  });
 }
 
 class _Fixture {
@@ -334,6 +440,7 @@ class _Fixture {
     AppDatabase database, {
     required _StaticLlmClient llmClient,
     bool withPlotProfile = false,
+    WorkflowTaskCancellationRegistry Function()? cancellationRegistryFactory,
   }) async {
     final providerRepository = DriftProviderConfigRepository(database);
     await providerRepository.saveProvider(
@@ -386,6 +493,9 @@ class _Fixture {
         invocation: LlmInvocationService(client: llmClient),
       ),
       workflowTaskRepository: workflowRepository,
+      cancellationRegistry:
+          cancellationRegistryFactory?.call() ??
+          WorkflowTaskCancellationRegistry(),
     );
     return _Fixture(
       project: project,
@@ -442,6 +552,24 @@ class _StaticLlmClient implements LlmClient {
     required ProviderConfig provider,
     required LlmRequest request,
   }) async* {
+    yield LlmStreamDelta(output);
+    yield const LlmStreamDone();
+  }
+}
+
+class _CancellingLlmClient extends _StaticLlmClient {
+  _CancellingLlmClient(this.onStream) : super('# 世界观\n\n雾港。');
+
+  final void Function() onStream;
+
+  @override
+  Stream<LlmStreamEvent> streamChat({
+    required ProviderConfig provider,
+    required LlmRequest request,
+  }) async* {
+    onStream();
+    await Future<void>.delayed(Duration.zero);
+    request.cancellationToken?.throwIfCancelled();
     yield LlmStreamDelta(output);
     yield const LlmStreamDone();
   }

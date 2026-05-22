@@ -1,6 +1,8 @@
 import '../../../core/llm/application/markdown_completion_service.dart';
+import '../../../core/llm/domain/llm_cancellation.dart';
 import '../../../core/llm/domain/llm_error_utils.dart';
 import '../../../core/tasks/application/prompt_trace_recorder.dart';
+import '../../../core/tasks/application/workflow_task_cancellation_registry.dart';
 import '../../../core/tasks/application/workflow_task_repository.dart';
 import '../../projects/domain/project_repository.dart';
 import '../../projects/domain/writing_project.dart';
@@ -22,6 +24,7 @@ class AssetGenerationPipeline {
     required ProjectPromptAssetResolver promptAssetResolver,
     required MarkdownCompletionService completionService,
     required WorkflowTaskRepository workflowTaskRepository,
+    required WorkflowTaskCancellationRegistry cancellationRegistry,
     AssetGenerationPromptBuilder promptBuilder =
         const AssetGenerationPromptBuilder(),
     OutlineDetailParser outlineDetailParser = const OutlineDetailParser(),
@@ -33,6 +36,7 @@ class AssetGenerationPipeline {
        _promptAssetResolver = promptAssetResolver,
        _completionService = completionService,
        _workflowTaskRepository = workflowTaskRepository,
+       _cancellationRegistry = cancellationRegistry,
        _promptBuilder = promptBuilder,
        _outlineDetailParser = outlineDetailParser,
        _characterGraphParser = characterGraphParser,
@@ -44,6 +48,7 @@ class AssetGenerationPipeline {
   final ProjectPromptAssetResolver _promptAssetResolver;
   final MarkdownCompletionService _completionService;
   final WorkflowTaskRepository _workflowTaskRepository;
+  final WorkflowTaskCancellationRegistry _cancellationRegistry;
   final AssetGenerationPromptBuilder _promptBuilder;
   final OutlineDetailParser _outlineDetailParser;
   final CharacterGraphParser _characterGraphParser;
@@ -79,6 +84,9 @@ class AssetGenerationPipeline {
             volumeId: normalizedVolumeId,
           );
     var currentRun = run;
+    final cancellationToken = _cancellationRegistry.register(
+      run.workflowTaskId,
+    );
     var currentStage = currentRun.stage;
     final log = StringBuffer(currentRun.logs);
     ProviderConfig? resolvedProvider;
@@ -113,6 +121,7 @@ class AssetGenerationPipeline {
     }
 
     try {
+      cancellationToken.throwIfCancelled();
       final project = await _requireProject(projectId);
       final targetVolume = currentRun.targetVolumeId == null
           ? null
@@ -139,6 +148,7 @@ class AssetGenerationPipeline {
         modelName: modelName,
         startedAt: DateTime.now(),
       );
+      cancellationToken.throwIfCancelled();
 
       final bible = await _repository.ensureProjectBible(projectId);
       final assets = await _promptAssetResolver.resolve(projectId);
@@ -155,6 +165,7 @@ class AssetGenerationPipeline {
         AssetGenerationStage.generatingDraft,
         message: '阶段: 生成草稿。调用模型生成${_kindLabel(kind)}。',
       );
+      cancellationToken.throwIfCancelled();
 
       final generated = await _completionService.completeMarkdown(
         provider: provider,
@@ -166,7 +177,9 @@ class AssetGenerationPipeline {
             : 0.55,
         modelName: modelName,
         promptTrace: traceRecorder.config(label: 'generate_${kind.name}'),
+        cancellationToken: cancellationToken,
       );
+      cancellationToken.throwIfCancelled();
       final draft = _cleanDraft(generated);
       if (draft.trim().isEmpty) {
         throw StateError('模型返回了空资产草稿。');
@@ -178,6 +191,7 @@ class AssetGenerationPipeline {
         AssetGenerationStage.savingDraft,
         message: '阶段: 保存草稿。等待人工审阅确认。',
       );
+      cancellationToken.throwIfCancelled();
       await transition(
         AssetGenerationStatus.succeeded,
         null,
@@ -190,6 +204,9 @@ class AssetGenerationPipeline {
         run: currentRun,
         workflowTaskId: currentRun.workflowTaskId,
       );
+    } on LlmCancellationException {
+      await _repository.abandonWorkflowTask(currentRun.workflowTaskId);
+      rethrow;
     } on Object catch (error) {
       await transition(
         AssetGenerationStatus.failed,
@@ -199,6 +216,12 @@ class AssetGenerationPipeline {
         completedAt: DateTime.now(),
       );
       rethrow;
+    } finally {
+      _cancellationRegistry.unregister(
+        currentRun.workflowTaskId,
+        cancellationToken,
+      );
+      await cancellationToken.dispose();
     }
   }
 

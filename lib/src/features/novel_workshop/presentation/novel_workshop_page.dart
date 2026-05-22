@@ -1368,6 +1368,7 @@ Color _enrichmentItemStatusColor(
     ChapterEnrichmentItemStatus.generated => const Color(0xFF16825D),
     ChapterEnrichmentItemStatus.failed => colorScheme.error,
     ChapterEnrichmentItemStatus.applied => colorScheme.primary,
+    ChapterEnrichmentItemStatus.abandoned => colorScheme.onSurfaceVariant,
   };
 }
 
@@ -2194,6 +2195,7 @@ String _enrichmentBatchStatusLabel(ChapterEnrichmentBatchStatus status) {
     ChapterEnrichmentBatchStatus.succeeded => '已完成',
     ChapterEnrichmentBatchStatus.partialFailed => '部分失败',
     ChapterEnrichmentBatchStatus.failed => '失败',
+    ChapterEnrichmentBatchStatus.abandoned => '已放弃',
   };
 }
 
@@ -2204,6 +2206,7 @@ String _enrichmentItemStatusLabel(ChapterEnrichmentItemStatus status) {
     ChapterEnrichmentItemStatus.generated => '待应用',
     ChapterEnrichmentItemStatus.failed => '失败',
     ChapterEnrichmentItemStatus.applied => '已应用',
+    ChapterEnrichmentItemStatus.abandoned => '已放弃',
   };
 }
 
@@ -10039,6 +10042,7 @@ IconData _runIcon(ChapterGenerationStatus status) {
     ChapterGenerationStatus.running => Icons.sync,
     ChapterGenerationStatus.succeeded => Icons.check_circle_outline,
     ChapterGenerationStatus.failed => Icons.error_outline,
+    ChapterGenerationStatus.abandoned => Icons.cancel_outlined,
   };
 }
 
@@ -10049,6 +10053,7 @@ Color _runColor(BuildContext context, ChapterGenerationStatus status) {
     ChapterGenerationStatus.running => colorScheme.primary,
     ChapterGenerationStatus.succeeded => Colors.green,
     ChapterGenerationStatus.failed => colorScheme.error,
+    ChapterGenerationStatus.abandoned => colorScheme.onSurfaceVariant,
   };
 }
 
@@ -10058,6 +10063,7 @@ String _runStatusLabel(ChapterGenerationStatus status) {
     ChapterGenerationStatus.running => '运行中',
     ChapterGenerationStatus.succeeded => '成功',
     ChapterGenerationStatus.failed => '失败',
+    ChapterGenerationStatus.abandoned => '已放弃',
   };
 }
 
@@ -10067,6 +10073,7 @@ String _generationBatchStatusLabel(ChapterGenerationBatchStatus status) {
     ChapterGenerationBatchStatus.running => '生成中',
     ChapterGenerationBatchStatus.succeeded => '已完成',
     ChapterGenerationBatchStatus.failed => '已停止',
+    ChapterGenerationBatchStatus.abandoned => '已放弃',
   };
 }
 
@@ -10076,6 +10083,7 @@ IconData _generationBatchIcon(ChapterGenerationBatchStatus status) {
     ChapterGenerationBatchStatus.running => Icons.sync,
     ChapterGenerationBatchStatus.succeeded => Icons.check_circle_outline,
     ChapterGenerationBatchStatus.failed => Icons.error_outline,
+    ChapterGenerationBatchStatus.abandoned => Icons.cancel_outlined,
   };
 }
 
@@ -10089,6 +10097,7 @@ Color _generationBatchColor(
     ChapterGenerationBatchStatus.running => colorScheme.primary,
     ChapterGenerationBatchStatus.succeeded => Colors.green,
     ChapterGenerationBatchStatus.failed => colorScheme.error,
+    ChapterGenerationBatchStatus.abandoned => colorScheme.onSurfaceVariant,
   };
 }
 
@@ -10100,6 +10109,7 @@ String _generationBatchItemStatusLabel(
     ChapterGenerationBatchItemStatus.running => '处理中',
     ChapterGenerationBatchItemStatus.synced => '已闭环',
     ChapterGenerationBatchItemStatus.failed => '失败',
+    ChapterGenerationBatchItemStatus.abandoned => '已放弃',
   };
 }
 
@@ -10109,6 +10119,7 @@ IconData _generationBatchItemIcon(ChapterGenerationBatchItemStatus status) {
     ChapterGenerationBatchItemStatus.running => Icons.sync,
     ChapterGenerationBatchItemStatus.synced => Icons.check_circle_outline,
     ChapterGenerationBatchItemStatus.failed => Icons.error_outline,
+    ChapterGenerationBatchItemStatus.abandoned => Icons.cancel_outlined,
   };
 }
 
@@ -10122,6 +10133,7 @@ Color _generationBatchItemColor(
     ChapterGenerationBatchItemStatus.running => colorScheme.primary,
     ChapterGenerationBatchItemStatus.synced => Colors.green,
     ChapterGenerationBatchItemStatus.failed => colorScheme.error,
+    ChapterGenerationBatchItemStatus.abandoned => colorScheme.onSurfaceVariant,
   };
 }
 

@@ -274,3 +274,54 @@ Audit before chapter save; only `pass` and `warning` create or update a chapter,
 - Pipeline tests for successful sequential sync, project-level running-generation lockout, retry exhaustion, Patch-only retry, and stop idempotence.
 - Repository tests for batch/item persistence, counts, workflow task synchronization, and project-level running-generation lookup.
 - Widget tests for entry point, range selection, progress list, stop action, and failure details.
+
+## Scenario: Workflow task abandonment and LLM cancellation
+
+### 1. Scope / Trigger
+- Trigger: Any long-running workflow task that can be cancelled from Workflow Runs while an LLM request or Novel Workshop pipeline is active.
+- This is a cross-layer contract because UI commands, Riverpod controllers, task records, Novel Workshop run records, prompt traces, and request-scoped HTTP clients must agree on abandon semantics.
+
+### 2. Signatures
+- `WorkflowTaskStatus { pending, running, succeeded, failed, abandoned }`
+- `LlmRequest(..., LlmCancellationToken? cancellationToken)`; cancellation types live in `core/llm/domain/llm_cancellation.dart`.
+- `MarkdownCompletionService.completeMarkdown(..., LlmCancellationToken? cancellationToken)`
+- `WorkflowTaskCancellationRegistry.register(workflowTaskId)`, `cancel(workflowTaskId)`, `unregister(workflowTaskId, token)`
+- `WorkflowTaskRepository.abandonTask(String id)`
+- `NovelWorkshopRepository.abandonWorkflowTask(String workflowTaskId)`
+- `WorkflowTaskController.abandon(String taskId)`
+
+### 3. Contracts
+- Generic workflow abandonment may only transition `pending` or `running` tasks to `abandoned`.
+- Novel abandonment may only clean recoverable outputs for pending/running/non-applied work. Succeeded/applied records must remain intact.
+- Abandon clears recoverable outputs for that workflow task, including draft markdown, generated previews, logs, errors, and prompt trace.
+- Abandon must not implicitly roll back content already applied to project bible, chapter body, Runtime Memory, or other user-facing project state.
+- Pipelines must register one cancellation token per workflow task and pass it through every LLM boundary.
+- Pipelines must check cancellation before and after stage transitions and LLM calls. `LlmCancellationException` writes `abandoned`, not `failed`.
+- `LangChainLlmClient` must use a request-scoped `http.Client` only when a cancellation token is present, and cancellation must close only that scoped client, not a shared provider client.
+- `LlmRequest` is a domain contract, so its cancellation token type must not be defined in an application-layer file.
+
+### 4. Validation & Error Matrix
+- Unknown task id -> no-op.
+- Task already `succeeded`, `failed`, or `abandoned` -> do not overwrite status and do not delete trace through the generic repository path.
+- Asset run already `applied` -> do not mark run or workflow task abandoned.
+- Chapter generation has written a chapter -> do not delete the chapter during abandon.
+- Batch item already `synced` -> do not roll it back; waiting/running/failed items can become `abandoned`.
+- Enrichment item already `applied` -> do not roll it back; waiting/running/generated/failed items can become `abandoned`.
+- Cancellation during retry loop -> rethrow `LlmCancellationException` and do not perform further retries.
+
+### 5. Good/Base/Bad Cases
+- Good: User abandons a running asset generation, active HTTP request closes, draft and prompt trace clear, task and run show `abandoned`.
+- Base: User abandons a queued generic workflow task before any trace exists; task becomes `abandoned`.
+- Bad: Closing the global LLM HTTP client cancels unrelated concurrent tasks.
+- Bad: Abandoning an already applied asset changes it back to `abandoned` or clears accepted project bible content.
+
+### 6. Tests Required
+- Unit/pipeline tests for cancellation token propagation stopping retries and marking run/task `abandoned`.
+- Repository tests that asset/chapter/batch/enrichment abandon clears only recoverable outputs and preserves applied or synced outputs.
+- Widget tests that pending/running tasks expose abandon confirmation and abandoned tasks render `已放弃`.
+
+### 7. Wrong vs Correct
+#### Wrong
+Catch cancellation as a generic error and persist a failed task with the partial trace.
+#### Correct
+Catch `LlmCancellationException`, call `abandonWorkflowTask`, clear recoverable outputs, remove prompt trace, and rethrow cancellation to stop the pipeline.

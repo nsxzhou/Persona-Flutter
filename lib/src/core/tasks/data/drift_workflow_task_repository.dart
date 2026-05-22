@@ -44,6 +44,36 @@ class DriftWorkflowTaskRepository implements WorkflowTaskRepository {
   }
 
   @override
+  Future<void> abandonTask(String id) async {
+    final now = DateTime.now();
+    await _database.transaction(() async {
+      final updated =
+          await (_database.update(_database.workflowTaskRecords)..where(
+                (task) =>
+                    task.id.equals(id) &
+                    task.status.isIn([
+                      WorkflowTaskStatus.pending.name,
+                      WorkflowTaskStatus.running.name,
+                    ]),
+              ))
+              .write(
+                WorkflowTaskRecordsCompanion(
+                  status: Value(WorkflowTaskStatus.abandoned.name),
+                  stage: const Value(null),
+                  errorMessage: const Value(null),
+                  updatedAt: Value(now),
+                ),
+              );
+      if (updated == 0) {
+        return;
+      }
+      await (_database.delete(
+        _database.workflowPromptTraceRecords,
+      )..where((trace) => trace.workflowTaskId.equals(id))).go();
+    });
+  }
+
+  @override
   Stream<WorkflowPromptTrace?> watchPromptTrace(String workflowTaskId) {
     final query = _database.select(_database.workflowPromptTraceRecords)
       ..where((trace) => trace.workflowTaskId.equals(workflowTaskId))
