@@ -344,7 +344,7 @@ runtimeMemory:
 
     expect(find.text('待审阅记忆 Patch'), findsOneWidget);
     expect(find.text('旧摘要。'), findsOneWidget);
-    expect(find.text('新摘要。'), findsWidgets);
+    expect(find.text('diff -- runtimeMemory/storySummary'), findsOneWidget);
 
     await tester.ensureVisible(find.widgetWithText(FilledButton, '应用 Patch'));
     await tester.pumpAndSettle();
@@ -356,6 +356,128 @@ runtimeMemory:
     expect(find.text('待审阅记忆 Patch'), findsNothing);
     expect(find.text('旧摘要。'), findsNothing);
     expect(find.text('新摘要。'), findsWidgets);
+  });
+
+  testWidgets('pending memory patch shows partitioned diff preview', (
+    tester,
+  ) async {
+    const rawPatch = '''
+runtimeMemory:
+  storySummary: 新摘要。
+  chapterArchiveMarkdown: 新归档。
+characters:
+  - name: 林岚
+    currentStatus: 发现港务处新线索。
+  - name: 周既明
+    role: 线人
+    currentStatus: 暗中协助调查。
+relationships:
+  - from: 林岚
+    to: 周既明
+    type: 合作
+    strength: 3
+    status: 初步互信
+    description: 周既明向林岚交出港务处线索。
+''';
+    final fixture = _WorkshopFixture(
+      runtimeMemory: const RuntimeMemoryState(
+        storySummary: '旧摘要。',
+        chapterArchiveMarkdown: '旧归档。',
+      ),
+      characters: [
+        NovelCharacter(
+          id: 'character-1',
+          projectId: 'project-1',
+          name: '林岚',
+          aliases: '',
+          tags: '',
+          faction: '调查局',
+          role: '调查者',
+          longTermGoal: '查明失踪案。',
+          currentStatus: '抵达雾港。',
+          secrets: '',
+          firstChapterIndex: 1,
+          lastChapterIndex: null,
+          createdAt: _testCreatedAt,
+          updatedAt: _testUpdatedAt,
+        ),
+        NovelCharacter(
+          id: 'character-2',
+          projectId: 'project-1',
+          name: '周既明',
+          aliases: '',
+          tags: '',
+          faction: '港务处',
+          role: '线人',
+          longTermGoal: '保住自己的身份。',
+          currentStatus: '尚未接触林岚。',
+          secrets: '',
+          firstChapterIndex: 1,
+          lastChapterIndex: null,
+          createdAt: _testCreatedAt,
+          updatedAt: _testUpdatedAt,
+        ),
+      ],
+      relationships: [
+        NovelRelationship(
+          id: 'relationship-1',
+          projectId: 'project-1',
+          fromCharacterId: 'character-1',
+          toCharacterId: 'character-2',
+          relationshipType: '试探',
+          strength: 1,
+          status: '互相怀疑',
+          description: '林岚尚未确认周既明立场。',
+          lastChangedChapterIndex: 1,
+          createdAt: _testCreatedAt,
+          updatedAt: _testUpdatedAt,
+        ),
+      ],
+      chapters: [
+        _chapter(
+          planId: 'plan-1',
+          index: 1,
+          content: '正文。',
+          memorySyncStatus: MemorySyncStatus.pendingReview,
+          proposedMemory: const RuntimeMemoryState(
+            storySummary: '新摘要。',
+            chapterArchiveMarkdown: '新归档。',
+          ),
+          memorySyncPatchYaml: rawPatch,
+        ),
+      ],
+    );
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Runtime Memory').last);
+    await tester.tap(find.text('Runtime Memory').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Runtime Memory'), findsWidgets);
+    expect(find.text('Characters'), findsOneWidget);
+    expect(find.text('Relationships'), findsOneWidget);
+    expect(find.text('diff -- runtimeMemory/storySummary'), findsOneWidget);
+    expect(find.text('diff -- characters/林岚'), findsOneWidget);
+    expect(find.text('diff -- characters/周既明'), findsOneWidget);
+    expect(find.text('diff -- relationships/林岚 -> 周既明'), findsOneWidget);
+    expect(find.textContaining('+新归档。'), findsOneWidget);
+    expect(find.text('Raw YAML'), findsOneWidget);
+    expect(find.textContaining('runtimeMemory:'), findsNothing);
+    expect(find.byType(Checkbox), findsNothing);
+    expect(find.widgetWithText(FilledButton, '应用 Patch'), findsOneWidget);
+    expect(find.widgetWithText(OutlinedButton, '丢弃 Patch'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Raw YAML'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Raw YAML'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('runtimeMemory:'), findsOneWidget);
+    expect(find.textContaining('characters:'), findsOneWidget);
+    expect(find.textContaining('relationships:'), findsOneWidget);
   });
 
   testWidgets('runtime memory tab discards pending memory patch', (

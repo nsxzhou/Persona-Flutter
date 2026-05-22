@@ -128,3 +128,17 @@ Keep Provider management widgets in `features/settings/presentation/` and bind t
 Make Projects a generic card gallery or static placeholder wall after persistence exists.
 #### Correct
 Use a restrained writing-dossier layout: text-first list rows, compact status controls, and a detail page that reserves future workbench entry points without pretending they are implemented.
+
+## Scenario: Preview-first patch review surfaces
+
+### 1. Scope / Trigger
+- Trigger: A generated patch is pending user review before it mutates persisted writing state.
+- Keep preview composition in the feature presentation layer; do not change repository contracts just to support a richer read-only preview.
+
+### 2. Contracts
+- Review UI must show the effective result using the same merge semantics as the eventual apply path.
+- Raw machine payloads such as YAML should be available in a collapsed code block, not the primary preview.
+- If apply/discard is all-or-nothing, do not add row-level checkbox or partial-selection state in the preview.
+
+### 3. Tests Required
+- Widget tests should assert the visible preview sections, the collapsed raw payload behavior, and the absence of partial-selection controls.

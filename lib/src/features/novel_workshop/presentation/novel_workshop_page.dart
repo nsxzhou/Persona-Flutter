@@ -3,6 +3,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:diff_match_patch/diff_match_patch.dart' as dmp;
+import 'package:yaml/yaml.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/analysis_lab_widgets.dart';
@@ -19,6 +20,7 @@ import '../../settings/domain/provider_config.dart';
 import '../../style_lab/application/style_lab_providers.dart';
 import '../../style_lab/application/voice_profile_front_matter.dart';
 import '../../style_lab/domain/style_profile.dart';
+import '../application/character_graph_parser.dart';
 import '../application/novel_workshop_providers.dart';
 import '../application/outline_detail_parser.dart';
 import '../domain/novel_workshop.dart';
@@ -803,6 +805,8 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
               projectId: widget.project.id,
               memory: widget.memory,
               chapters: widget.chapters,
+              characters: widget.characters,
+              relationships: widget.relationships,
             ),
             _PromptStackTab(
               assets: widget.assets,
@@ -2281,11 +2285,15 @@ class _RuntimeMemoryTab extends ConsumerStatefulWidget {
     required this.projectId,
     required this.memory,
     required this.chapters,
+    required this.characters,
+    required this.relationships,
   });
 
   final String projectId;
   final AsyncValue<ProjectRuntimeMemory> memory;
   final List<ProjectChapter> chapters;
+  final AsyncValue<List<NovelCharacter>> characters;
+  final AsyncValue<List<NovelRelationship>> relationships;
 
   @override
   ConsumerState<_RuntimeMemoryTab> createState() => _RuntimeMemoryTabState();
@@ -2409,7 +2417,12 @@ class _RuntimeMemoryTabState extends ConsumerState<_RuntimeMemoryTab> {
                 ],
               ),
               const SizedBox(height: 20),
-              _MemoryPatchReviewList(chapters: widget.chapters),
+              _MemoryPatchReviewList(
+                memory: item.state,
+                chapters: widget.chapters,
+                characters: widget.characters,
+                relationships: widget.relationships,
+              ),
               const SizedBox(height: 16),
               if (isEmpty)
                 _buildEmptyState(context, item.state)
@@ -4596,9 +4609,17 @@ String _singleLine(String value) {
 }
 
 class _MemoryPatchReviewList extends ConsumerWidget {
-  const _MemoryPatchReviewList({required this.chapters});
+  const _MemoryPatchReviewList({
+    required this.memory,
+    required this.chapters,
+    required this.characters,
+    required this.relationships,
+  });
 
+  final RuntimeMemoryState memory;
   final List<ProjectChapter> chapters;
+  final AsyncValue<List<NovelCharacter>> characters;
+  final AsyncValue<List<NovelRelationship>> relationships;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -4612,6 +4633,12 @@ class _MemoryPatchReviewList extends ConsumerWidget {
       return const SizedBox.shrink();
     }
     final controllerState = ref.watch(novelWorkshopControllerProvider);
+    final currentCharacters = characters.hasValue
+        ? characters.value!
+        : const <NovelCharacter>[];
+    final currentRelationships = relationships.hasValue
+        ? relationships.value!
+        : const <NovelRelationship>[];
     return PersonaPanel(
       padding: const EdgeInsets.all(14),
       child: Column(
@@ -4641,15 +4668,15 @@ class _MemoryPatchReviewList extends ConsumerWidget {
                         '第 ${chapter.chapterIndex} 章 · ${chapter.title}',
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
-                      if (chapter.memorySyncPatchYaml.trim().isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        SelectableText(
-                          chapter.memorySyncPatchYaml,
-                          style: const TextStyle(fontFamily: 'monospace'),
-                        ),
-                      ],
                       const SizedBox(height: 8),
-                      _RuntimeMemoryProposalPreview(chapter: chapter),
+                      _MemoryPatchDiffPreview(
+                        preview: _buildMemoryPatchPreview(
+                          chapter: chapter,
+                          memory: memory,
+                          characters: currentCharacters,
+                          relationships: currentRelationships,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       Wrap(
                         alignment: WrapAlignment.end,
@@ -4725,52 +4752,127 @@ class _MemoryPatchReviewList extends ConsumerWidget {
   }
 }
 
-class _RuntimeMemoryProposalPreview extends StatelessWidget {
-  const _RuntimeMemoryProposalPreview({required this.chapter});
+class _MemoryPatchDiffPreview extends StatelessWidget {
+  const _MemoryPatchDiffPreview({required this.preview});
 
-  final ProjectChapter chapter;
+  final _MemoryPatchPreview preview;
 
   @override
   Widget build(BuildContext context) {
-    final fields = [
-      ('运行状态', chapter.memorySyncProposedRuntimeState),
-      ('剧情线索', chapter.memorySyncProposedRuntimeThreads),
-      ('故事摘要', chapter.memorySyncProposedStorySummary),
-      ('连续性索引', chapter.memorySyncProposedContinuityIndex),
-      ('章节归档', chapter.memorySyncProposedChapterArchiveMarkdown),
-    ].where((field) => field.$2.trim().isNotEmpty).toList(growable: false);
-    if (fields.isEmpty) {
-      return const SizedBox.shrink();
-    }
     final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Runtime Memory 提案',
-              style: textTheme.labelLarge?.copyWith(
-                color: colorScheme.onSurfaceVariant,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (preview.parseError != null) ...[
+          InlineError(message: preview.parseError!),
+          const SizedBox(height: 8),
+        ],
+        _PatchDiffSectionView(section: preview.runtimeMemorySection),
+        const SizedBox(height: 8),
+        _PatchDiffSectionView(section: preview.charactersSection),
+        const SizedBox(height: 8),
+        _PatchDiffSectionView(section: preview.relationshipsSection),
+        if (preview.rawYaml.trim().isNotEmpty) ...[
+          const SizedBox(height: 8),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border.all(color: colorScheme.outlineVariant),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                dividerColor: Colors.transparent,
+                splashColor: Colors.transparent,
+              ),
+              child: ExpansionTile(
+                tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+                childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                leading: const Icon(Icons.code_outlined, size: 18),
+                title: const Text('Raw YAML'),
+                children: [CodeBlock(text: preview.rawYaml, expand: true)],
               ),
             ),
-            const SizedBox(height: 8),
-            for (final field in fields)
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _PatchDiffSectionView extends StatelessWidget {
+  const _PatchDiffSectionView({required this.section});
+
+  final _PatchDiffSection section;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final hasChanges = section.entries.isNotEmpty;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        border: Border.all(color: colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ColoredBox(
+              color: colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.28,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 9),
+                child: Row(
+                  children: [
+                    Icon(
+                      section.icon,
+                      size: 17,
+                      color: hasChanges
+                          ? colorScheme.primary
+                          : colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(section.title, style: textTheme.titleSmall),
+                    ),
+                    _DiffStatChip(
+                      label: hasChanges
+                          ? '${section.entries.length} 项变更'
+                          : '无变更',
+                      color: hasChanges
+                          ? colorScheme.primary
+                          : colorScheme.onSurfaceVariant,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (hasChanges)
               Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(field.$1, style: textTheme.labelMedium),
-                    const SizedBox(height: 3),
-                    SelectableText(field.$2),
+                    for (final entry in section.entries) ...[
+                      _PatchDiffEntryView(entry: entry),
+                      if (entry != section.entries.last)
+                        const SizedBox(height: 10),
+                    ],
                   ],
+                ),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Text(
+                  '本分区没有待应用变更。',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
           ],
@@ -4778,6 +4880,597 @@ class _RuntimeMemoryProposalPreview extends StatelessWidget {
       ),
     );
   }
+}
+
+class _PatchDiffEntryView extends StatelessWidget {
+  const _PatchDiffEntryView({required this.entry});
+
+  final _PatchDiffEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SelectableText(
+          'diff -- ${entry.title}',
+          style: textTheme.labelMedium?.copyWith(
+            fontFamily: 'monospace',
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 4),
+        _GitDiffBlock(oldText: entry.oldText, newText: entry.newText),
+      ],
+    );
+  }
+}
+
+class _GitDiffBlock extends StatelessWidget {
+  const _GitDiffBlock({required this.oldText, required this.newText});
+
+  final String oldText;
+  final String newText;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final diffs = dmp.diff(
+      oldText.trim(),
+      newText.trim(),
+      timeout: 0.25,
+      checklines: true,
+    );
+    dmp.cleanupSemantic(diffs);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.22),
+        border: Border.all(color: colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.all(10),
+        child: SelectableText.rich(
+          TextSpan(
+            style: TextStyle(
+              color: colorScheme.onSurface,
+              fontFamily: 'monospace',
+              fontSize: 12.5,
+              height: 1.45,
+            ),
+            children: _buildGitDiffSpans(context, diffs),
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<TextSpan> _buildGitDiffSpans(
+    BuildContext context,
+    List<dmp.Diff> diffs,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final baseStyle = TextStyle(
+      color: colorScheme.onSurface,
+      fontFamily: 'monospace',
+      fontSize: 12.5,
+      height: 1.45,
+    );
+    final deleteStyle = baseStyle.copyWith(
+      backgroundColor: colorScheme.errorContainer.withValues(alpha: 0.55),
+      color: colorScheme.onErrorContainer,
+    );
+    final insertStyle = baseStyle.copyWith(
+      backgroundColor: const Color(0xFF16825D).withValues(alpha: 0.14),
+      color: colorScheme.onSurface,
+      fontWeight: FontWeight.w600,
+    );
+    final spans = <TextSpan>[];
+    for (final diff in diffs) {
+      final text = diff.text;
+      if (text.isEmpty) {
+        continue;
+      }
+      switch (diff.operation) {
+        case dmp.DIFF_EQUAL:
+          spans.add(
+            TextSpan(text: _prefixDiffText(text, ' '), style: baseStyle),
+          );
+        case dmp.DIFF_DELETE:
+          spans.add(
+            TextSpan(text: _prefixDiffText(text, '-'), style: deleteStyle),
+          );
+        case dmp.DIFF_INSERT:
+          spans.add(
+            TextSpan(text: _prefixDiffText(text, '+'), style: insertStyle),
+          );
+      }
+    }
+    if (spans.isEmpty) {
+      return [TextSpan(text: ' 无内容', style: baseStyle)];
+    }
+    return spans;
+  }
+}
+
+String _prefixDiffText(String value, String prefix) {
+  final normalized = value.replaceAll('\r\n', '\n');
+  final trailingNewline = normalized.endsWith('\n');
+  final lines = normalized.split('\n');
+  if (trailingNewline) {
+    lines.removeLast();
+  }
+  final joined = lines.map((line) => '$prefix$line').join('\n');
+  return trailingNewline ? '$joined\n' : joined;
+}
+
+class _MemoryPatchPreview {
+  const _MemoryPatchPreview({
+    required this.runtimeMemorySection,
+    required this.charactersSection,
+    required this.relationshipsSection,
+    required this.rawYaml,
+    this.parseError,
+  });
+
+  final _PatchDiffSection runtimeMemorySection;
+  final _PatchDiffSection charactersSection;
+  final _PatchDiffSection relationshipsSection;
+  final String rawYaml;
+  final String? parseError;
+}
+
+class _PatchDiffSection {
+  const _PatchDiffSection({
+    required this.title,
+    required this.icon,
+    required this.entries,
+  });
+
+  final String title;
+  final IconData icon;
+  final List<_PatchDiffEntry> entries;
+}
+
+class _PatchDiffEntry {
+  const _PatchDiffEntry({
+    required this.title,
+    required this.oldText,
+    required this.newText,
+  });
+
+  final String title;
+  final String oldText;
+  final String newText;
+}
+
+class _PreviewCharacter {
+  const _PreviewCharacter({
+    required this.name,
+    required this.aliases,
+    required this.tags,
+    required this.faction,
+    required this.role,
+    required this.longTermGoal,
+    required this.currentStatus,
+    required this.secrets,
+    required this.firstChapterIndex,
+    required this.lastChapterIndex,
+  });
+
+  factory _PreviewCharacter.fromCharacter(NovelCharacter character) {
+    return _PreviewCharacter(
+      name: character.name,
+      aliases: character.aliases,
+      tags: character.tags,
+      faction: character.faction,
+      role: character.role,
+      longTermGoal: character.longTermGoal,
+      currentStatus: character.currentStatus,
+      secrets: character.secrets,
+      firstChapterIndex: character.firstChapterIndex,
+      lastChapterIndex: character.lastChapterIndex,
+    );
+  }
+
+  final String name;
+  final String aliases;
+  final String tags;
+  final String faction;
+  final String role;
+  final String longTermGoal;
+  final String currentStatus;
+  final String secrets;
+  final int? firstChapterIndex;
+  final int? lastChapterIndex;
+
+  _PreviewCharacter merge(CharacterDraft draft) {
+    return _PreviewCharacter(
+      name: name,
+      aliases: _mergePatchString(
+        draft.fields,
+        'aliases',
+        draft.aliases,
+        aliases,
+      ),
+      tags: _mergePatchString(draft.fields, 'tags', draft.tags, tags),
+      faction: _mergePatchString(
+        draft.fields,
+        'faction',
+        draft.faction,
+        faction,
+      ),
+      role: _mergePatchString(draft.fields, 'role', draft.role, role),
+      longTermGoal: _mergePatchString(
+        draft.fields,
+        'longTermGoal',
+        draft.longTermGoal,
+        longTermGoal,
+      ),
+      currentStatus: _mergePatchString(
+        draft.fields,
+        'currentStatus',
+        draft.currentStatus,
+        currentStatus,
+      ),
+      secrets: _mergePatchString(
+        draft.fields,
+        'secrets',
+        draft.secrets,
+        secrets,
+      ),
+      firstChapterIndex: _mergePatchInt(
+        draft.fields,
+        'firstChapterIndex',
+        draft.firstChapterIndex,
+        firstChapterIndex,
+      ),
+      lastChapterIndex: _mergePatchInt(
+        draft.fields,
+        'lastChapterIndex',
+        draft.lastChapterIndex,
+        lastChapterIndex,
+      ),
+    );
+  }
+
+  String toDiffText() {
+    return _formatPatchFields({
+      'name': name,
+      'aliases': aliases,
+      'tags': tags,
+      'faction': faction,
+      'role': role,
+      'longTermGoal': longTermGoal,
+      'currentStatus': currentStatus,
+      'secrets': secrets,
+      'firstChapterIndex': firstChapterIndex?.toString() ?? '',
+      'lastChapterIndex': lastChapterIndex?.toString() ?? '',
+    });
+  }
+}
+
+class _PreviewRelationship {
+  const _PreviewRelationship({
+    required this.fromName,
+    required this.toName,
+    required this.relationshipType,
+    required this.strength,
+    required this.status,
+    required this.description,
+    required this.lastChangedChapterIndex,
+  });
+
+  factory _PreviewRelationship.fromRelationship(
+    NovelRelationship relationship,
+    Map<String, NovelCharacter> charactersById,
+  ) {
+    return _PreviewRelationship(
+      fromName:
+          charactersById[relationship.fromCharacterId]?.name ??
+          relationship.fromCharacterId,
+      toName:
+          charactersById[relationship.toCharacterId]?.name ??
+          relationship.toCharacterId,
+      relationshipType: relationship.relationshipType,
+      strength: relationship.strength,
+      status: relationship.status,
+      description: relationship.description,
+      lastChangedChapterIndex: relationship.lastChangedChapterIndex,
+    );
+  }
+
+  final String fromName;
+  final String toName;
+  final String relationshipType;
+  final int strength;
+  final String status;
+  final String description;
+  final int? lastChangedChapterIndex;
+
+  String get key => _relationshipKey(fromName, toName);
+
+  _PreviewRelationship merge(RelationshipDraft draft) {
+    return _PreviewRelationship(
+      fromName: fromName,
+      toName: toName,
+      relationshipType: _mergePatchString(
+        draft.fields,
+        'type',
+        draft.relationshipType,
+        relationshipType,
+      ),
+      strength:
+          _mergePatchInt(
+            draft.fields,
+            'strength',
+            draft.strength.clamp(-5, 5),
+            strength,
+          ) ??
+          0,
+      status: _mergePatchString(draft.fields, 'status', draft.status, status),
+      description: _mergePatchString(
+        draft.fields,
+        'description',
+        draft.description,
+        description,
+      ),
+      lastChangedChapterIndex: _mergePatchInt(
+        draft.fields,
+        'lastChangedChapterIndex',
+        draft.lastChangedChapterIndex,
+        lastChangedChapterIndex,
+      ),
+    );
+  }
+
+  String toDiffText() {
+    return _formatPatchFields({
+      'from': fromName,
+      'to': toName,
+      'type': relationshipType,
+      'strength': strength.toString(),
+      'status': status,
+      'description': description,
+      'lastChangedChapterIndex': lastChangedChapterIndex?.toString() ?? '',
+    });
+  }
+}
+
+_MemoryPatchPreview _buildMemoryPatchPreview({
+  required ProjectChapter chapter,
+  required RuntimeMemoryState memory,
+  required List<NovelCharacter> characters,
+  required List<NovelRelationship> relationships,
+}) {
+  final rawYaml = chapter.memorySyncPatchYaml.trim();
+  CharacterGraphDocument? graphPatch;
+  String? parseError;
+  if (rawYaml.isNotEmpty) {
+    try {
+      if (_hasCharacterGraphPatchForPreview(rawYaml)) {
+        graphPatch = const CharacterGraphParser().parse(rawYaml);
+      }
+    } on CharacterGraphValidationException catch (error) {
+      parseError = error.message;
+    } on Object catch (error) {
+      parseError = '无法解析 Patch YAML：$error';
+    }
+  }
+  return _MemoryPatchPreview(
+    runtimeMemorySection: _buildRuntimeMemoryPatchSection(chapter, memory),
+    charactersSection: _buildCharacterPatchSection(
+      characters,
+      graphPatch?.characters ?? const [],
+    ),
+    relationshipsSection: _buildRelationshipPatchSection(
+      characters,
+      relationships,
+      graphPatch?.relationships ?? const [],
+    ),
+    rawYaml: rawYaml,
+    parseError: parseError,
+  );
+}
+
+bool _hasCharacterGraphPatchForPreview(String rawYaml) {
+  final parsed = loadYaml(rawYaml);
+  if (parsed is! YamlMap) {
+    throw const CharacterGraphValidationException('Patch YAML 根节点必须是对象。');
+  }
+  return _hasYamlListItems(parsed['characters']) ||
+      _hasYamlListItems(parsed['relationships']);
+}
+
+bool _hasYamlListItems(Object? value) {
+  if (value is YamlList) {
+    return value.isNotEmpty;
+  }
+  if (value is List<Object?>) {
+    return value.isNotEmpty;
+  }
+  return false;
+}
+
+_PatchDiffSection _buildRuntimeMemoryPatchSection(
+  ProjectChapter chapter,
+  RuntimeMemoryState current,
+) {
+  final entries = <_PatchDiffEntry>[
+    if (chapter.memorySyncProposedRuntimeState.trim().isNotEmpty)
+      _PatchDiffEntry(
+        title: 'runtimeMemory/runtimeState',
+        oldText: current.runtimeState,
+        newText: chapter.memorySyncProposedRuntimeState,
+      ),
+    if (chapter.memorySyncProposedRuntimeThreads.trim().isNotEmpty)
+      _PatchDiffEntry(
+        title: 'runtimeMemory/runtimeThreads',
+        oldText: current.runtimeThreads,
+        newText: chapter.memorySyncProposedRuntimeThreads,
+      ),
+    if (chapter.memorySyncProposedStorySummary.trim().isNotEmpty)
+      _PatchDiffEntry(
+        title: 'runtimeMemory/storySummary',
+        oldText: current.storySummary,
+        newText: chapter.memorySyncProposedStorySummary,
+      ),
+    if (chapter.memorySyncProposedContinuityIndex.trim().isNotEmpty)
+      _PatchDiffEntry(
+        title: 'runtimeMemory/continuityIndex',
+        oldText: current.continuityIndex,
+        newText: chapter.memorySyncProposedContinuityIndex,
+      ),
+    if (chapter.memorySyncProposedChapterArchiveMarkdown.trim().isNotEmpty)
+      _PatchDiffEntry(
+        title: 'runtimeMemory/chapterArchiveMarkdown',
+        oldText: current.chapterArchiveMarkdown,
+        newText: _mergeChapterArchivePreview(
+          current.chapterArchiveMarkdown,
+          chapter.memorySyncProposedChapterArchiveMarkdown,
+        ),
+      ),
+  ];
+  return _PatchDiffSection(
+    title: 'Runtime Memory',
+    icon: Icons.memory_outlined,
+    entries: entries.where((entry) => entry.oldText != entry.newText).toList(),
+  );
+}
+
+_PatchDiffSection _buildCharacterPatchSection(
+  List<NovelCharacter> currentCharacters,
+  List<CharacterDraft> drafts,
+) {
+  final currentByName = {
+    for (final character in currentCharacters)
+      character.name.trim(): _PreviewCharacter.fromCharacter(character),
+  };
+  final entries = <_PatchDiffEntry>[];
+  for (final draft in drafts) {
+    final key = draft.name.trim();
+    final current = currentByName[key];
+    final next =
+        current?.merge(draft) ??
+        _PreviewCharacter(
+          name: draft.name,
+          aliases: draft.aliases,
+          tags: draft.tags,
+          faction: draft.faction,
+          role: draft.role,
+          longTermGoal: draft.longTermGoal,
+          currentStatus: draft.currentStatus,
+          secrets: draft.secrets,
+          firstChapterIndex: draft.firstChapterIndex,
+          lastChapterIndex: draft.lastChapterIndex,
+        );
+    final oldText = current?.toDiffText() ?? '';
+    final newText = next.toDiffText();
+    if (oldText != newText) {
+      entries.add(
+        _PatchDiffEntry(
+          title: 'characters/$key',
+          oldText: oldText,
+          newText: newText,
+        ),
+      );
+    }
+  }
+  return _PatchDiffSection(
+    title: 'Characters',
+    icon: Icons.groups_outlined,
+    entries: entries,
+  );
+}
+
+_PatchDiffSection _buildRelationshipPatchSection(
+  List<NovelCharacter> characters,
+  List<NovelRelationship> relationships,
+  List<RelationshipDraft> drafts,
+) {
+  final charactersById = {
+    for (final character in characters) character.id: character,
+  };
+  final currentByKey = {
+    for (final relationship in relationships)
+      _PreviewRelationship.fromRelationship(relationship, charactersById).key:
+          _PreviewRelationship.fromRelationship(relationship, charactersById),
+  };
+  final entries = <_PatchDiffEntry>[];
+  for (final draft in drafts) {
+    final key = _relationshipKey(draft.fromName, draft.toName);
+    final current = currentByKey[key];
+    final next =
+        current?.merge(draft) ??
+        _PreviewRelationship(
+          fromName: draft.fromName,
+          toName: draft.toName,
+          relationshipType: draft.relationshipType,
+          strength: draft.strength.clamp(-5, 5),
+          status: draft.status,
+          description: draft.description,
+          lastChangedChapterIndex: draft.lastChangedChapterIndex,
+        );
+    final oldText = current?.toDiffText() ?? '';
+    final newText = next.toDiffText();
+    if (oldText != newText) {
+      entries.add(
+        _PatchDiffEntry(
+          title: 'relationships/$key',
+          oldText: oldText,
+          newText: newText,
+        ),
+      );
+    }
+  }
+  return _PatchDiffSection(
+    title: 'Relationships',
+    icon: Icons.hub_outlined,
+    entries: entries,
+  );
+}
+
+String _mergePatchString(
+  Set<String> fields,
+  String key,
+  String patchValue,
+  String existingValue,
+) {
+  return fields.contains(key) ? patchValue.trim() : existingValue.trim();
+}
+
+int? _mergePatchInt(
+  Set<String> fields,
+  String key,
+  int? patchValue,
+  int? existingValue,
+) {
+  return fields.contains(key) ? patchValue : existingValue;
+}
+
+String _mergeChapterArchivePreview(String current, String patchValue) {
+  final patch = patchValue.trim();
+  if (patch.isEmpty) {
+    return current.trim();
+  }
+  final existing = current.trim();
+  if (existing.isEmpty) {
+    return patch;
+  }
+  return '$existing\n\n$patch';
+}
+
+String _relationshipKey(String fromName, String toName) {
+  return '${fromName.trim()} -> ${toName.trim()}';
+}
+
+String _formatPatchFields(Map<String, String> fields) {
+  return fields.entries
+      .where((entry) => entry.value.trim().isNotEmpty)
+      .map((entry) => '${entry.key}: ${entry.value.trim()}')
+      .join('\n');
 }
 
 class _CategoryPreview extends StatelessWidget {
