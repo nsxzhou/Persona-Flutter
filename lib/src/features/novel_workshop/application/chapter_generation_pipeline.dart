@@ -40,6 +40,32 @@ class ChapterGenerationPipeline {
 
   static const int _promptArchiveDigestThreshold = 45000;
 
+  Future<ChapterGenerationContextPreview> previewGenerationContext({
+    required String projectId,
+    required String chapterPlanId,
+  }) async {
+    final context = await _buildGenerationContext(
+      projectId: projectId,
+      chapterPlanId: chapterPlanId,
+    );
+    return ChapterGenerationContextPreview(
+      promptMarkdown: context.bundle.promptMarkdown,
+      warnings: context.warnings,
+      projectBibleIncluded: !context.baseSections.projectBible.isEmpty,
+      chapterObjectiveCardIncluded:
+          !context.baseSections.chapterObjectiveCard.isEmpty,
+      runtimeMemoryIncluded: !context.baseSections.runtimeMemory.isEmpty,
+      characterCount: context.characters.length,
+      relationshipCount: context.relationships.length,
+      voiceProfileIncluded: context.baseSections.voiceProfileMarkdown
+          .trim()
+          .isNotEmpty,
+      storyEngineIncluded: context.baseSections.storyEngineMarkdown
+          .trim()
+          .isNotEmpty,
+    );
+  }
+
   Future<ChapterGenerationResult> generateChapter({
     required String projectId,
     required String chapterPlanId,
@@ -128,57 +154,16 @@ class ChapterGenerationPipeline {
         startedAt: DateTime.now(),
       );
 
-      final assets = await _promptAssetResolver.resolve(projectId);
-      final bible = await _repository.ensureProjectBible(projectId);
-      final runtimeMemory = await _repository.findRuntimeMemory(projectId);
-      final characters = await _repository.watchCharacters(projectId).first;
-      final relationships = await _repository
-          .watchRelationships(projectId)
-          .first;
-      final contextWarnings = <String>[
-        ...assets.warnings,
-        if (ProjectBiblePromptContext(
-          descriptionMarkdown: bible.descriptionMarkdown,
-          worldBuildingMarkdown: bible.worldBuildingMarkdown,
-          charactersBlueprintMarkdown: bible.charactersBlueprintMarkdown,
-          outlineMasterMarkdown: bible.outlineMasterMarkdown,
-          outlineDetailYaml: bible.outlineDetailYaml,
-        ).isEmpty)
-          'Project Bible 为空。',
-        if (characters.isEmpty) '结构化角色卡片为空。',
-        if (runtimeMemory == null || runtimeMemory.state.isEmpty) '运行时记忆为空。',
-      ];
-      final baseSections = WritingContextSections(
-        outputContract: _outputContract,
-        projectBible: ProjectBiblePromptContext(
-          descriptionMarkdown: bible.descriptionMarkdown,
-          worldBuildingMarkdown: bible.worldBuildingMarkdown,
-          charactersBlueprintMarkdown: bible.charactersBlueprintMarkdown,
-          outlineMasterMarkdown: bible.outlineMasterMarkdown,
-          outlineDetailYaml: bible.outlineDetailYaml,
-        ),
-        chapterPlan: ChapterPlanPromptContext(
-          volumeIndex: plan.volumeIndex,
-          volumeTitle: plan.volumeTitle,
-          chapterLocalIndex: plan.chapterLocalIndex,
-          chapterIndex: plan.chapterIndex,
-          coreEvent: plan.coreEvent,
-          emotionArc: plan.emotionArc,
-          chapterHook: plan.chapterHook,
-          outlineMarkdown: plan.outlineMarkdown,
-        ),
-        chapterObjectiveCard: plan.objectiveCard,
-        voiceProfileMarkdown: assets.voiceProfileMarkdown,
-        storyEngineMarkdown: assets.storyEngineMarkdown,
-        projectContextMarkdown: _projectContextMarkdown(project),
-        characterGraphMarkdown: _characterGraphMarkdown(
-          characters,
-          relationships,
-        ),
-        runtimeMemory: runtimeMemory?.state ?? const RuntimeMemoryState(),
-        writingRulesMarkdown: _writingRulesMarkdown(project),
+      var context = await _buildGenerationContext(
+        projectId: projectId,
+        chapterPlanId: chapterPlanId,
+        project: project,
+        plan: plan,
       );
-      var bundle = _contextAssembler.assemble(baseSections);
+      final contextWarnings = [...context.warnings];
+      var bundle = context.bundle;
+      var baseSections = context.baseSections;
+      final originalRuntimeMemory = baseSections.runtimeMemory;
       if (_shouldDigestChapterArchive(bundle.promptMarkdown, baseSections)) {
         final digestedMemory = await _temporaryArchiveDigestMemory(
           provider: provider,
@@ -204,7 +189,6 @@ class ChapterGenerationPipeline {
         );
         contextWarnings.add('章节归档过长，本次生成已使用临时 Chapter Archive Digest。');
       }
-      contextWarnings.addAll(bundle.warnings);
 
       await transition(
         ChapterGenerationStatus.running,
@@ -253,9 +237,9 @@ class ChapterGenerationPipeline {
         chapter: chapter,
         project: project,
         plan: plan,
-        currentMemory: runtimeMemory?.state ?? const RuntimeMemoryState(),
-        characters: characters,
-        relationships: relationships,
+        currentMemory: originalRuntimeMemory,
+        characters: context.characters,
+        relationships: context.relationships,
       );
 
       await transition(
@@ -329,6 +313,66 @@ class ChapterGenerationPipeline {
       throw StateError('章节计划不属于当前项目。');
     }
     return plan;
+  }
+
+  Future<_GenerationContext> _buildGenerationContext({
+    required String projectId,
+    required String chapterPlanId,
+    WritingProject? project,
+    ChapterPlan? plan,
+  }) async {
+    final resolvedProject = project ?? await _requireProject(projectId);
+    final resolvedPlan = plan ?? await _requirePlan(projectId, chapterPlanId);
+    final assets = await _promptAssetResolver.resolve(projectId);
+    final bible = await _repository.ensureProjectBible(projectId);
+    final runtimeMemory = await _repository.findRuntimeMemory(projectId);
+    final characters = await _repository.watchCharacters(projectId).first;
+    final relationships = await _repository.watchRelationships(projectId).first;
+    final projectBible = ProjectBiblePromptContext(
+      descriptionMarkdown: bible.descriptionMarkdown,
+      worldBuildingMarkdown: bible.worldBuildingMarkdown,
+      charactersBlueprintMarkdown: bible.charactersBlueprintMarkdown,
+      outlineMasterMarkdown: bible.outlineMasterMarkdown,
+      outlineDetailYaml: bible.outlineDetailYaml,
+    );
+    final baseSections = WritingContextSections(
+      outputContract: _outputContract,
+      projectBible: projectBible,
+      chapterPlan: ChapterPlanPromptContext(
+        volumeIndex: resolvedPlan.volumeIndex,
+        volumeTitle: resolvedPlan.volumeTitle,
+        chapterLocalIndex: resolvedPlan.chapterLocalIndex,
+        chapterIndex: resolvedPlan.chapterIndex,
+        coreEvent: resolvedPlan.coreEvent,
+        emotionArc: resolvedPlan.emotionArc,
+        chapterHook: resolvedPlan.chapterHook,
+        outlineMarkdown: resolvedPlan.outlineMarkdown,
+      ),
+      chapterObjectiveCard: resolvedPlan.objectiveCard,
+      voiceProfileMarkdown: assets.voiceProfileMarkdown,
+      storyEngineMarkdown: assets.storyEngineMarkdown,
+      projectContextMarkdown: _projectContextMarkdown(resolvedProject),
+      characterGraphMarkdown: _characterGraphMarkdown(
+        characters,
+        relationships,
+      ),
+      runtimeMemory: runtimeMemory?.state ?? const RuntimeMemoryState(),
+      writingRulesMarkdown: _writingRulesMarkdown(resolvedProject),
+    );
+    final bundle = _contextAssembler.assemble(baseSections);
+    return _GenerationContext(
+      bundle: bundle,
+      baseSections: baseSections,
+      warnings: List.unmodifiable([
+        ...assets.warnings,
+        if (projectBible.isEmpty) 'Project Bible 为空。',
+        if (characters.isEmpty) '结构化角色卡片为空。',
+        if (runtimeMemory == null || runtimeMemory.state.isEmpty) '运行时记忆为空。',
+        ...bundle.warnings,
+      ]),
+      characters: List.unmodifiable(characters),
+      relationships: List.unmodifiable(relationships),
+    );
   }
 
   String _projectContextMarkdown(WritingProject project) {
@@ -647,6 +691,22 @@ ${chapter.contentMarkdown}
     }
     buffer.writeln('[$timestamp] $message');
   }
+}
+
+class _GenerationContext {
+  const _GenerationContext({
+    required this.bundle,
+    required this.baseSections,
+    required this.warnings,
+    required this.characters,
+    required this.relationships,
+  });
+
+  final WritingContextBundle bundle;
+  final WritingContextSections baseSections;
+  final List<String> warnings;
+  final List<NovelCharacter> characters;
+  final List<NovelRelationship> relationships;
 }
 
 const _outputContract = '''

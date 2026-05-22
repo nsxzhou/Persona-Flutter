@@ -106,6 +106,7 @@ Persona Flutter has no remote server in the baseline. Local persisted data is ex
 - Imported enrichment result application is preview-first: UI must call `NovelWorkshopRepository.applyChapterEnrichmentItem` only after the user chooses to apply a generated item.
 - Imported enrichment preview deletion is explicit: UI must call `NovelWorkshopRepository.deleteChapterEnrichmentItem` only after the user confirms deletion, and deletion must not modify the chapter body.
 - Full Prompt Trace rendering remains owned by Workflow Runs; Novel Workshop may link to `/workflow-runs/:taskId`.
+- Chapter generation must show a read-only context preview before the model call. The preview comes from `ChapterGenerationPipeline.previewGenerationContext(projectId, chapterPlanId)`, must not create generation runs, must not call the LLM, and must not write database state. Voice Profile and Story Engine absence is informational only; the user can still confirm generation.
 
 ### 4. Validation & Error Matrix
 - Missing project -> render a missing-project page with a return-to-Projects action.
@@ -115,6 +116,7 @@ Persona Flutter has no remote server in the baseline. Local persisted data is ex
 - Invalid Voice Profile / Story Engine front matter -> show format error and source preview instead of rendering raw YAML as normal Markdown.
 - Dirty editor before chapter switch or generation -> offer save, discard, or cancel before continuing.
 - Existing saved chapter content before generation -> confirm overwrite before calling `generateChapter(..., replaceExisting: true)`.
+- Chapter generation confirmed by the user -> show the context preview dialog first; cancel/close from that dialog -> do not call `generateChapter`.
 - Imported editor with dirty local text before enrichment -> require saving first so the enrichment snapshot matches persisted content.
 - Imported project overview with no enrichment batch -> render an empty enrichment state, not normal generation metrics.
 - Deleting an enrichment preview item -> remove it from the batch list and keep the chapter body unchanged.
@@ -131,6 +133,7 @@ Persona Flutter has no remote server in the baseline. Local persisted data is ex
 ### 6. Tests Required
 - Widget test that active project rows expose `打开工作台` and archived rows do not.
 - Widget test that `/projects/:projectId/workshop` handles empty chapters, plan creation/editing, dirty editor prompts, overwrite confirmation, running generation lockout, and Workflow Runs navigation.
+- Widget test that chapter generation opens the context preview before calling `generateChapter`, and that cancelling the preview does not generate.
 - Widget tests for imported enrichment review must assert cancel does nothing, delete removes only the preview item, and apply overwrites the chapter body.
 - Provider/controller tests or widget fakes must avoid live LLM calls.
 

@@ -28,6 +28,92 @@ import 'package:persona_flutter/src/features/style_lab/domain/style_profile.dart
 import 'package:persona_flutter/src/features/style_lab/domain/style_sample.dart';
 
 void main() {
+  test(
+    'previews generation context without creating run or calling llm',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final fixture = await _Fixture.create(
+        database,
+        llmClient: _StaticLlmClient('正文。'),
+        withPromptAssets: true,
+        withRuntimeMemory: true,
+        withCharacterGraph: true,
+      );
+      final from =
+          (await fixture.novelRepository
+                  .watchCharacters(fixture.project.id)
+                  .first)
+              .single;
+      final to = await fixture.novelRepository.saveCharacter(
+        input: NovelCharacterInput(projectId: fixture.project.id, name: '向导'),
+      );
+      await fixture.novelRepository.saveRelationship(
+        input: NovelRelationshipInput(
+          projectId: fixture.project.id,
+          fromCharacterId: from.id,
+          toCharacterId: to.id,
+          relationshipType: '临时合作',
+        ),
+      );
+
+      final preview = await fixture.pipeline.previewGenerationContext(
+        projectId: fixture.project.id,
+        chapterPlanId: fixture.plan.id,
+      );
+
+      expect(preview.projectBibleIncluded, isTrue);
+      expect(preview.chapterObjectiveCardIncluded, isTrue);
+      expect(preview.runtimeMemoryIncluded, isTrue);
+      expect(preview.characterCount, 2);
+      expect(preview.relationshipCount, 1);
+      expect(preview.voiceProfileIncluded, isTrue);
+      expect(preview.storyEngineIncluded, isTrue);
+      expect(preview.warnings, isEmpty);
+      expect(preview.promptMarkdown, contains('## Output Contract'));
+      expect(preview.promptMarkdown, contains('## Project Bible'));
+      expect(preview.promptMarkdown, contains('## Runtime Memory'));
+      expect(preview.promptMarkdown, contains('### Directed Relationships'));
+      expect(fixture.llmClient.invocationCount, 0);
+      expect(
+        await fixture.novelRepository
+            .watchChapterGenerationRuns(fixture.project.id)
+            .first,
+        isEmpty,
+      );
+      expect(
+        await fixture.novelRepository.findChapterByPlan(fixture.plan.id),
+        isNull,
+      );
+    },
+  );
+
+  test(
+    'preview reports missing optional prompt assets without blocking',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final fixture = await _Fixture.create(
+        database,
+        llmClient: _StaticLlmClient('正文。'),
+      );
+
+      final preview = await fixture.pipeline.previewGenerationContext(
+        projectId: fixture.project.id,
+        chapterPlanId: fixture.plan.id,
+      );
+
+      expect(preview.voiceProfileIncluded, isFalse);
+      expect(preview.storyEngineIncluded, isFalse);
+      expect(preview.warnings, contains('项目未绑定 Voice Profile。'));
+      expect(preview.warnings, contains('项目未绑定 Story Engine。'));
+      expect(preview.warnings, contains('Voice Profile 为空。'));
+      expect(preview.warnings, contains('Story Engine 为空。'));
+      expect(preview.promptMarkdown, contains('## Chapter Objective Card'));
+      expect(fixture.llmClient.invocationCount, 0);
+    },
+  );
+
   test('generates chapter content and records workflow trace', () async {
     final database = AppDatabase(NativeDatabase.memory());
     addTearDown(database.close);

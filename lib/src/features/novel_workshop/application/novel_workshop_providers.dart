@@ -404,6 +404,26 @@ class NovelWorkshopController extends _$NovelWorkshopController {
     return result;
   }
 
+  Future<ChapterGenerationContextPreview> previewGenerationContext({
+    required String projectId,
+    required String chapterPlanId,
+  }) async {
+    state = const AsyncLoading();
+    late ChapterGenerationContextPreview preview;
+    state = await AsyncValue.guard(() async {
+      preview = await ref
+          .read(chapterGenerationPipelineProvider)
+          .previewGenerationContext(
+            projectId: projectId,
+            chapterPlanId: chapterPlanId,
+          );
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
+    return preview;
+  }
+
   Future<ChapterEnrichmentResult> enrichChapters({
     required String projectId,
     required List<String> chapterIds,

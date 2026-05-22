@@ -385,6 +385,25 @@ class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
       replaceExisting = true;
     }
     try {
+      final preview = await ref
+          .read(novelWorkshopControllerProvider.notifier)
+          .previewGenerationContext(
+            projectId: widget.projectId,
+            chapterPlanId: plan.id,
+          );
+      if (!mounted) {
+        return;
+      }
+      final confirmed = await showGlassDialog<bool>(
+        context: context,
+        maxWidth: 920,
+        maxHeight: MediaQuery.sizeOf(context).height * 0.88,
+        builder: (context) =>
+            _GenerationContextPreviewDialog(preview: preview, plan: plan),
+      );
+      if (confirmed != true) {
+        return;
+      }
       await ref
           .read(novelWorkshopControllerProvider.notifier)
           .generateChapter(
@@ -5701,6 +5720,283 @@ class _WarningList extends StatelessWidget {
               child: Text('- $warning'),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _GenerationContextPreviewDialog extends StatelessWidget {
+  const _GenerationContextPreviewDialog({
+    required this.preview,
+    required this.plan,
+  });
+
+  final ChapterGenerationContextPreview preview;
+  final ChapterPlan plan;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final optionalWarnings = preview.warnings
+        .where(
+          (warning) =>
+              warning.contains('Voice Profile') ||
+              warning.contains('Story Engine'),
+        )
+        .toList(growable: false);
+    final otherWarnings = preview.warnings
+        .where((warning) => !optionalWarnings.contains(warning))
+        .toList(growable: false);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '生成前上下文预览',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '第 ${plan.chapterIndex} 章 · ${_chapterTitle(plan)}',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              tooltip: '关闭',
+              onPressed: () => Navigator.of(context).pop(false),
+              icon: const Icon(Icons.close),
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        Expanded(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _PreviewStatusGrid(preview: preview),
+                if (optionalWarnings.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  _PreviewWarningPanel(
+                    title: '可选资产提示',
+                    warnings: optionalWarnings,
+                    color: colorScheme.primary,
+                  ),
+                ],
+                if (otherWarnings.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  _PreviewWarningPanel(
+                    title: '上下文提示',
+                    warnings: otherWarnings,
+                    color: colorScheme.tertiary,
+                  ),
+                ],
+                const SizedBox(height: 18),
+                Text(
+                  '最终 Prompt Markdown',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 8),
+                CodeBlock(text: preview.promptMarkdown),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 18),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('取消'),
+            ),
+            const SizedBox(width: 8),
+            FilledButton.icon(
+              onPressed: () => Navigator.of(context).pop(true),
+              icon: const Icon(Icons.auto_fix_high_outlined, size: 18),
+              label: const Text('确认生成'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _PreviewStatusGrid extends StatelessWidget {
+  const _PreviewStatusGrid({required this.preview});
+
+  final ChapterGenerationContextPreview preview;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = [
+      _PreviewStatusItem(
+        label: 'Project Bible',
+        value: preview.projectBibleIncluded ? '参与' : '未参与',
+        ready: preview.projectBibleIncluded,
+      ),
+      _PreviewStatusItem(
+        label: 'Chapter Objective Card',
+        value: preview.chapterObjectiveCardIncluded ? '参与' : '未参与',
+        ready: preview.chapterObjectiveCardIncluded,
+      ),
+      _PreviewStatusItem(
+        label: 'Runtime Memory',
+        value: preview.runtimeMemoryIncluded ? '参与' : '未参与',
+        ready: preview.runtimeMemoryIncluded,
+      ),
+      _PreviewStatusItem(
+        label: 'Characters',
+        value: '${preview.characterCount} 个',
+        ready: preview.characterCount > 0,
+      ),
+      _PreviewStatusItem(
+        label: 'Relationships',
+        value: '${preview.relationshipCount} 条',
+        ready: preview.relationshipCount > 0,
+      ),
+      _PreviewStatusItem(
+        label: 'Voice Profile',
+        value: preview.voiceProfileIncluded ? '已接入' : '缺失',
+        ready: preview.voiceProfileIncluded,
+      ),
+      _PreviewStatusItem(
+        label: 'Story Engine',
+        value: preview.storyEngineIncluded ? '已接入' : '缺失',
+        ready: preview.storyEngineIncluded,
+      ),
+    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 720 ? 3 : 2;
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            childAspectRatio: columns == 3 ? 4.2 : 3.4,
+          ),
+          itemCount: items.length,
+          itemBuilder: (context, index) => items[index],
+        );
+      },
+    );
+  }
+}
+
+class _PreviewStatusItem extends StatelessWidget {
+  const _PreviewStatusItem({
+    required this.label,
+    required this.value,
+    required this.ready,
+  });
+
+  final String label;
+  final String value;
+  final bool ready;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final color = ready
+        ? colorScheme.primary
+        : colorScheme.onSurfaceVariant.withValues(alpha: 0.62);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.24),
+        borderRadius: BorderRadius.circular(kButtonRadius),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Row(
+          children: [
+            Icon(
+              ready ? Icons.check_circle_outline : Icons.info_outline,
+              size: 17,
+              color: color,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              value,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PreviewWarningPanel extends StatelessWidget {
+  const _PreviewWarningPanel({
+    required this.title,
+    required this.warnings,
+    required this.color,
+  });
+
+  final String title;
+  final List<String> warnings;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(kButtonRadius),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            for (final warning in warnings)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text('- $warning'),
+              ),
+          ],
+        ),
       ),
     );
   }

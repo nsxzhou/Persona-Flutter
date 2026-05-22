@@ -139,6 +139,30 @@ class WritingContextBundle {
   final List<String> warnings;
 }
 
+class ChapterGenerationContextPreview {
+  const ChapterGenerationContextPreview({
+    required this.promptMarkdown,
+    required this.warnings,
+    required this.projectBibleIncluded,
+    required this.chapterObjectiveCardIncluded,
+    required this.runtimeMemoryIncluded,
+    required this.characterCount,
+    required this.relationshipCount,
+    required this.voiceProfileIncluded,
+    required this.storyEngineIncluded,
+  });
+
+  final String promptMarkdown;
+  final List<String> warnings;
+  final bool projectBibleIncluded;
+  final bool chapterObjectiveCardIncluded;
+  final bool runtimeMemoryIncluded;
+  final int characterCount;
+  final int relationshipCount;
+  final bool voiceProfileIncluded;
+  final bool storyEngineIncluded;
+}
+
 class ProjectPromptAssets {
   const ProjectPromptAssets({
     this.voiceProfileMarkdown = '',

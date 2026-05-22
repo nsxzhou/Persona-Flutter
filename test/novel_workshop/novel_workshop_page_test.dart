@@ -779,7 +779,76 @@ runtimeMemory:
     await tester.tap(find.text('确认覆盖'));
     await tester.pumpAndSettle();
 
+    expect(find.text('生成前上下文预览'), findsOneWidget);
+    expect(fixture.pipeline.previewCalls, 1);
+    expect(fixture.pipeline.generateCalls, 0);
+
+    await tester.tap(find.text('确认生成'));
+    await tester.pumpAndSettle();
+
     expect(fixture.pipeline.replaceExisting, isTrue);
+    expect(fixture.pipeline.generateCalls, 1);
+  });
+
+  testWidgets('chapter generation preview can be cancelled before generation', (
+    tester,
+  ) async {
+    final fixture = _WorkshopFixture(
+      plans: [
+        _plan(id: 'plan-1', index: 1, title: '第一章', objective: '主角进入雾港。'),
+      ],
+    );
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(
+      _WorkshopTestApp(fixture: fixture, initialLocation: _editorLocation),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('生成'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('生成前上下文预览'), findsOneWidget);
+    expect(find.text('Project Bible'), findsOneWidget);
+    expect(find.text('Characters'), findsOneWidget);
+    expect(find.text('最终 Prompt Markdown'), findsOneWidget);
+    expect(fixture.pipeline.previewCalls, 1);
+    expect(fixture.pipeline.generateCalls, 0);
+
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+
+    expect(fixture.pipeline.generateCalls, 0);
+  });
+
+  testWidgets('chapter generation confirms after context preview', (
+    tester,
+  ) async {
+    final fixture = _WorkshopFixture(
+      plans: [
+        _plan(id: 'plan-1', index: 1, title: '第一章', objective: '主角进入雾港。'),
+      ],
+      bindPromptAssets: false,
+    );
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(
+      _WorkshopTestApp(fixture: fixture, initialLocation: _editorLocation),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('生成'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('生成前上下文预览'), findsOneWidget);
+    expect(find.text('Voice Profile'), findsOneWidget);
+    expect(find.text('Story Engine'), findsOneWidget);
+    expect(find.textContaining('项目未绑定 Voice Profile'), findsOneWidget);
+
+    await tester.tap(find.text('确认生成'));
+    await tester.pumpAndSettle();
+
+    expect(fixture.pipeline.previewCalls, 1);
     expect(fixture.pipeline.generateCalls, 1);
   });
 
@@ -1090,6 +1159,7 @@ class _WorkshopFixture {
          chapters: chapters,
          runs: runs,
          withDefaultVolume: withDefaultVolume,
+         bindPromptAssets: bindPromptAssets,
          runtimeMemory: runtimeMemory,
          characters: characters,
          relationships: relationships,
@@ -1120,8 +1190,55 @@ class _FakeChapterGenerationPipeline implements ChapterGenerationPipeline {
   _FakeChapterGenerationPipeline(this.repository);
 
   final _FakeNovelWorkshopRepository repository;
+  int previewCalls = 0;
   int generateCalls = 0;
   bool? replaceExisting;
+
+  @override
+  Future<ChapterGenerationContextPreview> previewGenerationContext({
+    required String projectId,
+    required String chapterPlanId,
+  }) async {
+    previewCalls += 1;
+    final assets = repository.bindPromptAssets;
+    return ChapterGenerationContextPreview(
+      promptMarkdown:
+          '''
+## Output Contract
+
+只输出正文。
+
+## Project Bible
+
+${repository.bible.descriptionMarkdown}
+
+## Chapter Objective Card
+
+${repository.plans.singleWhere((item) => item.id == chapterPlanId).objectiveCard.objective}
+''',
+      warnings: [
+        if (!assets) '项目未绑定 Voice Profile。',
+        if (!assets) '项目未绑定 Story Engine。',
+      ],
+      projectBibleIncluded: !ProjectBiblePromptContext(
+        descriptionMarkdown: repository.bible.descriptionMarkdown,
+        worldBuildingMarkdown: repository.bible.worldBuildingMarkdown,
+        charactersBlueprintMarkdown:
+            repository.bible.charactersBlueprintMarkdown,
+        outlineMasterMarkdown: repository.bible.outlineMasterMarkdown,
+        outlineDetailYaml: repository.bible.outlineDetailYaml,
+      ).isEmpty,
+      chapterObjectiveCardIncluded: !repository.plans
+          .singleWhere((item) => item.id == chapterPlanId)
+          .objectiveCard
+          .isEmpty,
+      runtimeMemoryIncluded: !repository.memory.state.isEmpty,
+      characterCount: repository.characters.length,
+      relationshipCount: repository.relationships.length,
+      voiceProfileIncluded: assets,
+      storyEngineIncluded: assets,
+    );
+  }
 
   @override
   Future<ChapterGenerationResult> generateChapter({
@@ -1326,6 +1443,7 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
     required List<ProjectChapter> chapters,
     required List<ChapterGenerationRun> runs,
     required bool withDefaultVolume,
+    required this.bindPromptAssets,
     required RuntimeMemoryState runtimeMemory,
     required List<NovelCharacter> characters,
     required List<NovelRelationship> relationships,
@@ -1376,6 +1494,7 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   final List<NovelCharacter> characters;
   final List<NovelRelationship> relationships;
   final List<ChapterVolume> volumes;
+  final bool bindPromptAssets;
   ProjectBible bible;
   ProjectRuntimeMemory memory;
   final _changes = StreamController<void>.broadcast();
