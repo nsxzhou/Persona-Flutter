@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 14
-- **Last Active**: 2026-05-21
+- **Total Sessions**: 15
+- **Last Active**: 2026-05-22
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~480 | Active |
+| `journal-1.md` | ~513 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 15 | 2026-05-22 | Redundancy complexity cleanup | `e0b37f3` | `main` |
 | 14 | 2026-05-21 | Redesign enrichment UI | `a9e3f2b`, `32a8eef` | `main` |
 | 13 | 2026-05-20 | Imported novel enrichment workflow | `f3b9e83` | `main` |
 | 12 | 2026-05-17 | Repair analysis YAML artifacts | `8affdd5` | `main` |

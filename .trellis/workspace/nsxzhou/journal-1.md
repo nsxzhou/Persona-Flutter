@@ -478,3 +478,36 @@ Redesigned enrichment workflow UI and improved preview review experience.
 ### Next Steps
 
 - None - task complete
+
+
+## Session 15: Redundancy complexity cleanup
+
+**Date**: 2026-05-22
+**Task**: Redundancy complexity cleanup
+**Branch**: `main`
+
+### Summary
+
+Extracted shared TXT/EPUB import text parsing for Plot Lab, Style Lab, and Novel Workshop while preserving importer behavior; analyzer and full test suite passed.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e0b37f3` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
