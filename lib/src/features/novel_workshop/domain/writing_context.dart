@@ -64,6 +64,7 @@ class WritingContextSections {
     required this.projectContextMarkdown,
     this.characterGraphMarkdown = '',
     required this.runtimeMemory,
+    this.retrievedReferencesMarkdown = '',
     required this.writingRulesMarkdown,
   });
 
@@ -76,6 +77,7 @@ class WritingContextSections {
   final String projectContextMarkdown;
   final String characterGraphMarkdown;
   final RuntimeMemoryState runtimeMemory;
+  final String retrievedReferencesMarkdown;
   final String writingRulesMarkdown;
 }
 
@@ -150,6 +152,9 @@ class ChapterGenerationContextPreview {
     required this.relationshipCount,
     required this.voiceProfileIncluded,
     required this.storyEngineIncluded,
+    this.selectedChapterExcerptCount = 0,
+    this.selectedAssetBlockCount = 0,
+    this.selectionReportMarkdown = '',
   });
 
   final String promptMarkdown;
@@ -161,6 +166,9 @@ class ChapterGenerationContextPreview {
   final int relationshipCount;
   final bool voiceProfileIncluded;
   final bool storyEngineIncluded;
+  final int selectedChapterExcerptCount;
+  final int selectedAssetBlockCount;
+  final String selectionReportMarkdown;
 }
 
 class ProjectPromptAssets {
@@ -175,4 +183,52 @@ class ProjectPromptAssets {
   final String storyEngineMarkdown;
   final String plotSkeletonMarkdown;
   final List<String> warnings;
+}
+
+class RetrievedChapterExcerpt {
+  const RetrievedChapterExcerpt({
+    required this.chapterId,
+    required this.chapterIndex,
+    required this.chapterTitle,
+    required this.reason,
+    required this.excerptMarkdown,
+    required this.nearby,
+  });
+
+  final String chapterId;
+  final int chapterIndex;
+  final String chapterTitle;
+  final String reason;
+  final String excerptMarkdown;
+  final bool nearby;
+}
+
+class RetrievedAssetBlock {
+  const RetrievedAssetBlock({
+    required this.id,
+    required this.title,
+    required this.reason,
+    required this.markdown,
+  });
+
+  final String id;
+  final String title;
+  final String reason;
+  final String markdown;
+}
+
+class RetrievedWritingContext {
+  const RetrievedWritingContext({
+    required this.sections,
+    required this.selectedChapterExcerpts,
+    required this.selectedAssetBlocks,
+    required this.selectionWarnings,
+    required this.selectionReportMarkdown,
+  });
+
+  final WritingContextSections sections;
+  final List<RetrievedChapterExcerpt> selectedChapterExcerpts;
+  final List<RetrievedAssetBlock> selectedAssetBlocks;
+  final List<String> selectionWarnings;
+  final String selectionReportMarkdown;
 }

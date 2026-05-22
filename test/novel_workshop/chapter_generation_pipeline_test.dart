@@ -11,6 +11,7 @@ import 'package:persona_flutter/src/core/tasks/domain/workflow_task.dart';
 import 'package:persona_flutter/src/features/novel_workshop/application/chapter_generation_pipeline.dart';
 import 'package:persona_flutter/src/features/novel_workshop/application/project_prompt_asset_resolver.dart';
 import 'package:persona_flutter/src/features/novel_workshop/application/writing_context_assembler.dart';
+import 'package:persona_flutter/src/features/novel_workshop/application/writing_context_retriever.dart';
 import 'package:persona_flutter/src/features/novel_workshop/data/drift_novel_workshop_repository.dart';
 import 'package:persona_flutter/src/features/novel_workshop/domain/novel_workshop.dart';
 import 'package:persona_flutter/src/features/novel_workshop/domain/writing_context.dart';
@@ -71,8 +72,10 @@ void main() {
       expect(preview.storyEngineIncluded, isTrue);
       expect(preview.warnings, isEmpty);
       expect(preview.promptMarkdown, contains('## Output Contract'));
-      expect(preview.promptMarkdown, contains('## Project Bible'));
-      expect(preview.promptMarkdown, contains('## Runtime Memory'));
+      expect(preview.promptMarkdown, contains('## Retrieved References'));
+      expect(preview.promptMarkdown, contains('Source ID: voice_profile'));
+      expect(preview.promptMarkdown, contains('Source ID: story_engine'));
+      expect(preview.selectedAssetBlockCount, greaterThanOrEqualTo(2));
       expect(preview.promptMarkdown, contains('### Directed Relationships'));
       expect(fixture.llmClient.invocationCount, 0);
       expect(
@@ -107,8 +110,6 @@ void main() {
       expect(preview.storyEngineIncluded, isFalse);
       expect(preview.warnings, contains('项目未绑定 Voice Profile。'));
       expect(preview.warnings, contains('项目未绑定 Story Engine。'));
-      expect(preview.warnings, contains('Voice Profile 为空。'));
-      expect(preview.warnings, contains('Story Engine 为空。'));
       expect(preview.promptMarkdown, contains('## Chapter Objective Card'));
       expect(fixture.llmClient.invocationCount, 0);
     },
@@ -120,6 +121,7 @@ void main() {
     final fixture = await _Fixture.create(
       database,
       llmClient: _StaticLlmClient([
+        _selectorAssets,
         '```markdown\n雾气贴着码头爬上来。\n```',
         _auditPass,
         '''
@@ -153,18 +155,28 @@ runtimeMemory:
     expect(result.run.logs, contains('生成待审阅 Runtime Memory、角色卡片和关系图 Patch'));
     expect(result.workflowTaskId, result.run.workflowTaskId);
     expect(result.contextWarnings, isEmpty);
-    expect(fixture.llmClient.invocationCount, 3);
-    expect(fixture.llmClient.prompts.first, contains('## Output Contract'));
-    expect(fixture.llmClient.prompts.first, contains('# Voice Profile'));
-    expect(fixture.llmClient.prompts.first, contains('# Plot Writing Guide'));
-    expect(fixture.llmClient.prompts.first, contains('- Project Title: 雾港纪事'));
-    expect(fixture.llmClient.prompts.first, contains('只写当前章节正文'));
-    expect(fixture.llmClient.prompts.first, contains('上下文优先级'));
-    expect(fixture.llmClient.prompts.first, contains('Runtime Memory 决定开篇状态'));
-    expect(fixture.llmClient.prompts.first, contains('避免复读旧章节模式'));
-    expect(fixture.llmClient.prompts.first, contains('伏笔'));
-    expect(fixture.llmClient.prompts[1], contains('连续性审计员'));
-    expect(fixture.llmClient.prompts[1], contains('审美、文风、节奏'));
+    expect(fixture.llmClient.invocationCount, 4);
+    expect(fixture.llmClient.prompts.first, contains('上下文筛选器'));
+    expect(fixture.llmClient.prompts[1], contains('## Output Contract'));
+    expect(fixture.llmClient.prompts[1], contains('## Retrieved References'));
+    expect(fixture.llmClient.prompts[1], contains('Source ID: voice_profile'));
+    expect(fixture.llmClient.prompts[1], contains('Source ID: story_engine'));
+    expect(
+      fixture.llmClient.prompts[1],
+      contains('Source ID: runtime_memory.threads'),
+    );
+    expect(
+      fixture.llmClient.prompts[1],
+      isNot(contains('Source ID: project_bible.description')),
+    );
+    expect(fixture.llmClient.prompts[1], contains('- Project Title: 雾港纪事'));
+    expect(fixture.llmClient.prompts[1], contains('只写当前章节正文'));
+    expect(fixture.llmClient.prompts[1], contains('上下文优先级'));
+    expect(fixture.llmClient.prompts[1], contains('避免复读旧章节模式'));
+    expect(fixture.llmClient.prompts[1], contains('伏笔'));
+    expect(fixture.llmClient.prompts[2], contains('连续性审计员'));
+    expect(fixture.llmClient.prompts[2], contains('Retrieved References'));
+    expect(fixture.llmClient.prompts[2], contains('审美、文风、节奏'));
     expect(fixture.llmClient.prompts.last, contains('结构化记忆 Patch'));
     expect(fixture.llmClient.prompts.last, contains('只记录本章正文明确发生'));
     expect(fixture.llmClient.prompts.last, contains('不要输出全量快照'));
@@ -211,10 +223,12 @@ runtimeMemory:
     final fixture = await _Fixture.create(
       database,
       llmClient: _StaticLlmClient([
+        _selectorAssets,
         '第一章正文。',
         _auditPass,
         _memoryPatchYaml,
         _patchReviewPass,
+        _selectorAssets,
         '第二章正文。',
         _auditPass,
         _secondMemoryPatchYaml,
@@ -250,8 +264,8 @@ runtimeMemory:
       result.items.map((item) => item.status),
       everyElement(ChapterGenerationBatchItemStatus.synced),
     );
-    expect(fixture.llmClient.invocationCount, 8);
-    expect(fixture.llmClient.prompts[3], contains('Memory Patch 审阅员'));
+    expect(fixture.llmClient.invocationCount, 10);
+    expect(fixture.llmClient.prompts[4], contains('Memory Patch 审阅员'));
     final chapters = await fixture.novelRepository
         .watchChapters(fixture.project.id)
         .first;
@@ -418,8 +432,6 @@ runtimeMemory:
       expect(result.contextWarnings, contains('项目未绑定 Voice Profile。'));
       expect(result.contextWarnings, contains('项目未绑定 Story Engine。'));
       expect(result.contextWarnings, contains('运行时记忆为空。'));
-      expect(result.contextWarnings, contains('Voice Profile 为空。'));
-      expect(result.contextWarnings, contains('Story Engine 为空。'));
       expect(result.run.contextWarningsMarkdown, contains('Voice Profile'));
     },
   );
@@ -430,6 +442,7 @@ runtimeMemory:
     final fixture = await _Fixture.create(
       database,
       llmClient: _StaticLlmClient(['正文。', _auditWarning, 'characters: []']),
+      withRuntimeMemory: false,
     );
 
     final result = await fixture.pipeline.generateChapter(
@@ -453,6 +466,7 @@ runtimeMemory:
     final fixture = await _Fixture.create(
       database,
       llmClient: _StaticLlmClient(['正文。', _auditWarning, _memoryPatchYaml]),
+      withRuntimeMemory: false,
     );
     final result = await fixture.pipeline.generateChapter(
       projectId: fixture.project.id,
@@ -478,6 +492,7 @@ runtimeMemory:
       final fixture = await _Fixture.create(
         database,
         llmClient: _StaticLlmClient(['冲突正文。', _auditFail]),
+        withRuntimeMemory: false,
       );
 
       await expectLater(
@@ -512,6 +527,7 @@ runtimeMemory:
     final fixture = await _Fixture.create(
       database,
       llmClient: _StaticLlmClient(['正文。', '我忘了输出 YAML。']),
+      withRuntimeMemory: false,
     );
 
     final result = await fixture.pipeline.generateChapter(
@@ -527,14 +543,14 @@ runtimeMemory:
   });
 
   test(
-    'uses temporary chapter archive digest without mutating stored memory',
+    'injects chapter archive excerpt without mutating stored memory',
     () async {
       final database = AppDatabase(NativeDatabase.memory());
       addTearDown(database.close);
       final fixture = await _Fixture.create(
         database,
         llmClient: _StaticLlmClient([
-          '# Chapter Archive Digest\n\n压缩后的归档。',
+          _selectorArchive,
           '正文。',
           _auditPass,
           '''
@@ -563,11 +579,21 @@ runtimeMemory:
 
       expect(result.chapter.contentMarkdown, '正文。');
       expect(fixture.llmClient.invocationCount, 4);
-      expect(fixture.llmClient.prompts[0], contains('Chapter Archive Digest'));
-      expect(fixture.llmClient.prompts[0], contains('归档片段 1999'));
-      expect(fixture.llmClient.prompts[1], contains('压缩后的归档'));
+      expect(fixture.llmClient.prompts[0], contains('上下文筛选器'));
+      expect(fixture.llmClient.prompts[0], contains('归档片段 0'));
+      expect(fixture.llmClient.prompts[0], isNot(contains('归档片段 1999')));
+      expect(
+        fixture.llmClient.prompts[1],
+        contains('Source ID: runtime_memory.archive'),
+      );
+      expect(fixture.llmClient.prompts[1], contains('归档片段 0'));
       expect(fixture.llmClient.prompts[1], isNot(contains('归档片段 1999')));
       expect(fixture.llmClient.prompts[2], contains('连续性审计员'));
+      expect(
+        fixture.llmClient.prompts[2],
+        contains('Source ID: runtime_memory.archive'),
+      );
+      expect(fixture.llmClient.prompts[2], isNot(contains('归档片段 1999')));
       expect(before!.state.chapterArchiveMarkdown, contains('归档片段 1999'));
       expect(
         after!.state.chapterArchiveMarkdown,
@@ -577,7 +603,8 @@ runtimeMemory:
       final trace = await fixture.workflowRepository
           .watchPromptTrace(result.workflowTaskId)
           .first;
-      expect(trace!.traceMarkdown, contains('digest_chapter_archive'));
+      expect(trace!.traceMarkdown, contains('select_generation_context_1'));
+      expect(trace.traceMarkdown, isNot(contains('digest_chapter_archive')));
     },
   );
 
@@ -587,6 +614,7 @@ runtimeMemory:
     final fixture = await _Fixture.create(
       database,
       llmClient: _StaticLlmClient(['新正文。', _auditPass, 'characters: []']),
+      withRuntimeMemory: false,
     );
     final existing = await fixture.novelRepository.saveChapter(
       input: ProjectChapterInput(
@@ -630,6 +658,7 @@ runtimeMemory:
     expect(result.chapter.memorySyncProposedStorySummary, isEmpty);
     expect(result.chapter.memorySyncProposedContinuityIndex, isEmpty);
     expect(result.chapter.memorySyncProposedChapterArchiveMarkdown, isEmpty);
+    expect(fixture.llmClient.prompts.join('\n'), isNot(contains('旧正文。')));
   });
 
   test(
@@ -827,6 +856,11 @@ class _Fixture {
         plotLabRepository: plotRepository,
       ),
       contextAssembler: const WritingContextAssembler(),
+      contextRetriever: WritingContextRetriever(
+        completionService: MarkdownCompletionService(
+          invocation: LlmInvocationService(client: llmClient),
+        ),
+      ),
       completionService: MarkdownCompletionService(
         invocation: LlmInvocationService(client: llmClient),
       ),
@@ -955,6 +989,28 @@ name: "雾港剧情"
 # Plot Writing Guide
 
 - 目标 -> 阻碍 -> 半兑现。''';
+
+const _selectorAssets = '''
+{
+  "selected_chapters": [],
+  "selected_assets": [
+    {"id": "voice_profile", "reason": "保持项目文风"},
+    {"id": "story_engine", "reason": "保持剧情推进规则"},
+    {"id": "runtime_memory.threads", "reason": "承接未解决线索"}
+  ],
+  "summary": "第一章仅需要资产和运行时线索"
+}
+''';
+
+const _selectorArchive = '''
+{
+  "selected_chapters": [],
+  "selected_assets": [
+    {"id": "runtime_memory.archive", "reason": "长归档需要压缩后承接"}
+  ],
+  "summary": "使用章节归档作为承接依据"
+}
+''';
 
 const _auditPass = '''---
 verdict: pass

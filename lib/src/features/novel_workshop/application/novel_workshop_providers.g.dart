@@ -105,6 +105,54 @@ final class WritingContextAssemblerProvider
 String _$writingContextAssemblerHash() =>
     r'78c6f7bc4e9615e8ea31a10d6e06ade07f6ecad9';
 
+@ProviderFor(writingContextRetriever)
+final writingContextRetrieverProvider = WritingContextRetrieverProvider._();
+
+final class WritingContextRetrieverProvider
+    extends
+        $FunctionalProvider<
+          WritingContextRetriever,
+          WritingContextRetriever,
+          WritingContextRetriever
+        >
+    with $Provider<WritingContextRetriever> {
+  WritingContextRetrieverProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'writingContextRetrieverProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$writingContextRetrieverHash();
+
+  @$internal
+  @override
+  $ProviderElement<WritingContextRetriever> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  WritingContextRetriever create(Ref ref) {
+    return writingContextRetriever(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(WritingContextRetriever value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<WritingContextRetriever>(value),
+    );
+  }
+}
+
+String _$writingContextRetrieverHash() =>
+    r'655d5b2364cff9571f495b942be466a9c3bd1f9f';
+
 @ProviderFor(outlineDetailParser)
 final outlineDetailParserProvider = OutlineDetailParserProvider._();
 
@@ -296,7 +344,7 @@ final class ChapterGenerationPipelineProvider
 }
 
 String _$chapterGenerationPipelineHash() =>
-    r'9c43e6a655e508d4ac2977d5dcb78263caf27136';
+    r'513f520ced447660fa47cbbfbcfe1fa2a73db7d8';
 
 @ProviderFor(chapterEnrichmentPipeline)
 final chapterEnrichmentPipelineProvider = ChapterEnrichmentPipelineProvider._();

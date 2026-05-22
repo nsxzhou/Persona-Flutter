@@ -7,6 +7,9 @@ class WritingContextAssembler {
   WritingContextBundle assemble(WritingContextSections sections) {
     final warnings = <String>[];
     final blocks = <String>[];
+    final usesRetrievedReferences = sections.retrievedReferencesMarkdown
+        .trim()
+        .isNotEmpty;
 
     _appendTextBlock(blocks, 'Output Contract', sections.outputContract);
     if (sections.outputContract.trim().isEmpty) {
@@ -15,19 +18,21 @@ class WritingContextAssembler {
 
     _appendObjectiveCard(blocks, sections.chapterObjectiveCard);
     _appendChapterPlan(blocks, sections.chapterPlan);
-    _appendProjectBible(blocks, sections.projectBible, warnings);
-    _appendPromptAsset(
-      blocks: blocks,
-      title: 'Voice Profile',
-      markdown: sections.voiceProfileMarkdown,
-      warnings: warnings,
-    );
-    _appendPromptAsset(
-      blocks: blocks,
-      title: 'Story Engine',
-      markdown: sections.storyEngineMarkdown,
-      warnings: warnings,
-    );
+    if (!usesRetrievedReferences) {
+      _appendProjectBible(blocks, sections.projectBible, warnings);
+      _appendPromptAsset(
+        blocks: blocks,
+        title: 'Voice Profile',
+        markdown: sections.voiceProfileMarkdown,
+        warnings: warnings,
+      );
+      _appendPromptAsset(
+        blocks: blocks,
+        title: 'Story Engine',
+        markdown: sections.storyEngineMarkdown,
+        warnings: warnings,
+      );
+    }
     _appendTextBlock(
       blocks,
       'Project Context',
@@ -38,7 +43,14 @@ class WritingContextAssembler {
       'Structured Characters And Relationships',
       sections.characterGraphMarkdown,
     );
-    _appendRuntimeMemory(blocks, sections.runtimeMemory);
+    if (!usesRetrievedReferences) {
+      _appendRuntimeMemory(blocks, sections.runtimeMemory);
+    }
+    _appendTextBlock(
+      blocks,
+      'Retrieved References',
+      sections.retrievedReferencesMarkdown,
+    );
     _appendTextBlock(blocks, 'Writing Rules', sections.writingRulesMarkdown);
 
     return WritingContextBundle(

@@ -20,6 +20,7 @@ import 'novel_import_service.dart';
 import 'outline_detail_parser.dart';
 import 'project_prompt_asset_resolver.dart';
 import 'writing_context_assembler.dart';
+import 'writing_context_retriever.dart';
 
 part 'novel_workshop_providers.g.dart';
 
@@ -32,6 +33,13 @@ NovelWorkshopRepository novelWorkshopRepository(Ref ref) {
 @Riverpod(keepAlive: true)
 WritingContextAssembler writingContextAssembler(Ref ref) {
   return const WritingContextAssembler();
+}
+
+@Riverpod(keepAlive: true)
+WritingContextRetriever writingContextRetriever(Ref ref) {
+  return WritingContextRetriever(
+    completionService: ref.watch(markdownCompletionServiceProvider),
+  );
 }
 
 @Riverpod(keepAlive: true)
@@ -68,6 +76,7 @@ ChapterGenerationPipeline chapterGenerationPipeline(Ref ref) {
     providerRepository: ref.watch(providerConfigRepositoryProvider),
     promptAssetResolver: ref.watch(projectPromptAssetResolverProvider),
     contextAssembler: ref.watch(writingContextAssemblerProvider),
+    contextRetriever: ref.watch(writingContextRetrieverProvider),
     completionService: ref.watch(markdownCompletionServiceProvider),
     workflowTaskRepository: ref.watch(workflowTaskRepositoryProvider),
   );

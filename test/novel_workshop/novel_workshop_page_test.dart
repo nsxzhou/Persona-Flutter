@@ -1354,6 +1354,11 @@ ${repository.plans.singleWhere((item) => item.id == chapterPlanId).objectiveCard
       relationshipCount: repository.relationships.length,
       voiceProfileIncluded: assets,
       storyEngineIncluded: assets,
+      selectedChapterExcerptCount: 0,
+      selectedAssetBlockCount: assets ? 2 : 0,
+      selectionReportMarkdown: assets
+          ? 'Mode: local fallback\nSelected asset blocks: voice_profile, story_engine'
+          : '',
     );
   }
 

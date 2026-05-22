@@ -12,6 +12,7 @@ import '../domain/novel_workshop_repository.dart';
 import '../domain/writing_context.dart';
 import 'project_prompt_asset_resolver.dart';
 import 'writing_context_assembler.dart';
+import 'writing_context_retriever.dart';
 
 class ChapterGenerationPipeline {
   const ChapterGenerationPipeline({
@@ -20,6 +21,7 @@ class ChapterGenerationPipeline {
     required ProviderConfigRepository providerRepository,
     required ProjectPromptAssetResolver promptAssetResolver,
     required WritingContextAssembler contextAssembler,
+    required WritingContextRetriever contextRetriever,
     required MarkdownCompletionService completionService,
     required WorkflowTaskRepository workflowTaskRepository,
   }) : _repository = repository,
@@ -27,6 +29,7 @@ class ChapterGenerationPipeline {
        _providerRepository = providerRepository,
        _promptAssetResolver = promptAssetResolver,
        _contextAssembler = contextAssembler,
+       _contextRetriever = contextRetriever,
        _completionService = completionService,
        _workflowTaskRepository = workflowTaskRepository;
 
@@ -35,6 +38,7 @@ class ChapterGenerationPipeline {
   final ProviderConfigRepository _providerRepository;
   final ProjectPromptAssetResolver _promptAssetResolver;
   final WritingContextAssembler _contextAssembler;
+  final WritingContextRetriever _contextRetriever;
   final MarkdownCompletionService _completionService;
   final WorkflowTaskRepository _workflowTaskRepository;
 
@@ -53,18 +57,26 @@ class ChapterGenerationPipeline {
     return ChapterGenerationContextPreview(
       promptMarkdown: context.bundle.promptMarkdown,
       warnings: context.warnings,
-      projectBibleIncluded: !context.baseSections.projectBible.isEmpty,
+      projectBibleIncluded: context.retrieved.selectedAssetBlocks.any(
+        (asset) => asset.id.startsWith('project_bible.'),
+      ),
       chapterObjectiveCardIncluded:
           !context.baseSections.chapterObjectiveCard.isEmpty,
-      runtimeMemoryIncluded: !context.baseSections.runtimeMemory.isEmpty,
+      runtimeMemoryIncluded: context.retrieved.selectedAssetBlocks.any(
+        (asset) => asset.id.startsWith('runtime_memory.'),
+      ),
       characterCount: context.characters.length,
       relationshipCount: context.relationships.length,
-      voiceProfileIncluded: context.baseSections.voiceProfileMarkdown
-          .trim()
-          .isNotEmpty,
-      storyEngineIncluded: context.baseSections.storyEngineMarkdown
-          .trim()
-          .isNotEmpty,
+      voiceProfileIncluded: context.retrieved.selectedAssetBlocks.any(
+        (asset) => asset.id == 'voice_profile',
+      ),
+      storyEngineIncluded: context.retrieved.selectedAssetBlocks.any(
+        (asset) => asset.id == 'story_engine',
+      ),
+      selectedChapterExcerptCount:
+          context.retrieved.selectedChapterExcerpts.length,
+      selectedAssetBlockCount: context.retrieved.selectedAssetBlocks.length,
+      selectionReportMarkdown: context.retrieved.selectionReportMarkdown,
     );
   }
 
@@ -167,11 +179,14 @@ class ChapterGenerationPipeline {
         chapterPlanId: chapterPlanId,
         project: project,
         plan: plan,
+        provider: provider,
+        modelName: modelName,
+        traceRecorder: traceRecorder,
       );
       final contextWarnings = [...context.warnings];
       var bundle = context.bundle;
       var baseSections = context.baseSections;
-      final originalRuntimeMemory = baseSections.runtimeMemory;
+      final originalRuntimeMemory = context.originalRuntimeMemory;
       if (_shouldDigestChapterArchive(bundle.promptMarkdown, baseSections)) {
         final digestedMemory = await _temporaryArchiveDigestMemory(
           provider: provider,
@@ -179,22 +194,13 @@ class ChapterGenerationPipeline {
           traceRecorder: traceRecorder,
           project: project,
           plan: plan,
-          memory: baseSections.runtimeMemory,
+          memory: originalRuntimeMemory,
         );
-        bundle = _contextAssembler.assemble(
-          WritingContextSections(
-            outputContract: baseSections.outputContract,
-            projectBible: baseSections.projectBible,
-            chapterPlan: baseSections.chapterPlan,
-            chapterObjectiveCard: baseSections.chapterObjectiveCard,
-            voiceProfileMarkdown: baseSections.voiceProfileMarkdown,
-            storyEngineMarkdown: baseSections.storyEngineMarkdown,
-            projectContextMarkdown: baseSections.projectContextMarkdown,
-            characterGraphMarkdown: baseSections.characterGraphMarkdown,
-            runtimeMemory: digestedMemory,
-            writingRulesMarkdown: baseSections.writingRulesMarkdown,
-          ),
+        baseSections = _sectionsWithRuntimeReferenceDigest(
+          baseSections,
+          digestedMemory,
         );
+        bundle = _contextAssembler.assemble(baseSections);
         contextWarnings.add('章节归档过长，本次生成已使用临时 Chapter Archive Digest。');
       }
 
@@ -859,6 +865,9 @@ class ChapterGenerationPipeline {
     required String chapterPlanId,
     WritingProject? project,
     ChapterPlan? plan,
+    ProviderConfig? provider,
+    String? modelName,
+    PromptTraceRecorder? traceRecorder,
   }) async {
     final resolvedProject = project ?? await _requireProject(projectId);
     final resolvedPlan = plan ?? await _requirePlan(projectId, chapterPlanId);
@@ -867,6 +876,13 @@ class ChapterGenerationPipeline {
     final runtimeMemory = await _repository.findRuntimeMemory(projectId);
     final characters = await _repository.watchCharacters(projectId).first;
     final relationships = await _repository.watchRelationships(projectId).first;
+    final previousChapters = (await _repository.watchChapters(projectId).first)
+        .where(
+          (chapter) =>
+              chapter.chapterIndex < resolvedPlan.chapterIndex &&
+              chapter.contentMarkdown.trim().isNotEmpty,
+        )
+        .toList(growable: false);
     final projectBible = ProjectBiblePromptContext(
       descriptionMarkdown: bible.descriptionMarkdown,
       worldBuildingMarkdown: bible.worldBuildingMarkdown,
@@ -898,15 +914,29 @@ class ChapterGenerationPipeline {
       runtimeMemory: runtimeMemory?.state ?? const RuntimeMemoryState(),
       writingRulesMarkdown: _writingRulesMarkdown(resolvedProject),
     );
-    final bundle = _contextAssembler.assemble(baseSections);
+    final retrieved = await _contextRetriever.retrieve(
+      project: resolvedProject,
+      plan: resolvedPlan,
+      baseSections: baseSections,
+      previousChapters: previousChapters,
+      characters: characters,
+      relationships: relationships,
+      provider: provider,
+      modelName: modelName,
+      traceRecorder: traceRecorder,
+    );
+    final bundle = _contextAssembler.assemble(retrieved.sections);
     return _GenerationContext(
       bundle: bundle,
-      baseSections: baseSections,
+      baseSections: retrieved.sections,
+      originalRuntimeMemory: baseSections.runtimeMemory,
+      retrieved: retrieved,
       warnings: List.unmodifiable([
         ...assets.warnings,
         if (projectBible.isEmpty) 'Project Bible 为空。',
         if (characters.isEmpty) '结构化角色卡片为空。',
         if (runtimeMemory == null || runtimeMemory.state.isEmpty) '运行时记忆为空。',
+        ...retrieved.selectionWarnings,
         ...bundle.warnings,
       ]),
       characters: List.unmodifiable(characters),
@@ -1095,6 +1125,8 @@ $trimmed
 
   String _auditReferenceMarkdown(WritingContextSections sections) {
     final parts = <String>[
+      if (sections.retrievedReferencesMarkdown.trim().isNotEmpty)
+        '### Retrieved References\n\n${sections.retrievedReferencesMarkdown.trim()}',
       if (!sections.projectBible.isEmpty)
         '### Project Bible\n\n${[sections.projectBible.descriptionMarkdown, sections.projectBible.worldBuildingMarkdown, sections.projectBible.charactersBlueprintMarkdown, sections.projectBible.outlineMasterMarkdown, sections.projectBible.outlineDetailYaml].where((value) => value.trim().isNotEmpty).join('\n\n')}',
       if (sections.storyEngineMarkdown.trim().isNotEmpty)
@@ -1164,7 +1196,37 @@ $trimmed
     WritingContextSections sections,
   ) {
     return promptMarkdown.length > _promptArchiveDigestThreshold &&
-        sections.runtimeMemory.chapterArchiveMarkdown.trim().isNotEmpty;
+        (sections.runtimeMemory.chapterArchiveMarkdown.trim().isNotEmpty ||
+            sections.retrievedReferencesMarkdown.contains(
+              'Source ID: runtime_memory.archive',
+            ));
+  }
+
+  WritingContextSections _sectionsWithRuntimeReferenceDigest(
+    WritingContextSections sections,
+    RuntimeMemoryState digest,
+  ) {
+    final archive = digest.chapterArchiveMarkdown.trim();
+    if (archive.isEmpty) {
+      return sections;
+    }
+    final reference = sections.retrievedReferencesMarkdown.trim();
+    final nextReference = reference.isEmpty
+        ? '### Runtime Memory / Chapter Archive Digest\n\n$archive'
+        : '$reference\n\n### Runtime Memory / Chapter Archive Digest\n\n$archive';
+    return WritingContextSections(
+      outputContract: sections.outputContract,
+      projectBible: sections.projectBible,
+      chapterPlan: sections.chapterPlan,
+      chapterObjectiveCard: sections.chapterObjectiveCard,
+      voiceProfileMarkdown: sections.voiceProfileMarkdown,
+      storyEngineMarkdown: sections.storyEngineMarkdown,
+      projectContextMarkdown: sections.projectContextMarkdown,
+      characterGraphMarkdown: sections.characterGraphMarkdown,
+      runtimeMemory: sections.runtimeMemory,
+      retrievedReferencesMarkdown: nextReference,
+      writingRulesMarkdown: sections.writingRulesMarkdown,
+    );
   }
 
   Future<RuntimeMemoryState> _temporaryArchiveDigestMemory({
@@ -1564,6 +1626,8 @@ class _GenerationContext {
   const _GenerationContext({
     required this.bundle,
     required this.baseSections,
+    required this.originalRuntimeMemory,
+    required this.retrieved,
     required this.warnings,
     required this.characters,
     required this.relationships,
@@ -1571,6 +1635,8 @@ class _GenerationContext {
 
   final WritingContextBundle bundle;
   final WritingContextSections baseSections;
+  final RuntimeMemoryState originalRuntimeMemory;
+  final RetrievedWritingContext retrieved;
   final List<String> warnings;
   final List<NovelCharacter> characters;
   final List<NovelRelationship> relationships;
