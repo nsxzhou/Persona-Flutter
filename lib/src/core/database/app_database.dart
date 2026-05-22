@@ -409,6 +409,59 @@ class ChapterEnrichmentItemRecords extends Table {
   ];
 }
 
+class ChapterGenerationBatchRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get workflowTaskId =>
+      text().references(WorkflowTaskRecords, #id)();
+  TextColumn get projectId => text().references(ProjectRecords, #id)();
+  TextColumn get providerId => text()();
+  TextColumn get modelName => text()();
+  TextColumn get status => text()();
+  TextColumn get errorMessage => text().nullable()();
+  IntColumn get totalCount => integer().withDefault(const Constant(0))();
+  IntColumn get syncedCount => integer().withDefault(const Constant(0))();
+  IntColumn get failedCount => integer().withDefault(const Constant(0))();
+  TextColumn get logs => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  DateTimeColumn get startedAt => dateTime().nullable()();
+  DateTimeColumn get completedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+class ChapterGenerationBatchItemRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get batchId =>
+      text().references(ChapterGenerationBatchRecords, #id)();
+  TextColumn get projectId => text().references(ProjectRecords, #id)();
+  TextColumn get chapterPlanId => text().references(ChapterPlanRecords, #id)();
+  TextColumn get chapterId =>
+      text().nullable().references(ProjectChapterRecords, #id)();
+  TextColumn get latestRunId =>
+      text().nullable().references(ChapterGenerationRunRecords, #id)();
+  IntColumn get position => integer()();
+  TextColumn get status => text()();
+  TextColumn get errorMessage => text().nullable()();
+  IntColumn get draftAttemptCount => integer().withDefault(const Constant(0))();
+  IntColumn get patchAttemptCount => integer().withDefault(const Constant(0))();
+  TextColumn get logs => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  DateTimeColumn get startedAt => dateTime().nullable()();
+  DateTimeColumn get completedAt => dateTime().nullable()();
+  DateTimeColumn get syncedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+
+  @override
+  List<Set<Column<Object>>> get uniqueKeys => [
+    {batchId, chapterPlanId},
+  ];
+}
+
 class NovelCharacterRecords extends Table {
   TextColumn get id => text()();
   TextColumn get projectId => text().references(ProjectRecords, #id)();
@@ -476,6 +529,11 @@ class ChapterGenerationRunRecords extends Table {
   TextColumn get logs => text().withDefault(const Constant(''))();
   TextColumn get contextWarningsMarkdown =>
       text().withDefault(const Constant(''))();
+  TextColumn get draftMarkdown => text().withDefault(const Constant(''))();
+  TextColumn get continuityVerdict =>
+      text().withDefault(const Constant('pass'))();
+  TextColumn get continuityReportMarkdown =>
+      text().withDefault(const Constant(''))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get startedAt => dateTime().nullable()();
@@ -529,6 +587,8 @@ class AssetGenerationRunRecords extends Table {
     ProjectChapterRecords,
     ChapterEnrichmentBatchRecords,
     ChapterEnrichmentItemRecords,
+    ChapterGenerationBatchRecords,
+    ChapterGenerationBatchItemRecords,
     NovelCharacterRecords,
     NovelRelationshipRecords,
     ChapterGenerationRunRecords,
@@ -539,7 +599,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 20;
+  int get schemaVersion => 22;
 
   @override
   MigrationStrategy get migration {
@@ -814,6 +874,45 @@ class AppDatabase extends _$AppDatabase {
                 projectChapterRecords.memorySyncProposedChapterArchiveMarkdown,
               );
             }
+          }
+        }
+        if (from < 21) {
+          if (await _tableExists('chapter_generation_run_records')) {
+            if (!await _columnExists(
+              'chapter_generation_run_records',
+              'draft_markdown',
+            )) {
+              await customStatement('''
+                ALTER TABLE chapter_generation_run_records
+                ADD COLUMN draft_markdown TEXT NOT NULL DEFAULT ''
+              ''');
+            }
+            if (!await _columnExists(
+              'chapter_generation_run_records',
+              'continuity_verdict',
+            )) {
+              await customStatement('''
+                ALTER TABLE chapter_generation_run_records
+                ADD COLUMN continuity_verdict TEXT NOT NULL DEFAULT 'pass'
+              ''');
+            }
+            if (!await _columnExists(
+              'chapter_generation_run_records',
+              'continuity_report_markdown',
+            )) {
+              await customStatement('''
+                ALTER TABLE chapter_generation_run_records
+                ADD COLUMN continuity_report_markdown TEXT NOT NULL DEFAULT ''
+              ''');
+            }
+          }
+        }
+        if (from < 22) {
+          if (!await _tableExists('chapter_generation_batch_records')) {
+            await migrator.createTable(chapterGenerationBatchRecords);
+          }
+          if (!await _tableExists('chapter_generation_batch_item_records')) {
+            await migrator.createTable(chapterGenerationBatchItemRecords);
           }
         }
       },

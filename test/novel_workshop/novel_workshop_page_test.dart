@@ -852,6 +852,44 @@ runtimeMemory:
     expect(fixture.pipeline.generateCalls, 1);
   });
 
+  testWidgets('batch draft starts after selecting a continuous range', (
+    tester,
+  ) async {
+    final fixture = _WorkshopFixture(
+      plans: [
+        _plan(id: 'plan-1', index: 1, title: '第一章', objective: '主角进入雾港。'),
+        _plan(id: 'plan-2', index: 2, title: '第二章', objective: '调查港务处。'),
+      ],
+    );
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(
+      _WorkshopTestApp(fixture: fixture, initialLocation: _editorLocation),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('批量草稿'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('选择同一卷内连续章节。启动前会预览首章上下文，范围内已有正文会阻断。'), findsOneWidget);
+    await tester.tap(find.byType(DropdownButtonFormField<ChapterPlan>).last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('第二章').last);
+    await tester.pumpAndSettle();
+    expect(find.text('将生成 2 章：1, 2'), findsOneWidget);
+
+    await tester.tap(find.text('预览首章上下文'));
+    await tester.pumpAndSettle();
+    expect(find.text('生成前上下文预览'), findsOneWidget);
+
+    await tester.tap(find.text('确认生成'));
+    await tester.pumpAndSettle();
+
+    expect(fixture.pipeline.previewCalls, 1);
+    expect(fixture.pipeline.batchCalls, 1);
+    expect(fixture.repository.generationBatches.single.totalCount, 2);
+  });
+
   testWidgets('dirty editor asks before switching chapters and can save', (
     tester,
   ) async {
@@ -953,6 +991,84 @@ runtimeMemory:
 
     expect(find.text('workflow:task-1'), findsOneWidget);
   });
+
+  testWidgets('editor shows warning audit and can continue memory sync', (
+    tester,
+  ) async {
+    final fixture = _WorkshopFixture(
+      plans: [
+        _plan(id: 'plan-1', index: 1, title: '第一章', objective: '主角进入雾港。'),
+      ],
+      chapters: [
+        _chapter(
+          planId: 'plan-1',
+          index: 1,
+          content: '正文。',
+          continuityVerdict: ContinuityVerdict.warning,
+          continuityReportMarkdown: '# 连续性审计报告\n\n目标完成偏弱。',
+        ),
+      ],
+    );
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(
+      _WorkshopTestApp(fixture: fixture, initialLocation: _editorLocation),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('审计 warning'), findsWidgets);
+
+    await tester.tap(find.byTooltip('显示诊断面板'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('连续性审计'), findsOneWidget);
+    expect(find.textContaining('目标完成偏弱'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('继续同步记忆'));
+    await tester.tap(find.text('继续同步记忆'));
+    await tester.pumpAndSettle();
+
+    expect(
+      fixture.repository.chapters.single.memorySyncStatus,
+      MemorySyncStatus.pendingReview,
+    );
+  });
+
+  testWidgets(
+    'failed audit run shows draft and report without completed chapter',
+    (tester) async {
+      final fixture = _WorkshopFixture(
+        plans: [
+          _plan(id: 'plan-1', index: 1, title: '第一章', objective: '主角进入雾港。'),
+        ],
+        runs: [
+          _run(
+            planId: 'plan-1',
+            status: ChapterGenerationStatus.failed,
+            draftMarkdown: '失败草稿。',
+            continuityVerdict: ContinuityVerdict.fail,
+            continuityReportMarkdown: '# 连续性审计报告\n\n世界规则被违反。',
+          ),
+        ],
+      );
+      addTearDown(fixture.dispose);
+
+      await tester.pumpWidget(
+        _WorkshopTestApp(fixture: fixture, initialLocation: _editorLocation),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('已成文'), findsNothing);
+      expect(find.text('审计 fail'), findsWidgets);
+
+      await tester.tap(find.byTooltip('显示诊断面板'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('失败草稿'), findsOneWidget);
+      expect(find.textContaining('失败草稿。'), findsOneWidget);
+      expect(find.textContaining('世界规则被违反'), findsOneWidget);
+    },
+  );
 
   testWidgets('compact editor stacks panels below editor without overflow', (
     tester,
@@ -1192,6 +1308,7 @@ class _FakeChapterGenerationPipeline implements ChapterGenerationPipeline {
   final _FakeNovelWorkshopRepository repository;
   int previewCalls = 0;
   int generateCalls = 0;
+  int batchCalls = 0;
   bool? replaceExisting;
 
   @override
@@ -1276,6 +1393,73 @@ ${repository.plans.singleWhere((item) => item.id == chapterPlanId).objectiveCard
       chapter: chapter,
       contextWarnings: const [],
       workflowTaskId: run.workflowTaskId,
+    );
+  }
+
+  @override
+  Future<ProjectChapter> proposeMemoryPatchForChapter({
+    required String projectId,
+    required String chapterId,
+  }) async {
+    final chapter = await repository.findChapter(chapterId);
+    if (chapter == null) {
+      throw StateError('Project chapter does not exist: $chapterId');
+    }
+    return repository.saveMemorySyncProposal(
+      MemorySyncProposalInput(
+        chapterId: chapter.id,
+        contentHash: chapter.contentHash,
+        proposedMemory: const RuntimeMemoryState(storySummary: '同步摘要。'),
+      ),
+    );
+  }
+
+  @override
+  Future<ChapterGenerationBatchResult> startChapterGenerationBatch({
+    required String projectId,
+    required List<String> chapterPlanIds,
+  }) async {
+    batchCalls += 1;
+    final batch = await repository.createChapterGenerationBatch(
+      ChapterGenerationBatchInput(
+        projectId: projectId,
+        chapterPlanIds: chapterPlanIds,
+        providerId: 'provider-1',
+        modelName: 'model-1',
+      ),
+    );
+    return ChapterGenerationBatchResult(
+      batch: batch,
+      items: await repository.watchChapterGenerationBatchItems(batch.id).first,
+      workflowTaskId: batch.workflowTaskId,
+    );
+  }
+
+  @override
+  Future<ChapterGenerationBatchResult> processChapterGenerationBatch(
+    String batchId,
+  ) async {
+    final batch = (await repository.findChapterGenerationBatch(batchId))!;
+    return ChapterGenerationBatchResult(
+      batch: batch,
+      items: await repository.watchChapterGenerationBatchItems(batchId).first,
+      workflowTaskId: batch.workflowTaskId,
+    );
+  }
+
+  @override
+  Future<ChapterGenerationBatchResult> stopChapterGenerationBatch(
+    String batchId,
+  ) async {
+    final batch = await repository.updateChapterGenerationBatchState(
+      id: batchId,
+      status: ChapterGenerationBatchStatus.failed,
+      errorMessage: '用户已停止批量草稿。',
+    );
+    return ChapterGenerationBatchResult(
+      batch: batch,
+      items: await repository.watchChapterGenerationBatchItems(batchId).first,
+      workflowTaskId: batch.workflowTaskId,
     );
   }
 }
@@ -1488,6 +1672,8 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   final List<ChapterPlan> plans;
   final List<ProjectChapter> chapters;
   final List<ChapterGenerationRun> runs;
+  final List<ChapterGenerationBatch> generationBatches = [];
+  final List<ChapterGenerationBatchItem> generationBatchItems = [];
   final List<AssetGenerationRun> assetRuns = [];
   final List<ChapterEnrichmentBatch> enrichmentBatches;
   final List<ChapterEnrichmentItem> enrichmentItems;
@@ -1603,7 +1789,64 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   Future<ChapterGenerationRun> createChapterGenerationRun(
     ChapterGenerationRunInput input,
   ) async {
-    throw UnimplementedError();
+    final run = _run(
+      id: 'run-${runs.length + 1}',
+      workflowTaskId: 'task-run-${runs.length + 1}',
+      planId: input.chapterPlanId,
+      status: ChapterGenerationStatus.pending,
+    );
+    runs.add(run);
+    emit();
+    return run;
+  }
+
+  @override
+  Future<ChapterGenerationBatch> createChapterGenerationBatch(
+    ChapterGenerationBatchInput input,
+  ) async {
+    final batch = ChapterGenerationBatch(
+      id: 'generation-batch-${generationBatches.length + 1}',
+      workflowTaskId: 'task-generation-batch-${generationBatches.length + 1}',
+      projectId: input.projectId,
+      providerId: input.providerId,
+      modelName: input.modelName,
+      status: ChapterGenerationBatchStatus.pending,
+      errorMessage: null,
+      totalCount: input.chapterPlanIds.length,
+      syncedCount: 0,
+      failedCount: 0,
+      logs: '',
+      createdAt: _testCreatedAt,
+      updatedAt: _testUpdatedAt,
+      startedAt: null,
+      completedAt: null,
+    );
+    generationBatches.add(batch);
+    for (var index = 0; index < input.chapterPlanIds.length; index += 1) {
+      generationBatchItems.add(
+        ChapterGenerationBatchItem(
+          id: 'generation-batch-item-${generationBatchItems.length + 1}',
+          batchId: batch.id,
+          projectId: input.projectId,
+          chapterPlanId: input.chapterPlanIds[index],
+          chapterId: null,
+          latestRunId: null,
+          position: index,
+          status: ChapterGenerationBatchItemStatus.waiting,
+          errorMessage: null,
+          draftAttemptCount: 0,
+          patchAttemptCount: 0,
+          logs: '',
+          createdAt: _testCreatedAt,
+          updatedAt: _testUpdatedAt,
+          startedAt: null,
+          completedAt: null,
+          syncedAt: null,
+        ),
+      );
+    }
+    emit();
+    return batch;
   }
 
   @override
@@ -1672,6 +1915,18 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   }
 
   @override
+  Future<ChapterGenerationBatch?> findChapterGenerationBatch(String id) async {
+    return generationBatches.where((batch) => batch.id == id).firstOrNull;
+  }
+
+  @override
+  Future<ChapterGenerationBatchItem?> findChapterGenerationBatchItem(
+    String id,
+  ) async {
+    return generationBatchItems.where((item) => item.id == id).firstOrNull;
+  }
+
+  @override
   Future<AssetGenerationRun?> findAssetGenerationRun(String id) async {
     return assetRuns.where((run) => run.id == id).firstOrNull;
   }
@@ -1703,6 +1958,26 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
           run.chapterPlanId == chapterPlanId &&
           (run.status == ChapterGenerationStatus.pending ||
               run.status == ChapterGenerationStatus.running),
+    );
+  }
+
+  @override
+  Future<bool> hasRunningChapterGenerationForProject(String projectId) async {
+    return runs.any(
+      (run) =>
+          run.projectId == projectId &&
+          (run.status == ChapterGenerationStatus.pending ||
+              run.status == ChapterGenerationStatus.running),
+    );
+  }
+
+  @override
+  Future<bool> hasRunningChapterGenerationBatch(String projectId) async {
+    return generationBatches.any(
+      (batch) =>
+          batch.projectId == projectId &&
+          (batch.status == ChapterGenerationBatchStatus.pending ||
+              batch.status == ChapterGenerationBatchStatus.running),
     );
   }
 
@@ -2082,10 +2357,130 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
     String? errorMessage,
     String? logs,
     String? contextWarningsMarkdown,
+    String? draftMarkdown,
+    ContinuityVerdict? continuityVerdict,
+    String? continuityReportMarkdown,
     DateTime? startedAt,
     DateTime? completedAt,
   }) async {
-    throw UnimplementedError();
+    final index = runs.indexWhere((run) => run.id == id);
+    final current = runs[index];
+    final updated = ChapterGenerationRun(
+      id: current.id,
+      workflowTaskId: current.workflowTaskId,
+      projectId: current.projectId,
+      chapterPlanId: current.chapterPlanId,
+      chapterId: chapterId ?? current.chapterId,
+      providerId: providerId ?? current.providerId,
+      modelName: modelName ?? current.modelName,
+      status: status,
+      stage: stage,
+      errorMessage: errorMessage,
+      logs: logs ?? current.logs,
+      contextWarningsMarkdown:
+          contextWarningsMarkdown ?? current.contextWarningsMarkdown,
+      draftMarkdown: draftMarkdown ?? current.draftMarkdown,
+      continuityVerdict: continuityVerdict ?? current.continuityVerdict,
+      continuityReportMarkdown:
+          continuityReportMarkdown ?? current.continuityReportMarkdown,
+      createdAt: current.createdAt,
+      updatedAt: _testUpdatedAt,
+      startedAt: startedAt ?? current.startedAt,
+      completedAt: completedAt ?? current.completedAt,
+    );
+    runs[index] = updated;
+    emit();
+    return updated;
+  }
+
+  @override
+  Future<ChapterGenerationBatch> updateChapterGenerationBatchState({
+    required String id,
+    required ChapterGenerationBatchStatus status,
+    String? providerId,
+    String? modelName,
+    String? errorMessage,
+    String? logs,
+    DateTime? startedAt,
+    DateTime? completedAt,
+  }) async {
+    final index = generationBatches.indexWhere((batch) => batch.id == id);
+    final current = generationBatches[index];
+    final updated = ChapterGenerationBatch(
+      id: current.id,
+      workflowTaskId: current.workflowTaskId,
+      projectId: current.projectId,
+      providerId: providerId ?? current.providerId,
+      modelName: modelName ?? current.modelName,
+      status: status,
+      errorMessage: errorMessage,
+      totalCount: current.totalCount,
+      syncedCount: generationBatchItems
+          .where(
+            (item) =>
+                item.batchId == id &&
+                item.status == ChapterGenerationBatchItemStatus.synced,
+          )
+          .length,
+      failedCount: generationBatchItems
+          .where(
+            (item) =>
+                item.batchId == id &&
+                item.status == ChapterGenerationBatchItemStatus.failed,
+          )
+          .length,
+      logs: logs ?? current.logs,
+      createdAt: current.createdAt,
+      updatedAt: _testUpdatedAt,
+      startedAt: startedAt ?? current.startedAt,
+      completedAt: completedAt ?? current.completedAt,
+    );
+    generationBatches[index] = updated;
+    emit();
+    return updated;
+  }
+
+  @override
+  Future<ChapterGenerationBatchItem> updateChapterGenerationBatchItemState({
+    required String id,
+    required ChapterGenerationBatchItemStatus status,
+    String? errorMessage,
+    String? chapterId,
+    String? latestRunId,
+    int? draftAttemptCount,
+    int? patchAttemptCount,
+    String? logs,
+    DateTime? startedAt,
+    DateTime? completedAt,
+    DateTime? syncedAt,
+    bool clearStartedAt = false,
+    bool clearCompletedAt = false,
+    bool clearSyncedAt = false,
+  }) async {
+    final index = generationBatchItems.indexWhere((item) => item.id == id);
+    final current = generationBatchItems[index];
+    final updated = ChapterGenerationBatchItem(
+      id: current.id,
+      batchId: current.batchId,
+      projectId: current.projectId,
+      chapterPlanId: current.chapterPlanId,
+      chapterId: chapterId ?? current.chapterId,
+      latestRunId: latestRunId ?? current.latestRunId,
+      position: current.position,
+      status: status,
+      errorMessage: errorMessage,
+      draftAttemptCount: draftAttemptCount ?? current.draftAttemptCount,
+      patchAttemptCount: patchAttemptCount ?? current.patchAttemptCount,
+      logs: logs ?? current.logs,
+      createdAt: current.createdAt,
+      updatedAt: _testUpdatedAt,
+      startedAt: clearStartedAt ? null : startedAt ?? current.startedAt,
+      completedAt: clearCompletedAt ? null : completedAt ?? current.completedAt,
+      syncedAt: clearSyncedAt ? null : syncedAt ?? current.syncedAt,
+    );
+    generationBatchItems[index] = updated;
+    emit();
+    return updated;
   }
 
   @override
@@ -2232,6 +2627,28 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   ) async* {
     List<ChapterGenerationRun> snapshot() =>
         runs.where((run) => run.projectId == projectId).toList(growable: false);
+    yield snapshot();
+    yield* _changes.stream.map((_) => snapshot());
+  }
+
+  @override
+  Stream<List<ChapterGenerationBatch>> watchChapterGenerationBatches(
+    String projectId,
+  ) async* {
+    List<ChapterGenerationBatch> snapshot() => generationBatches
+        .where((batch) => batch.projectId == projectId)
+        .toList(growable: false);
+    yield snapshot();
+    yield* _changes.stream.map((_) => snapshot());
+  }
+
+  @override
+  Stream<List<ChapterGenerationBatchItem>> watchChapterGenerationBatchItems(
+    String batchId,
+  ) async* {
+    List<ChapterGenerationBatchItem> snapshot() => generationBatchItems
+        .where((item) => item.batchId == batchId)
+        .toList(growable: false);
     yield snapshot();
     yield* _changes.stream.map((_) => snapshot());
   }
@@ -2439,6 +2856,8 @@ ProjectChapter _chapter({
   required int index,
   String title = '第一章',
   required String content,
+  ContinuityVerdict continuityVerdict = ContinuityVerdict.pass,
+  String continuityReportMarkdown = '',
   MemorySyncStatus memorySyncStatus = MemorySyncStatus.idle,
   RuntimeMemoryState proposedMemory = const RuntimeMemoryState(),
   String memorySyncPatchYaml = '',
@@ -2452,8 +2871,8 @@ ProjectChapter _chapter({
     title: title,
     contentMarkdown: content,
     contentHash: contentHash,
-    continuityVerdict: ContinuityVerdict.pass,
-    continuityReportMarkdown: '',
+    continuityVerdict: continuityVerdict,
+    continuityReportMarkdown: continuityReportMarkdown,
     memorySyncStatus: memorySyncStatus,
     memorySyncContentHash: memorySyncStatus == MemorySyncStatus.idle
         ? ''
@@ -2521,6 +2940,9 @@ ChapterGenerationRun _run({
   required String planId,
   required ChapterGenerationStatus status,
   String? chapterId,
+  String draftMarkdown = '',
+  ContinuityVerdict continuityVerdict = ContinuityVerdict.pass,
+  String continuityReportMarkdown = '',
 }) {
   return ChapterGenerationRun(
     id: id,
@@ -2537,6 +2959,9 @@ ChapterGenerationRun _run({
     errorMessage: null,
     logs: '章节生成完成。',
     contextWarningsMarkdown: '',
+    draftMarkdown: draftMarkdown,
+    continuityVerdict: continuityVerdict,
+    continuityReportMarkdown: continuityReportMarkdown,
     createdAt: DateTime(2026, 5, 18, 9),
     updatedAt: DateTime(2026, 5, 18, 10),
     startedAt: DateTime(2026, 5, 18, 9),

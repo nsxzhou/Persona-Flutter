@@ -18,6 +18,10 @@ abstract interface class NovelWorkshopRepository {
     String projectId,
   );
 
+  Stream<List<ChapterGenerationBatch>> watchChapterGenerationBatches(
+    String projectId,
+  );
+
   Stream<List<AssetGenerationRun>> watchAssetGenerationRuns(String projectId);
 
   Stream<List<ChapterEnrichmentBatch>> watchChapterEnrichmentBatches(
@@ -25,6 +29,10 @@ abstract interface class NovelWorkshopRepository {
   );
 
   Stream<List<ChapterEnrichmentItem>> watchChapterEnrichmentItems(
+    String batchId,
+  );
+
+  Stream<List<ChapterGenerationBatchItem>> watchChapterGenerationBatchItems(
     String batchId,
   );
 
@@ -56,6 +64,10 @@ abstract interface class NovelWorkshopRepository {
 
   Future<ChapterGenerationRun?> findChapterGenerationRun(String id);
 
+  Future<ChapterGenerationBatch?> findChapterGenerationBatch(String id);
+
+  Future<ChapterGenerationBatchItem?> findChapterGenerationBatchItem(String id);
+
   Future<AssetGenerationRun?> findAssetGenerationRun(String id);
 
   Future<ChapterEnrichmentBatch?> findChapterEnrichmentBatch(String id);
@@ -63,6 +75,10 @@ abstract interface class NovelWorkshopRepository {
   Future<ChapterEnrichmentItem?> findChapterEnrichmentItem(String id);
 
   Future<bool> hasRunningChapterGeneration(String chapterPlanId);
+
+  Future<bool> hasRunningChapterGenerationForProject(String projectId);
+
+  Future<bool> hasRunningChapterGenerationBatch(String projectId);
 
   Future<ProjectRuntimeMemory?> findRuntimeMemory(String projectId);
 
@@ -154,8 +170,43 @@ abstract interface class NovelWorkshopRepository {
     String? errorMessage,
     String? logs,
     String? contextWarningsMarkdown,
+    String? draftMarkdown,
+    ContinuityVerdict? continuityVerdict,
+    String? continuityReportMarkdown,
     DateTime? startedAt,
     DateTime? completedAt,
+  });
+
+  Future<ChapterGenerationBatch> createChapterGenerationBatch(
+    ChapterGenerationBatchInput input,
+  );
+
+  Future<ChapterGenerationBatch> updateChapterGenerationBatchState({
+    required String id,
+    required ChapterGenerationBatchStatus status,
+    String? providerId,
+    String? modelName,
+    String? errorMessage,
+    String? logs,
+    DateTime? startedAt,
+    DateTime? completedAt,
+  });
+
+  Future<ChapterGenerationBatchItem> updateChapterGenerationBatchItemState({
+    required String id,
+    required ChapterGenerationBatchItemStatus status,
+    String? errorMessage,
+    String? chapterId,
+    String? latestRunId,
+    int? draftAttemptCount,
+    int? patchAttemptCount,
+    String? logs,
+    DateTime? startedAt,
+    DateTime? completedAt,
+    DateTime? syncedAt,
+    bool clearStartedAt = false,
+    bool clearCompletedAt = false,
+    bool clearSyncedAt = false,
   });
 
   Future<ChapterEnrichmentBatch> createChapterEnrichmentBatch(

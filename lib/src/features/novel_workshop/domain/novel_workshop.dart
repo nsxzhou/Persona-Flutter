@@ -15,9 +15,14 @@ enum MemorySyncStatus {
 
 enum ChapterGenerationStatus { pending, running, succeeded, failed }
 
+enum ChapterGenerationBatchStatus { pending, running, succeeded, failed }
+
+enum ChapterGenerationBatchItemStatus { waiting, running, synced, failed }
+
 enum ChapterGenerationStage {
   preparingContext,
   generatingDraft,
+  auditContinuity,
   savingChapter,
   proposingMemoryPatch,
 }
@@ -51,6 +56,7 @@ enum ChapterEnrichmentItemStatus {
 }
 
 const chapterGenerationWorkflowTaskKind = 'novel_chapter_generation';
+const chapterGenerationBatchWorkflowTaskKind = 'novel_chapter_generation_batch';
 const assetGenerationWorkflowTaskKind = 'novel_asset_generation';
 const chapterEnrichmentWorkflowTaskKind = 'novel_chapter_enrichment';
 
@@ -424,6 +430,9 @@ class ChapterGenerationRun {
     required this.errorMessage,
     required this.logs,
     required this.contextWarningsMarkdown,
+    required this.draftMarkdown,
+    required this.continuityVerdict,
+    required this.continuityReportMarkdown,
     required this.createdAt,
     required this.updatedAt,
     required this.startedAt,
@@ -442,6 +451,9 @@ class ChapterGenerationRun {
   final String? errorMessage;
   final String logs;
   final String contextWarningsMarkdown;
+  final String draftMarkdown;
+  final ContinuityVerdict continuityVerdict;
+  final String continuityReportMarkdown;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? startedAt;
@@ -473,6 +485,108 @@ class ChapterGenerationResult {
   final ChapterGenerationRun run;
   final ProjectChapter chapter;
   final List<String> contextWarnings;
+  final String workflowTaskId;
+}
+
+class ChapterGenerationBatch {
+  const ChapterGenerationBatch({
+    required this.id,
+    required this.workflowTaskId,
+    required this.projectId,
+    required this.providerId,
+    required this.modelName,
+    required this.status,
+    required this.errorMessage,
+    required this.totalCount,
+    required this.syncedCount,
+    required this.failedCount,
+    required this.logs,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.startedAt,
+    required this.completedAt,
+  });
+
+  final String id;
+  final String workflowTaskId;
+  final String projectId;
+  final String providerId;
+  final String modelName;
+  final ChapterGenerationBatchStatus status;
+  final String? errorMessage;
+  final int totalCount;
+  final int syncedCount;
+  final int failedCount;
+  final String logs;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? startedAt;
+  final DateTime? completedAt;
+}
+
+class ChapterGenerationBatchItem {
+  const ChapterGenerationBatchItem({
+    required this.id,
+    required this.batchId,
+    required this.projectId,
+    required this.chapterPlanId,
+    required this.chapterId,
+    required this.latestRunId,
+    required this.position,
+    required this.status,
+    required this.errorMessage,
+    required this.draftAttemptCount,
+    required this.patchAttemptCount,
+    required this.logs,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.startedAt,
+    required this.completedAt,
+    required this.syncedAt,
+  });
+
+  final String id;
+  final String batchId;
+  final String projectId;
+  final String chapterPlanId;
+  final String? chapterId;
+  final String? latestRunId;
+  final int position;
+  final ChapterGenerationBatchItemStatus status;
+  final String? errorMessage;
+  final int draftAttemptCount;
+  final int patchAttemptCount;
+  final String logs;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? startedAt;
+  final DateTime? completedAt;
+  final DateTime? syncedAt;
+}
+
+class ChapterGenerationBatchInput {
+  const ChapterGenerationBatchInput({
+    required this.projectId,
+    required this.chapterPlanIds,
+    required this.providerId,
+    required this.modelName,
+  });
+
+  final String projectId;
+  final List<String> chapterPlanIds;
+  final String providerId;
+  final String modelName;
+}
+
+class ChapterGenerationBatchResult {
+  const ChapterGenerationBatchResult({
+    required this.batch,
+    required this.items,
+    required this.workflowTaskId,
+  });
+
+  final ChapterGenerationBatch batch;
+  final List<ChapterGenerationBatchItem> items;
   final String workflowTaskId;
 }
 

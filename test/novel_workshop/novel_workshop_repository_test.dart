@@ -911,17 +911,27 @@ runtimeMemory:
 
     expect(run.status, ChapterGenerationStatus.pending);
     expect(await repository.hasRunningChapterGeneration(plan.id), isTrue);
+    expect(
+      await repository.hasRunningChapterGenerationForProject(project.id),
+      isTrue,
+    );
 
     final running = await repository.updateChapterGenerationRunState(
       id: run.id,
       status: ChapterGenerationStatus.running,
       stage: ChapterGenerationStage.generatingDraft,
       contextWarningsMarkdown: '- 运行时记忆为空。',
+      draftMarkdown: '生成草稿。',
+      continuityVerdict: ContinuityVerdict.warning,
+      continuityReportMarkdown: '# 审计报告\n\n- 目标偏弱。',
       startedAt: DateTime.now(),
     );
     final task = await workflowRepository.findTask(run.workflowTaskId);
     expect(running.stage, ChapterGenerationStage.generatingDraft);
     expect(running.contextWarningsMarkdown, contains('运行时记忆'));
+    expect(running.draftMarkdown, '生成草稿。');
+    expect(running.continuityVerdict, ContinuityVerdict.warning);
+    expect(running.continuityReportMarkdown, contains('目标偏弱'));
     expect(task!.kind, chapterGenerationWorkflowTaskKind);
     expect(task.status, WorkflowTaskStatus.running);
     expect(task.stage, ChapterGenerationStage.generatingDraft.name);
@@ -945,7 +955,118 @@ runtimeMemory:
     expect(succeeded.status, ChapterGenerationStatus.succeeded);
     expect(completedTask!.status, WorkflowTaskStatus.succeeded);
     expect(await repository.hasRunningChapterGeneration(plan.id), isFalse);
+    expect(
+      await repository.hasRunningChapterGenerationForProject(project.id),
+      isFalse,
+    );
   });
+
+  test(
+    'chapter generation batch persists items and syncs workflow task',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final project = await _saveProject(database);
+      final repository = DriftNovelWorkshopRepository(database);
+      final workflowRepository = DriftWorkflowTaskRepository(database);
+      final volume = await repository.saveChapterVolume(
+        input: ChapterVolumeInput(
+          projectId: project.id,
+          volumeIndex: 1,
+          title: '第一卷',
+        ),
+      );
+      final first = await repository.saveChapterPlan(
+        input: ChapterPlanInput(
+          projectId: project.id,
+          volumeId: volume.id,
+          volumeIndex: volume.volumeIndex,
+          volumeTitle: volume.title,
+          chapterLocalIndex: 1,
+          chapterIndex: 1,
+          objectiveCard: const ChapterObjectiveCard(
+            chapterTitle: '第一章',
+            objective: '进入雾港。',
+          ),
+        ),
+      );
+      final second = await repository.saveChapterPlan(
+        input: ChapterPlanInput(
+          projectId: project.id,
+          volumeId: volume.id,
+          volumeIndex: volume.volumeIndex,
+          volumeTitle: volume.title,
+          chapterLocalIndex: 2,
+          chapterIndex: 2,
+          objectiveCard: const ChapterObjectiveCard(
+            chapterTitle: '第二章',
+            objective: '调查港务处。',
+          ),
+        ),
+      );
+
+      final batch = await repository.createChapterGenerationBatch(
+        ChapterGenerationBatchInput(
+          projectId: project.id,
+          chapterPlanIds: [first.id, second.id],
+          providerId: project.defaultProviderId!,
+          modelName: project.defaultModelName!,
+        ),
+      );
+
+      expect(batch.status, ChapterGenerationBatchStatus.pending);
+      expect(
+        await repository.hasRunningChapterGenerationBatch(project.id),
+        isTrue,
+      );
+      final items = await repository
+          .watchChapterGenerationBatchItems(batch.id)
+          .first;
+      expect(items, hasLength(2));
+      expect(items.first.chapterPlanId, first.id);
+      expect(items.last.chapterPlanId, second.id);
+      final task = await workflowRepository.findTask(batch.workflowTaskId);
+      expect(task!.kind, chapterGenerationBatchWorkflowTaskKind);
+      expect(task.status, WorkflowTaskStatus.pending);
+
+      final updatedItem = await repository
+          .updateChapterGenerationBatchItemState(
+            id: items.first.id,
+            status: ChapterGenerationBatchItemStatus.synced,
+            draftAttemptCount: 1,
+            patchAttemptCount: 1,
+            logs: '已闭环。',
+            syncedAt: DateTime.now(),
+          );
+      expect(updatedItem.status, ChapterGenerationBatchItemStatus.synced);
+      final running = await repository.updateChapterGenerationBatchState(
+        id: batch.id,
+        status: ChapterGenerationBatchStatus.running,
+        logs: '批量草稿运行中。',
+        startedAt: DateTime.now(),
+      );
+      expect(running.syncedCount, 1);
+      final runningTask = await workflowRepository.findTask(
+        batch.workflowTaskId,
+      );
+      expect(runningTask!.status, WorkflowTaskStatus.running);
+
+      final succeeded = await repository.updateChapterGenerationBatchState(
+        id: batch.id,
+        status: ChapterGenerationBatchStatus.succeeded,
+        completedAt: DateTime.now(),
+      );
+      expect(succeeded.status, ChapterGenerationBatchStatus.succeeded);
+      expect(
+        await repository.hasRunningChapterGenerationBatch(project.id),
+        isFalse,
+      );
+      final completedTask = await workflowRepository.findTask(
+        batch.workflowTaskId,
+      );
+      expect(completedTask!.status, WorkflowTaskStatus.succeeded);
+    },
+  );
 
   test('migration creates novel workshop persistence tables', () async {
     final sqlite = sqlite3.openInMemory();

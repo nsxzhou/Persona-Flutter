@@ -172,6 +172,9 @@ class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
     final plans = ref.watch(chapterPlansProvider(widget.projectId));
     final chapters = ref.watch(projectChaptersProvider(widget.projectId));
     final runs = ref.watch(chapterGenerationRunsProvider(widget.projectId));
+    final generationBatches = ref.watch(
+      chapterGenerationBatchesProvider(widget.projectId),
+    );
     final memory = ref.watch(projectRuntimeMemoryProvider(widget.projectId));
     final assets = ref.watch(projectPromptAssetsProvider(widget.projectId));
     final controller = ref.watch(novelWorkshopControllerProvider);
@@ -194,81 +197,118 @@ class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
           data: (volumeItems) => plans.when(
             data: (planItems) => chapters.when(
               data: (chapterItems) => runs.when(
-                data: (runItems) {
-                  final selectedPlan = _syncSelectedPlan(planItems);
-                  final selectedChapter = selectedPlan == null
-                      ? null
-                      : _chapterForPlan(chapterItems, selectedPlan.id);
-                  _syncEditor(selectedChapter);
-                  final selectedRun = selectedPlan == null
-                      ? null
-                      : _latestRunForPlan(runItems, selectedPlan.id);
-                  final selectedRunning =
-                      selectedRun?.status == ChapterGenerationStatus.pending ||
-                      selectedRun?.status == ChapterGenerationStatus.running;
-                  final selectedChapterIds = selectedChapter == null
-                      ? const <String>{}
-                      : <String>{selectedChapter.id};
-                  final busy = controller.isLoading || selectedRunning;
+                data: (runItems) => generationBatches.when(
+                  data: (generationBatchItems) {
+                    final selectedPlan = _syncSelectedPlan(planItems);
+                    final selectedChapter = selectedPlan == null
+                        ? null
+                        : _chapterForPlan(chapterItems, selectedPlan.id);
+                    _syncEditor(selectedChapter);
+                    final selectedRun = selectedPlan == null
+                        ? null
+                        : _latestRunForPlan(runItems, selectedPlan.id);
+                    final selectedRunning =
+                        selectedRun?.status ==
+                            ChapterGenerationStatus.pending ||
+                        selectedRun?.status == ChapterGenerationStatus.running;
+                    final selectedChapterIds = selectedChapter == null
+                        ? const <String>{}
+                        : <String>{selectedChapter.id};
+                    final busy = controller.isLoading || selectedRunning;
+                    final latestBatch = generationBatchItems.firstOrNull;
+                    final batchRunning =
+                        latestBatch?.status ==
+                            ChapterGenerationBatchStatus.pending ||
+                        latestBatch?.status ==
+                            ChapterGenerationBatchStatus.running;
 
-                  return _WorkshopScaffold(
-                    project: item,
-                    volumes: volumeItems,
-                    plans: planItems,
-                    chapters: chapterItems,
-                    runs: runItems,
-                    selectedPlan: selectedPlan,
-                    selectedChapter: selectedChapter,
-                    selectedRun: selectedRun,
-                    editorController: _editorController,
-                    isDirty: _isDirty,
-                    isBusy: busy,
-                    assets: assets,
-                    memory: memory,
-                    isImportedEnrichment:
-                        item.origin == ProjectOrigin.importedEnrichment,
-                    onSelectPlan: (plan) => _selectPlan(
-                      nextPlan: plan,
-                      currentProject: item,
-                      currentPlan: selectedPlan,
-                      currentChapter: selectedChapter,
-                    ),
-                    onCreatePlan: () => _showPlanDialog(
-                      context: context,
-                      projectId: item.id,
+                    return _WorkshopScaffold(
+                      project: item,
                       volumes: volumeItems,
-                      nextIndex: _nextChapterIndex(planItems),
-                    ),
-                    onEditPlan: selectedPlan == null
-                        ? null
-                        : () => _showPlanDialog(
-                            context: context,
-                            projectId: item.id,
-                            volumes: volumeItems,
-                            plan: selectedPlan,
-                          ),
-                    onSaveChapter: selectedPlan == null || busy
-                        ? null
-                        : () => _saveChapter(
-                            project: item,
-                            plan: selectedPlan,
-                            chapter: selectedChapter,
-                          ),
-                    onGenerate: selectedPlan == null || busy
-                        ? null
-                        : item.origin == ProjectOrigin.importedEnrichment
-                        ? () => _showEnrichmentDialog(
-                            project: item,
-                            chapters: chapterItems,
-                            initialChapterIds: selectedChapterIds,
-                          )
-                        : () => _generateChapter(
-                            project: item,
-                            plan: selectedPlan,
-                            chapter: selectedChapter,
-                          ),
-                  );
-                },
+                      plans: planItems,
+                      chapters: chapterItems,
+                      runs: runItems,
+                      generationBatch: latestBatch,
+                      selectedPlan: selectedPlan,
+                      selectedChapter: selectedChapter,
+                      selectedRun: selectedRun,
+                      editorController: _editorController,
+                      isDirty: _isDirty,
+                      isBusy: busy || batchRunning,
+                      assets: assets,
+                      memory: memory,
+                      isImportedEnrichment:
+                          item.origin == ProjectOrigin.importedEnrichment,
+                      onSelectPlan: (plan) => _selectPlan(
+                        nextPlan: plan,
+                        currentProject: item,
+                        currentPlan: selectedPlan,
+                        currentChapter: selectedChapter,
+                      ),
+                      onCreatePlan: () => _showPlanDialog(
+                        context: context,
+                        projectId: item.id,
+                        volumes: volumeItems,
+                        nextIndex: _nextChapterIndex(planItems),
+                      ),
+                      onEditPlan: selectedPlan == null
+                          ? null
+                          : () => _showPlanDialog(
+                              context: context,
+                              projectId: item.id,
+                              volumes: volumeItems,
+                              plan: selectedPlan,
+                            ),
+                      onSaveChapter: selectedPlan == null || busy
+                          ? null
+                          : () => _saveChapter(
+                              project: item,
+                              plan: selectedPlan,
+                              chapter: selectedChapter,
+                            ),
+                      onGenerate: selectedPlan == null || busy
+                          ? null
+                          : item.origin == ProjectOrigin.importedEnrichment
+                          ? () => _showEnrichmentDialog(
+                              project: item,
+                              chapters: chapterItems,
+                              initialChapterIds: selectedChapterIds,
+                            )
+                          : () => _generateChapter(
+                              project: item,
+                              plan: selectedPlan,
+                              chapter: selectedChapter,
+                            ),
+                      onStartBatch:
+                          selectedPlan == null ||
+                              busy ||
+                              batchRunning ||
+                              item.origin == ProjectOrigin.importedEnrichment
+                          ? null
+                          : () => _showBatchGenerationDialog(
+                              project: item,
+                              plans: planItems,
+                              chapters: chapterItems,
+                              selectedPlan: selectedPlan,
+                            ),
+                      onStopBatch: latestBatch == null || !batchRunning
+                          ? null
+                          : () => _stopBatchGeneration(latestBatch),
+                      onProposeMemoryPatch:
+                          selectedChapter == null ||
+                              busy ||
+                              item.origin == ProjectOrigin.importedEnrichment
+                          ? null
+                          : () => _proposeMemoryPatchForChapter(
+                              project: item,
+                              chapter: selectedChapter,
+                            ),
+                    );
+                  },
+                  error: (error, stackTrace) =>
+                      _WorkshopError(message: '无法加载批量草稿任务：$error'),
+                  loading: () => const _WorkshopLoading(),
+                ),
                 error: (error, stackTrace) =>
                     _WorkshopError(message: '无法加载生成任务：$error'),
                 loading: () => const _WorkshopLoading(),
@@ -412,6 +452,92 @@ class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
             replaceExisting: replaceExisting,
           );
       _showSnack('章节生成完成。');
+    } on Object {
+      // The controller listener renders the error.
+    }
+  }
+
+  Future<void> _showBatchGenerationDialog({
+    required WritingProject project,
+    required List<ChapterPlan> plans,
+    required List<ProjectChapter> chapters,
+    required ChapterPlan selectedPlan,
+  }) async {
+    if (_isDirty) {
+      _showSnack('请先保存或放弃当前正文，再启动批量草稿。');
+      return;
+    }
+    final request = await showGlassDialog<_BatchGenerationRequest>(
+      context: context,
+      maxWidth: 520,
+      builder: (context) => _BatchGenerationDialog(
+        plans: plans,
+        chapters: chapters,
+        selectedPlan: selectedPlan,
+      ),
+    );
+    if (request == null) {
+      return;
+    }
+    try {
+      final preview = await ref
+          .read(novelWorkshopControllerProvider.notifier)
+          .previewGenerationContext(
+            projectId: project.id,
+            chapterPlanId: request.chapterPlanIds.first,
+          );
+      if (!mounted) {
+        return;
+      }
+      final confirmed = await showGlassDialog<bool>(
+        context: context,
+        maxWidth: 920,
+        maxHeight: MediaQuery.sizeOf(context).height * 0.88,
+        builder: (context) => _GenerationContextPreviewDialog(
+          preview: preview,
+          plan: plans.firstWhere(
+            (plan) => plan.id == request.chapterPlanIds.first,
+          ),
+        ),
+      );
+      if (confirmed != true) {
+        return;
+      }
+      await ref
+          .read(novelWorkshopControllerProvider.notifier)
+          .startChapterGenerationBatch(
+            projectId: project.id,
+            chapterPlanIds: request.chapterPlanIds,
+          );
+      _showSnack('批量草稿已完成。');
+    } on Object {
+      // The controller listener renders the error.
+    }
+  }
+
+  Future<void> _stopBatchGeneration(ChapterGenerationBatch batch) async {
+    try {
+      await ref
+          .read(novelWorkshopControllerProvider.notifier)
+          .stopChapterGenerationBatch(batch.id);
+      _showSnack('批量草稿已停止。');
+    } on Object {
+      // The controller listener renders the error.
+    }
+  }
+
+  Future<void> _proposeMemoryPatchForChapter({
+    required WritingProject project,
+    required ProjectChapter chapter,
+  }) async {
+    try {
+      await ref
+          .read(novelWorkshopControllerProvider.notifier)
+          .proposeMemoryPatchForChapter(
+            projectId: project.id,
+            chapterId: chapter.id,
+          );
+      _showSnack('记忆 Patch 已生成，请在 Runtime Memory 审阅。');
     } on Object {
       // The controller listener renders the error.
     }
@@ -1565,6 +1691,169 @@ class _EnrichmentItemPreviewTileState
 }
 
 enum _EnrichmentReviewAction { apply, delete, cancel }
+
+class _BatchGenerationRequest {
+  const _BatchGenerationRequest({required this.chapterPlanIds});
+
+  final List<String> chapterPlanIds;
+}
+
+class _BatchGenerationDialog extends StatefulWidget {
+  const _BatchGenerationDialog({
+    required this.plans,
+    required this.chapters,
+    required this.selectedPlan,
+  });
+
+  final List<ChapterPlan> plans;
+  final List<ProjectChapter> chapters;
+  final ChapterPlan selectedPlan;
+
+  @override
+  State<_BatchGenerationDialog> createState() => _BatchGenerationDialogState();
+}
+
+class _BatchGenerationDialogState extends State<_BatchGenerationDialog> {
+  late ChapterPlan _start = widget.selectedPlan;
+  late ChapterPlan _end = widget.selectedPlan;
+
+  List<ChapterPlan> get _sameVolumePlans =>
+      widget.plans
+          .where((plan) => plan.volumeId == widget.selectedPlan.volumeId)
+          .toList(growable: false)
+        ..sort((a, b) => a.chapterIndex.compareTo(b.chapterIndex));
+
+  List<ChapterPlan> get _selectedPlans {
+    final start = _start.chapterIndex;
+    final end = _end.chapterIndex;
+    final minIndex = start < end ? start : end;
+    final maxIndex = start < end ? end : start;
+    return _sameVolumePlans
+        .where(
+          (plan) =>
+              plan.chapterIndex >= minIndex && plan.chapterIndex <= maxIndex,
+        )
+        .toList(growable: false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final selected = _selectedPlans;
+    final existing = selected
+        .map((plan) => _chapterForPlan(widget.chapters, plan.id))
+        .whereType<ProjectChapter>()
+        .where((chapter) => chapter.contentMarkdown.trim().isNotEmpty)
+        .toList(growable: false);
+    final continuous =
+        selected.length ==
+        (selected.last.chapterIndex - selected.first.chapterIndex + 1);
+    final canSubmit = selected.isNotEmpty && existing.isEmpty && continuous;
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('批量草稿', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 8),
+          Text(
+            '选择同一卷内连续章节。启动前会预览首章上下文，范围内已有正文会阻断。',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<ChapterPlan>(
+                  initialValue: _start,
+                  decoration: const InputDecoration(labelText: '起始章节'),
+                  items: [
+                    for (final plan in _sameVolumePlans)
+                      DropdownMenuItem(
+                        value: plan,
+                        child: Text(
+                          '第 ${plan.chapterIndex} 章 · ${_chapterTitle(plan)}',
+                        ),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => _start = value);
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: DropdownButtonFormField<ChapterPlan>(
+                  initialValue: _end,
+                  decoration: const InputDecoration(labelText: '结束章节'),
+                  items: [
+                    for (final plan in _sameVolumePlans)
+                      DropdownMenuItem(
+                        value: plan,
+                        child: Text(
+                          '第 ${plan.chapterIndex} 章 · ${_chapterTitle(plan)}',
+                        ),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => _end = value);
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            '将生成 ${selected.length} 章：${selected.map((plan) => plan.chapterIndex).join(', ')}',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          if (existing.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              '选区内已有正文：${existing.map((chapter) => chapter.title).join('、')}',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: colorScheme.error),
+            ),
+          ],
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('取消'),
+              ),
+              const SizedBox(width: 8),
+              FilledButton.icon(
+                onPressed: canSubmit
+                    ? () => Navigator.of(context).pop(
+                        _BatchGenerationRequest(
+                          chapterPlanIds: selected
+                              .map((plan) => plan.id)
+                              .toList(growable: false),
+                        ),
+                      )
+                    : null,
+                icon: const Icon(Icons.playlist_add_check, size: 18),
+                label: const Text('预览首章上下文'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _EnrichmentDiffDialog extends StatelessWidget {
   const _EnrichmentDiffDialog({required this.item});
@@ -6040,6 +6329,7 @@ class _WorkbenchChapterTile extends StatelessWidget {
     final memoryStatus = chapter == null
         ? null
         : _memorySyncStatusPill(context, chapter!.memorySyncStatus);
+    final auditStatus = _chapterAuditPill(context, chapter, run);
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -6096,6 +6386,10 @@ class _WorkbenchChapterTile extends StatelessWidget {
                 if (memoryStatus != null) ...[
                   const SizedBox(height: 8),
                   memoryStatus,
+                ],
+                if (auditStatus != null) ...[
+                  const SizedBox(height: 8),
+                  auditStatus,
                 ],
               ],
             );
@@ -6184,6 +6478,25 @@ Widget? _memorySyncStatusPill(BuildContext context, MemorySyncStatus status) {
   };
 }
 
+Widget? _chapterAuditPill(
+  BuildContext context,
+  ProjectChapter? chapter,
+  ChapterGenerationRun? run,
+) {
+  if (chapter?.continuityReportMarkdown.trim().isNotEmpty ?? false) {
+    final verdict = chapter!.continuityVerdict;
+    if (verdict == ContinuityVerdict.pass) {
+      return null;
+    }
+    return _ContinuityVerdictPill(verdict: verdict);
+  }
+  if (run?.status == ChapterGenerationStatus.failed &&
+      run!.continuityReportMarkdown.trim().isNotEmpty) {
+    return _ContinuityVerdictPill(verdict: run.continuityVerdict);
+  }
+  return null;
+}
+
 class _WorkshopScaffold extends StatefulWidget {
   const _WorkshopScaffold({
     required this.project,
@@ -6191,6 +6504,7 @@ class _WorkshopScaffold extends StatefulWidget {
     required this.plans,
     required this.chapters,
     required this.runs,
+    required this.generationBatch,
     required this.selectedPlan,
     required this.selectedChapter,
     required this.selectedRun,
@@ -6205,6 +6519,9 @@ class _WorkshopScaffold extends StatefulWidget {
     required this.onEditPlan,
     required this.onSaveChapter,
     required this.onGenerate,
+    required this.onStartBatch,
+    required this.onStopBatch,
+    required this.onProposeMemoryPatch,
   });
 
   final WritingProject project;
@@ -6212,6 +6529,7 @@ class _WorkshopScaffold extends StatefulWidget {
   final List<ChapterPlan> plans;
   final List<ProjectChapter> chapters;
   final List<ChapterGenerationRun> runs;
+  final ChapterGenerationBatch? generationBatch;
   final ChapterPlan? selectedPlan;
   final ProjectChapter? selectedChapter;
   final ChapterGenerationRun? selectedRun;
@@ -6226,6 +6544,9 @@ class _WorkshopScaffold extends StatefulWidget {
   final VoidCallback? onEditPlan;
   final VoidCallback? onSaveChapter;
   final VoidCallback? onGenerate;
+  final VoidCallback? onStartBatch;
+  final VoidCallback? onStopBatch;
+  final VoidCallback? onProposeMemoryPatch;
 
   @override
   State<_WorkshopScaffold> createState() => _WorkshopScaffoldState();
@@ -6262,12 +6583,15 @@ class _WorkshopScaffoldState extends State<_WorkshopScaffold> {
           );
           final inspector = _WorkshopInspector(
             plan: widget.selectedPlan,
+            chapter: widget.selectedChapter,
             run: widget.selectedRun,
             assets: widget.assets,
             memory: widget.memory,
+            onProposeMemoryPatch: widget.onProposeMemoryPatch,
           );
           final editor = _ManuscriptEditor(
             plan: widget.selectedPlan,
+            chapter: widget.selectedChapter,
             run: widget.selectedRun,
             controller: widget.editorController,
             isBusy: widget.isBusy,
@@ -6290,6 +6614,8 @@ class _WorkshopScaffoldState extends State<_WorkshopScaffold> {
                   canCreatePlan: !widget.isImportedEnrichment,
                   onSaveChapter: widget.onSaveChapter,
                   onGenerate: widget.onGenerate,
+                  onStartBatch: widget.onStartBatch,
+                  onStopBatch: widget.onStopBatch,
                   generateLabel: widget.isImportedEnrichment ? '加料' : '生成',
                 ),
                 Expanded(
@@ -6324,6 +6650,8 @@ class _WorkshopScaffoldState extends State<_WorkshopScaffold> {
                 canCreatePlan: !widget.isImportedEnrichment,
                 onSaveChapter: widget.onSaveChapter,
                 onGenerate: widget.onGenerate,
+                onStartBatch: widget.onStartBatch,
+                onStopBatch: widget.onStopBatch,
                 generateLabel: widget.isImportedEnrichment ? '加料' : '生成',
               ),
               Expanded(
@@ -6338,6 +6666,21 @@ class _WorkshopScaffoldState extends State<_WorkshopScaffold> {
                         color: Theme.of(context).colorScheme.outlineVariant,
                       ),
                     Expanded(child: editor),
+                    if (widget.generationBatch != null)
+                      VerticalDivider(
+                        width: 0.5,
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
+                    if (widget.generationBatch != null)
+                      SizedBox(
+                        width: isWide ? 300 : 260,
+                        child: _BatchGenerationPanel(
+                          batch: widget.generationBatch!,
+                          plans: widget.plans,
+                          runs: widget.runs,
+                          onStop: widget.onStopBatch,
+                        ),
+                      ),
                     if (_showInspector)
                       VerticalDivider(
                         width: 0.5,
@@ -6369,6 +6712,8 @@ class _WorkshopTopBar extends StatelessWidget {
     required this.canCreatePlan,
     required this.onSaveChapter,
     required this.onGenerate,
+    required this.onStartBatch,
+    required this.onStopBatch,
     required this.generateLabel,
   });
 
@@ -6384,6 +6729,8 @@ class _WorkshopTopBar extends StatelessWidget {
   final bool canCreatePlan;
   final VoidCallback? onSaveChapter;
   final VoidCallback? onGenerate;
+  final VoidCallback? onStartBatch;
+  final VoidCallback? onStopBatch;
   final String generateLabel;
 
   @override
@@ -6512,6 +6859,34 @@ class _WorkshopTopBar extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (generateLabel == '生成')
+                    OutlinedButton.icon(
+                      onPressed: onStartBatch,
+                      icon: const Icon(Icons.playlist_add_check, size: 16),
+                      label: const Text('批量草稿'),
+                      style: OutlinedButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                    ),
+                  if (onStopBatch != null)
+                    OutlinedButton.icon(
+                      onPressed: onStopBatch,
+                      icon: const Icon(Icons.stop_circle_outlined, size: 16),
+                      label: const Text('停止批次'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: colorScheme.error,
+                        side: BorderSide(color: colorScheme.error),
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                    ),
                   IconButton(
                     tooltip: showInspector ? '隐藏诊断面板' : '显示诊断面板',
                     onPressed: onToggleInspector,
@@ -6531,6 +6906,217 @@ class _WorkshopTopBar extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BatchGenerationPanel extends ConsumerWidget {
+  const _BatchGenerationPanel({
+    required this.batch,
+    required this.plans,
+    required this.runs,
+    required this.onStop,
+  });
+
+  final ChapterGenerationBatch batch;
+  final List<ChapterPlan> plans;
+  final List<ChapterGenerationRun> runs;
+  final VoidCallback? onStop;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final items = ref.watch(chapterGenerationBatchItemsProvider(batch.id));
+    final running =
+        batch.status == ChapterGenerationBatchStatus.pending ||
+        batch.status == ChapterGenerationBatchStatus.running;
+    final progress = batch.totalCount == 0
+        ? 0.0
+        : batch.syncedCount / batch.totalCount;
+    return ColoredBox(
+      color: colorScheme.surface,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 12, 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '批量草稿',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                if (running)
+                  IconButton(
+                    tooltip: '停止批次',
+                    onPressed: onStop,
+                    icon: const Icon(Icons.stop_circle_outlined, size: 18),
+                    color: colorScheme.error,
+                    visualDensity: VisualDensity.compact,
+                  ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    _CompactStatusPill(
+                      label: _generationBatchStatusLabel(batch.status),
+                      icon: _generationBatchIcon(batch.status),
+                      color: _generationBatchColor(context, batch.status),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${batch.syncedCount}/${batch.totalCount}',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                LinearProgressIndicator(value: progress.clamp(0.0, 1.0)),
+                if (batch.errorMessage != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    batch.errorMessage!,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: colorScheme.error),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Expanded(
+            child: items.when(
+              data: (itemList) => ListView.separated(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+                itemBuilder: (context, index) {
+                  final item = itemList[index];
+                  final plan = plans
+                      .where((plan) => plan.id == item.chapterPlanId)
+                      .firstOrNull;
+                  final run = item.latestRunId == null
+                      ? null
+                      : runs
+                            .where((run) => run.id == item.latestRunId)
+                            .firstOrNull;
+                  return _BatchGenerationItemTile(
+                    item: item,
+                    plan: plan,
+                    run: run,
+                  );
+                },
+                separatorBuilder: (context, index) => const SizedBox(height: 8),
+                itemCount: itemList.length,
+              ),
+              error: (error, stackTrace) =>
+                  InlineError(message: '无法加载批量草稿章节：$error'),
+              loading: () => const Padding(
+                padding: EdgeInsets.all(16),
+                child: SkeletonBox(width: 180, height: 16),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BatchGenerationItemTile extends StatelessWidget {
+  const _BatchGenerationItemTile({
+    required this.item,
+    required this.plan,
+    required this.run,
+  });
+
+  final ChapterGenerationBatchItem item;
+  final ChapterPlan? plan;
+  final ChapterGenerationRun? run;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final title = plan == null
+        ? '章节计划不存在'
+        : '第 ${plan!.chapterIndex} 章 · ${_chapterTitle(plan!)}';
+    return Material(
+      color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                _CompactStatusPill(
+                  label: _generationBatchItemStatusLabel(item.status),
+                  icon: _generationBatchItemIcon(item.status),
+                  color: _generationBatchItemColor(context, item.status),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '正文 ${item.draftAttemptCount}/2 · Patch ${item.patchAttemptCount}/2',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            if (item.errorMessage != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                item.errorMessage!,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: colorScheme.error),
+              ),
+            ],
+            if (run != null) ...[
+              const SizedBox(height: 6),
+              InkWell(
+                onTap: () =>
+                    context.go('/workflow-runs/${run!.workflowTaskId}'),
+                borderRadius: BorderRadius.circular(6),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Text(
+                    '查看 Prompt Trace',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );
@@ -6856,6 +7442,7 @@ class _ChapterPlanTile extends StatelessWidget {
     final memoryStatus = chapter == null
         ? null
         : _memorySyncStatusPill(context, chapter!.memorySyncStatus);
+    final auditStatus = _chapterAuditPill(context, chapter, run);
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 150),
@@ -6930,6 +7517,10 @@ class _ChapterPlanTile extends StatelessWidget {
                       const SizedBox(height: 6),
                       memoryStatus,
                     ],
+                    if (auditStatus != null) ...[
+                      const SizedBox(height: 6),
+                      auditStatus,
+                    ],
                   ],
                 ),
               ),
@@ -6944,6 +7535,7 @@ class _ChapterPlanTile extends StatelessWidget {
 class _ManuscriptEditor extends StatelessWidget {
   const _ManuscriptEditor({
     required this.plan,
+    required this.chapter,
     required this.run,
     required this.controller,
     required this.isBusy,
@@ -6951,6 +7543,7 @@ class _ManuscriptEditor extends StatelessWidget {
   });
 
   final ChapterPlan? plan;
+  final ProjectChapter? chapter;
   final ChapterGenerationRun? run;
   final TextEditingController controller;
   final bool isBusy;
@@ -6996,7 +7589,12 @@ class _ManuscriptEditor extends StatelessWidget {
         children: [
           if (run?.errorMessage != null)
             _EditorNotice(message: '最近生成失败：${run!.errorMessage}'),
-          _InlineChapterHeader(plan: plan!, run: run, onEditPlan: onEditPlan),
+          _InlineChapterHeader(
+            plan: plan!,
+            chapter: chapter,
+            run: run,
+            onEditPlan: onEditPlan,
+          ),
           Expanded(
             child: Center(
               child: ConstrainedBox(
@@ -7044,11 +7642,13 @@ class _ManuscriptEditor extends StatelessWidget {
 class _InlineChapterHeader extends StatelessWidget {
   const _InlineChapterHeader({
     required this.plan,
+    required this.chapter,
     required this.run,
     required this.onEditPlan,
   });
 
   final ChapterPlan plan;
+  final ProjectChapter? chapter;
   final ChapterGenerationRun? run;
   final VoidCallback? onEditPlan;
 
@@ -7058,44 +7658,26 @@ class _InlineChapterHeader extends StatelessWidget {
     final running =
         run?.status == ChapterGenerationStatus.pending ||
         run?.status == ChapterGenerationStatus.running;
+    final verdict = chapter?.continuityVerdict ?? run?.continuityVerdict;
+    final hasAudit =
+        (chapter?.continuityReportMarkdown.trim().isNotEmpty ?? false) ||
+        (run?.continuityReportMarkdown.trim().isNotEmpty ?? false);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(36, 12, 24, 0),
-      child: Row(
-        children: [
-          Text(
-            '第 ${plan.chapterIndex} 章',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 420;
+          final title = Text(
+            _chapterTitle(plan),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w700,
-              letterSpacing: 0.3,
+              color: colorScheme.onSurface,
             ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              _chapterTitle(plan),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: colorScheme.onSurface,
-              ),
-            ),
-          ),
-          if (running) ...[
-            const SizedBox(width: 8),
-            SizedBox(
-              width: 14,
-              height: 14,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: colorScheme.primary,
-              ),
-            ),
-          ],
-          const SizedBox(width: 8),
-          InkWell(
+          );
+          final editTarget = InkWell(
             onTap: onEditPlan,
             borderRadius: BorderRadius.circular(6),
             child: Padding(
@@ -7120,8 +7702,61 @@ class _InlineChapterHeader extends StatelessWidget {
                 ],
               ),
             ),
-          ),
-        ],
+          );
+          final badges = <Widget>[
+            if (verdict != null && hasAudit)
+              _ContinuityVerdictPill(verdict: verdict),
+            if (running)
+              SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: colorScheme.primary,
+                ),
+              ),
+            editTarget,
+          ];
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '第 ${plan.chapterIndex} 章',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                title,
+                const SizedBox(height: 6),
+                Wrap(spacing: 8, runSpacing: 6, children: badges),
+              ],
+            );
+          }
+          return Row(
+            children: [
+              Text(
+                '第 ${plan.chapterIndex} 章',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.3,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(child: title),
+              const SizedBox(width: 8),
+              Wrap(
+                spacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: badges,
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -7160,18 +7795,38 @@ class _EditorNotice extends StatelessWidget {
   }
 }
 
+class _ContinuityVerdictPill extends StatelessWidget {
+  const _ContinuityVerdictPill({required this.verdict});
+
+  final ContinuityVerdict verdict;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _continuityVerdictColor(context, verdict);
+    return PersonaStatusPill(
+      label: _continuityVerdictLabel(verdict),
+      icon: _continuityVerdictIcon(verdict),
+      color: color,
+    );
+  }
+}
+
 class _WorkshopInspector extends StatelessWidget {
   const _WorkshopInspector({
     required this.plan,
+    required this.chapter,
     required this.run,
     required this.assets,
     required this.memory,
+    required this.onProposeMemoryPatch,
   });
 
   final ChapterPlan? plan;
+  final ProjectChapter? chapter;
   final ChapterGenerationRun? run;
   final AsyncValue<ProjectPromptAssets> assets;
   final AsyncValue<ProjectRuntimeMemory> memory;
+  final VoidCallback? onProposeMemoryPatch;
 
   @override
   Widget build(BuildContext context) {
@@ -7217,6 +7872,14 @@ class _WorkshopInspector extends StatelessWidget {
                   _InspectorSection(
                     title: '生成任务',
                     child: _RunSummary(run: run),
+                  ),
+                  _InspectorSection(
+                    title: '连续性审计',
+                    child: _ContinuityAuditSummary(
+                      chapter: chapter,
+                      run: run,
+                      onProposeMemoryPatch: onProposeMemoryPatch,
+                    ),
                   ),
                 ],
               ),
@@ -7459,6 +8122,15 @@ class _RunSummary extends StatelessWidget {
         _InfoLine(label: '模型', value: item.modelName),
         if (item.contextWarningsMarkdown.trim().isNotEmpty)
           _InfoLine(label: '提示', value: item.contextWarningsMarkdown),
+        if (item.draftMarkdown.trim().isNotEmpty &&
+            item.status == ChapterGenerationStatus.failed) ...[
+          const SizedBox(height: 8),
+          _AuditTextPreview(
+            title: '失败草稿',
+            text: item.draftMarkdown,
+            maxLines: 8,
+          ),
+        ],
         const SizedBox(height: 8),
         InkWell(
           onTap: () => context.go('/workflow-runs/${item.workflowTaskId}'),
@@ -7486,6 +8158,140 @@ class _RunSummary extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ContinuityAuditSummary extends StatelessWidget {
+  const _ContinuityAuditSummary({
+    required this.chapter,
+    required this.run,
+    required this.onProposeMemoryPatch,
+  });
+
+  final ProjectChapter? chapter;
+  final ChapterGenerationRun? run;
+  final VoidCallback? onProposeMemoryPatch;
+
+  @override
+  Widget build(BuildContext context) {
+    final report = chapter?.continuityReportMarkdown.trim().isNotEmpty == true
+        ? chapter!.continuityReportMarkdown
+        : run?.continuityReportMarkdown ?? '';
+    final verdict = chapter?.continuityReportMarkdown.trim().isNotEmpty == true
+        ? chapter!.continuityVerdict
+        : run?.continuityVerdict;
+    if (verdict == null || report.trim().isEmpty) {
+      return Text(
+        '暂无审计报告',
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Theme.of(
+            context,
+          ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+        ),
+      );
+    }
+    final canContinue =
+        chapter != null &&
+        chapter!.continuityVerdict == ContinuityVerdict.warning &&
+        chapter!.memorySyncStatus != MemorySyncStatus.pendingReview &&
+        chapter!.memorySyncStatus != MemorySyncStatus.synced;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _ContinuityVerdictPill(verdict: verdict),
+        const SizedBox(height: 10),
+        _AuditMarkdownPreview(markdown: report),
+        if (canContinue) ...[
+          const SizedBox(height: 10),
+          FilledButton.icon(
+            onPressed: onProposeMemoryPatch,
+            icon: const Icon(Icons.memory_outlined, size: 16),
+            label: const Text('继续同步记忆'),
+            style: FilledButton.styleFrom(visualDensity: VisualDensity.compact),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _AuditMarkdownPreview extends StatelessWidget {
+  const _AuditMarkdownPreview({required this.markdown});
+
+  final String markdown;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxHeight: 260),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.24),
+          borderRadius: BorderRadius.circular(kButtonRadius),
+          border: Border.all(color: colorScheme.outlineVariant),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(10),
+          child: MarkdownBody(
+            data: markdown.trim(),
+            selectable: true,
+            styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context))
+                .copyWith(
+                  p: Theme.of(context).textTheme.bodySmall,
+                  h1: Theme.of(context).textTheme.titleSmall,
+                  h2: Theme.of(context).textTheme.labelLarge,
+                ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AuditTextPreview extends StatelessWidget {
+  const _AuditTextPreview({
+    required this.title,
+    required this.text,
+    required this.maxLines,
+  });
+
+  final String title;
+  final String text;
+  final int maxLines;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.24),
+        borderRadius: BorderRadius.circular(kButtonRadius),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              text.trim(),
+              maxLines: maxLines,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -9178,6 +9984,95 @@ String _runStatusLabel(ChapterGenerationStatus status) {
     ChapterGenerationStatus.running => '运行中',
     ChapterGenerationStatus.succeeded => '成功',
     ChapterGenerationStatus.failed => '失败',
+  };
+}
+
+String _generationBatchStatusLabel(ChapterGenerationBatchStatus status) {
+  return switch (status) {
+    ChapterGenerationBatchStatus.pending => '等待中',
+    ChapterGenerationBatchStatus.running => '生成中',
+    ChapterGenerationBatchStatus.succeeded => '已完成',
+    ChapterGenerationBatchStatus.failed => '已停止',
+  };
+}
+
+IconData _generationBatchIcon(ChapterGenerationBatchStatus status) {
+  return switch (status) {
+    ChapterGenerationBatchStatus.pending => Icons.schedule,
+    ChapterGenerationBatchStatus.running => Icons.sync,
+    ChapterGenerationBatchStatus.succeeded => Icons.check_circle_outline,
+    ChapterGenerationBatchStatus.failed => Icons.error_outline,
+  };
+}
+
+Color _generationBatchColor(
+  BuildContext context,
+  ChapterGenerationBatchStatus status,
+) {
+  final colorScheme = Theme.of(context).colorScheme;
+  return switch (status) {
+    ChapterGenerationBatchStatus.pending => colorScheme.onSurfaceVariant,
+    ChapterGenerationBatchStatus.running => colorScheme.primary,
+    ChapterGenerationBatchStatus.succeeded => Colors.green,
+    ChapterGenerationBatchStatus.failed => colorScheme.error,
+  };
+}
+
+String _generationBatchItemStatusLabel(
+  ChapterGenerationBatchItemStatus status,
+) {
+  return switch (status) {
+    ChapterGenerationBatchItemStatus.waiting => '等待',
+    ChapterGenerationBatchItemStatus.running => '处理中',
+    ChapterGenerationBatchItemStatus.synced => '已闭环',
+    ChapterGenerationBatchItemStatus.failed => '失败',
+  };
+}
+
+IconData _generationBatchItemIcon(ChapterGenerationBatchItemStatus status) {
+  return switch (status) {
+    ChapterGenerationBatchItemStatus.waiting => Icons.schedule,
+    ChapterGenerationBatchItemStatus.running => Icons.sync,
+    ChapterGenerationBatchItemStatus.synced => Icons.check_circle_outline,
+    ChapterGenerationBatchItemStatus.failed => Icons.error_outline,
+  };
+}
+
+Color _generationBatchItemColor(
+  BuildContext context,
+  ChapterGenerationBatchItemStatus status,
+) {
+  final colorScheme = Theme.of(context).colorScheme;
+  return switch (status) {
+    ChapterGenerationBatchItemStatus.waiting => colorScheme.onSurfaceVariant,
+    ChapterGenerationBatchItemStatus.running => colorScheme.primary,
+    ChapterGenerationBatchItemStatus.synced => Colors.green,
+    ChapterGenerationBatchItemStatus.failed => colorScheme.error,
+  };
+}
+
+Color _continuityVerdictColor(BuildContext context, ContinuityVerdict verdict) {
+  final colorScheme = Theme.of(context).colorScheme;
+  return switch (verdict) {
+    ContinuityVerdict.pass => const Color(0xFF16825D),
+    ContinuityVerdict.warning => colorScheme.tertiary,
+    ContinuityVerdict.fail => colorScheme.error,
+  };
+}
+
+IconData _continuityVerdictIcon(ContinuityVerdict verdict) {
+  return switch (verdict) {
+    ContinuityVerdict.pass => Icons.verified_outlined,
+    ContinuityVerdict.warning => Icons.report_problem_outlined,
+    ContinuityVerdict.fail => Icons.error_outline,
+  };
+}
+
+String _continuityVerdictLabel(ContinuityVerdict verdict) {
+  return switch (verdict) {
+    ContinuityVerdict.pass => '审计 pass',
+    ContinuityVerdict.warning => '审计 warning',
+    ContinuityVerdict.fail => '审计 fail',
   };
 }
 

@@ -980,6 +980,173 @@ final class ChapterGenerationRunsFamily extends $Family
   String toString() => r'chapterGenerationRunsProvider';
 }
 
+@ProviderFor(chapterGenerationBatches)
+final chapterGenerationBatchesProvider = ChapterGenerationBatchesFamily._();
+
+final class ChapterGenerationBatchesProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<ChapterGenerationBatch>>,
+          List<ChapterGenerationBatch>,
+          Stream<List<ChapterGenerationBatch>>
+        >
+    with
+        $FutureModifier<List<ChapterGenerationBatch>>,
+        $StreamProvider<List<ChapterGenerationBatch>> {
+  ChapterGenerationBatchesProvider._({
+    required ChapterGenerationBatchesFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'chapterGenerationBatchesProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$chapterGenerationBatchesHash();
+
+  @override
+  String toString() {
+    return r'chapterGenerationBatchesProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<List<ChapterGenerationBatch>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<ChapterGenerationBatch>> create(Ref ref) {
+    final argument = this.argument as String;
+    return chapterGenerationBatches(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ChapterGenerationBatchesProvider &&
+        other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$chapterGenerationBatchesHash() =>
+    r'a5239ddaae1d19ae8570eeb1500e523bc9ce5c39';
+
+final class ChapterGenerationBatchesFamily extends $Family
+    with
+        $FunctionalFamilyOverride<
+          Stream<List<ChapterGenerationBatch>>,
+          String
+        > {
+  ChapterGenerationBatchesFamily._()
+    : super(
+        retry: null,
+        name: r'chapterGenerationBatchesProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  ChapterGenerationBatchesProvider call(String projectId) =>
+      ChapterGenerationBatchesProvider._(argument: projectId, from: this);
+
+  @override
+  String toString() => r'chapterGenerationBatchesProvider';
+}
+
+@ProviderFor(chapterGenerationBatchItems)
+final chapterGenerationBatchItemsProvider =
+    ChapterGenerationBatchItemsFamily._();
+
+final class ChapterGenerationBatchItemsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<ChapterGenerationBatchItem>>,
+          List<ChapterGenerationBatchItem>,
+          Stream<List<ChapterGenerationBatchItem>>
+        >
+    with
+        $FutureModifier<List<ChapterGenerationBatchItem>>,
+        $StreamProvider<List<ChapterGenerationBatchItem>> {
+  ChapterGenerationBatchItemsProvider._({
+    required ChapterGenerationBatchItemsFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'chapterGenerationBatchItemsProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$chapterGenerationBatchItemsHash();
+
+  @override
+  String toString() {
+    return r'chapterGenerationBatchItemsProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<List<ChapterGenerationBatchItem>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<ChapterGenerationBatchItem>> create(Ref ref) {
+    final argument = this.argument as String;
+    return chapterGenerationBatchItems(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ChapterGenerationBatchItemsProvider &&
+        other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$chapterGenerationBatchItemsHash() =>
+    r'397388d1956649b5853c6e61d248e5550f3b09c1';
+
+final class ChapterGenerationBatchItemsFamily extends $Family
+    with
+        $FunctionalFamilyOverride<
+          Stream<List<ChapterGenerationBatchItem>>,
+          String
+        > {
+  ChapterGenerationBatchItemsFamily._()
+    : super(
+        retry: null,
+        name: r'chapterGenerationBatchItemsProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  ChapterGenerationBatchItemsProvider call(String batchId) =>
+      ChapterGenerationBatchItemsProvider._(argument: batchId, from: this);
+
+  @override
+  String toString() => r'chapterGenerationBatchItemsProvider';
+}
+
 @ProviderFor(assetGenerationRuns)
 final assetGenerationRunsProvider = AssetGenerationRunsFamily._();
 
@@ -1569,7 +1736,7 @@ final class NovelWorkshopControllerProvider
 }
 
 String _$novelWorkshopControllerHash() =>
-    r'db72be9345a93a9fe6a2c105a43625513a51502b';
+    r'4d8872f7efa760df81707d7429dcb523107ef27e';
 
 abstract class _$NovelWorkshopController extends $AsyncNotifier<void> {
   FutureOr<void> build();

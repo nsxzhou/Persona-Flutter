@@ -184,3 +184,93 @@ Feature code depends on `LlmInvocationService` / `LlmClient`; only `core/llm/dat
 Ask the model to return JSON for a saved analysis artifact and store that JSON directly in the profile markdown field.
 #### Correct
 Ask the model to return YAML-only, Markdown-only, or YAML+MD according to the artifact's declared contract. If the artifact feeds domain models, validate YAML fields first and only then derive structured objects for repository writes.
+
+## Scenario: Novel Workshop continuity audit gate
+
+### 1. Scope / Trigger
+- Trigger: Chapter generation produces manuscript content that may be saved as the current project chapter and used to propose Runtime Memory updates.
+- This is a cross-layer contract because the LLM output, generation run table, project chapter table, application pipeline, and editor diagnostics must agree on verdict semantics.
+
+### 2. Signatures
+- Pipeline: `ChapterGenerationPipeline.generateChapter(projectId, chapterPlanId, replaceExisting)`.
+- Follow-up action: `ChapterGenerationPipeline.proposeMemoryPatchForChapter(projectId, chapterId)`.
+- Run fields: `draftMarkdown`, `continuityVerdict`, `continuityReportMarkdown`.
+- Chapter fields: `continuityVerdict`, `continuityReportMarkdown`.
+- Stage enum: `ChapterGenerationStage.auditContinuity`.
+
+### 3. Contracts
+- The continuity audit runs after draft generation and before chapter save.
+- Audit output shape is YAML front matter followed by Markdown report. YAML must include `verdict`, `summary`, `characterState`, `worldRules`, `foreshadowing`, `chapterObjective`, `blockingIssues`, and `warningIssues`.
+- `pass` saves the chapter and immediately proposes a Memory Patch.
+- `warning` saves the chapter and report but does not propose a Memory Patch until the user invokes the follow-up action.
+- `fail` stores the draft and audit report on the generation run, marks the run failed, and does not create or overwrite a chapter record.
+- A malformed audit artifact is treated as `warning` and the report must include the parse failure context.
+
+### 4. Validation & Error Matrix
+- Missing chapter or wrong project on follow-up sync -> throw at the pipeline boundary.
+- Empty chapter content on follow-up sync -> throw before calling the LLM.
+- Chapter hash changed before follow-up sync -> throw and require the caller to reload.
+- Audit verdict not in `pass|warning|fail` -> downgrade to `warning`.
+- Fail verdict -> generation run failed, chapter unchanged.
+
+### 5. Good/Base/Bad Cases
+- Good: draft -> audit pass -> save chapter -> Memory Patch pending review.
+- Base: draft -> audit warning -> save chapter -> editor shows report -> user continues Memory Patch later.
+- Bad: audit fail still writes chapter content or updates Runtime Memory.
+- Bad: style or prose-quality complaints are used as hard `fail` reasons.
+
+### 6. Tests Required
+- Pipeline tests for pass, warning, fail, malformed audit, and warning follow-up sync.
+- Repository tests for run audit fields round-trip and workflow task status sync.
+- Widget tests for editor audit display, failed draft/report visibility, and warning continue-sync action.
+
+### 7. Wrong vs Correct
+#### Wrong
+Save every generated draft first and let the audit only annotate the chapter later.
+#### Correct
+Audit before chapter save; only `pass` and `warning` create or update a chapter, and only `pass` advances Runtime Memory automatically.
+
+## Scenario: Novel Workshop batch draft mode
+
+### 1. Scope / Trigger
+- Trigger: The app generates multiple Novel Workshop chapter drafts in one user-started batch.
+- This is a cross-layer contract because chapter plans, generation runs, Runtime Memory patches, workflow tasks, Drift batch records, application retries, and editor progress UI must stay in sync.
+
+### 2. Signatures
+- Pipeline start: `ChapterGenerationPipeline.startChapterGenerationBatch(projectId, chapterPlanIds)`.
+- Pipeline worker: `ChapterGenerationPipeline.processChapterGenerationBatch(batchId)`.
+- Stop action: `ChapterGenerationPipeline.stopChapterGenerationBatch(batchId)`.
+- Workflow task kind: `novel_chapter_generation_batch`.
+- Domain records: `ChapterGenerationBatch` and `ChapterGenerationBatchItem`.
+
+### 3. Contracts
+- Batch draft mode only supports standard Novel Workshop projects, not imported enrichment projects.
+- Selected chapter plans must belong to the same project and same volume, be ordered by `chapterIndex`, and be continuous.
+- Startup must block if any selected chapter already has manuscript content, if any project chapter has a pending Memory Patch review, if the project has any running single-chapter generation, or if the project already has a pending/running batch.
+- Each item must pass the continuity audit before Memory Patch work begins.
+- Memory Patch review may only auto-apply when the AI review verdict is `pass`.
+- Patch review reports are appended to batch/item logs, not stored as additional structured report fields.
+- Draft retry exhaustion or Patch review retry exhaustion fails the batch and leaves later waiting items unprocessed.
+- Stopping a batch marks it `failed`; already `synced` items remain synced, and `processChapterGenerationBatch` must not restart a failed or succeeded batch.
+- Retrying Patch generation/review must not rewrite the chapter draft.
+
+### 4. Validation & Error Matrix
+- Cross-volume selection -> reject before creating records.
+- Non-contiguous selection -> reject before creating records.
+- Existing selected chapter content -> reject before creating records.
+- Project-level running single chapter generation -> reject before creating records, even if the selected chapter differs.
+- Pending Memory Patch review anywhere in the project -> reject before creating records.
+- `warning` or `fail` continuity verdict after max draft attempts -> mark item and batch failed.
+- `warning` or `fail` Patch review after max patch attempts -> mark item and batch failed without rewriting the draft.
+- `stopChapterGenerationBatch` followed by `processChapterGenerationBatch` -> return the failed batch state without processing waiting items.
+
+### 5. Good/Base/Bad Cases
+- Good: Chapter 1 syncs Runtime Memory, then Chapter 2 builds context from the updated memory.
+- Base: A failed item records latest run id, attempt counts, error message, and logs for UI diagnosis.
+- Bad: Continue processing the next chapter after the batch has been stopped.
+- Bad: Check running single generation only for selected chapters; the lock is project-scoped.
+
+### 6. Tests Required
+- Pipeline tests for successful sequential sync, project-level running-generation lockout, retry exhaustion, Patch-only retry, and stop idempotence.
+- Repository tests for batch/item persistence, counts, workflow task synchronization, and project-level running-generation lookup.
+- Widget tests for entry point, range selection, progress list, stop action, and failure details.

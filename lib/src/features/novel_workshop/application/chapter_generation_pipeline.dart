@@ -39,6 +39,8 @@ class ChapterGenerationPipeline {
   final WorkflowTaskRepository _workflowTaskRepository;
 
   static const int _promptArchiveDigestThreshold = 45000;
+  static const int _maxBatchDraftAttempts = 2;
+  static const int _maxBatchPatchAttempts = 2;
 
   Future<ChapterGenerationContextPreview> previewGenerationContext({
     required String projectId,
@@ -98,6 +100,9 @@ class ChapterGenerationPipeline {
       String? modelName,
       String? errorMessage,
       String? contextWarningsMarkdown,
+      String? draftMarkdown,
+      ContinuityVerdict? continuityVerdict,
+      String? continuityReportMarkdown,
       DateTime? startedAt,
       DateTime? completedAt,
     }) async {
@@ -115,6 +120,9 @@ class ChapterGenerationPipeline {
         errorMessage: errorMessage,
         logs: log.toString(),
         contextWarningsMarkdown: contextWarningsMarkdown,
+        draftMarkdown: draftMarkdown,
+        continuityVerdict: continuityVerdict,
+        continuityReportMarkdown: continuityReportMarkdown,
         startedAt: startedAt,
         completedAt: completedAt,
       );
@@ -211,8 +219,47 @@ class ChapterGenerationPipeline {
 
       await transition(
         ChapterGenerationStatus.running,
+        ChapterGenerationStage.auditContinuity,
+        message: '阶段: 连续性审计。检查人物状态、世界规则、伏笔和章节目标。',
+        draftMarkdown: content,
+      );
+      final audit = await _auditContinuity(
+        provider: provider,
+        modelName: modelName,
+        traceRecorder: traceRecorder,
+        project: project,
+        plan: plan,
+        sections: baseSections,
+        content: content,
+      );
+      await transition(
+        audit.verdict == ContinuityVerdict.fail
+            ? ChapterGenerationStatus.failed
+            : ChapterGenerationStatus.running,
+        audit.verdict == ContinuityVerdict.fail
+            ? null
+            : ChapterGenerationStage.auditContinuity,
+        message: _auditLogMessage(audit.verdict),
+        draftMarkdown: content,
+        continuityVerdict: audit.verdict,
+        continuityReportMarkdown: audit.reportMarkdown,
+        errorMessage: audit.verdict == ContinuityVerdict.fail
+            ? '连续性审计未通过，请查看审计报告后重新生成。'
+            : null,
+        completedAt: audit.verdict == ContinuityVerdict.fail
+            ? DateTime.now()
+            : null,
+      );
+      if (audit.verdict == ContinuityVerdict.fail) {
+        throw StateError('连续性审计未通过，请查看审计报告后重新生成。');
+      }
+
+      await transition(
+        ChapterGenerationStatus.running,
         ChapterGenerationStage.savingChapter,
-        message: '阶段: 保存正文。写入当前章节正文。',
+        message: audit.verdict == ContinuityVerdict.warning
+            ? '阶段: 保存正文。审计为 warning，写入章节并暂停记忆同步。'
+            : '阶段: 保存正文。写入当前章节正文。',
       );
       final chapter = await _repository.saveChapter(
         id: existingChapter?.id,
@@ -222,8 +269,27 @@ class ChapterGenerationPipeline {
           chapterIndex: plan.chapterIndex,
           title: _chapterTitle(plan),
           contentMarkdown: content,
+          continuityVerdict: audit.verdict,
+          continuityReportMarkdown: audit.reportMarkdown,
         ),
       );
+
+      if (audit.verdict == ContinuityVerdict.warning) {
+        await transition(
+          ChapterGenerationStatus.succeeded,
+          null,
+          chapterId: chapter.id,
+          message: '章节生成完成，等待用户审阅后继续同步记忆。',
+          contextWarningsMarkdown: _warningsMarkdown(contextWarnings),
+          completedAt: DateTime.now(),
+        );
+        return ChapterGenerationResult(
+          run: currentRun,
+          chapter: chapter,
+          contextWarnings: List.unmodifiable(contextWarnings),
+          workflowTaskId: currentRun.workflowTaskId,
+        );
+      }
 
       await transition(
         ChapterGenerationStatus.running,
@@ -258,14 +324,424 @@ class ChapterGenerationPipeline {
         workflowTaskId: currentRun.workflowTaskId,
       );
     } on Object catch (error) {
-      await transition(
-        ChapterGenerationStatus.failed,
-        null,
-        message: '章节生成失败。',
-        errorMessage: _sanitizeError(error, resolvedProvider),
-        completedAt: DateTime.now(),
-      );
+      if (currentRun.status != ChapterGenerationStatus.failed) {
+        await transition(
+          ChapterGenerationStatus.failed,
+          null,
+          message: '章节生成失败。',
+          errorMessage: _sanitizeError(error, resolvedProvider),
+          completedAt: DateTime.now(),
+        );
+      }
       rethrow;
+    }
+  }
+
+  Future<ChapterGenerationBatchResult> startChapterGenerationBatch({
+    required String projectId,
+    required List<String> chapterPlanIds,
+  }) async {
+    final project = await _requireProject(projectId);
+    if (project.origin == ProjectOrigin.importedEnrichment) {
+      throw StateError('导入加料项目不支持批量草稿。');
+    }
+    final provider = await _requireProvider(project);
+    final modelName = _requireModelName(project, provider);
+    await _validateBatchStart(
+      projectId: projectId,
+      chapterPlanIds: chapterPlanIds,
+    );
+    final batch = await _repository.createChapterGenerationBatch(
+      ChapterGenerationBatchInput(
+        projectId: projectId,
+        chapterPlanIds: chapterPlanIds,
+        providerId: provider.id,
+        modelName: modelName,
+      ),
+    );
+    return processChapterGenerationBatch(batch.id);
+  }
+
+  Future<ChapterGenerationBatchResult> processChapterGenerationBatch(
+    String batchId,
+  ) async {
+    var batch = await _requireGenerationBatch(batchId);
+    if (batch.status == ChapterGenerationBatchStatus.failed ||
+        batch.status == ChapterGenerationBatchStatus.succeeded) {
+      return ChapterGenerationBatchResult(
+        batch: batch,
+        items: await _repository
+            .watchChapterGenerationBatchItems(batch.id)
+            .first,
+        workflowTaskId: batch.workflowTaskId,
+      );
+    }
+    final project = await _requireProject(batch.projectId);
+    if (project.origin == ProjectOrigin.importedEnrichment) {
+      throw StateError('导入加料项目不支持批量草稿。');
+    }
+    final provider = await _requireProvider(project);
+    final modelName = _requireModelName(project, provider);
+    final log = StringBuffer(batch.logs);
+
+    Future<void> updateBatch(
+      ChapterGenerationBatchStatus status, {
+      String? message,
+      String? errorMessage,
+      DateTime? startedAt,
+      DateTime? completedAt,
+    }) async {
+      if (message != null && message.trim().isNotEmpty) {
+        _appendLog(log, message);
+      }
+      batch = await _repository.updateChapterGenerationBatchState(
+        id: batch.id,
+        status: status,
+        providerId: provider.id,
+        modelName: modelName,
+        errorMessage: errorMessage,
+        logs: log.toString(),
+        startedAt: startedAt,
+        completedAt: completedAt,
+      );
+    }
+
+    await updateBatch(
+      ChapterGenerationBatchStatus.running,
+      message: '阶段: 开始批量草稿。按章节顺序执行双门禁。',
+      startedAt: batch.startedAt ?? DateTime.now(),
+    );
+
+    var items = await _repository
+        .watchChapterGenerationBatchItems(batch.id)
+        .first;
+    for (final initialItem in items) {
+      final latestBatch = await _requireGenerationBatch(batch.id);
+      if (latestBatch.status == ChapterGenerationBatchStatus.failed) {
+        return ChapterGenerationBatchResult(
+          batch: latestBatch,
+          items: await _repository
+              .watchChapterGenerationBatchItems(batch.id)
+              .first,
+          workflowTaskId: latestBatch.workflowTaskId,
+        );
+      }
+      batch = latestBatch;
+      if (initialItem.status == ChapterGenerationBatchItemStatus.synced) {
+        continue;
+      }
+      final item = await _processBatchItem(
+        batch: batch,
+        item: initialItem,
+        project: project,
+        provider: provider,
+        modelName: modelName,
+      );
+      if (item.status == ChapterGenerationBatchItemStatus.failed) {
+        await updateBatch(
+          ChapterGenerationBatchStatus.failed,
+          message: '批量草稿停止：章节检查点未通过。',
+          errorMessage: item.errorMessage ?? '章节检查点未通过。',
+          completedAt: DateTime.now(),
+        );
+        items = await _repository
+            .watchChapterGenerationBatchItems(batch.id)
+            .first;
+        return ChapterGenerationBatchResult(
+          batch: batch,
+          items: items,
+          workflowTaskId: batch.workflowTaskId,
+        );
+      }
+    }
+
+    await updateBatch(
+      ChapterGenerationBatchStatus.succeeded,
+      message: '批量草稿完成。',
+      completedAt: DateTime.now(),
+    );
+    return ChapterGenerationBatchResult(
+      batch: batch,
+      items: await _repository.watchChapterGenerationBatchItems(batch.id).first,
+      workflowTaskId: batch.workflowTaskId,
+    );
+  }
+
+  Future<ChapterGenerationBatchResult> stopChapterGenerationBatch(
+    String batchId,
+  ) async {
+    var batch = await _requireGenerationBatch(batchId);
+    if (batch.status != ChapterGenerationBatchStatus.pending &&
+        batch.status != ChapterGenerationBatchStatus.running) {
+      return ChapterGenerationBatchResult(
+        batch: batch,
+        items: await _repository
+            .watchChapterGenerationBatchItems(batch.id)
+            .first,
+        workflowTaskId: batch.workflowTaskId,
+      );
+    }
+    final log = StringBuffer(batch.logs);
+    _appendLog(log, '用户停止批量草稿。');
+    batch = await _repository.updateChapterGenerationBatchState(
+      id: batch.id,
+      status: ChapterGenerationBatchStatus.failed,
+      errorMessage: '用户已停止批量草稿。',
+      logs: log.toString(),
+      completedAt: DateTime.now(),
+    );
+    return ChapterGenerationBatchResult(
+      batch: batch,
+      items: await _repository.watchChapterGenerationBatchItems(batch.id).first,
+      workflowTaskId: batch.workflowTaskId,
+    );
+  }
+
+  Future<ProjectChapter> proposeMemoryPatchForChapter({
+    required String projectId,
+    required String chapterId,
+  }) async {
+    final project = await _requireProject(projectId);
+    final provider = await _requireProvider(project);
+    final modelName = _requireModelName(project, provider);
+    final chapter = await _repository.findChapter(chapterId);
+    if (chapter == null) {
+      throw StateError('Project chapter does not exist: $chapterId');
+    }
+    if (chapter.projectId != projectId) {
+      throw StateError('章节不属于当前项目。');
+    }
+    if (chapter.contentMarkdown.trim().isEmpty) {
+      throw StateError('章节正文为空，无法同步记忆。');
+    }
+    if (chapter.memorySyncStatus == MemorySyncStatus.pendingReview &&
+        chapter.memorySyncContentHash == chapter.contentHash) {
+      return chapter;
+    }
+    final plan = await _requirePlan(projectId, chapter.chapterPlanId);
+    final current = await _repository.findChapter(chapter.id);
+    if (current == null || current.contentHash != chapter.contentHash) {
+      throw StateError('章节正文已变化，请重新打开后再同步记忆。');
+    }
+    final memory = await _repository.findRuntimeMemory(projectId);
+    final characters = await _repository.watchCharacters(projectId).first;
+    final relationships = await _repository.watchRelationships(projectId).first;
+    await _proposeMemoryPatch(
+      provider: provider,
+      modelName: modelName,
+      traceRecorder: null,
+      chapter: current,
+      project: project,
+      plan: plan,
+      currentMemory: memory?.state ?? const RuntimeMemoryState(),
+      characters: characters,
+      relationships: relationships,
+    );
+    final updated = await _repository.findChapter(chapter.id);
+    if (updated == null) {
+      throw StateError('Project chapter does not exist: ${chapter.id}');
+    }
+    return updated;
+  }
+
+  Future<ChapterGenerationBatchItem> _processBatchItem({
+    required ChapterGenerationBatch batch,
+    required ChapterGenerationBatchItem item,
+    required WritingProject project,
+    required ProviderConfig provider,
+    required String modelName,
+  }) async {
+    var currentItem = item;
+    final itemLog = StringBuffer(currentItem.logs);
+
+    Future<void> updateItem(
+      ChapterGenerationBatchItemStatus status, {
+      String? message,
+      String? errorMessage,
+      String? chapterId,
+      String? latestRunId,
+      int? draftAttemptCount,
+      int? patchAttemptCount,
+      DateTime? startedAt,
+      DateTime? completedAt,
+      DateTime? syncedAt,
+    }) async {
+      if (message != null && message.trim().isNotEmpty) {
+        _appendLog(itemLog, message);
+      }
+      currentItem = await _repository.updateChapterGenerationBatchItemState(
+        id: currentItem.id,
+        status: status,
+        errorMessage: errorMessage,
+        chapterId: chapterId,
+        latestRunId: latestRunId,
+        draftAttemptCount: draftAttemptCount,
+        patchAttemptCount: patchAttemptCount,
+        logs: itemLog.toString(),
+        startedAt: startedAt,
+        completedAt: completedAt,
+        syncedAt: syncedAt,
+      );
+    }
+
+    await updateItem(
+      ChapterGenerationBatchItemStatus.running,
+      message: '开始处理批量章节。',
+      startedAt: currentItem.startedAt ?? DateTime.now(),
+    );
+
+    var chapter = currentItem.chapterId == null
+        ? await _repository.findChapterByPlan(currentItem.chapterPlanId)
+        : await _repository.findChapter(currentItem.chapterId!);
+    var generatedByThisBatch =
+        chapter != null &&
+        chapter.contentMarkdown.trim().isNotEmpty &&
+        currentItem.draftAttemptCount > 0;
+
+    while (chapter == null ||
+        chapter.contentMarkdown.trim().isEmpty ||
+        chapter.continuityVerdict != ContinuityVerdict.pass) {
+      if (currentItem.draftAttemptCount >= _maxBatchDraftAttempts) {
+        await updateItem(
+          ChapterGenerationBatchItemStatus.failed,
+          message: '正文审计重试耗尽。',
+          errorMessage: '正文连续性审计未通过，已达到 $_maxBatchDraftAttempts 次重试上限。',
+          completedAt: DateTime.now(),
+        );
+        return currentItem;
+      }
+      if (chapter != null &&
+          chapter.contentMarkdown.trim().isNotEmpty &&
+          !generatedByThisBatch) {
+        await updateItem(
+          ChapterGenerationBatchItemStatus.failed,
+          message: '发现批次启动前已有正文，停止当前章节。',
+          errorMessage: '章节已有正文，批量草稿不会覆盖既有正文。',
+          completedAt: DateTime.now(),
+        );
+        return currentItem;
+      }
+
+      final attempt = currentItem.draftAttemptCount + 1;
+      await updateItem(
+        ChapterGenerationBatchItemStatus.running,
+        message: '正文生成尝试 $attempt/$_maxBatchDraftAttempts。',
+        draftAttemptCount: attempt,
+      );
+      try {
+        final result = await generateChapter(
+          projectId: batch.projectId,
+          chapterPlanId: currentItem.chapterPlanId,
+          replaceExisting: generatedByThisBatch,
+        );
+        generatedByThisBatch = true;
+        chapter = result.chapter;
+        await updateItem(
+          ChapterGenerationBatchItemStatus.running,
+          message: '正文生成完成，连续性审计：${result.chapter.continuityVerdict.name}。',
+          chapterId: result.chapter.id,
+          latestRunId: result.run.id,
+        );
+      } on Object catch (error) {
+        final run = await _latestRunForPlan(
+          projectId: batch.projectId,
+          chapterPlanId: currentItem.chapterPlanId,
+        );
+        await updateItem(
+          ChapterGenerationBatchItemStatus.running,
+          message: '正文生成尝试失败：${_sanitizeError(error, provider)}',
+          latestRunId: run?.id,
+        );
+      }
+
+      chapter = await _repository.findChapterByPlan(currentItem.chapterPlanId);
+    }
+
+    while (true) {
+      final stableChapter = chapter;
+      if (stableChapter == null) {
+        await updateItem(
+          ChapterGenerationBatchItemStatus.failed,
+          message: '章节正文未生成，无法同步记忆。',
+          errorMessage: '章节正文未生成，无法同步记忆。',
+          completedAt: DateTime.now(),
+        );
+        return currentItem;
+      }
+      final latest = await _repository.findChapter(stableChapter.id);
+      if (latest == null) {
+        await updateItem(
+          ChapterGenerationBatchItemStatus.failed,
+          message: '章节不存在，无法同步记忆。',
+          errorMessage: '章节不存在，无法同步记忆。',
+          completedAt: DateTime.now(),
+        );
+        return currentItem;
+      }
+      chapter = latest;
+      if (chapter.memorySyncStatus == MemorySyncStatus.synced) {
+        await updateItem(
+          ChapterGenerationBatchItemStatus.synced,
+          message: 'Memory Patch 已通过 AI 审阅并应用。',
+          chapterId: chapter.id,
+          completedAt: DateTime.now(),
+          syncedAt: DateTime.now(),
+        );
+        return currentItem;
+      }
+      if (currentItem.patchAttemptCount >= _maxBatchPatchAttempts) {
+        await updateItem(
+          ChapterGenerationBatchItemStatus.failed,
+          message: 'Memory Patch 审阅重试耗尽。',
+          errorMessage: 'Memory Patch 审阅未通过，已达到 $_maxBatchPatchAttempts 次重试上限。',
+          completedAt: DateTime.now(),
+        );
+        return currentItem;
+      }
+      final attempt = currentItem.patchAttemptCount + 1;
+      await updateItem(
+        ChapterGenerationBatchItemStatus.running,
+        message: 'Memory Patch 生成与审阅尝试 $attempt/$_maxBatchPatchAttempts。',
+        patchAttemptCount: attempt,
+      );
+      try {
+        chapter = await _ensureMemoryPatchForBatch(
+          project: project,
+          provider: provider,
+          modelName: modelName,
+          chapter: chapter,
+        );
+        final review = await _reviewMemoryPatch(
+          provider: provider,
+          modelName: modelName,
+          project: project,
+          chapter: chapter,
+        );
+        await updateItem(
+          ChapterGenerationBatchItemStatus.running,
+          message:
+              'Memory Patch AI 审阅：${review.verdict.name}。\n${review.reportMarkdown}',
+        );
+        if (review.verdict == ContinuityVerdict.pass) {
+          final saved = await _repository.applyMemorySyncPatch(chapter.id);
+          await updateItem(
+            ChapterGenerationBatchItemStatus.synced,
+            message: 'Memory Patch 已自动应用。',
+            chapterId: saved.id,
+            completedAt: DateTime.now(),
+            syncedAt: DateTime.now(),
+          );
+          return currentItem;
+        }
+        if (chapter.memorySyncStatus == MemorySyncStatus.pendingReview) {
+          await _repository.discardMemorySyncPatch(chapter.id);
+        }
+      } on Object catch (error) {
+        await updateItem(
+          ChapterGenerationBatchItemStatus.running,
+          message: 'Memory Patch 审阅尝试失败：${_sanitizeError(error, provider)}',
+        );
+      }
     }
   }
 
@@ -275,6 +751,14 @@ class ChapterGenerationPipeline {
       throw StateError('Project does not exist: $projectId');
     }
     return project;
+  }
+
+  Future<ChapterGenerationBatch> _requireGenerationBatch(String batchId) async {
+    final batch = await _repository.findChapterGenerationBatch(batchId);
+    if (batch == null) {
+      throw StateError('Chapter generation batch does not exist: $batchId');
+    }
+    return batch;
   }
 
   Future<ProviderConfig> _requireProvider(WritingProject project) async {
@@ -313,6 +797,61 @@ class ChapterGenerationPipeline {
       throw StateError('章节计划不属于当前项目。');
     }
     return plan;
+  }
+
+  Future<void> _validateBatchStart({
+    required String projectId,
+    required List<String> chapterPlanIds,
+  }) async {
+    if (chapterPlanIds.isEmpty) {
+      throw StateError('请选择需要批量生成的章节。');
+    }
+    if (await _repository.hasRunningChapterGenerationBatch(projectId)) {
+      throw StateError('项目已有运行中的批量草稿任务。');
+    }
+    if (await _repository.hasRunningChapterGenerationForProject(projectId)) {
+      throw StateError('项目已有运行中的单章生成任务。');
+    }
+    final chapters = await _repository.watchChapters(projectId).first;
+    final pendingPatch = chapters.any(
+      (chapter) => chapter.memorySyncStatus == MemorySyncStatus.pendingReview,
+    );
+    if (pendingPatch) {
+      throw StateError('项目存在待审阅的 Memory Patch，请先应用或丢弃。');
+    }
+    final plans = <ChapterPlan>[];
+    final seen = <String>{};
+    for (final id in chapterPlanIds) {
+      if (!seen.add(id)) {
+        throw StateError('批量生成章节不能重复。');
+      }
+      final plan = await _requirePlan(projectId, id);
+      plans.add(plan);
+    }
+    final sorted = [...plans]
+      ..sort((a, b) => a.chapterIndex.compareTo(b.chapterIndex));
+    for (var index = 0; index < sorted.length; index += 1) {
+      if (sorted[index].id != plans[index].id) {
+        throw StateError('批量生成章节必须按章节顺序选择。');
+      }
+    }
+    final volumeId = plans.first.volumeId;
+    for (var index = 0; index < plans.length; index += 1) {
+      final plan = plans[index];
+      if (plan.volumeId != volumeId) {
+        throw StateError('批量生成仅支持同一卷内连续章节。');
+      }
+      if (index > 0 && plan.chapterIndex != plans[index - 1].chapterIndex + 1) {
+        throw StateError('批量生成章节必须连续，不能跳章。');
+      }
+      final chapter = await _repository.findChapterByPlan(plan.id);
+      if (chapter != null && chapter.contentMarkdown.trim().isNotEmpty) {
+        throw StateError('选区内已有正文：${chapter.title}');
+      }
+      if (await _repository.hasRunningChapterGeneration(plan.id)) {
+        throw StateError('章节已有运行中的生成任务：${_chapterTitle(plan)}');
+      }
+    }
   }
 
   Future<_GenerationContext> _buildGenerationContext({
@@ -373,6 +912,202 @@ class ChapterGenerationPipeline {
       characters: List.unmodifiable(characters),
       relationships: List.unmodifiable(relationships),
     );
+  }
+
+  Future<_ContinuityAuditResult> _auditContinuity({
+    required ProviderConfig provider,
+    required String modelName,
+    required PromptTraceRecorder traceRecorder,
+    required WritingProject project,
+    required ChapterPlan plan,
+    required WritingContextSections sections,
+    required String content,
+  }) async {
+    final generated = await _completionService.completeMarkdown(
+      provider: provider,
+      prompt: _continuityAuditPrompt(
+        project: project,
+        plan: plan,
+        sections: sections,
+        content: content,
+      ),
+      temperature: 0.2,
+      modelName: modelName,
+      promptTrace: traceRecorder.config(label: 'audit_continuity'),
+    );
+    return _parseContinuityAudit(_cleanMarkdownDraft(generated));
+  }
+
+  String _continuityAuditPrompt({
+    required WritingProject project,
+    required ChapterPlan plan,
+    required WritingContextSections sections,
+    required String content,
+  }) {
+    return '''
+你是长篇小说项目的连续性审计员。请检查刚生成的章节是否能安全进入项目正文。
+
+## 输出契约
+只输出 YAML front matter + Markdown 报告，不要输出代码围栏、解释或前言。
+文档必须从 `---` 开始，以第二个 `---` 结束 YAML，然后接 Markdown 报告。
+
+YAML 模板：
+---
+verdict: pass
+summary: 一句话说明总体结论
+characterState: pass
+worldRules: pass
+foreshadowing: pass
+chapterObjective: pass
+blockingIssues: []
+warningIssues: []
+---
+# 连续性审计报告
+
+## 判级规则
+- `fail` 只用于明确硬冲突：人物状态与已知状态不可兼容、世界规则被明确违反、章节目标完全未推进且正文没有替代完成证据。
+- 伏笔遗漏、目标完成偏弱、关系推进不足、轻微状态模糊，通常是 `warning`。
+- 审美、文风、节奏、描写质量问题不能作为 `fail` 原因；最多写入 warning 或备注。
+- 不要因为信息缺失就编造冲突。没有证据时写“未发现明确冲突”。
+
+## 项目
+- 标题：${project.title}
+- 当前章节：第 ${plan.chapterIndex} 章 · ${_chapterTitle(plan)}
+
+## 章节目标卡
+${_objectiveCardMarkdown(plan.objectiveCard)}
+
+## 章节细纲
+${_chapterPlanMarkdown(sections.chapterPlan)}
+
+## 项目设定与规则
+${_auditReferenceMarkdown(sections)}
+
+## 待审计章节正文
+$content
+''';
+  }
+
+  _ContinuityAuditResult _parseContinuityAudit(String generated) {
+    final trimmed = generated.trim();
+    try {
+      if (!trimmed.startsWith('---')) {
+        throw const FormatException('缺少 YAML front matter。');
+      }
+      final close = trimmed.indexOf('\n---', 3);
+      if (close < 0) {
+        throw const FormatException('缺少 YAML 结束分隔符。');
+      }
+      final yamlText = trimmed.substring(3, close).trim();
+      final body = trimmed.substring(close + 4).trim();
+      final parsed = loadYaml(yamlText);
+      if (parsed is! YamlMap) {
+        throw const FormatException('YAML 根节点不是 mapping。');
+      }
+      final verdict = _parseContinuityVerdict(parsed['verdict']?.toString());
+      final report = body.isEmpty
+          ? _fallbackAuditReport(verdict, parsed['summary']?.toString() ?? '')
+          : body;
+      return _ContinuityAuditResult(
+        verdict: verdict,
+        reportMarkdown: report.trim(),
+      );
+    } on Object catch (error) {
+      return _ContinuityAuditResult(
+        verdict: ContinuityVerdict.warning,
+        reportMarkdown:
+            '''
+# 连续性审计报告
+
+## 解析失败
+
+审计输出解析失败，已按 warning 处理。错误：$error
+
+## 原始审计输出
+
+```markdown
+$trimmed
+```
+'''
+                .trim(),
+      );
+    }
+  }
+
+  ContinuityVerdict _parseContinuityVerdict(String? value) {
+    final normalized = value?.trim().toLowerCase();
+    return switch (normalized) {
+      'pass' => ContinuityVerdict.pass,
+      'warning' => ContinuityVerdict.warning,
+      'fail' => ContinuityVerdict.fail,
+      _ => throw FormatException('未知审计 verdict: $value'),
+    };
+  }
+
+  String _fallbackAuditReport(ContinuityVerdict verdict, String summary) {
+    final text = summary.trim().isEmpty ? '未提供审计摘要。' : summary.trim();
+    return '# 连续性审计报告\n\n- Verdict: ${verdict.name}\n- Summary: $text';
+  }
+
+  String _auditLogMessage(ContinuityVerdict verdict) {
+    return switch (verdict) {
+      ContinuityVerdict.pass => '连续性审计通过。',
+      ContinuityVerdict.warning => '连续性审计返回 warning，保存章节但暂停记忆同步。',
+      ContinuityVerdict.fail => '连续性审计未通过，阻断章节保存。',
+    };
+  }
+
+  String _objectiveCardMarkdown(ChapterObjectiveCard card) {
+    if (card.isEmpty) {
+      return '（空）';
+    }
+    return [
+      if (card.chapterTitle.trim().isNotEmpty)
+        '- Chapter Title: ${card.chapterTitle.trim()}',
+      if (card.objective.trim().isNotEmpty)
+        '- Objective: ${card.objective.trim()}',
+      if (card.pressureSource.trim().isNotEmpty)
+        '- Pressure Source: ${card.pressureSource.trim()}',
+      if (card.payoffTarget.trim().isNotEmpty)
+        '- Payoff Target: ${card.payoffTarget.trim()}',
+      if (card.relationshipShift.trim().isNotEmpty)
+        '- Relationship Shift: ${card.relationshipShift.trim()}',
+      if (card.hookType.trim().isNotEmpty)
+        '- Hook Type: ${card.hookType.trim()}',
+    ].join('\n');
+  }
+
+  String _chapterPlanMarkdown(ChapterPlanPromptContext plan) {
+    return [
+      '- Volume: ${plan.volumeIndex} · ${plan.volumeTitle.trim()}',
+      '- Local Chapter Index: ${plan.chapterLocalIndex}',
+      '- Whole-book Chapter Index: ${plan.chapterIndex}',
+      if (plan.coreEvent.trim().isNotEmpty)
+        '- Core Event: ${plan.coreEvent.trim()}',
+      if (plan.emotionArc.trim().isNotEmpty)
+        '- Emotion Arc: ${plan.emotionArc.trim()}',
+      if (plan.chapterHook.trim().isNotEmpty)
+        '- Chapter Hook: ${plan.chapterHook.trim()}',
+      if (plan.outlineMarkdown.trim().isNotEmpty)
+        '\n${plan.outlineMarkdown.trim()}',
+    ].join('\n');
+  }
+
+  String _auditReferenceMarkdown(WritingContextSections sections) {
+    final parts = <String>[
+      if (!sections.projectBible.isEmpty)
+        '### Project Bible\n\n${[sections.projectBible.descriptionMarkdown, sections.projectBible.worldBuildingMarkdown, sections.projectBible.charactersBlueprintMarkdown, sections.projectBible.outlineMasterMarkdown, sections.projectBible.outlineDetailYaml].where((value) => value.trim().isNotEmpty).join('\n\n')}',
+      if (sections.storyEngineMarkdown.trim().isNotEmpty)
+        '### Story Engine\n\n${sections.storyEngineMarkdown.trim()}',
+      if (sections.characterGraphMarkdown.trim().isNotEmpty)
+        '### Structured Characters And Relationships\n\n${sections.characterGraphMarkdown.trim()}',
+      if (!sections.runtimeMemory.isEmpty)
+        '### Runtime Memory\n\n${_runtimeMemoryMarkdown(sections.runtimeMemory)}',
+    ];
+    if (parts.isEmpty) {
+      return '（空）';
+    }
+    return parts.join('\n\n');
   }
 
   String _projectContextMarkdown(WritingProject project) {
@@ -489,7 +1224,7 @@ $archive
   Future<void> _proposeMemoryPatch({
     required ProviderConfig provider,
     required String modelName,
-    required PromptTraceRecorder traceRecorder,
+    required PromptTraceRecorder? traceRecorder,
     required ProjectChapter chapter,
     required WritingProject project,
     required ChapterPlan plan,
@@ -540,7 +1275,7 @@ ${chapter.contentMarkdown}
       prompt: prompt,
       temperature: 0.25,
       modelName: modelName,
-      promptTrace: traceRecorder.config(label: 'propose_memory_patch'),
+      promptTrace: traceRecorder?.config(label: 'propose_memory_patch'),
     );
     final patchYaml = _cleanMarkdownDraft(generated);
     if (patchYaml.trim().isEmpty) {
@@ -566,6 +1301,138 @@ ${chapter.contentMarkdown}
         patchYaml: patchYaml,
       ),
     );
+  }
+
+  Future<ProjectChapter> _ensureMemoryPatchForBatch({
+    required WritingProject project,
+    required ProviderConfig provider,
+    required String modelName,
+    required ProjectChapter chapter,
+  }) async {
+    if (chapter.memorySyncStatus == MemorySyncStatus.pendingReview &&
+        chapter.memorySyncContentHash == chapter.contentHash) {
+      return chapter;
+    }
+    final plan = await _requirePlan(project.id, chapter.chapterPlanId);
+    final current = await _repository.findChapter(chapter.id);
+    if (current == null || current.contentHash != chapter.contentHash) {
+      throw StateError('章节正文已变化，请重新打开后再同步记忆。');
+    }
+    final memory = await _repository.findRuntimeMemory(project.id);
+    final characters = await _repository.watchCharacters(project.id).first;
+    final relationships = await _repository
+        .watchRelationships(project.id)
+        .first;
+    await _proposeMemoryPatch(
+      provider: provider,
+      modelName: modelName,
+      traceRecorder: null,
+      chapter: current,
+      project: project,
+      plan: plan,
+      currentMemory: memory?.state ?? const RuntimeMemoryState(),
+      characters: characters,
+      relationships: relationships,
+    );
+    final updated = await _repository.findChapter(chapter.id);
+    if (updated == null) {
+      throw StateError('Project chapter does not exist: ${chapter.id}');
+    }
+    return updated;
+  }
+
+  Future<_ContinuityAuditResult> _reviewMemoryPatch({
+    required ProviderConfig provider,
+    required String modelName,
+    required WritingProject project,
+    required ProjectChapter chapter,
+  }) async {
+    final memory = await _repository.findRuntimeMemory(project.id);
+    final generated = await _completionService.completeMarkdown(
+      provider: provider,
+      prompt: _memoryPatchReviewPrompt(
+        project: project,
+        chapter: chapter,
+        currentMemory: memory?.state ?? const RuntimeMemoryState(),
+      ),
+      temperature: 0.15,
+      modelName: modelName,
+    );
+    return _parseContinuityAudit(_cleanMarkdownDraft(generated));
+  }
+
+  String _memoryPatchReviewPrompt({
+    required WritingProject project,
+    required ProjectChapter chapter,
+    required RuntimeMemoryState currentMemory,
+  }) {
+    return '''
+你是长篇小说项目的 Memory Patch 审阅员。请判断待应用的结构化记忆 Patch 是否可以安全写入 Runtime Memory 并服务下一章生成。
+
+## 输出契约
+只输出 YAML front matter + Markdown 报告，不要输出代码围栏、解释或前言。
+文档必须从 `---` 开始，以第二个 `---` 结束 YAML，然后接 Markdown 报告。
+
+YAML 模板：
+---
+verdict: pass
+summary: 一句话说明总体结论
+characterGraph: pass
+runtimeMemory: pass
+chapterArchive: pass
+blockingIssues: []
+warningIssues: []
+---
+# Memory Patch 审阅报告
+
+## 判级规则
+- `pass`：Patch 只记录本章正文明确发生的信息，不破坏既有 Runtime Memory，可以安全应用。
+- `warning`：Patch 大体可读但有缺漏、模糊、轻微过度概括，继续自动应用有风险。
+- `fail`：Patch 编造正文没有发生的信息、删除关键连续性、严重覆盖既有状态、或格式明显无法安全应用。
+- 只评估 Patch 的安全性，不评价正文文风。
+
+## 项目
+- 标题：${project.title}
+- 章节：第 ${chapter.chapterIndex} 章 · ${chapter.title}
+
+## 当前 Runtime Memory
+${_runtimeMemoryMarkdown(currentMemory)}
+
+## 待应用 Patch YAML
+${chapter.memorySyncPatchYaml.trim().isEmpty ? '（空）' : chapter.memorySyncPatchYaml.trim()}
+
+## Patch 预览字段
+### Runtime State
+${chapter.memorySyncProposedRuntimeState.trim().isEmpty ? '（无变化）' : chapter.memorySyncProposedRuntimeState.trim()}
+
+### Runtime Threads
+${chapter.memorySyncProposedRuntimeThreads.trim().isEmpty ? '（无变化）' : chapter.memorySyncProposedRuntimeThreads.trim()}
+
+### Story Summary
+${chapter.memorySyncProposedStorySummary.trim().isEmpty ? '（无变化）' : chapter.memorySyncProposedStorySummary.trim()}
+
+### Continuity Index
+${chapter.memorySyncProposedContinuityIndex.trim().isEmpty ? '（无变化）' : chapter.memorySyncProposedContinuityIndex.trim()}
+
+### Chapter Archive
+${chapter.memorySyncProposedChapterArchiveMarkdown.trim().isEmpty ? '（无变化）' : chapter.memorySyncProposedChapterArchiveMarkdown.trim()}
+
+## 章节正文
+${chapter.contentMarkdown}
+''';
+  }
+
+  Future<ChapterGenerationRun?> _latestRunForPlan({
+    required String projectId,
+    required String chapterPlanId,
+  }) async {
+    final runs = await _repository.watchChapterGenerationRuns(projectId).first;
+    for (final run in runs) {
+      if (run.chapterPlanId == chapterPlanId) {
+        return run;
+      }
+    }
+    return null;
   }
 
   String _runtimeMemoryMarkdown(RuntimeMemoryState memory) {
@@ -707,6 +1574,16 @@ class _GenerationContext {
   final List<String> warnings;
   final List<NovelCharacter> characters;
   final List<NovelRelationship> relationships;
+}
+
+class _ContinuityAuditResult {
+  const _ContinuityAuditResult({
+    required this.verdict,
+    required this.reportMarkdown,
+  });
+
+  final ContinuityVerdict verdict;
+  final String reportMarkdown;
 }
 
 const _outputContract = '''

@@ -147,6 +147,26 @@ Stream<List<ChapterGenerationRun>> chapterGenerationRuns(
 }
 
 @riverpod
+Stream<List<ChapterGenerationBatch>> chapterGenerationBatches(
+  Ref ref,
+  String projectId,
+) {
+  return ref
+      .watch(novelWorkshopRepositoryProvider)
+      .watchChapterGenerationBatches(projectId);
+}
+
+@riverpod
+Stream<List<ChapterGenerationBatchItem>> chapterGenerationBatchItems(
+  Ref ref,
+  String batchId,
+) {
+  return ref
+      .watch(novelWorkshopRepositoryProvider)
+      .watchChapterGenerationBatchItems(batchId);
+}
+
+@riverpod
 Stream<List<AssetGenerationRun>> assetGenerationRuns(
   Ref ref,
   String projectId,
@@ -298,6 +318,28 @@ class NovelWorkshopController extends _$NovelWorkshopController {
     return saved;
   }
 
+  Future<ProjectChapter> proposeMemoryPatchForChapter({
+    required String projectId,
+    required String chapterId,
+  }) async {
+    state = const AsyncLoading();
+    late ProjectChapter saved;
+    state = await AsyncValue.guard(() async {
+      saved = await ref
+          .read(chapterGenerationPipelineProvider)
+          .proposeMemoryPatchForChapter(
+            projectId: projectId,
+            chapterId: chapterId,
+          );
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
+    ref.invalidate(projectChaptersProvider(projectId));
+    ref.invalidate(projectRuntimeMemoryProvider(projectId));
+    return saved;
+  }
+
   Future<ProjectRuntimeMemory> saveRuntimeMemory({
     required String projectId,
     required RuntimeMemoryState memoryState,
@@ -401,6 +443,44 @@ class NovelWorkshopController extends _$NovelWorkshopController {
     if (state.hasError) {
       Error.throwWithStackTrace(state.error!, state.stackTrace!);
     }
+    return result;
+  }
+
+  Future<ChapterGenerationBatchResult> startChapterGenerationBatch({
+    required String projectId,
+    required List<String> chapterPlanIds,
+  }) async {
+    state = const AsyncLoading();
+    late ChapterGenerationBatchResult result;
+    state = await AsyncValue.guard(() async {
+      result = await ref
+          .read(chapterGenerationPipelineProvider)
+          .startChapterGenerationBatch(
+            projectId: projectId,
+            chapterPlanIds: chapterPlanIds,
+          );
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
+    ref.invalidate(projectRuntimeMemoryProvider(projectId));
+    return result;
+  }
+
+  Future<ChapterGenerationBatchResult> stopChapterGenerationBatch(
+    String batchId,
+  ) async {
+    state = const AsyncLoading();
+    late ChapterGenerationBatchResult result;
+    state = await AsyncValue.guard(() async {
+      result = await ref
+          .read(chapterGenerationPipelineProvider)
+          .stopChapterGenerationBatch(batchId);
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
+    ref.invalidate(projectRuntimeMemoryProvider(result.batch.projectId));
     return result;
   }
 

@@ -101,6 +101,21 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
   }
 
   @override
+  Stream<List<ChapterGenerationBatch>> watchChapterGenerationBatches(
+    String projectId,
+  ) {
+    final query = _database.select(_database.chapterGenerationBatchRecords)
+      ..where((batch) => batch.projectId.equals(projectId))
+      ..orderBy([
+        (batch) =>
+            OrderingTerm(expression: batch.updatedAt, mode: OrderingMode.desc),
+      ]);
+    return query.watch().map(
+      (rows) => rows.map(_mapGenerationBatch).toList(growable: false),
+    );
+  }
+
+  @override
   Stream<List<AssetGenerationRun>> watchAssetGenerationRuns(String projectId) {
     final query = _database.select(_database.assetGenerationRunRecords)
       ..where((run) => run.projectId.equals(projectId))
@@ -137,6 +152,18 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       ..orderBy([(item) => OrderingTerm.asc(item.position)]);
     return query.watch().map(
       (rows) => rows.map(_mapEnrichmentItem).toList(growable: false),
+    );
+  }
+
+  @override
+  Stream<List<ChapterGenerationBatchItem>> watchChapterGenerationBatchItems(
+    String batchId,
+  ) {
+    final query = _database.select(_database.chapterGenerationBatchItemRecords)
+      ..where((item) => item.batchId.equals(batchId))
+      ..orderBy([(item) => OrderingTerm.asc(item.position)]);
+    return query.watch().map(
+      (rows) => rows.map(_mapGenerationBatchItem).toList(growable: false),
     );
   }
 
@@ -216,6 +243,26 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       ..limit(1);
     final row = await query.getSingleOrNull();
     return row == null ? null : _mapGenerationRun(row);
+  }
+
+  @override
+  Future<ChapterGenerationBatch?> findChapterGenerationBatch(String id) async {
+    final query = _database.select(_database.chapterGenerationBatchRecords)
+      ..where((batch) => batch.id.equals(id))
+      ..limit(1);
+    final row = await query.getSingleOrNull();
+    return row == null ? null : _mapGenerationBatch(row);
+  }
+
+  @override
+  Future<ChapterGenerationBatchItem?> findChapterGenerationBatchItem(
+    String id,
+  ) async {
+    final query = _database.select(_database.chapterGenerationBatchItemRecords)
+      ..where((item) => item.id.equals(id))
+      ..limit(1);
+    final row = await query.getSingleOrNull();
+    return row == null ? null : _mapGenerationBatchItem(row);
   }
 
   @override
@@ -325,6 +372,32 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
             run.chapterPlanId.equals(chapterPlanId) &
             (run.status.equals(ChapterGenerationStatus.pending.name) |
                 run.status.equals(ChapterGenerationStatus.running.name)),
+      )
+      ..limit(1);
+    return await query.getSingleOrNull() != null;
+  }
+
+  @override
+  Future<bool> hasRunningChapterGenerationForProject(String projectId) async {
+    final query = _database.select(_database.chapterGenerationRunRecords)
+      ..where(
+        (run) =>
+            run.projectId.equals(projectId) &
+            (run.status.equals(ChapterGenerationStatus.pending.name) |
+                run.status.equals(ChapterGenerationStatus.running.name)),
+      )
+      ..limit(1);
+    return await query.getSingleOrNull() != null;
+  }
+
+  @override
+  Future<bool> hasRunningChapterGenerationBatch(String projectId) async {
+    final query = _database.select(_database.chapterGenerationBatchRecords)
+      ..where(
+        (batch) =>
+            batch.projectId.equals(projectId) &
+            (batch.status.equals(ChapterGenerationBatchStatus.pending.name) |
+                batch.status.equals(ChapterGenerationBatchStatus.running.name)),
       )
       ..limit(1);
     return await query.getSingleOrNull() != null;
@@ -1547,6 +1620,9 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
               errorMessage: const Value(null),
               logs: const Value(''),
               contextWarningsMarkdown: const Value(''),
+              draftMarkdown: const Value(''),
+              continuityVerdict: Value(ContinuityVerdict.pass.name),
+              continuityReportMarkdown: const Value(''),
               createdAt: now,
               updatedAt: now,
               startedAt: const Value(null),
@@ -1573,6 +1649,9 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     String? errorMessage,
     String? logs,
     String? contextWarningsMarkdown,
+    String? draftMarkdown,
+    ContinuityVerdict? continuityVerdict,
+    String? continuityReportMarkdown,
     DateTime? startedAt,
     DateTime? completedAt,
   }) async {
@@ -1613,6 +1692,15 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
           contextWarningsMarkdown: contextWarningsMarkdown == null
               ? const Value.absent()
               : Value(contextWarningsMarkdown),
+          draftMarkdown: draftMarkdown == null
+              ? const Value.absent()
+              : Value(draftMarkdown.trim()),
+          continuityVerdict: continuityVerdict == null
+              ? const Value.absent()
+              : Value(continuityVerdict.name),
+          continuityReportMarkdown: continuityReportMarkdown == null
+              ? const Value.absent()
+              : Value(continuityReportMarkdown.trim()),
           startedAt: startedAt == null
               ? const Value.absent()
               : Value(startedAt),
@@ -1634,6 +1722,224 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     final saved = await findChapterGenerationRun(id);
     if (saved == null) {
       throw StateError('Chapter generation run was not updated.');
+    }
+    return saved;
+  }
+
+  @override
+  Future<ChapterGenerationBatch> createChapterGenerationBatch(
+    ChapterGenerationBatchInput input,
+  ) async {
+    await _validateChapterGenerationBatchInput(input);
+    final now = DateTime.now();
+    final batchId = _uuid.v4();
+    final taskId = _uuid.v4();
+
+    await _database.transaction(() async {
+      await _database
+          .into(_database.workflowTaskRecords)
+          .insert(
+            WorkflowTaskRecordsCompanion.insert(
+              id: taskId,
+              kind: chapterGenerationBatchWorkflowTaskKind,
+              status: WorkflowTaskStatus.pending.name,
+              title: '批量草稿：${input.chapterPlanIds.length} 章',
+              stage: const Value('queued'),
+              errorMessage: const Value(null),
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+      await _database
+          .into(_database.chapterGenerationBatchRecords)
+          .insert(
+            ChapterGenerationBatchRecordsCompanion.insert(
+              id: batchId,
+              workflowTaskId: taskId,
+              projectId: input.projectId,
+              providerId: input.providerId.trim(),
+              modelName: input.modelName.trim(),
+              status: ChapterGenerationBatchStatus.pending.name,
+              errorMessage: const Value(null),
+              totalCount: Value(input.chapterPlanIds.length),
+              syncedCount: const Value(0),
+              failedCount: const Value(0),
+              logs: const Value(''),
+              createdAt: now,
+              updatedAt: now,
+              startedAt: const Value(null),
+              completedAt: const Value(null),
+            ),
+          );
+      for (var index = 0; index < input.chapterPlanIds.length; index += 1) {
+        await _database
+            .into(_database.chapterGenerationBatchItemRecords)
+            .insert(
+              ChapterGenerationBatchItemRecordsCompanion.insert(
+                id: _uuid.v4(),
+                batchId: batchId,
+                projectId: input.projectId,
+                chapterPlanId: input.chapterPlanIds[index],
+                chapterId: const Value(null),
+                latestRunId: const Value(null),
+                position: index,
+                status: ChapterGenerationBatchItemStatus.waiting.name,
+                errorMessage: const Value(null),
+                draftAttemptCount: const Value(0),
+                patchAttemptCount: const Value(0),
+                logs: const Value(''),
+                createdAt: now,
+                updatedAt: now,
+                startedAt: const Value(null),
+                completedAt: const Value(null),
+                syncedAt: const Value(null),
+              ),
+            );
+      }
+    });
+
+    final saved = await findChapterGenerationBatch(batchId);
+    if (saved == null) {
+      throw StateError('Chapter generation batch was not created.');
+    }
+    return saved;
+  }
+
+  @override
+  Future<ChapterGenerationBatch> updateChapterGenerationBatchState({
+    required String id,
+    required ChapterGenerationBatchStatus status,
+    String? providerId,
+    String? modelName,
+    String? errorMessage,
+    String? logs,
+    DateTime? startedAt,
+    DateTime? completedAt,
+  }) async {
+    final batch = await findChapterGenerationBatch(id);
+    if (batch == null) {
+      throw StateError('Chapter generation batch does not exist: $id');
+    }
+    final now = DateTime.now();
+    final counts = await _chapterGenerationBatchCounts(id);
+    await _database.transaction(() async {
+      await (_database.update(
+        _database.chapterGenerationBatchRecords,
+      )..where((row) => row.id.equals(id))).write(
+        ChapterGenerationBatchRecordsCompanion(
+          status: Value(status.name),
+          providerId: providerId == null
+              ? const Value.absent()
+              : Value(providerId.trim()),
+          modelName: modelName == null
+              ? const Value.absent()
+              : Value(modelName.trim()),
+          errorMessage: Value(errorMessage),
+          logs: logs == null ? const Value.absent() : Value(logs),
+          syncedCount: Value(counts.syncedCount),
+          failedCount: Value(counts.failedCount),
+          startedAt: startedAt == null
+              ? const Value.absent()
+              : Value(startedAt),
+          completedAt: completedAt == null
+              ? const Value.absent()
+              : Value(completedAt),
+          updatedAt: Value(now),
+        ),
+      );
+      await _updateWorkflowTaskForGenerationBatch(
+        workflowTaskId: batch.workflowTaskId,
+        status: status,
+        errorMessage: errorMessage,
+        updatedAt: now,
+      );
+    });
+    final saved = await findChapterGenerationBatch(id);
+    if (saved == null) {
+      throw StateError('Chapter generation batch was not updated.');
+    }
+    return saved;
+  }
+
+  @override
+  Future<ChapterGenerationBatchItem> updateChapterGenerationBatchItemState({
+    required String id,
+    required ChapterGenerationBatchItemStatus status,
+    String? errorMessage,
+    String? chapterId,
+    String? latestRunId,
+    int? draftAttemptCount,
+    int? patchAttemptCount,
+    String? logs,
+    DateTime? startedAt,
+    DateTime? completedAt,
+    DateTime? syncedAt,
+    bool clearStartedAt = false,
+    bool clearCompletedAt = false,
+    bool clearSyncedAt = false,
+  }) async {
+    final item = await findChapterGenerationBatchItem(id);
+    if (item == null) {
+      throw StateError('Chapter generation batch item does not exist: $id');
+    }
+    if (chapterId != null) {
+      final chapter = await findChapter(chapterId);
+      if (chapter == null ||
+          chapter.projectId != item.projectId ||
+          chapter.chapterPlanId != item.chapterPlanId) {
+        throw StateError(
+          'Chapter generation batch item does not match chapter.',
+        );
+      }
+    }
+    if (latestRunId != null) {
+      final run = await findChapterGenerationRun(latestRunId);
+      if (run == null ||
+          run.projectId != item.projectId ||
+          run.chapterPlanId != item.chapterPlanId) {
+        throw StateError('Chapter generation batch item does not match run.');
+      }
+    }
+    final now = DateTime.now();
+    await (_database.update(
+      _database.chapterGenerationBatchItemRecords,
+    )..where((row) => row.id.equals(id))).write(
+      ChapterGenerationBatchItemRecordsCompanion(
+        status: Value(status.name),
+        errorMessage: Value(errorMessage),
+        chapterId: chapterId == null ? const Value.absent() : Value(chapterId),
+        latestRunId: latestRunId == null
+            ? const Value.absent()
+            : Value(latestRunId),
+        draftAttemptCount: draftAttemptCount == null
+            ? const Value.absent()
+            : Value(draftAttemptCount),
+        patchAttemptCount: patchAttemptCount == null
+            ? const Value.absent()
+            : Value(patchAttemptCount),
+        logs: logs == null ? const Value.absent() : Value(logs),
+        startedAt: clearStartedAt
+            ? const Value(null)
+            : startedAt == null
+            ? const Value.absent()
+            : Value(startedAt),
+        completedAt: clearCompletedAt
+            ? const Value(null)
+            : completedAt == null
+            ? const Value.absent()
+            : Value(completedAt),
+        syncedAt: clearSyncedAt
+            ? const Value(null)
+            : syncedAt == null
+            ? const Value.absent()
+            : Value(syncedAt),
+        updatedAt: Value(now),
+      ),
+    );
+    await _refreshChapterGenerationBatchCounts(item.batchId);
+    final saved = await findChapterGenerationBatchItem(id);
+    if (saved == null) {
+      throw StateError('Chapter generation batch item was not updated.');
     }
     return saved;
   }
@@ -1924,6 +2230,61 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     }
   }
 
+  Future<void> _validateChapterGenerationBatchInput(
+    ChapterGenerationBatchInput input,
+  ) async {
+    await _requireProject(input.projectId);
+    if (input.chapterPlanIds.isEmpty) {
+      throw StateError('请选择需要批量生成的章节。');
+    }
+    if (input.providerId.trim().isEmpty || input.modelName.trim().isEmpty) {
+      throw StateError('批量草稿任务需要 Provider 和模型。');
+    }
+    if (await hasRunningChapterGenerationForProject(input.projectId)) {
+      throw StateError('项目已有运行中的单章生成任务。');
+    }
+    final seen = <String>{};
+    final plans = <ChapterPlan>[];
+    for (final id in input.chapterPlanIds) {
+      if (!seen.add(id)) {
+        throw StateError('批量生成章节不能重复。');
+      }
+      final plan = await findChapterPlan(id);
+      if (plan == null || plan.projectId != input.projectId) {
+        throw StateError('批量生成章节计划不存在：$id');
+      }
+      plans.add(plan);
+    }
+    final sorted = [...plans]
+      ..sort((a, b) => a.chapterIndex.compareTo(b.chapterIndex));
+    for (var index = 0; index < sorted.length; index += 1) {
+      if (sorted[index].id != plans[index].id) {
+        throw StateError('批量生成章节必须按章节顺序选择。');
+      }
+    }
+    final volumeId = sorted.first.volumeId;
+    for (var index = 0; index < sorted.length; index += 1) {
+      final plan = sorted[index];
+      if (plan.volumeId != volumeId) {
+        throw StateError('批量生成仅支持同一卷内连续章节。');
+      }
+      if (index > 0 &&
+          plan.chapterIndex != sorted[index - 1].chapterIndex + 1) {
+        throw StateError('批量生成章节必须连续，不能跳章。');
+      }
+      final chapter = await findChapterByPlan(plan.id);
+      if (chapter != null && chapter.contentMarkdown.trim().isNotEmpty) {
+        throw StateError('选区内已有正文：${chapter.title}');
+      }
+      if (await hasRunningChapterGeneration(plan.id)) {
+        final title = plan.objectiveCard.chapterTitle.trim();
+        throw StateError(
+          '章节已有运行中的生成任务：${title.isEmpty ? '第${plan.chapterIndex}章' : title}',
+        );
+      }
+    }
+  }
+
   Future<void> _validateChapterEnrichmentBatchInput(
     ChapterEnrichmentBatchInput input,
   ) async {
@@ -2183,10 +2544,57 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       errorMessage: row.errorMessage,
       logs: row.logs,
       contextWarningsMarkdown: row.contextWarningsMarkdown,
+      draftMarkdown: row.draftMarkdown,
+      continuityVerdict: ContinuityVerdict.values.byName(row.continuityVerdict),
+      continuityReportMarkdown: row.continuityReportMarkdown,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
       startedAt: row.startedAt,
       completedAt: row.completedAt,
+    );
+  }
+
+  ChapterGenerationBatch _mapGenerationBatch(ChapterGenerationBatchRecord row) {
+    return ChapterGenerationBatch(
+      id: row.id,
+      workflowTaskId: row.workflowTaskId,
+      projectId: row.projectId,
+      providerId: row.providerId,
+      modelName: row.modelName,
+      status: ChapterGenerationBatchStatus.values.byName(row.status),
+      errorMessage: row.errorMessage,
+      totalCount: row.totalCount,
+      syncedCount: row.syncedCount,
+      failedCount: row.failedCount,
+      logs: row.logs,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      startedAt: row.startedAt,
+      completedAt: row.completedAt,
+    );
+  }
+
+  ChapterGenerationBatchItem _mapGenerationBatchItem(
+    ChapterGenerationBatchItemRecord row,
+  ) {
+    return ChapterGenerationBatchItem(
+      id: row.id,
+      batchId: row.batchId,
+      projectId: row.projectId,
+      chapterPlanId: row.chapterPlanId,
+      chapterId: row.chapterId,
+      latestRunId: row.latestRunId,
+      position: row.position,
+      status: ChapterGenerationBatchItemStatus.values.byName(row.status),
+      errorMessage: row.errorMessage,
+      draftAttemptCount: row.draftAttemptCount,
+      patchAttemptCount: row.patchAttemptCount,
+      logs: row.logs,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      startedAt: row.startedAt,
+      completedAt: row.completedAt,
+      syncedAt: row.syncedAt,
     );
   }
 
@@ -2289,6 +2697,17 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     };
   }
 
+  WorkflowTaskStatus _generationBatchWorkflowStatus(
+    ChapterGenerationBatchStatus status,
+  ) {
+    return switch (status) {
+      ChapterGenerationBatchStatus.pending => WorkflowTaskStatus.pending,
+      ChapterGenerationBatchStatus.running => WorkflowTaskStatus.running,
+      ChapterGenerationBatchStatus.succeeded => WorkflowTaskStatus.succeeded,
+      ChapterGenerationBatchStatus.failed => WorkflowTaskStatus.failed,
+    };
+  }
+
   WorkflowTaskStatus _assetWorkflowStatus(AssetGenerationStatus status) {
     return switch (status) {
       AssetGenerationStatus.pending => WorkflowTaskStatus.pending,
@@ -2324,6 +2743,24 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       WorkflowTaskRecordsCompanion(
         status: Value(_workflowStatus(status).name),
         stage: Value(stage?.name),
+        errorMessage: Value(errorMessage),
+        updatedAt: Value(updatedAt),
+      ),
+    );
+  }
+
+  Future<void> _updateWorkflowTaskForGenerationBatch({
+    required String workflowTaskId,
+    required ChapterGenerationBatchStatus status,
+    required String? errorMessage,
+    required DateTime updatedAt,
+  }) {
+    return (_database.update(
+      _database.workflowTaskRecords,
+    )..where((task) => task.id.equals(workflowTaskId))).write(
+      WorkflowTaskRecordsCompanion(
+        status: Value(_generationBatchWorkflowStatus(status).name),
+        stage: Value(status.name),
         errorMessage: Value(errorMessage),
         updatedAt: Value(updatedAt),
       ),
@@ -2390,6 +2827,39 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     );
   }
 
+  Future<_ChapterGenerationBatchCounts> _chapterGenerationBatchCounts(
+    String batchId,
+  ) async {
+    final rows = await (_database.select(
+      _database.chapterGenerationBatchItemRecords,
+    )..where((row) => row.batchId.equals(batchId))).get();
+    return _ChapterGenerationBatchCounts(
+      syncedCount: rows
+          .where(
+            (row) => row.status == ChapterGenerationBatchItemStatus.synced.name,
+          )
+          .length,
+      failedCount: rows
+          .where(
+            (row) => row.status == ChapterGenerationBatchItemStatus.failed.name,
+          )
+          .length,
+    );
+  }
+
+  Future<void> _refreshChapterGenerationBatchCounts(String batchId) async {
+    final counts = await _chapterGenerationBatchCounts(batchId);
+    await (_database.update(
+      _database.chapterGenerationBatchRecords,
+    )..where((row) => row.id.equals(batchId))).write(
+      ChapterGenerationBatchRecordsCompanion(
+        syncedCount: Value(counts.syncedCount),
+        failedCount: Value(counts.failedCount),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
   Future<void> _refreshChapterEnrichmentBatchCounts(String batchId) async {
     final counts = await _chapterEnrichmentCounts(batchId);
     await (_database.update(
@@ -2426,4 +2896,14 @@ class _ChapterEnrichmentCounts {
   final int generatedCount;
   final int failedCount;
   final int appliedCount;
+}
+
+class _ChapterGenerationBatchCounts {
+  const _ChapterGenerationBatchCounts({
+    required this.syncedCount,
+    required this.failedCount,
+  });
+
+  final int syncedCount;
+  final int failedCount;
 }

@@ -121,6 +121,7 @@ void main() {
       database,
       llmClient: _StaticLlmClient([
         '```markdown\n雾气贴着码头爬上来。\n```',
+        _auditPass,
         '''
 characters:
   - name: 林岚
@@ -152,7 +153,7 @@ runtimeMemory:
     expect(result.run.logs, contains('生成待审阅 Runtime Memory、角色卡片和关系图 Patch'));
     expect(result.workflowTaskId, result.run.workflowTaskId);
     expect(result.contextWarnings, isEmpty);
-    expect(fixture.llmClient.invocationCount, 2);
+    expect(fixture.llmClient.invocationCount, 3);
     expect(fixture.llmClient.prompts.first, contains('## Output Contract'));
     expect(fixture.llmClient.prompts.first, contains('# Voice Profile'));
     expect(fixture.llmClient.prompts.first, contains('# Plot Writing Guide'));
@@ -162,6 +163,8 @@ runtimeMemory:
     expect(fixture.llmClient.prompts.first, contains('Runtime Memory 决定开篇状态'));
     expect(fixture.llmClient.prompts.first, contains('避免复读旧章节模式'));
     expect(fixture.llmClient.prompts.first, contains('伏笔'));
+    expect(fixture.llmClient.prompts[1], contains('连续性审计员'));
+    expect(fixture.llmClient.prompts[1], contains('审美、文风、节奏'));
     expect(fixture.llmClient.prompts.last, contains('结构化记忆 Patch'));
     expect(fixture.llmClient.prompts.last, contains('只记录本章正文明确发生'));
     expect(fixture.llmClient.prompts.last, contains('不要输出全量快照'));
@@ -172,6 +175,10 @@ runtimeMemory:
     expect(fixture.llmClient.prompts.last, contains('storySummary'));
     expect(fixture.llmClient.prompts.last, contains('continuityIndex'));
     expect(fixture.llmClient.prompts.last, contains('chapterArchiveMarkdown'));
+    expect(result.chapter.continuityVerdict, ContinuityVerdict.pass);
+    expect(result.chapter.continuityReportMarkdown, contains('连续性审计报告'));
+    expect(result.run.draftMarkdown, '雾气贴着码头爬上来。');
+    expect(result.run.continuityVerdict, ContinuityVerdict.pass);
     final proposedChapter = await fixture.novelRepository.findChapter(
       result.chapter.id,
     );
@@ -191,10 +198,205 @@ runtimeMemory:
         .watchPromptTrace(result.workflowTaskId)
         .first;
     expect(trace!.traceMarkdown, contains('generate_chapter_draft'));
+    expect(trace.traceMarkdown, contains('audit_continuity'));
     expect(trace.traceMarkdown, contains('propose_memory_patch'));
     expect(trace.traceMarkdown, contains('雾气贴着码头爬上来'));
     expect(trace.traceMarkdown, isNot(contains('sk-secret-test-key')));
     expect(trace.traceMarkdown, contains('[REDACTED]'));
+  });
+
+  test('batch generation syncs each chapter before continuing', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final fixture = await _Fixture.create(
+      database,
+      llmClient: _StaticLlmClient([
+        '第一章正文。',
+        _auditPass,
+        _memoryPatchYaml,
+        _patchReviewPass,
+        '第二章正文。',
+        _auditPass,
+        _secondMemoryPatchYaml,
+        _patchReviewPass,
+      ]),
+      withRuntimeMemory: true,
+      withCharacterGraph: true,
+    );
+    final firstPlan = fixture.plan;
+    final secondPlan = await fixture.novelRepository.saveChapterPlan(
+      input: ChapterPlanInput(
+        projectId: fixture.project.id,
+        volumeId: firstPlan.volumeId,
+        volumeIndex: firstPlan.volumeIndex,
+        volumeTitle: firstPlan.volumeTitle,
+        chapterLocalIndex: 2,
+        chapterIndex: 2,
+        objectiveCard: const ChapterObjectiveCard(
+          chapterTitle: '第二章',
+          objective: '调查港务处。',
+        ),
+      ),
+    );
+
+    final result = await fixture.pipeline.startChapterGenerationBatch(
+      projectId: fixture.project.id,
+      chapterPlanIds: [firstPlan.id, secondPlan.id],
+    );
+
+    expect(result.batch.status, ChapterGenerationBatchStatus.succeeded);
+    expect(result.items, hasLength(2));
+    expect(
+      result.items.map((item) => item.status),
+      everyElement(ChapterGenerationBatchItemStatus.synced),
+    );
+    expect(fixture.llmClient.invocationCount, 8);
+    expect(fixture.llmClient.prompts[3], contains('Memory Patch 审阅员'));
+    final chapters = await fixture.novelRepository
+        .watchChapters(fixture.project.id)
+        .first;
+    expect(chapters, hasLength(2));
+    expect(
+      chapters.map((chapter) => chapter.memorySyncStatus),
+      everyElement(MemorySyncStatus.synced),
+    );
+    final memory = await fixture.novelRepository.findRuntimeMemory(
+      fixture.project.id,
+    );
+    expect(memory!.state.storySummary, '林岚调查港务处。');
+  });
+
+  test(
+    'batch generation blocks when selected chapter already has content',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final fixture = await _Fixture.create(
+        database,
+        llmClient: _StaticLlmClient('正文。'),
+      );
+      await fixture.novelRepository.saveChapter(
+        input: ProjectChapterInput(
+          projectId: fixture.project.id,
+          chapterPlanId: fixture.plan.id,
+          chapterIndex: fixture.plan.chapterIndex,
+          title: '第一章',
+          contentMarkdown: '已有正文。',
+        ),
+      );
+
+      await expectLater(
+        fixture.pipeline.startChapterGenerationBatch(
+          projectId: fixture.project.id,
+          chapterPlanIds: [fixture.plan.id],
+        ),
+        throwsA(isA<StateError>()),
+      );
+      expect(fixture.llmClient.invocationCount, 0);
+    },
+  );
+
+  test(
+    'batch generation blocks when another chapter generation is running in project',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final fixture = await _Fixture.create(
+        database,
+        llmClient: _StaticLlmClient('正文。'),
+      );
+      final otherPlan = await fixture.novelRepository.saveChapterPlan(
+        input: ChapterPlanInput(
+          projectId: fixture.project.id,
+          volumeId: fixture.plan.volumeId,
+          volumeIndex: fixture.plan.volumeIndex,
+          volumeTitle: fixture.plan.volumeTitle,
+          chapterLocalIndex: 2,
+          chapterIndex: 2,
+          objectiveCard: const ChapterObjectiveCard(
+            chapterTitle: '第二章',
+            objective: '调查港务处。',
+          ),
+        ),
+      );
+      await fixture.novelRepository.createChapterGenerationRun(
+        ChapterGenerationRunInput(
+          projectId: fixture.project.id,
+          chapterPlanId: otherPlan.id,
+          providerId: fixture.project.defaultProviderId!,
+          modelName: fixture.project.defaultModelName!,
+        ),
+      );
+
+      await expectLater(
+        fixture.pipeline.startChapterGenerationBatch(
+          projectId: fixture.project.id,
+          chapterPlanIds: [fixture.plan.id],
+        ),
+        throwsStateError,
+      );
+      expect(fixture.llmClient.invocationCount, 0);
+    },
+  );
+
+  test('batch generation stop prevents subsequent waiting items', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final fixture = await _Fixture.create(
+      database,
+      llmClient: _StaticLlmClient('正文。'),
+      withRuntimeMemory: true,
+      withCharacterGraph: true,
+    );
+    final secondPlan = await fixture.novelRepository.saveChapterPlan(
+      input: ChapterPlanInput(
+        projectId: fixture.project.id,
+        volumeId: fixture.plan.volumeId,
+        volumeIndex: fixture.plan.volumeIndex,
+        volumeTitle: fixture.plan.volumeTitle,
+        chapterLocalIndex: 2,
+        chapterIndex: 2,
+        objectiveCard: const ChapterObjectiveCard(
+          chapterTitle: '第二章',
+          objective: '调查港务处。',
+        ),
+      ),
+    );
+    final batch = await fixture.novelRepository.createChapterGenerationBatch(
+      ChapterGenerationBatchInput(
+        projectId: fixture.project.id,
+        chapterPlanIds: [fixture.plan.id, secondPlan.id],
+        providerId: fixture.project.defaultProviderId!,
+        modelName: fixture.project.defaultModelName!,
+      ),
+    );
+    final firstItem =
+        (await fixture.novelRepository
+                .watchChapterGenerationBatchItems(batch.id)
+                .first)
+            .first;
+    await fixture.novelRepository.updateChapterGenerationBatchItemState(
+      id: firstItem.id,
+      status: ChapterGenerationBatchItemStatus.synced,
+      draftAttemptCount: 1,
+      patchAttemptCount: 1,
+      syncedAt: DateTime.now(),
+      completedAt: DateTime.now(),
+    );
+    await fixture.pipeline.stopChapterGenerationBatch(batch.id);
+
+    final result = await fixture.pipeline.processChapterGenerationBatch(
+      batch.id,
+    );
+
+    expect(result.batch.status, ChapterGenerationBatchStatus.failed);
+    expect(fixture.llmClient.invocationCount, 0);
+    expect(result.items.first.status, ChapterGenerationBatchItemStatus.synced);
+    expect(result.items.last.status, ChapterGenerationBatchItemStatus.waiting);
+    expect(
+      await fixture.novelRepository.findChapterByPlan(secondPlan.id),
+      isNull,
+    );
   });
 
   test(
@@ -204,7 +406,7 @@ runtimeMemory:
       addTearDown(database.close);
       final fixture = await _Fixture.create(
         database,
-        llmClient: _StaticLlmClient(['正文。', 'characters: []']),
+        llmClient: _StaticLlmClient(['正文。', _auditPass, 'characters: []']),
       );
 
       final result = await fixture.pipeline.generateChapter(
@@ -222,6 +424,108 @@ runtimeMemory:
     },
   );
 
+  test('warning audit saves chapter but pauses memory sync', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final fixture = await _Fixture.create(
+      database,
+      llmClient: _StaticLlmClient(['正文。', _auditWarning, 'characters: []']),
+    );
+
+    final result = await fixture.pipeline.generateChapter(
+      projectId: fixture.project.id,
+      chapterPlanId: fixture.plan.id,
+    );
+
+    expect(result.chapter.contentMarkdown, '正文。');
+    expect(result.chapter.continuityVerdict, ContinuityVerdict.warning);
+    expect(result.chapter.continuityReportMarkdown, contains('目标完成偏弱'));
+    expect(result.chapter.memorySyncStatus, MemorySyncStatus.idle);
+    expect(result.run.status, ChapterGenerationStatus.succeeded);
+    expect(result.run.continuityVerdict, ContinuityVerdict.warning);
+    expect(fixture.llmClient.invocationCount, 2);
+    expect(fixture.llmClient.prompts.last, isNot(contains('结构化记忆 Patch')));
+  });
+
+  test('warning chapter can continue memory sync after review', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final fixture = await _Fixture.create(
+      database,
+      llmClient: _StaticLlmClient(['正文。', _auditWarning, _memoryPatchYaml]),
+    );
+    final result = await fixture.pipeline.generateChapter(
+      projectId: fixture.project.id,
+      chapterPlanId: fixture.plan.id,
+    );
+
+    final synced = await fixture.pipeline.proposeMemoryPatchForChapter(
+      projectId: fixture.project.id,
+      chapterId: result.chapter.id,
+    );
+
+    expect(synced.memorySyncStatus, MemorySyncStatus.pendingReview);
+    expect(synced.memorySyncProposedStorySummary, '林岚抵达雾港。');
+    expect(fixture.llmClient.invocationCount, 3);
+    expect(fixture.llmClient.prompts.last, contains('结构化记忆 Patch'));
+  });
+
+  test(
+    'fail audit blocks chapter save and keeps draft report on run',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final fixture = await _Fixture.create(
+        database,
+        llmClient: _StaticLlmClient(['冲突正文。', _auditFail]),
+      );
+
+      await expectLater(
+        fixture.pipeline.generateChapter(
+          projectId: fixture.project.id,
+          chapterPlanId: fixture.plan.id,
+        ),
+        throwsStateError,
+      );
+
+      expect(
+        await fixture.novelRepository.findChapterByPlan(fixture.plan.id),
+        isNull,
+      );
+      final run =
+          (await fixture.novelRepository
+                  .watchChapterGenerationRuns(fixture.project.id)
+                  .first)
+              .single;
+      expect(run.status, ChapterGenerationStatus.failed);
+      expect(run.draftMarkdown, '冲突正文。');
+      expect(run.continuityVerdict, ContinuityVerdict.fail);
+      expect(run.continuityReportMarkdown, contains('世界规则被违反'));
+      expect(run.errorMessage, contains('连续性审计未通过'));
+      expect(fixture.llmClient.invocationCount, 2);
+    },
+  );
+
+  test('malformed audit output downgrades to warning', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final fixture = await _Fixture.create(
+      database,
+      llmClient: _StaticLlmClient(['正文。', '我忘了输出 YAML。']),
+    );
+
+    final result = await fixture.pipeline.generateChapter(
+      projectId: fixture.project.id,
+      chapterPlanId: fixture.plan.id,
+    );
+
+    expect(result.chapter.contentMarkdown, '正文。');
+    expect(result.chapter.continuityVerdict, ContinuityVerdict.warning);
+    expect(result.chapter.continuityReportMarkdown, contains('审计输出解析失败'));
+    expect(result.chapter.memorySyncStatus, MemorySyncStatus.idle);
+    expect(fixture.llmClient.invocationCount, 2);
+  });
+
   test(
     'uses temporary chapter archive digest without mutating stored memory',
     () async {
@@ -232,6 +536,7 @@ runtimeMemory:
         llmClient: _StaticLlmClient([
           '# Chapter Archive Digest\n\n压缩后的归档。',
           '正文。',
+          _auditPass,
           '''
 runtimeMemory:
   runtimeState: 新状态。
@@ -257,11 +562,12 @@ runtimeMemory:
       );
 
       expect(result.chapter.contentMarkdown, '正文。');
-      expect(fixture.llmClient.invocationCount, 3);
+      expect(fixture.llmClient.invocationCount, 4);
       expect(fixture.llmClient.prompts[0], contains('Chapter Archive Digest'));
       expect(fixture.llmClient.prompts[0], contains('归档片段 1999'));
       expect(fixture.llmClient.prompts[1], contains('压缩后的归档'));
       expect(fixture.llmClient.prompts[1], isNot(contains('归档片段 1999')));
+      expect(fixture.llmClient.prompts[2], contains('连续性审计员'));
       expect(before!.state.chapterArchiveMarkdown, contains('归档片段 1999'));
       expect(
         after!.state.chapterArchiveMarkdown,
@@ -280,7 +586,7 @@ runtimeMemory:
     addTearDown(database.close);
     final fixture = await _Fixture.create(
       database,
-      llmClient: _StaticLlmClient(['新正文。', 'characters: []']),
+      llmClient: _StaticLlmClient(['新正文。', _auditPass, 'characters: []']),
     );
     final existing = await fixture.novelRepository.saveChapter(
       input: ProjectChapterInput(
@@ -649,3 +955,84 @@ name: "雾港剧情"
 # Plot Writing Guide
 
 - 目标 -> 阻碍 -> 半兑现。''';
+
+const _auditPass = '''---
+verdict: pass
+summary: 未发现连续性硬冲突。
+characterState: pass
+worldRules: pass
+foreshadowing: pass
+chapterObjective: pass
+blockingIssues: []
+warningIssues: []
+---
+# 连续性审计报告
+
+未发现连续性硬冲突。''';
+
+const _auditWarning = '''---
+verdict: warning
+summary: 目标完成偏弱，但没有硬冲突。
+characterState: pass
+worldRules: pass
+foreshadowing: warning
+chapterObjective: warning
+blockingIssues: []
+warningIssues:
+  - 目标完成偏弱
+---
+# 连续性审计报告
+
+目标完成偏弱，需要人工确认后再同步记忆。''';
+
+const _auditFail = '''---
+verdict: fail
+summary: 世界规则被违反。
+characterState: pass
+worldRules: fail
+foreshadowing: pass
+chapterObjective: warning
+blockingIssues:
+  - 世界规则被违反
+warningIssues: []
+---
+# 连续性审计报告
+
+世界规则被违反，不能保存为正式章节。''';
+
+const _patchReviewPass = '''---
+verdict: pass
+summary: Patch 可以安全应用。
+characterGraph: pass
+runtimeMemory: pass
+chapterArchive: pass
+blockingIssues: []
+warningIssues: []
+---
+# Memory Patch 审阅报告
+
+Patch 可以安全应用。''';
+
+const _memoryPatchYaml = '''
+runtimeMemory:
+  runtimeState: 抵达雾港。
+  runtimeThreads: 港务处线索待查。
+  storySummary: 林岚抵达雾港。
+  continuityIndex: 港务处线索
+  chapterArchiveMarkdown: |-
+    ## 第 1 章
+
+    林岚抵达雾港。
+''';
+
+const _secondMemoryPatchYaml = '''
+runtimeMemory:
+  runtimeState: 港务处调查中。
+  runtimeThreads: 沉船账本待查。
+  storySummary: 林岚调查港务处。
+  continuityIndex: 沉船账本
+  chapterArchiveMarkdown: |-
+    ## 第 2 章
+
+    林岚调查港务处。
+''';
