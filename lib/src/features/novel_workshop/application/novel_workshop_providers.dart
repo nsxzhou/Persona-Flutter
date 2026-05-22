@@ -367,6 +367,21 @@ class NovelWorkshopController extends _$NovelWorkshopController {
     return saved;
   }
 
+  Future<ProjectChapter> discardMemorySyncPatch(String chapterId) async {
+    state = const AsyncLoading();
+    late ProjectChapter saved;
+    state = await AsyncValue.guard(() async {
+      saved = await ref
+          .read(novelWorkshopRepositoryProvider)
+          .discardMemorySyncPatch(chapterId);
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
+    ref.invalidate(projectRuntimeMemoryProvider(saved.projectId));
+    return saved;
+  }
+
   Future<ChapterGenerationResult> generateChapter({
     required String projectId,
     required String chapterPlanId,

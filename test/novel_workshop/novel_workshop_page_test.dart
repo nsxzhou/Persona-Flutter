@@ -358,6 +358,93 @@ runtimeMemory:
     expect(find.text('新摘要。'), findsWidgets);
   });
 
+  testWidgets('runtime memory tab discards pending memory patch', (
+    tester,
+  ) async {
+    final fixture = _WorkshopFixture(
+      runtimeMemory: const RuntimeMemoryState(storySummary: '旧摘要。'),
+      chapters: [
+        _chapter(
+          planId: 'plan-1',
+          index: 1,
+          content: '正文。',
+          memorySyncStatus: MemorySyncStatus.pendingReview,
+          proposedMemory: const RuntimeMemoryState(storySummary: '错误摘要。'),
+          memorySyncPatchYaml: '''
+runtimeMemory:
+  storySummary: 错误摘要。
+''',
+        ),
+      ],
+    );
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Runtime Memory').last);
+    await tester.tap(find.text('Runtime Memory').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('待审阅记忆 Patch'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, '应用 Patch'), findsOneWidget);
+    expect(find.widgetWithText(OutlinedButton, '丢弃 Patch'), findsOneWidget);
+
+    await tester.ensureVisible(find.widgetWithText(OutlinedButton, '丢弃 Patch'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(OutlinedButton, '丢弃 Patch'));
+    await tester.pumpAndSettle();
+
+    expect(fixture.repository.memory.state.storySummary, '旧摘要。');
+    expect(
+      fixture.repository.chapters.single.memorySyncStatus,
+      MemorySyncStatus.discarded,
+    );
+    expect(find.text('记忆 Patch 已丢弃。'), findsOneWidget);
+    expect(find.text('待审阅记忆 Patch'), findsNothing);
+    expect(find.text('旧摘要。'), findsWidgets);
+    expect(find.text('错误摘要。'), findsNothing);
+  });
+
+  testWidgets(
+    'chapter tile distinguishes discarded from no-change patch state',
+    (tester) async {
+      final fixture = _WorkshopFixture(
+        plans: [
+          _plan(id: 'plan-1', index: 1, title: '第一章', objective: '推进调查。'),
+          _plan(id: 'plan-2', index: 2, title: '第二章', objective: '追查线索。'),
+        ],
+        chapters: [
+          _chapter(
+            id: 'chapter-1',
+            planId: 'plan-1',
+            index: 1,
+            title: '第一章',
+            content: '正文一。',
+            memorySyncStatus: MemorySyncStatus.discarded,
+          ),
+          _chapter(
+            id: 'chapter-2',
+            planId: 'plan-2',
+            index: 2,
+            title: '第二章',
+            content: '正文二。',
+            memorySyncStatus: MemorySyncStatus.noChange,
+          ),
+        ],
+      );
+      addTearDown(fixture.dispose);
+
+      await tester.pumpWidget(
+        _WorkshopTestApp(fixture: fixture, initialLocation: _editorLocation),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Patch 已丢弃'), findsOneWidget);
+      expect(find.text('记忆无变化'), findsOneWidget);
+    },
+  );
+
   testWidgets('optional prompt assets do not show warning block', (
     tester,
   ) async {
@@ -1504,6 +1591,42 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
       continuityVerdict: current.continuityVerdict,
       continuityReportMarkdown: current.continuityReportMarkdown,
       memorySyncStatus: MemorySyncStatus.synced,
+      memorySyncContentHash: current.memorySyncContentHash,
+      memorySyncProposedRuntimeState: current.memorySyncProposedRuntimeState,
+      memorySyncProposedRuntimeThreads:
+          current.memorySyncProposedRuntimeThreads,
+      memorySyncProposedStorySummary: current.memorySyncProposedStorySummary,
+      memorySyncProposedContinuityIndex:
+          current.memorySyncProposedContinuityIndex,
+      memorySyncProposedChapterArchiveMarkdown:
+          current.memorySyncProposedChapterArchiveMarkdown,
+      memorySyncPatchYaml: current.memorySyncPatchYaml,
+      createdAt: current.createdAt,
+      updatedAt: _testUpdatedAt,
+    );
+    chapters[index] = saved;
+    emit();
+    return saved;
+  }
+
+  @override
+  Future<ProjectChapter> discardMemorySyncPatch(String chapterId) async {
+    final index = chapters.indexWhere((chapter) => chapter.id == chapterId);
+    final current = chapters[index];
+    if (current.memorySyncStatus != MemorySyncStatus.pendingReview) {
+      throw StateError('没有待审阅的记忆同步提案。');
+    }
+    final saved = ProjectChapter(
+      id: current.id,
+      projectId: current.projectId,
+      chapterPlanId: current.chapterPlanId,
+      chapterIndex: current.chapterIndex,
+      title: current.title,
+      contentMarkdown: current.contentMarkdown,
+      contentHash: current.contentHash,
+      continuityVerdict: current.continuityVerdict,
+      continuityReportMarkdown: current.continuityReportMarkdown,
+      memorySyncStatus: MemorySyncStatus.discarded,
       memorySyncContentHash: current.memorySyncContentHash,
       memorySyncProposedRuntimeState: current.memorySyncProposedRuntimeState,
       memorySyncProposedRuntimeThreads:

@@ -1089,6 +1089,31 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     return saved;
   }
 
+  @override
+  Future<ProjectChapter> discardMemorySyncPatch(String chapterId) async {
+    final chapter = await findChapter(chapterId);
+    if (chapter == null) {
+      throw StateError('Project chapter does not exist: $chapterId');
+    }
+    if (chapter.memorySyncStatus != MemorySyncStatus.pendingReview) {
+      throw StateError('没有待审阅的记忆同步提案。');
+    }
+    final now = DateTime.now();
+    await (_database.update(
+      _database.projectChapterRecords,
+    )..where((row) => row.id.equals(chapterId))).write(
+      ProjectChapterRecordsCompanion(
+        memorySyncStatus: Value(MemorySyncStatus.discarded.name),
+        updatedAt: Value(now),
+      ),
+    );
+    final saved = await findChapter(chapterId);
+    if (saved == null) {
+      throw StateError('Project chapter was not updated.');
+    }
+    return saved;
+  }
+
   bool _hasCharacterGraphPatch(String patchYaml) {
     final trimmed = patchYaml.trim();
     if (trimmed.isEmpty) {

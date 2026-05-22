@@ -724,6 +724,91 @@ runtimeMemory:
   });
 
   test(
+    'discarding memory sync patch preserves chapter and project state',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final fixture = await _saveChapterFixture(database);
+      final repository = fixture.repository;
+      await repository.saveRuntimeMemory(
+        projectId: fixture.project.id,
+        state: const RuntimeMemoryState(
+          runtimeState: '- 旧状态。',
+          storySummary: '旧摘要。',
+        ),
+      );
+
+      await repository.saveMemorySyncProposal(
+        MemorySyncProposalInput(
+          chapterId: fixture.chapter.id,
+          contentHash: fixture.chapter.contentHash,
+          proposedMemory: const RuntimeMemoryState(
+            runtimeState: '- 新状态。',
+            storySummary: '新摘要。',
+          ),
+          patchYaml: '''
+characters:
+  - name: 林岚
+    currentStatus: 错误状态。
+runtimeMemory:
+  runtimeState: '- 新状态。'
+  storySummary: 新摘要。
+''',
+        ),
+      );
+
+      final discarded = await repository.discardMemorySyncPatch(
+        fixture.chapter.id,
+      );
+      final memory = await repository.findRuntimeMemory(fixture.project.id);
+      final characters = await repository
+          .watchCharacters(fixture.project.id)
+          .first;
+
+      expect(discarded.memorySyncStatus, MemorySyncStatus.discarded);
+      expect(discarded.contentMarkdown, fixture.chapter.contentMarkdown);
+      expect(discarded.memorySyncPatchYaml, contains('错误状态'));
+      expect(memory!.state.runtimeState, '- 旧状态。');
+      expect(memory.state.storySummary, '旧摘要。');
+      expect(characters, isEmpty);
+    },
+  );
+
+  test('discarding non-pending memory sync patch is rejected', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final fixture = await _saveChapterFixture(database);
+
+    expect(
+      () => fixture.repository.discardMemorySyncPatch(fixture.chapter.id),
+      throwsA(isA<StateError>()),
+    );
+  });
+
+  test('discarded memory sync patch cannot be applied', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final fixture = await _saveChapterFixture(database);
+
+    await fixture.repository.saveMemorySyncProposal(
+      MemorySyncProposalInput(
+        chapterId: fixture.chapter.id,
+        contentHash: fixture.chapter.contentHash,
+        patchYaml: '''
+runtimeMemory:
+  storySummary: 新摘要。
+''',
+      ),
+    );
+    await fixture.repository.discardMemorySyncPatch(fixture.chapter.id);
+
+    expect(
+      () => fixture.repository.applyMemorySyncPatch(fixture.chapter.id),
+      throwsA(isA<StateError>()),
+    );
+  });
+
+  test(
     'applying empty memory sync proposal preserves layered runtime memory',
     () async {
       final database = AppDatabase(NativeDatabase.memory());
@@ -913,6 +998,58 @@ Future<WritingProject> _saveProject(AppDatabase database) async {
   );
   return (await projectRepository.watchProjects(ProjectStatus.active).first)
       .single;
+}
+
+Future<_ChapterFixture> _saveChapterFixture(AppDatabase database) async {
+  final project = await _saveProject(database);
+  final repository = DriftNovelWorkshopRepository(database);
+  final volume = await repository.saveChapterVolume(
+    input: ChapterVolumeInput(
+      projectId: project.id,
+      volumeIndex: 1,
+      title: '第一卷',
+    ),
+  );
+  final plan = await repository.saveChapterPlan(
+    input: ChapterPlanInput(
+      projectId: project.id,
+      volumeId: volume.id,
+      volumeIndex: volume.volumeIndex,
+      volumeTitle: volume.title,
+      chapterLocalIndex: 1,
+      chapterIndex: 1,
+      objectiveCard: const ChapterObjectiveCard(objective: '推进调查。'),
+    ),
+  );
+  final chapter = await repository.saveChapter(
+    input: ProjectChapterInput(
+      projectId: project.id,
+      chapterPlanId: plan.id,
+      chapterIndex: 1,
+      title: '第一章',
+      contentMarkdown: '正文。',
+    ),
+  );
+  return _ChapterFixture(
+    project: project,
+    repository: repository,
+    plan: plan,
+    chapter: chapter,
+  );
+}
+
+class _ChapterFixture {
+  const _ChapterFixture({
+    required this.project,
+    required this.repository,
+    required this.plan,
+    required this.chapter,
+  });
+
+  final WritingProject project;
+  final DriftNovelWorkshopRepository repository;
+  final ChapterPlan plan;
+  final ProjectChapter chapter;
 }
 
 void _createSchema11Database(Database sqlite, {required int now}) {

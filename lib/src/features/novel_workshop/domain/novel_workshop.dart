@@ -8,6 +8,7 @@ enum MemorySyncStatus {
   pendingReview,
   synced,
   noChange,
+  discarded,
   failed,
   stale,
 }

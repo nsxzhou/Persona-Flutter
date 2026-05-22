@@ -4651,15 +4651,26 @@ class _MemoryPatchReviewList extends ConsumerWidget {
                       const SizedBox(height: 8),
                       _RuntimeMemoryProposalPreview(chapter: chapter),
                       const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: FilledButton.icon(
-                          onPressed: controllerState.isLoading
-                              ? null
-                              : () => _applyPatch(context, ref, chapter),
-                          icon: const Icon(Icons.check_outlined, size: 18),
-                          label: const Text('应用 Patch'),
-                        ),
+                      Wrap(
+                        alignment: WrapAlignment.end,
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: controllerState.isLoading
+                                ? null
+                                : () => _discardPatch(context, ref, chapter),
+                            icon: const Icon(Icons.block_outlined, size: 18),
+                            label: const Text('丢弃 Patch'),
+                          ),
+                          FilledButton.icon(
+                            onPressed: controllerState.isLoading
+                                ? null
+                                : () => _applyPatch(context, ref, chapter),
+                            icon: const Icon(Icons.check_outlined, size: 18),
+                            label: const Text('应用 Patch'),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -4689,6 +4700,27 @@ class _MemoryPatchReviewList extends ConsumerWidget {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('应用失败：$error')));
+    }
+  }
+
+  Future<void> _discardPatch(
+    BuildContext context,
+    WidgetRef ref,
+    ProjectChapter chapter,
+  ) async {
+    try {
+      await ref
+          .read(novelWorkshopControllerProvider.notifier)
+          .discardMemorySyncPatch(chapter.id);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('记忆 Patch 已丢弃。')));
+    } on Object catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('丢弃失败：$error')));
     }
   }
 }
@@ -5016,6 +5048,9 @@ class _WorkbenchChapterTile extends StatelessWidget {
         : hasContent
         ? '已成文'
         : '待撰写';
+    final memoryStatus = chapter == null
+        ? null
+        : _memorySyncStatusPill(context, chapter!.memorySyncStatus);
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -5069,6 +5104,10 @@ class _WorkbenchChapterTile extends StatelessWidget {
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
+                if (memoryStatus != null) ...[
+                  const SizedBox(height: 8),
+                  memoryStatus,
+                ],
               ],
             );
             final action = OutlinedButton.icon(
@@ -5112,6 +5151,48 @@ class _WorkbenchChapterTile extends StatelessWidget {
       ),
     );
   }
+}
+
+Widget? _memorySyncStatusPill(BuildContext context, MemorySyncStatus status) {
+  final colorScheme = Theme.of(context).colorScheme;
+  return switch (status) {
+    MemorySyncStatus.idle => null,
+    MemorySyncStatus.checking => PersonaStatusPill(
+      label: '记忆检查中',
+      icon: Icons.sync,
+      color: colorScheme.primary,
+    ),
+    MemorySyncStatus.pendingReview => PersonaStatusPill(
+      label: 'Patch 待审阅',
+      icon: Icons.rate_review_outlined,
+      color: colorScheme.primary,
+    ),
+    MemorySyncStatus.synced => const PersonaStatusPill(
+      label: 'Patch 已应用',
+      icon: Icons.check_circle_outline,
+      color: Color(0xFF16825D),
+    ),
+    MemorySyncStatus.noChange => PersonaStatusPill(
+      label: '记忆无变化',
+      icon: Icons.remove_circle_outline,
+      color: colorScheme.onSurfaceVariant,
+    ),
+    MemorySyncStatus.discarded => PersonaStatusPill(
+      label: 'Patch 已丢弃',
+      icon: Icons.block_outlined,
+      color: colorScheme.onSurfaceVariant,
+    ),
+    MemorySyncStatus.failed => PersonaStatusPill(
+      label: 'Patch 失败',
+      icon: Icons.error_outline,
+      color: colorScheme.error,
+    ),
+    MemorySyncStatus.stale => PersonaStatusPill(
+      label: 'Patch 已过期',
+      icon: Icons.history_toggle_off_outlined,
+      color: colorScheme.tertiary,
+    ),
+  };
 }
 
 class _WorkshopScaffold extends StatefulWidget {
@@ -5783,6 +5864,9 @@ class _ChapterPlanTile extends StatelessWidget {
         run?.status == ChapterGenerationStatus.pending ||
         run?.status == ChapterGenerationStatus.running;
     final completed = chapter?.contentMarkdown.trim().isNotEmpty ?? false;
+    final memoryStatus = chapter == null
+        ? null
+        : _memorySyncStatusPill(context, chapter!.memorySyncStatus);
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 150),
@@ -5852,6 +5936,10 @@ class _ChapterPlanTile extends StatelessWidget {
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),
+                    ],
+                    if (memoryStatus != null) ...[
+                      const SizedBox(height: 6),
+                      memoryStatus,
                     ],
                   ],
                 ),

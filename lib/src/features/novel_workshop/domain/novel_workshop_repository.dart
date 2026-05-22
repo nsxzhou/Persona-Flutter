@@ -114,6 +114,8 @@ abstract interface class NovelWorkshopRepository {
 
   Future<ProjectChapter> applyMemorySyncPatch(String chapterId);
 
+  Future<ProjectChapter> discardMemorySyncPatch(String chapterId);
+
   Future<AssetGenerationRun> createAssetGenerationRun(
     AssetGenerationRunInput input,
   );

@@ -241,6 +241,7 @@ Keep `WorkflowTaskRepository` read-only and update run/task records together ins
   - `NovelWorkshopRepository.saveRuntimeMemory({required String projectId, required RuntimeMemoryState state})`
   - `NovelWorkshopRepository.saveMemorySyncProposal(MemorySyncProposalInput input)`
   - `NovelWorkshopRepository.applyMemorySyncPatch(String chapterId)`
+  - `NovelWorkshopRepository.discardMemorySyncPatch(String chapterId)`
 - Runtime Memory fields:
   - `runtimeState: Text`
   - `runtimeThreads: Text`
@@ -263,6 +264,7 @@ Keep `WorkflowTaskRepository` read-only and update run/task records together ins
 - `saveRuntimeMemory` trims and stores all five fields.
 - `saveMemorySyncProposal` stores the model's Runtime Memory patch preview fields in `ProjectChapterRecords` and sets `memorySyncStatus` to `pendingReview`.
 - `applyMemorySyncPatch` must require `memorySyncStatus == pendingReview` and `memorySyncContentHash == contentHash`, then merge `memorySyncPatchYaml.runtimeMemory` into the current project Runtime Memory. Missing fields mean "preserve existing value"; explicit empty strings mean "clear this field". `chapterArchiveMarkdown` is appended to the existing archive unless explicitly empty.
+- `discardMemorySyncPatch` must require `memorySyncStatus == pendingReview`, then set `memorySyncStatus` to `discarded` without mutating chapter prose, current Runtime Memory, characters, relationships, or the stored patch/proposed fields. `discarded` means "the model produced a proposal and the user rejected it"; do not reuse `noChange`, which means "the model produced no meaningful state change".
 - Character and relationship updates remain in structured character/relationship tables through `memorySyncPatchYaml`. `continuityIndex` must not duplicate full character-card or relationship state.
 - Editing or regenerating chapter content changes `contentHash` and must clear all pending proposed memory fields plus `memorySyncPatchYaml`, then reset `memorySyncStatus` to `idle`.
 - `WritingContextAssembler` renders non-empty Runtime Memory fields as subsections named `Runtime State`, `Runtime Threads`, `Story Summary`, `Continuity Index`, and `Chapter Archive`.
@@ -275,6 +277,8 @@ Keep `WorkflowTaskRepository` read-only and update run/task records together ins
 - Proposal `contentHash` differs from the current chapter `contentHash` -> reject the proposal as stale.
 - `applyMemorySyncPatch` when status is not `pendingReview` -> reject with "no pending review" behavior.
 - `applyMemorySyncPatch` when proposal hash differs from chapter hash -> reject as stale and do not write Runtime Memory.
+- `discardMemorySyncPatch` when status is not `pendingReview` -> reject with "no pending review" behavior.
+- Applying a `discarded` proposal -> reject with "no pending review" behavior and do not write Runtime Memory or character/relationship rows.
 - `memorySyncPatchYaml` with no non-empty `characters` or `relationships` patch -> skip character graph parsing; still apply the Runtime Memory field merge when `runtimeMemory` is present.
 - Oversized prompt with empty `chapterArchiveMarkdown` -> skip temporary digest.
 - Temporary digest failure -> generation run should fail through the normal LLM error path; do not persist partial digest content.
@@ -291,6 +295,8 @@ Keep `WorkflowTaskRepository` read-only and update run/task records together ins
 - Migration test or schema smoke coverage that new Runtime Memory/proposal columns default to empty strings.
 - Repository test for `saveMemorySyncProposal` persisting the patch preview fields.
 - Repository test for `applyMemorySyncPatch` merging only present fields when `contentHash` matches.
+- Repository test for `discardMemorySyncPatch` preserving Runtime Memory and character/relationship rows while moving the chapter proposal to `discarded`.
+- Repository test that `discarded` proposals cannot be applied later.
 - Repository test for applying an empty proposal preserving existing Runtime Memory.
 - Repository test that chapter content edits clear proposed Runtime Memory fields, patch YAML, content hash binding, and status.
 - Context assembler test that all five subsections render and empty fields are omitted.
