@@ -7,6 +7,7 @@ import 'package:yaml/yaml.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/tasks/domain/workflow_task.dart';
 import '../application/character_graph_parser.dart';
+import '../application/memory_patch_yaml.dart';
 import '../application/outline_detail_parser.dart';
 import '../application/volume_blueprint_parser.dart';
 import '../domain/novel_workshop.dart';
@@ -176,6 +177,18 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       ..limit(1);
     return query.watchSingleOrNull().map(
       (row) => row == null ? null : _mapGenerationRun(row),
+    );
+  }
+
+  @override
+  Stream<ChapterGenerationBatch?> watchChapterGenerationBatchByWorkflowTask(
+    String workflowTaskId,
+  ) {
+    final query = _database.select(_database.chapterGenerationBatchRecords)
+      ..where((batch) => batch.workflowTaskId.equals(workflowTaskId))
+      ..limit(1);
+    return query.watchSingleOrNull().map(
+      (row) => row == null ? null : _mapGenerationBatch(row),
     );
   }
 
@@ -1209,7 +1222,7 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
         memorySyncProposedChapterArchiveMarkdown: Value(
           input.proposedMemory.chapterArchiveMarkdown.trim(),
         ),
-        memorySyncPatchYaml: Value(input.patchYaml.trim()),
+        memorySyncPatchYaml: Value(normalizeMemoryPatchYaml(input.patchYaml)),
         updatedAt: Value(now),
       ),
     );
@@ -1232,7 +1245,7 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     if (chapter.memorySyncContentHash != chapter.contentHash) {
       throw StateError('记忆同步提案已过期。');
     }
-    final patchYaml = chapter.memorySyncPatchYaml.trim();
+    final patchYaml = normalizeMemoryPatchYaml(chapter.memorySyncPatchYaml);
     if (_hasCharacterGraphPatch(patchYaml)) {
       await applyCharactersYaml(
         projectId: chapter.projectId,
@@ -1288,7 +1301,7 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
   }
 
   bool _hasCharacterGraphPatch(String patchYaml) {
-    final trimmed = patchYaml.trim();
+    final trimmed = normalizeMemoryPatchYaml(patchYaml);
     if (trimmed.isEmpty) {
       return false;
     }
@@ -1342,7 +1355,7 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     RuntimeMemoryState current,
     String patchYaml,
   ) {
-    final trimmed = patchYaml.trim();
+    final trimmed = normalizeMemoryPatchYaml(patchYaml);
     if (trimmed.isEmpty) {
       return current;
     }

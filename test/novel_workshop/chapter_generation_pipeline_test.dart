@@ -227,7 +227,7 @@ runtimeMemory:
         _selectorAssets,
         '第一章正文。',
         _auditPass,
-        _memoryPatchYaml,
+        '```yaml\n$_memoryPatchYaml\n```',
         _patchReviewPass,
         _selectorAssets,
         '第二章正文。',
@@ -275,6 +275,8 @@ runtimeMemory:
       chapters.map((chapter) => chapter.memorySyncStatus),
       everyElement(MemorySyncStatus.synced),
     );
+    expect(chapters.first.memorySyncPatchYaml, isNot(contains('```')));
+    expect(chapters.first.memorySyncPatchYaml, startsWith('runtimeMemory:'));
     final memory = await fixture.novelRepository.findRuntimeMemory(
       fixture.project.id,
     );

@@ -40,6 +40,10 @@ abstract interface class NovelWorkshopRepository {
     String workflowTaskId,
   );
 
+  Stream<ChapterGenerationBatch?> watchChapterGenerationBatchByWorkflowTask(
+    String workflowTaskId,
+  );
+
   Stream<AssetGenerationRun?> watchAssetGenerationRunByWorkflowTask(
     String workflowTaskId,
   );

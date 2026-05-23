@@ -78,12 +78,14 @@ Log only the Provider id and a sanitized failure reason, never the secret itself
 - Repository contract: `watch<Run>ByWorkflowTask(String workflowTaskId) -> Stream<Run?>`.
 - Riverpod bridge: `<run>ByWorkflowTaskProvider(workflowTaskId)` wraps the repository stream.
 - UI selector: Workflow Runs maps `WorkflowTask.kind` to the matching run provider and reads `run.logs`.
+- Batch chapter generation: `watchChapterGenerationBatchByWorkflowTask(String workflowTaskId)` plus `chapterGenerationBatchItemsProvider(batchId)` exposes batch-level and per-chapter logs.
 
 ### 3. Contracts
 - Workflow task records hold generic status, stage, title, and failure summary.
 - Feature run records own detailed task logs.
 - Presentation widgets must consume logs through repository and Riverpod contracts, not Drift tables.
 - New task kinds that appear in Workflow Runs need an explicit log mapping, even when they do not have a business-detail route.
+- `novel_chapter_generation_batch` details combine `ChapterGenerationBatch.logs` with ordered `ChapterGenerationBatchItem.logs`, attempt counters, and item error summaries so Patch retry failures remain diagnosable.
 
 ### 4. Validation & Error Matrix
 - Missing run for task id -> render empty log text, not a repository error.
@@ -92,12 +94,13 @@ Log only the Provider id and a sanitized failure reason, never the secret itself
 
 ### 5. Good/Base/Bad Cases
 - Good: `novel_asset_generation` resolves `AssetGenerationRun` by `workflowTaskId` and displays `AssetGenerationRun.logs`.
+- Good: `novel_chapter_generation_batch` resolves its batch by `workflowTaskId` and renders the failed item's Memory Patch review error below batch lifecycle logs.
 - Base: style and plot analysis keep their existing run-log mappings.
 - Bad: Writing logs during pipeline execution but returning `AsyncValue.data('')` for that task kind in Workflow Runs.
 
 ### 6. Tests Required
 - Widget test for every newly mapped task kind that opens `/workflow-runs/:taskId`, switches to `任务日志`, and asserts persisted log text is visible.
-- Repository/provider tests or fakes must implement any new `watch<Run>ByWorkflowTask` contract.
+- Repository/provider tests or fakes must implement any new `watch<Run>ByWorkflowTask` or batch equivalent contract.
 
 ### 7. Wrong vs Correct
 #### Wrong

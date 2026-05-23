@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:persona_flutter/src/core/database/app_database.dart';
@@ -863,6 +864,71 @@ runtimeMemory:
   });
 
   test(
+    'memory sync patch applies fenced yaml from existing proposals',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final project = await _saveProject(database);
+      final repository = DriftNovelWorkshopRepository(database);
+      final volume = await repository.saveChapterVolume(
+        input: ChapterVolumeInput(
+          projectId: project.id,
+          volumeIndex: 1,
+          title: '第一卷',
+        ),
+      );
+      final plan = await repository.saveChapterPlan(
+        input: ChapterPlanInput(
+          projectId: project.id,
+          volumeId: volume.id,
+          volumeIndex: volume.volumeIndex,
+          volumeTitle: volume.title,
+          chapterLocalIndex: 1,
+          chapterIndex: 1,
+          objectiveCard: const ChapterObjectiveCard(objective: '推进调查。'),
+        ),
+      );
+      final chapter = await repository.saveChapter(
+        input: ProjectChapterInput(
+          projectId: project.id,
+          chapterPlanId: plan.id,
+          chapterIndex: 1,
+          title: '第一章',
+          contentMarkdown: '正文。',
+        ),
+      );
+
+      await repository.saveMemorySyncProposal(
+        MemorySyncProposalInput(
+          chapterId: chapter.id,
+          contentHash: chapter.contentHash,
+          patchYaml: '''
+runtimeMemory:
+  storySummary: 林岚抵达雾港。
+''',
+        ),
+      );
+      await (database.update(
+        database.projectChapterRecords,
+      )..where((row) => row.id.equals(chapter.id))).write(
+        const ProjectChapterRecordsCompanion(
+          memorySyncPatchYaml: Value('''
+```yaml
+runtimeMemory:
+  storySummary: 林岚抵达雾港。
+```
+'''),
+        ),
+      );
+
+      await repository.applyMemorySyncPatch(chapter.id);
+      final memory = await repository.findRuntimeMemory(project.id);
+
+      expect(memory!.state.storySummary, '林岚抵达雾港。');
+    },
+  );
+
+  test(
     'discarding memory sync patch preserves chapter and project state',
     () async {
       final database = AppDatabase(NativeDatabase.memory());
@@ -1164,6 +1230,12 @@ runtimeMemory:
       expect(items, hasLength(2));
       expect(items.first.chapterPlanId, first.id);
       expect(items.last.chapterPlanId, second.id);
+      expect(
+        await repository
+            .watchChapterGenerationBatchByWorkflowTask(batch.workflowTaskId)
+            .first,
+        isNotNull,
+      );
       final task = await workflowRepository.findTask(batch.workflowTaskId);
       expect(task!.kind, chapterGenerationBatchWorkflowTaskKind);
       expect(task.status, WorkflowTaskStatus.pending);

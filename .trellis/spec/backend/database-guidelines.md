@@ -313,8 +313,8 @@ Keep `WorkflowTaskRepository` read-only and update run/task records together ins
 - `ProjectRuntimeMemoryRecords` remains the single current project-level Runtime Memory source; do not add embedding/vector stores, keyword retrieval tables, or a separate long-term memory subsystem for this feature.
 - Existing databases migrating to schema version 20 must add `continuity_index`, `chapter_archive_markdown`, `memory_sync_proposed_continuity_index`, and `memory_sync_proposed_chapter_archive_markdown` with empty-string defaults.
 - `saveRuntimeMemory` trims and stores all five fields.
-- `saveMemorySyncProposal` stores the model's Runtime Memory patch preview fields in `ProjectChapterRecords` and sets `memorySyncStatus` to `pendingReview`.
-- `applyMemorySyncPatch` must require `memorySyncStatus == pendingReview` and `memorySyncContentHash == contentHash`, then merge `memorySyncPatchYaml.runtimeMemory` into the current project Runtime Memory. Missing fields mean "preserve existing value"; explicit empty strings mean "clear this field". `chapterArchiveMarkdown` is appended to the existing archive unless explicitly empty.
+- `saveMemorySyncProposal` stores the model's Runtime Memory patch preview fields in `ProjectChapterRecords`, normalizes an optional whole-document `markdown`/`md`/`yaml`/`yml` code fence around `memorySyncPatchYaml`, and sets `memorySyncStatus` to `pendingReview`.
+- `applyMemorySyncPatch` must require `memorySyncStatus == pendingReview` and `memorySyncContentHash == contentHash`, normalize the same optional whole-document code fence for existing proposals, then merge `memorySyncPatchYaml.runtimeMemory` into the current project Runtime Memory. Missing fields mean "preserve existing value"; explicit empty strings mean "clear this field". `chapterArchiveMarkdown` is appended to the existing archive unless explicitly empty.
 - `discardMemorySyncPatch` must require `memorySyncStatus == pendingReview`, then set `memorySyncStatus` to `discarded` without mutating chapter prose, current Runtime Memory, characters, relationships, or the stored patch/proposed fields. `discarded` means "the model produced a proposal and the user rejected it"; do not reuse `noChange`, which means "the model produced no meaningful state change".
 - Character and relationship updates remain in structured character/relationship tables through `memorySyncPatchYaml`. `continuityIndex` must not duplicate full character-card or relationship state.
 - Editing or regenerating chapter content changes `contentHash` and must clear all pending proposed memory fields plus `memorySyncPatchYaml`, then reset `memorySyncStatus` to `idle`.
@@ -331,6 +331,7 @@ Keep `WorkflowTaskRepository` read-only and update run/task records together ins
 - `discardMemorySyncPatch` when status is not `pendingReview` -> reject with "no pending review" behavior.
 - Applying a `discarded` proposal -> reject with "no pending review" behavior and do not write Runtime Memory or character/relationship rows.
 - `memorySyncPatchYaml` with no non-empty `characters` or `relationships` patch -> skip character graph parsing; still apply the Runtime Memory field merge when `runtimeMemory` is present.
+- Existing `memorySyncPatchYaml` wrapped in one complete Markdown/YAML code fence -> strip the wrapper before preview/apply parsing; do not require a data migration.
 - Oversized prompt with empty `chapterArchiveMarkdown` -> skip temporary digest.
 - Temporary digest failure -> generation run should fail through the normal LLM error path; do not persist partial digest content.
 
@@ -346,6 +347,7 @@ Keep `WorkflowTaskRepository` read-only and update run/task records together ins
 - Migration test or schema smoke coverage that new Runtime Memory/proposal columns default to empty strings.
 - Repository test for `saveMemorySyncProposal` persisting the patch preview fields.
 - Repository test for `applyMemorySyncPatch` merging only present fields when `contentHash` matches.
+- Repository and pipeline tests for fenced YAML proposal normalization, including an existing persisted fenced proposal.
 - Repository test for `discardMemorySyncPatch` preserving Runtime Memory and character/relationship rows while moving the chapter proposal to `discarded`.
 - Repository test that `discarded` proposals cannot be applied later.
 - Repository test for applying an empty proposal preserving existing Runtime Memory.

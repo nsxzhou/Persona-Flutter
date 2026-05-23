@@ -220,6 +220,16 @@ Stream<ChapterGenerationRun?> chapterGenerationRunByWorkflowTask(
 }
 
 @riverpod
+Stream<ChapterGenerationBatch?> chapterGenerationBatchByWorkflowTask(
+  Ref ref,
+  String workflowTaskId,
+) {
+  return ref
+      .watch(novelWorkshopRepositoryProvider)
+      .watchChapterGenerationBatchByWorkflowTask(workflowTaskId);
+}
+
+@riverpod
 Stream<AssetGenerationRun?> assetGenerationRunByWorkflowTask(
   Ref ref,
   String workflowTaskId,

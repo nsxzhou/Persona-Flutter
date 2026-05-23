@@ -739,6 +739,19 @@ class _WorkflowRunDetailScaffoldState
     final chapterRun = task.kind == chapterGenerationWorkflowTaskKind
         ? ref.watch(chapterGenerationRunByWorkflowTaskProvider(task.id))
         : const AsyncValue<ChapterGenerationRun?>.data(null);
+    final chapterBatch = task.kind == chapterGenerationBatchWorkflowTaskKind
+        ? ref.watch(chapterGenerationBatchByWorkflowTaskProvider(task.id))
+        : const AsyncValue<ChapterGenerationBatch?>.data(null);
+    final chapterBatchItems = switch (chapterBatch) {
+      AsyncData(value: final batch?) => ref.watch(
+        chapterGenerationBatchItemsProvider(batch.id),
+      ),
+      AsyncError(:final error, :final stackTrace) =>
+        AsyncValue<List<ChapterGenerationBatchItem>>.error(error, stackTrace),
+      AsyncLoading() =>
+        const AsyncValue<List<ChapterGenerationBatchItem>>.loading(),
+      _ => const AsyncValue<List<ChapterGenerationBatchItem>>.data([]),
+    };
     final enrichmentBatch = task.kind == chapterEnrichmentWorkflowTaskKind
         ? ref.watch(chapterEnrichmentBatchByWorkflowTaskProvider(task.id))
         : const AsyncValue<ChapterEnrichmentBatch?>.data(null);
@@ -747,7 +760,14 @@ class _WorkflowRunDetailScaffoldState
       task.status,
     );
     final businessDetailPath = _businessDetailPath(task, styleRun, plotRun);
-    final logs = _logsForTask(task, styleRun, plotRun, assetRun);
+    final logs = _logsForTask(
+      task,
+      styleRun,
+      plotRun,
+      assetRun,
+      chapterBatch,
+      chapterBatchItems,
+    );
 
     return PersonaPage(
       eyebrow: '',
@@ -2004,6 +2024,8 @@ AsyncValue<String> _logsForTask(
   AsyncValue<StyleAnalysisRun?> styleRun,
   AsyncValue<PlotAnalysisRun?> plotRun,
   AsyncValue<AssetGenerationRun?> assetRun,
+  AsyncValue<ChapterGenerationBatch?> chapterBatch,
+  AsyncValue<List<ChapterGenerationBatchItem>> chapterBatchItems,
 ) {
   return switch (task.kind) {
     styleAnalysisWorkflowTaskKind => styleRun.whenData(
@@ -2013,7 +2035,66 @@ AsyncValue<String> _logsForTask(
     assetGenerationWorkflowTaskKind => assetRun.whenData(
       (run) => run?.logs ?? '',
     ),
+    chapterGenerationBatchWorkflowTaskKind => _chapterBatchLogs(
+      chapterBatch,
+      chapterBatchItems,
+    ),
     _ => const AsyncValue.data(''),
+  };
+}
+
+AsyncValue<String> _chapterBatchLogs(
+  AsyncValue<ChapterGenerationBatch?> batch,
+  AsyncValue<List<ChapterGenerationBatchItem>> items,
+) {
+  return switch ((batch, items)) {
+    (AsyncError(:final error, :final stackTrace), _) => AsyncValue.error(
+      error,
+      stackTrace,
+    ),
+    (_, AsyncError(:final error, :final stackTrace)) => AsyncValue.error(
+      error,
+      stackTrace,
+    ),
+    (AsyncLoading(), _) || (_, AsyncLoading()) => const AsyncValue.loading(),
+    (AsyncData(value: final batch?), AsyncData(value: final items)) =>
+      AsyncValue.data(_formatChapterBatchLogs(batch, items)),
+    _ => const AsyncValue.data(''),
+  };
+}
+
+String _formatChapterBatchLogs(
+  ChapterGenerationBatch batch,
+  List<ChapterGenerationBatchItem> items,
+) {
+  final sections = <String>[];
+  final batchLogs = batch.logs.trim();
+  if (batchLogs.isNotEmpty) {
+    sections.add(batchLogs);
+  }
+  for (final item in items) {
+    final itemLines = <String>[
+      '--- 章节 ${item.position + 1} · ${_chapterBatchItemStatusLabel(item.status)} ---',
+      'draftAttempts: ${item.draftAttemptCount}, patchAttempts: ${item.patchAttemptCount}',
+      if (item.errorMessage?.trim().isNotEmpty == true)
+        'error: ${item.errorMessage!.trim()}',
+      if (item.logs.trim().isNotEmpty) item.logs.trim(),
+    ];
+    sections.add(itemLines.join('\n'));
+  }
+  if (batch.errorMessage?.trim().isNotEmpty == true) {
+    sections.add('batchError: ${batch.errorMessage!.trim()}');
+  }
+  return sections.join('\n\n');
+}
+
+String _chapterBatchItemStatusLabel(ChapterGenerationBatchItemStatus status) {
+  return switch (status) {
+    ChapterGenerationBatchItemStatus.waiting => '等待中',
+    ChapterGenerationBatchItemStatus.running => '运行中',
+    ChapterGenerationBatchItemStatus.synced => '已同步',
+    ChapterGenerationBatchItemStatus.failed => '失败',
+    ChapterGenerationBatchItemStatus.abandoned => '已放弃',
   };
 }
 

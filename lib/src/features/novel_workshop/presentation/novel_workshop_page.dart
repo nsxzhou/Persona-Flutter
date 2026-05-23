@@ -21,6 +21,7 @@ import '../../style_lab/application/style_lab_providers.dart';
 import '../../style_lab/application/voice_profile_front_matter.dart';
 import '../../style_lab/domain/style_profile.dart';
 import '../application/character_graph_parser.dart';
+import '../application/memory_patch_yaml.dart';
 import '../application/novel_workshop_providers.dart';
 import '../application/outline_detail_parser.dart';
 import '../domain/novel_workshop.dart';
@@ -5631,7 +5632,7 @@ _MemoryPatchPreview _buildMemoryPatchPreview({
   required List<NovelCharacter> characters,
   required List<NovelRelationship> relationships,
 }) {
-  final rawYaml = chapter.memorySyncPatchYaml.trim();
+  final rawYaml = normalizeMemoryPatchYaml(chapter.memorySyncPatchYaml);
   CharacterGraphDocument? graphPatch;
   String? parseError;
   if (rawYaml.isNotEmpty) {

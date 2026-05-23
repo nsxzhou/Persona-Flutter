@@ -438,6 +438,7 @@ runtimeMemory:
     tester,
   ) async {
     const rawPatch = '''
+```yaml
 runtimeMemory:
   storySummary: 新摘要。
   chapterArchiveMarkdown: 新归档。
@@ -454,6 +455,7 @@ relationships:
     strength: 3
     status: 初步互信
     description: 周既明向林岚交出港务处线索。
+```
 ''';
     final fixture = _WorkshopFixture(
       runtimeMemory: const RuntimeMemoryState(
@@ -542,6 +544,7 @@ relationships:
     expect(find.textContaining('+新归档。'), findsOneWidget);
     expect(find.text('Raw YAML'), findsOneWidget);
     expect(find.textContaining('runtimeMemory:'), findsNothing);
+    expect(find.textContaining('无法解析 Patch YAML'), findsNothing);
     expect(find.byType(Checkbox), findsNothing);
     expect(find.widgetWithText(FilledButton, '应用 Patch'), findsOneWidget);
     expect(find.widgetWithText(OutlinedButton, '丢弃 Patch'), findsOneWidget);
@@ -554,6 +557,7 @@ relationships:
     expect(find.textContaining('runtimeMemory:'), findsOneWidget);
     expect(find.textContaining('characters:'), findsOneWidget);
     expect(find.textContaining('relationships:'), findsOneWidget);
+    expect(find.textContaining('```yaml'), findsNothing);
   });
 
   testWidgets('runtime memory tab discards pending memory patch', (
@@ -2849,6 +2853,20 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
     yield* _changes.stream.map(
       (_) =>
           runs.where((run) => run.workflowTaskId == workflowTaskId).firstOrNull,
+    );
+  }
+
+  @override
+  Stream<ChapterGenerationBatch?> watchChapterGenerationBatchByWorkflowTask(
+    String workflowTaskId,
+  ) async* {
+    yield generationBatches
+        .where((batch) => batch.workflowTaskId == workflowTaskId)
+        .firstOrNull;
+    yield* _changes.stream.map(
+      (_) => generationBatches
+          .where((batch) => batch.workflowTaskId == workflowTaskId)
+          .firstOrNull,
     );
   }
 

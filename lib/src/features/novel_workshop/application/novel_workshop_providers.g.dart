@@ -1520,6 +1520,90 @@ final class ChapterGenerationRunByWorkflowTaskFamily extends $Family
   String toString() => r'chapterGenerationRunByWorkflowTaskProvider';
 }
 
+@ProviderFor(chapterGenerationBatchByWorkflowTask)
+final chapterGenerationBatchByWorkflowTaskProvider =
+    ChapterGenerationBatchByWorkflowTaskFamily._();
+
+final class ChapterGenerationBatchByWorkflowTaskProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<ChapterGenerationBatch?>,
+          ChapterGenerationBatch?,
+          Stream<ChapterGenerationBatch?>
+        >
+    with
+        $FutureModifier<ChapterGenerationBatch?>,
+        $StreamProvider<ChapterGenerationBatch?> {
+  ChapterGenerationBatchByWorkflowTaskProvider._({
+    required ChapterGenerationBatchByWorkflowTaskFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'chapterGenerationBatchByWorkflowTaskProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() =>
+      _$chapterGenerationBatchByWorkflowTaskHash();
+
+  @override
+  String toString() {
+    return r'chapterGenerationBatchByWorkflowTaskProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<ChapterGenerationBatch?> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<ChapterGenerationBatch?> create(Ref ref) {
+    final argument = this.argument as String;
+    return chapterGenerationBatchByWorkflowTask(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ChapterGenerationBatchByWorkflowTaskProvider &&
+        other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$chapterGenerationBatchByWorkflowTaskHash() =>
+    r'3a342730672ef25aecaa1ff4d65a1843c0491f1f';
+
+final class ChapterGenerationBatchByWorkflowTaskFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<ChapterGenerationBatch?>, String> {
+  ChapterGenerationBatchByWorkflowTaskFamily._()
+    : super(
+        retry: null,
+        name: r'chapterGenerationBatchByWorkflowTaskProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  ChapterGenerationBatchByWorkflowTaskProvider call(String workflowTaskId) =>
+      ChapterGenerationBatchByWorkflowTaskProvider._(
+        argument: workflowTaskId,
+        from: this,
+      );
+
+  @override
+  String toString() => r'chapterGenerationBatchByWorkflowTaskProvider';
+}
+
 @ProviderFor(assetGenerationRunByWorkflowTask)
 final assetGenerationRunByWorkflowTaskProvider =
     AssetGenerationRunByWorkflowTaskFamily._();

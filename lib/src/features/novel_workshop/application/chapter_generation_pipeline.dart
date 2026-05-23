@@ -12,6 +12,7 @@ import '../../settings/domain/provider_config_repository.dart';
 import '../domain/novel_workshop.dart';
 import '../domain/novel_workshop_repository.dart';
 import '../domain/writing_context.dart';
+import 'memory_patch_yaml.dart';
 import 'project_prompt_asset_resolver.dart';
 import 'writing_context_assembler.dart';
 import 'writing_context_retriever.dart';
@@ -1407,7 +1408,7 @@ ${chapter.contentMarkdown}
       promptTrace: traceRecorder?.config(label: 'propose_memory_patch'),
       cancellationToken: cancellationToken,
     );
-    final patchYaml = _cleanMarkdownDraft(generated);
+    final patchYaml = normalizeMemoryPatchYaml(_cleanMarkdownDraft(generated));
     if (patchYaml.trim().isEmpty) {
       await _repository.saveMemorySyncProposal(
         MemorySyncProposalInput(
@@ -1592,7 +1593,7 @@ ${chapter.contentMarkdown}
     required RuntimeMemoryState fallback,
   }) {
     try {
-      final parsed = loadYaml(patchYaml);
+      final parsed = loadYaml(normalizeMemoryPatchYaml(patchYaml));
       if (parsed is! YamlMap) {
         return fallback;
       }

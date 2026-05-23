@@ -119,6 +119,7 @@ void main() {
 
     await tester.tap(find.text('任务日志'));
     await _pumpWorkflowRuns(tester);
+    await _pumpWorkflowRuns(tester);
 
     expect(
       find.byKey(const ValueKey('workflow-log-code-block')),
@@ -126,6 +127,60 @@ void main() {
     );
     expect(find.textContaining('阶段: 生成草稿'), findsOneWidget);
     expect(find.textContaining('资产草稿生成失败'), findsOneWidget);
+  });
+
+  testWidgets('workflow detail shows chapter batch item logs', (tester) async {
+    final task = WorkflowTask(
+      id: 'task-chapter-batch-1',
+      kind: chapterGenerationBatchWorkflowTaskKind,
+      status: WorkflowTaskStatus.failed,
+      title: '批量草稿：2 章',
+      stage: null,
+      errorMessage: 'Memory Patch 审阅未通过，已达到 2 次重试上限。',
+      createdAt: DateTime(2026, 5, 23, 20),
+      updatedAt: DateTime(2026, 5, 23, 20, 26),
+    );
+    final batch = _chapterBatch(workflowTaskId: task.id);
+    final items = [
+      _chapterBatchItem(batchId: batch.id, position: 0),
+      _chapterBatchItem(
+        id: 'batch-item-2',
+        batchId: batch.id,
+        position: 1,
+        status: ChapterGenerationBatchItemStatus.failed,
+        errorMessage: 'Memory Patch 审阅未通过，已达到 2 次重试上限。',
+        logs:
+            '[2026-05-23T20:24:00] Memory Patch 生成与审阅尝试 2/2。\n'
+            '[2026-05-23T20:25:00] Memory Patch 审阅尝试失败：无法解析 Patch YAML：Unexpected character.',
+      ),
+    ];
+
+    await tester.pumpWidget(
+      _WorkflowRunsTestApp(
+        task: task,
+        run: _plotRun(),
+        chapterBatch: batch,
+        chapterBatchItems: items,
+      ),
+    );
+    await _pumpWorkflowRuns(tester);
+
+    await tester.tap(find.text('批量草稿：2 章'));
+    await _pumpWorkflowRuns(tester);
+
+    await tester.tap(find.text('任务日志'));
+    await _pumpWorkflowRuns(tester);
+    await _pumpWorkflowRuns(tester);
+
+    expect(
+      find.byKey(const ValueKey('workflow-log-code-block')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('阶段: 开始批量草稿'), findsOneWidget);
+    expect(find.textContaining('--- 章节 2 · 失败 ---'), findsOneWidget);
+    expect(find.textContaining('patchAttempts: 2'), findsOneWidget);
+    expect(find.textContaining('Memory Patch 审阅尝试失败'), findsOneWidget);
+    expect(find.textContaining('Unexpected character'), findsOneWidget);
   });
 
   testWidgets('workflow runs shows abandon action for running task', (
@@ -342,6 +397,8 @@ class _WorkflowRunsTestApp extends StatelessWidget {
     this.assetRun,
     this.assetRuns,
     this.chapterRun,
+    this.chapterBatch,
+    this.chapterBatchItems,
     this.enrichmentBatches,
     this.enrichmentItems,
     this.workflowRepository,
@@ -353,6 +410,8 @@ class _WorkflowRunsTestApp extends StatelessWidget {
   final AssetGenerationRun? assetRun;
   final List<AssetGenerationRun>? assetRuns;
   final ChapterGenerationRun? chapterRun;
+  final ChapterGenerationBatch? chapterBatch;
+  final List<ChapterGenerationBatchItem>? chapterBatchItems;
   final List<ChapterEnrichmentBatch>? enrichmentBatches;
   final List<ChapterEnrichmentItem>? enrichmentItems;
   final WorkflowTaskRepository? workflowRepository;
@@ -361,6 +420,8 @@ class _WorkflowRunsTestApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final sample = _sample();
     final assetRunItems = assetRuns ?? [?assetRun];
+    final chapterBatchItem = chapterBatch;
+    final chapterBatchItemItems = chapterBatchItems ?? const [];
     final enrichmentBatchItems = enrichmentBatches ?? const [];
     final enrichmentItemItems = enrichmentItems ?? const [];
     return ProviderScope(
@@ -409,6 +470,20 @@ class _WorkflowRunsTestApp extends StatelessWidget {
         chapterGenerationRunByWorkflowTaskProvider.overrideWith(
           (ref, workflowTaskId) => Stream<ChapterGenerationRun?>.value(
             workflowTaskId == chapterRun?.workflowTaskId ? chapterRun : null,
+          ),
+        ),
+        chapterGenerationBatchByWorkflowTaskProvider.overrideWith(
+          (ref, workflowTaskId) => Stream<ChapterGenerationBatch?>.value(
+            workflowTaskId == chapterBatchItem?.workflowTaskId
+                ? chapterBatchItem
+                : null,
+          ),
+        ),
+        chapterGenerationBatchItemsProvider.overrideWith(
+          (ref, batchId) => Stream<List<ChapterGenerationBatchItem>>.value(
+            chapterBatchItemItems
+                .where((item) => item.batchId == batchId)
+                .toList(growable: false),
           ),
         ),
         chapterEnrichmentBatchByWorkflowTaskProvider.overrideWith(
@@ -685,6 +760,62 @@ ChapterGenerationRun _chapterRun({required String workflowTaskId}) {
     updatedAt: DateTime(2026, 5, 22, 10, 30),
     startedAt: DateTime(2026, 5, 22, 10),
     completedAt: DateTime(2026, 5, 22, 10, 30),
+  );
+}
+
+ChapterGenerationBatch _chapterBatch({required String workflowTaskId}) {
+  return ChapterGenerationBatch(
+    id: 'chapter-batch-1',
+    workflowTaskId: workflowTaskId,
+    projectId: 'project-1',
+    providerId: 'provider-1',
+    modelName: 'deepseek-chat',
+    status: ChapterGenerationBatchStatus.failed,
+    errorMessage: 'Memory Patch 审阅未通过，已达到 2 次重试上限。',
+    totalCount: 2,
+    syncedCount: 1,
+    failedCount: 1,
+    logs: '[2026-05-23T20:20:00] 阶段: 开始批量草稿。按章节顺序执行双门禁。',
+    createdAt: DateTime(2026, 5, 23, 20),
+    updatedAt: DateTime(2026, 5, 23, 20, 26),
+    startedAt: DateTime(2026, 5, 23, 20),
+    completedAt: DateTime(2026, 5, 23, 20, 26),
+  );
+}
+
+ChapterGenerationBatchItem _chapterBatchItem({
+  String id = 'batch-item-1',
+  required String batchId,
+  required int position,
+  ChapterGenerationBatchItemStatus status =
+      ChapterGenerationBatchItemStatus.synced,
+  String? errorMessage,
+  String logs = '[2026-05-23T20:22:00] Memory Patch 已自动应用。',
+}) {
+  return ChapterGenerationBatchItem(
+    id: id,
+    batchId: batchId,
+    projectId: 'project-1',
+    chapterPlanId: 'plan-${position + 1}',
+    chapterId: 'chapter-${position + 1}',
+    latestRunId: 'run-chapter-${position + 1}',
+    position: position,
+    status: status,
+    errorMessage: errorMessage,
+    draftAttemptCount: 1,
+    patchAttemptCount: status == ChapterGenerationBatchItemStatus.failed
+        ? 2
+        : 1,
+    logs: logs,
+    createdAt: DateTime(2026, 5, 23, 20),
+    updatedAt: DateTime(2026, 5, 23, 20, 25),
+    startedAt: DateTime(2026, 5, 23, 20),
+    completedAt: status == ChapterGenerationBatchItemStatus.running
+        ? null
+        : DateTime(2026, 5, 23, 20, 25),
+    syncedAt: status == ChapterGenerationBatchItemStatus.synced
+        ? DateTime(2026, 5, 23, 20, 22)
+        : null,
   );
 }
 
