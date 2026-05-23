@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 15
-- **Last Active**: 2026-05-22
+- **Total Sessions**: 16
+- **Last Active**: 2026-05-23
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~513 | Active |
+| `journal-1.md` | ~546 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 16 | 2026-05-23 | Fix LLM selector YAML output contract | `8ab6c63` | `main` |
 | 15 | 2026-05-22 | Redundancy complexity cleanup | `e0b37f3` | `main` |
 | 14 | 2026-05-21 | Redesign enrichment UI | `a9e3f2b`, `32a8eef` | `main` |
 | 13 | 2026-05-20 | Imported novel enrichment workflow | `f3b9e83` | `main` |

@@ -511,3 +511,36 @@ Extracted shared TXT/EPUB import text parsing for Plot Lab, Style Lab, and Novel
 ### Next Steps
 
 - None - task complete
+
+
+## Session 16: Fix LLM selector YAML output contract
+
+**Date**: 2026-05-23
+**Task**: Fix LLM selector YAML output contract
+**Branch**: `main`
+
+### Summary
+
+Changed Novel Workshop context selector prompts and parser from JSON output to YAML output, added regression tests including JSON rejection, documented YAML parser compatibility gotcha, and verified analyze plus Novel Workshop tests.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8ab6c63` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
