@@ -235,6 +235,48 @@ void main() {
     }
   });
 
+  testWidgets(
+    'volume blueprint and outline detail use separate generation kinds',
+    (tester) async {
+      final fixture = _WorkshopFixture();
+      addTearDown(fixture.dispose);
+
+      await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('分卷与章节细纲').last);
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('generate-asset-outlineDetailYaml')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.pump();
+
+      expect(fixture.assetPipeline.generateCalls, 1);
+      expect(
+        fixture.repository.assetRuns.single.kind,
+        AssetGenerationKind.volumeBlueprintYaml,
+      );
+      expect(find.text('分卷规划草稿'), findsOneWidget);
+      await tester.tap(find.text('取消'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('生成本卷细纲'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.pump();
+
+      expect(fixture.assetPipeline.generateCalls, 2);
+      expect(
+        fixture.repository.assetRuns.last.kind,
+        AssetGenerationKind.outlineDetailYaml,
+      );
+      expect(find.text('第一卷章节细纲草稿'), findsOneWidget);
+    },
+  );
+
   testWidgets('empty runtime memory is neutral in overview and prompt stack', (
     tester,
   ) async {

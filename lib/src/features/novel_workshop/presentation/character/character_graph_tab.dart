@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/ui/persona_page.dart';
 import '../../application/novel_workshop_providers.dart';
 import '../../domain/novel_workshop.dart';
+import '../asset_review_state.dart';
 import 'character_detail_panel.dart';
 import 'relationship_canvas.dart';
 
@@ -130,7 +131,7 @@ class _CharacterGraphTabState extends ConsumerState<CharacterGraphTab> {
                         : const Icon(Icons.auto_fix_high_outlined, size: 18),
                     label: Text(_generating ? '生成中' : '生成角色草稿'),
                   ),
-                  if (_canReview(widget.latestRun))
+                  if (canReviewAssetDraft(widget.latestRun))
                     TextButton.icon(
                       onPressed: controllerState.isLoading
                           ? null
@@ -306,11 +307,4 @@ class _CharacterGraphTabState extends ConsumerState<CharacterGraphTab> {
       ).showSnackBar(SnackBar(content: Text('导入失败：$error')));
     }
   }
-}
-
-bool _canReview(AssetGenerationRun? run) {
-  if (run == null) return false;
-  return (run.status == AssetGenerationStatus.succeeded ||
-          run.status == AssetGenerationStatus.applied) &&
-      run.draftMarkdown.trim().isNotEmpty;
 }

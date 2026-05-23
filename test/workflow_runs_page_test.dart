@@ -204,11 +204,29 @@ void main() {
       createdAt: DateTime(2026, 5, 22, 12),
       updatedAt: DateTime(2026, 5, 22, 12, 10),
     );
+    final enrichmentTask = WorkflowTask(
+      id: 'task-enrichment-preview',
+      kind: chapterEnrichmentWorkflowTaskKind,
+      status: WorkflowTaskStatus.succeeded,
+      title: '章节加料：1 章',
+      createdAt: DateTime(2026, 5, 22, 13),
+      updatedAt: DateTime(2026, 5, 22, 13, 10),
+    );
+    final completedEnrichmentTask = WorkflowTask(
+      id: 'task-enrichment-applied',
+      kind: chapterEnrichmentWorkflowTaskKind,
+      status: WorkflowTaskStatus.succeeded,
+      title: '章节加料：已应用',
+      createdAt: DateTime(2026, 5, 22, 14),
+      updatedAt: DateTime(2026, 5, 22, 14, 10),
+    );
     final repository = _FakeWorkflowTaskRepository(
       tasks: [
         assetTask,
         plotTask,
         chapterTask,
+        enrichmentTask,
+        completedEnrichmentTask,
         abandonedTask,
         dismissedTask,
         appliedTask,
@@ -239,6 +257,26 @@ void main() {
           ),
         ],
         chapterRun: _chapterRun(workflowTaskId: chapterTask.id),
+        enrichmentBatches: [
+          _enrichmentBatch(
+            id: 'batch-reviewable',
+            workflowTaskId: enrichmentTask.id,
+          ),
+          _enrichmentBatch(
+            id: 'batch-applied',
+            workflowTaskId: completedEnrichmentTask.id,
+            generatedCount: 0,
+            appliedCount: 1,
+          ),
+        ],
+        enrichmentItems: [
+          _enrichmentItem(batchId: 'batch-reviewable'),
+          _enrichmentItem(
+            id: 'enrichment-item-applied',
+            batchId: 'batch-applied',
+            status: ChapterEnrichmentItemStatus.applied,
+          ),
+        ],
       ),
     );
     await _pumpWorkflowRuns(tester);
@@ -246,17 +284,48 @@ void main() {
     expect(find.text('完成预览'), findsNothing);
     expect(find.text('最近工作流活动'), findsOneWidget);
     expect(find.text('打开预览'), findsNWidgets(3));
-    expect(find.text('应用'), findsOneWidget);
+    expect(find.text('应用'), findsNWidgets(2));
     expect(find.text('忽略'), findsNWidgets(3));
     expect(find.text('资产生成：已忽略预览'), findsOneWidget);
     expect(find.text('资产生成：已应用资产'), findsOneWidget);
+    expect(find.text('章节生成：第 1 章'), findsOneWidget);
+    expect(find.text('章节加料：已应用'), findsOneWidget);
     expect(find.text('已放弃'), findsOneWidget);
     expect(find.textContaining('已放弃', findRichText: true), findsWidgets);
+
+    expect(
+      find.ancestor(
+        of: find.text('资产生成：已应用资产'),
+        matching: find.byType(InkWell),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.ancestor(
+          of: find.text('资产生成：已应用资产'),
+          matching: find.byType(InkWell),
+        ),
+        matching: find.text('打开预览'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: find.ancestor(
+          of: find.text('章节加料：已应用'),
+          matching: find.byType(InkWell),
+        ),
+        matching: find.text('应用'),
+      ),
+      findsNothing,
+    );
 
     await tester.tap(find.text('忽略').first);
     await _pumpWorkflowRuns(tester);
 
     expect(repository.dismissedTaskIds, ['task-asset-preview']);
+    expect(find.text('任务预览提醒已关闭，产出仍可在项目工作台查看。'), findsOneWidget);
 
     await tester.tap(find.text('打开预览').first);
     await _pumpWorkflowRuns(tester);
@@ -273,6 +342,8 @@ class _WorkflowRunsTestApp extends StatelessWidget {
     this.assetRun,
     this.assetRuns,
     this.chapterRun,
+    this.enrichmentBatches,
+    this.enrichmentItems,
     this.workflowRepository,
   });
 
@@ -282,12 +353,16 @@ class _WorkflowRunsTestApp extends StatelessWidget {
   final AssetGenerationRun? assetRun;
   final List<AssetGenerationRun>? assetRuns;
   final ChapterGenerationRun? chapterRun;
+  final List<ChapterEnrichmentBatch>? enrichmentBatches;
+  final List<ChapterEnrichmentItem>? enrichmentItems;
   final WorkflowTaskRepository? workflowRepository;
 
   @override
   Widget build(BuildContext context) {
     final sample = _sample();
-    final assetRunItems = assetRuns ?? [?assetRun];
+    final assetRunItems = assetRuns ?? [if (assetRun != null) assetRun!];
+    final enrichmentBatchItems = enrichmentBatches ?? const [];
+    final enrichmentItemItems = enrichmentItems ?? const [];
     return ProviderScope(
       overrides: [
         recentWorkflowTasksProvider.overrideWith(
@@ -337,8 +412,18 @@ class _WorkflowRunsTestApp extends StatelessWidget {
           ),
         ),
         chapterEnrichmentBatchByWorkflowTaskProvider.overrideWith(
-          (ref, workflowTaskId) =>
-              const Stream<ChapterEnrichmentBatch?>.empty(),
+          (ref, workflowTaskId) => Stream<ChapterEnrichmentBatch?>.value(
+            enrichmentBatchItems
+                .where((item) => item.workflowTaskId == workflowTaskId)
+                .firstOrNull,
+          ),
+        ),
+        chapterEnrichmentItemsProvider.overrideWith(
+          (ref, batchId) => Stream<List<ChapterEnrichmentItem>>.value(
+            enrichmentItemItems
+                .where((item) => item.batchId == batchId)
+                .toList(growable: false),
+          ),
         ),
         workflowTaskControllerProvider.overrideWith(
           () => _NoopWorkflowTaskController(),
@@ -471,6 +556,64 @@ OUTPUT
 ''',
     createdAt: DateTime(2026, 5, 16, 12),
     updatedAt: DateTime(2026, 5, 16, 12),
+  );
+}
+
+ChapterEnrichmentBatch _enrichmentBatch({
+  required String id,
+  required String workflowTaskId,
+  int generatedCount = 1,
+  int appliedCount = 0,
+}) {
+  return ChapterEnrichmentBatch(
+    id: id,
+    workflowTaskId: workflowTaskId,
+    projectId: 'project-1',
+    instruction: '补足章节氛围。',
+    expansionRatioPercent: 20,
+    providerId: 'provider-1',
+    modelName: 'deepseek-chat',
+    status: ChapterEnrichmentBatchStatus.succeeded,
+    errorMessage: null,
+    totalCount: 1,
+    generatedCount: generatedCount,
+    failedCount: 0,
+    appliedCount: appliedCount,
+    logs: '[2026-05-22T13:00:00] 加料完成。',
+    createdAt: DateTime(2026, 5, 22, 13),
+    updatedAt: DateTime(2026, 5, 22, 13, 10),
+    startedAt: DateTime(2026, 5, 22, 13),
+    completedAt: DateTime(2026, 5, 22, 13, 10),
+  );
+}
+
+ChapterEnrichmentItem _enrichmentItem({
+  String id = 'enrichment-item-1',
+  required String batchId,
+  ChapterEnrichmentItemStatus status = ChapterEnrichmentItemStatus.generated,
+}) {
+  return ChapterEnrichmentItem(
+    id: id,
+    batchId: batchId,
+    projectId: 'project-1',
+    chapterId: 'chapter-1',
+    position: 0,
+    status: status,
+    errorMessage: null,
+    originalContentMarkdown: '原文。',
+    generatedContentMarkdown: status == ChapterEnrichmentItemStatus.generated
+        ? '生成稿。'
+        : '已应用稿。',
+    providerId: 'provider-1',
+    modelName: 'deepseek-chat',
+    logs: '[2026-05-22T13:00:00] 条目生成完成。',
+    createdAt: DateTime(2026, 5, 22, 13),
+    updatedAt: DateTime(2026, 5, 22, 13, 5),
+    startedAt: DateTime(2026, 5, 22, 13),
+    completedAt: DateTime(2026, 5, 22, 13, 5),
+    appliedAt: status == ChapterEnrichmentItemStatus.applied
+        ? DateTime(2026, 5, 22, 13, 6)
+        : null,
   );
 }
 

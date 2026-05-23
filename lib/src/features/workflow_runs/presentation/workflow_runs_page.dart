@@ -120,6 +120,9 @@ class _WorkflowPreviewActions extends ConsumerWidget {
     final assetRun = task.kind == assetGenerationWorkflowTaskKind
         ? ref.watch(assetGenerationRunByWorkflowTaskProvider(task.id))
         : const AsyncValue<AssetGenerationRun?>.data(null);
+    final chapterRun = task.kind == chapterGenerationWorkflowTaskKind
+        ? ref.watch(chapterGenerationRunByWorkflowTaskProvider(task.id))
+        : const AsyncValue<ChapterGenerationRun?>.data(null);
     final enrichmentBatch = task.kind == chapterEnrichmentWorkflowTaskKind
         ? ref.watch(chapterEnrichmentBatchByWorkflowTaskProvider(task.id))
         : const AsyncValue<ChapterEnrichmentBatch?>.data(null);
@@ -130,18 +133,30 @@ class _WorkflowPreviewActions extends ConsumerWidget {
         ? ref.watch(chapterEnrichmentItemsProvider(enrichmentBatch.value!.id))
         : const AsyncValue<List<ChapterEnrichmentItem>>.data([]);
     final canApply = _canApplyPreview(task, assetRun, enrichmentItems);
+    final canOpen = _canOpenPreview(
+      task,
+      assetRun,
+      chapterRun,
+      enrichmentItems,
+    );
+    if (!canOpen && !canApply) {
+      return const SizedBox.shrink();
+    }
 
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       alignment: WrapAlignment.end,
       children: [
-        OutlinedButton.icon(
-          onPressed: () => context.go('/workflow-runs/${task.id}'),
-          icon: const Icon(Icons.visibility_outlined, size: 16),
-          label: const Text('打开预览'),
-          style: OutlinedButton.styleFrom(visualDensity: VisualDensity.compact),
-        ),
+        if (canOpen)
+          OutlinedButton.icon(
+            onPressed: () => context.go('/workflow-runs/${task.id}'),
+            icon: const Icon(Icons.visibility_outlined, size: 16),
+            label: const Text('打开预览'),
+            style: OutlinedButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
         if (canApply)
           FilledButton.icon(
             onPressed: () =>
@@ -150,12 +165,38 @@ class _WorkflowPreviewActions extends ConsumerWidget {
             label: const Text('应用'),
             style: FilledButton.styleFrom(visualDensity: VisualDensity.compact),
           ),
-        TextButton(
-          onPressed: () => _dismissPreview(context, ref, task.id),
-          child: const Text('忽略'),
-        ),
+        if (canOpen || canApply)
+          TextButton(
+            onPressed: () => _dismissPreview(context, ref, task.id),
+            child: const Text('忽略'),
+          ),
       ],
     );
+  }
+
+  bool _canOpenPreview(
+    WorkflowTask task,
+    AsyncValue<AssetGenerationRun?> assetRun,
+    AsyncValue<ChapterGenerationRun?> chapterRun,
+    AsyncValue<List<ChapterEnrichmentItem>> enrichmentItems,
+  ) {
+    return switch (task.kind) {
+      assetGenerationWorkflowTaskKind => _canApplyPreview(
+        task,
+        assetRun,
+        enrichmentItems,
+      ),
+      chapterGenerationWorkflowTaskKind =>
+        chapterRun.hasValue &&
+            (chapterRun.value?.draftMarkdown.trim().isNotEmpty == true ||
+                chapterRun.value?.chapterId != null),
+      chapterEnrichmentWorkflowTaskKind => _canApplyPreview(
+        task,
+        assetRun,
+        enrichmentItems,
+      ),
+      _ => false,
+    };
   }
 
   bool _canApplyPreview(
@@ -237,7 +278,7 @@ class _WorkflowPreviewActions extends ConsumerWidget {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('预览操作已忽略。')));
+      ).showSnackBar(const SnackBar(content: Text('任务预览提醒已关闭，产出仍可在项目工作台查看。')));
     } on Object catch (error) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
@@ -398,6 +439,12 @@ class _WorkflowRunRowState extends ConsumerState<_WorkflowRunRow> {
             chapterEnrichmentBatchByWorkflowTaskProvider(widget.item.id),
           )
         : const AsyncValue<ChapterEnrichmentBatch?>.data(null);
+    final enrichmentItems =
+        widget.item.kind == chapterEnrichmentWorkflowTaskKind &&
+            enrichmentBatch.hasValue &&
+            enrichmentBatch.value != null
+        ? ref.watch(chapterEnrichmentItemsProvider(enrichmentBatch.value!.id))
+        : const AsyncValue<List<ChapterEnrichmentItem>>.data([]);
     final businessDetailPath = switch (widget.item.kind) {
       styleAnalysisWorkflowTaskKind => switch (styleRun) {
         AsyncData(value: final run?) => '/style-lab/tasks/${run.id}',
@@ -480,7 +527,13 @@ class _WorkflowRunRowState extends ConsumerState<_WorkflowRunRow> {
                     const SizedBox(width: 14),
                   ],
                   _WorkflowPreviewActions(task: widget.item),
-                  if (_hasVisibleWorkflowPreviewActions(widget.item)) ...[
+                  if (_hasVisibleWorkflowPreviewActions(
+                    widget.item,
+                    assetRun,
+                    chapterRun,
+                    enrichmentBatch,
+                    enrichmentItems,
+                  )) ...[
                     const SizedBox(width: 14),
                   ],
                   Text(
@@ -499,13 +552,25 @@ class _WorkflowRunRowState extends ConsumerState<_WorkflowRunRow> {
                     ),
                     child: Icon(
                       canOpenBusinessDetail ||
-                              _hasVisibleWorkflowPreviewActions(widget.item)
+                              _hasVisibleWorkflowPreviewActions(
+                                widget.item,
+                                assetRun,
+                                chapterRun,
+                                enrichmentBatch,
+                                enrichmentItems,
+                              )
                           ? Icons.chevron_right
                           : Icons.radio_button_unchecked,
                       size: 18,
                       color:
                           canOpenBusinessDetail ||
-                              _hasVisibleWorkflowPreviewActions(widget.item)
+                              _hasVisibleWorkflowPreviewActions(
+                                widget.item,
+                                assetRun,
+                                chapterRun,
+                                enrichmentBatch,
+                                enrichmentItems,
+                              )
                           ? colorScheme.primary
                           : colorScheme.onSurfaceVariant.withValues(
                               alpha: 0.45,
@@ -2302,10 +2367,39 @@ bool _hasWorkflowPreview(String kind) {
       kind == chapterEnrichmentWorkflowTaskKind;
 }
 
-bool _hasVisibleWorkflowPreviewActions(WorkflowTask task) {
-  return task.status == WorkflowTaskStatus.succeeded &&
-      _hasWorkflowPreview(task.kind) &&
-      task.previewDismissedAt == null;
+bool _hasVisibleWorkflowPreviewActions(
+  WorkflowTask task,
+  AsyncValue<AssetGenerationRun?> assetRun,
+  AsyncValue<ChapterGenerationRun?> chapterRun,
+  AsyncValue<ChapterEnrichmentBatch?> enrichmentBatch,
+  AsyncValue<List<ChapterEnrichmentItem>> enrichmentItems,
+) {
+  if (task.status != WorkflowTaskStatus.succeeded ||
+      task.previewDismissedAt != null ||
+      !_hasWorkflowPreview(task.kind)) {
+    return false;
+  }
+  return switch (task.kind) {
+    assetGenerationWorkflowTaskKind =>
+      assetRun.hasValue &&
+          assetRun.value?.status == AssetGenerationStatus.succeeded &&
+          assetRun.value?.draftMarkdown.trim().isNotEmpty == true,
+    chapterGenerationWorkflowTaskKind =>
+      chapterRun.hasValue &&
+          (chapterRun.value?.draftMarkdown.trim().isNotEmpty == true ||
+              chapterRun.value?.chapterId != null),
+    chapterEnrichmentWorkflowTaskKind =>
+      enrichmentBatch.hasValue &&
+          enrichmentBatch.value != null &&
+          enrichmentItems.hasValue &&
+          enrichmentItems.value?.any(
+                (item) =>
+                    item.status == ChapterEnrichmentItemStatus.generated &&
+                    item.generatedContentMarkdown.trim().isNotEmpty,
+              ) ==
+              true,
+    _ => false,
+  };
 }
 
 String _assetKindLabel(AssetGenerationKind kind) {

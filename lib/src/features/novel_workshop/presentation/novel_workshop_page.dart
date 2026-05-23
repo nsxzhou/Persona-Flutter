@@ -25,6 +25,7 @@ import '../application/novel_workshop_providers.dart';
 import '../application/outline_detail_parser.dart';
 import '../domain/novel_workshop.dart';
 import '../domain/writing_context.dart';
+import 'asset_review_state.dart';
 import 'character/character_graph_tab.dart';
 
 class NovelWorkshopPage extends ConsumerStatefulWidget {
@@ -906,7 +907,7 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
               projectId: widget.project.id,
               assetRun: _latestAssetRun(
                 widget.assetRuns,
-                AssetGenerationKind.outlineDetailYaml,
+                AssetGenerationKind.volumeBlueprintYaml,
               ),
               outlineDetailYaml: widget.bible.outlineDetailYaml,
               onCreatePlan: widget.onCreatePlan,
@@ -2360,7 +2361,7 @@ class _BibleMarkdownEditorTabState
                       : const Icon(Icons.auto_fix_high_outlined, size: 18),
                   label: Text(generating ? '生成中' : '生成草稿'),
                 ),
-                if (_canReview(widget.latestRun)) ...[
+                if (canReviewAssetDraft(widget.latestRun)) ...[
                   const SizedBox(width: 8),
                   TextButton.icon(
                     onPressed: state.isLoading
@@ -3988,7 +3989,7 @@ class _OutlineAssetGenerationButtonBodyState
               : const Icon(Icons.auto_fix_high_outlined, size: 18),
           label: Text(generating ? '生成中' : '生成全部分卷'),
         ),
-        if (_canReview(widget.assetRun)) ...[
+        if (canReviewAssetDraft(widget.assetRun)) ...[
           const SizedBox(width: 8),
           TextButton.icon(
             onPressed: state.isLoading
@@ -9983,13 +9984,6 @@ AssetGenerationRun? _latestAssetRun(
   final matches = runs.where((run) => run.kind == kind).toList()
     ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
   return matches.firstOrNull;
-}
-
-bool _canReview(AssetGenerationRun? run) {
-  if (run == null) return false;
-  return (run.status == AssetGenerationStatus.succeeded ||
-          run.status == AssetGenerationStatus.applied) &&
-      run.draftMarkdown.trim().isNotEmpty;
 }
 
 AssetGenerationKind _assetKindForField(_BibleField field) {
