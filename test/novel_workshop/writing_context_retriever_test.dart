@@ -17,7 +17,7 @@ void main() {
       final retriever = WritingContextRetriever(
         completionService: MarkdownCompletionService(
           invocation: LlmInvocationService(
-            client: _StaticLlmClient('not json'),
+            client: _StaticLlmClient('not yaml'),
           ),
         ),
       );
@@ -57,21 +57,18 @@ void main() {
   );
 
   test('valid selector controls selected chapters and asset blocks', () async {
+    final llmClient = _StaticLlmClient('''
+selected_chapters:
+  - chapter_index: 1
+    reason: 沉船账本伏笔需要回收
+selected_assets:
+  - id: story_engine
+    reason: 需要剧情推进规则
+summary: 优先召回伏笔与推进规则
+''');
     final retriever = WritingContextRetriever(
       completionService: MarkdownCompletionService(
-        invocation: LlmInvocationService(
-          client: _StaticLlmClient('''
-{
-  "selected_chapters": [
-    {"chapter_index": 1, "reason": "沉船账本伏笔需要回收"}
-  ],
-  "selected_assets": [
-    {"id": "story_engine", "reason": "需要剧情推进规则"}
-  ],
-  "summary": "优先召回伏笔与推进规则"
-}
-'''),
-        ),
+        invocation: LlmInvocationService(client: llmClient),
       ),
     );
 
@@ -90,6 +87,9 @@ void main() {
     );
 
     expect(result.selectionWarnings, isEmpty);
+    expect(llmClient.lastPrompt, contains('只输出 YAML'));
+    expect(llmClient.lastPrompt, isNot(contains('只输出 JSON')));
+    expect(llmClient.lastPrompt, isNot(contains('JSON 形状')));
     expect(result.selectedChapterExcerpts.map((e) => e.chapterIndex), [1]);
     expect(result.selectedAssetBlocks.map((e) => e.id), ['story_engine']);
     expect(result.sections.retrievedReferencesMarkdown, contains('沉船账本伏笔'));
@@ -102,6 +102,40 @@ void main() {
       isNot(contains('Voice Profile')),
     );
     expect(result.selectionReportMarkdown, contains('Mode: LLM selector'));
+  });
+
+  test('json selector output is rejected and falls back locally', () async {
+    final retriever = WritingContextRetriever(
+      completionService: MarkdownCompletionService(
+        invocation: LlmInvocationService(
+          client: _StaticLlmClient('''
+{
+  "selected_chapters": [
+    {"chapter_index": 1, "reason": "沉船账本伏笔需要回收"}
+  ],
+  "selected_assets": [],
+  "summary": "旧 JSON 契约"
+}
+'''),
+        ),
+      ),
+    );
+
+    final result = await retriever.retrieve(
+      project: _project,
+      plan: _plan,
+      baseSections: _sections,
+      previousChapters: [
+        _chapter(1, '沉船旧案', List.filled(80, '沉船账本第一次出现。').join()),
+      ],
+      characters: const [],
+      relationships: const [],
+      provider: _provider,
+      modelName: _provider.defaultModel,
+    );
+
+    expect(result.selectionWarnings.single, contains('must be YAML, not JSON'));
+    expect(result.selectionReportMarkdown, contains('Mode: local fallback'));
   });
 }
 
@@ -130,12 +164,14 @@ class _StaticLlmClient implements LlmClient {
   _StaticLlmClient(this.output);
 
   final String output;
+  String? lastPrompt;
 
   @override
   Stream<LlmStreamEvent> streamChat({
     required ProviderConfig provider,
     required LlmRequest request,
   }) async* {
+    lastPrompt = request.messages.map((message) => message.content).join('\n');
     yield LlmStreamDelta(output);
     yield const LlmStreamDone();
   }

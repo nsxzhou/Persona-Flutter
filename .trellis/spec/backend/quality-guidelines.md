@@ -152,6 +152,7 @@ Feature code depends on `LlmInvocationService` / `LlmClient`; only `core/llm/dat
 - Prompt builders must explicitly tell the model to output only the declared document shape, with no preface, explanation, conclusion, or code fence.
 - Artifacts that feed structured domain models must include a YAML schema, whether YAML-only or YAML+MD. The owning parser/normalizer converts YAML fields into domain input objects before repository writes.
 - Parsers/normalizers must reject malformed required contracts instead of silently coercing missing structure. Markdown section extraction is acceptable only for Markdown-only artifacts whose sections are not authoritative structured fields.
+- YAML parsers may accept JSON as a YAML subset. When migrating or enforcing a YAML-only LLM output contract, reject root-level JSON/flow-style output explicitly so old JSON prompts or mocks cannot keep passing through parser compatibility.
 - If an LLM artifact needs repair, do it in the owning pipeline with a separate repair prompt and prompt-trace label; keep the parser strict so malformed persisted artifacts cannot pass silently.
 - Plain reports, drafts, revisions, and intermediate summaries that are not structured domain inputs may remain Markdown-only.
 - Preview surfaces for YAML+MD artifacts should render the Markdown body, not the YAML front matter; source/edit modes still expose the full document. YAML-only artifacts should render as structured source unless the feature provides a derived preview.
@@ -160,6 +161,7 @@ Feature code depends on `LlmInvocationService` / `LlmClient`; only `core/llm/dat
 - Output does not start with `---` when YAML is required -> validation error.
 - Missing closing front matter delimiter -> validation error.
 - Required YAML field missing or unknown field present where the parser has a whitelist -> validation error.
+- YAML-only contract receives root-level JSON object/array syntax -> validation error, even if the YAML parser can technically parse it.
 - YAML enum/list type does not match the parser contract -> validation error.
 - Markdown body missing the required H1, such as `# Chunk Sketch`, `# Voice Profile`, or `# Plot Writing Guide` -> validation error.
 - Markdown-only artifact is configured as a structured domain input -> validation/design error; add YAML schema or keep it as a non-authoritative report.

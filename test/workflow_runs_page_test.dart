@@ -360,7 +360,7 @@ class _WorkflowRunsTestApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sample = _sample();
-    final assetRunItems = assetRuns ?? [if (assetRun != null) assetRun!];
+    final assetRunItems = assetRuns ?? [?assetRun];
     final enrichmentBatchItems = enrichmentBatches ?? const [];
     final enrichmentItemItems = enrichmentItems ?? const [];
     return ProviderScope(

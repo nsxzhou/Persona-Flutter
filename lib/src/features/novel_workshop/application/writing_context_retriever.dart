@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:yaml/yaml.dart';
+
 import '../../../core/llm/application/markdown_completion_service.dart';
 import '../../../core/llm/domain/llm_cancellation.dart';
 import '../../../core/tasks/application/prompt_trace_recorder.dart';
@@ -293,21 +295,19 @@ class WritingContextRetriever {
 你是长篇小说章节生成的上下文筛选器。请只基于候选目录和短摘选择本章真正需要注入的前文与资产块。
 
 ## 输出契约
-- 只输出 JSON，不要 Markdown，不要代码围栏，不要解释。
+- 只输出 YAML，不要 Markdown，不要代码围栏，不要解释。
 - `selected_chapters` 最多 5 个，必须使用候选中的 chapter_index。
 - `selected_assets` 最多 8 个，必须使用候选中的 id。
 - 如果候选不足，可以返回空数组。
 
-JSON 形状：
-{
-  "selected_chapters": [
-    {"chapter_index": 1, "reason": "为什么本章需要它"}
-  ],
-  "selected_assets": [
-    {"id": "voice_profile", "reason": "为什么需要它"}
-  ],
-  "summary": "一句话概括筛选依据"
-}
+YAML 形状：
+selected_chapters:
+  - chapter_index: 1
+    reason: 为什么本章需要它
+selected_assets:
+  - id: voice_profile
+    reason: 为什么需要它
+summary: 一句话概括筛选依据
 
 ## 当前项目
 - 标题：${project.title}
@@ -326,49 +326,74 @@ ${assets.isEmpty ? '[]' : jsonEncode(assets.map((asset) => asset.toSelectorJson(
 
   _SelectorResult _parseSelectorResult(String raw) {
     final cleaned = _stripFence(raw).trim();
-    final parsed = jsonDecode(cleaned);
-    if (parsed is! Map<String, Object?>) {
-      throw const FormatException('selector JSON root is not an object');
+    if (_looksLikeJsonRoot(cleaned)) {
+      throw const FormatException('selector output must be YAML, not JSON');
+    }
+    final parsed = loadYaml(cleaned);
+    final root = _selectorMap(parsed);
+    if (root == null) {
+      throw const FormatException('selector YAML root is not a mapping');
     }
     final chapters = <_SelectedChapter>[];
-    final rawChapters = parsed['selected_chapters'];
-    if (rawChapters is List) {
-      for (final item in rawChapters) {
-        if (item is Map) {
-          final index = item['chapter_index'];
-          if (index is num) {
-            chapters.add(
-              _SelectedChapter(
-                chapterIndex: index.toInt(),
-                reason: item['reason']?.toString().trim() ?? '',
-              ),
-            );
-          }
+    for (final item in _selectorList(root['selected_chapters'])) {
+      final itemMap = _selectorMap(item);
+      if (itemMap != null) {
+        final index = itemMap['chapter_index'];
+        if (index is num) {
+          chapters.add(
+            _SelectedChapter(
+              chapterIndex: index.toInt(),
+              reason: itemMap['reason']?.toString().trim() ?? '',
+            ),
+          );
         }
       }
     }
     final assets = <_SelectedAsset>[];
-    final rawAssets = parsed['selected_assets'];
-    if (rawAssets is List) {
-      for (final item in rawAssets) {
-        if (item is Map) {
-          final id = item['id']?.toString().trim();
-          if (id != null && id.isNotEmpty) {
-            assets.add(
-              _SelectedAsset(
-                id: id,
-                reason: item['reason']?.toString().trim() ?? '',
-              ),
-            );
-          }
+    for (final item in _selectorList(root['selected_assets'])) {
+      final itemMap = _selectorMap(item);
+      if (itemMap != null) {
+        final id = itemMap['id']?.toString().trim();
+        if (id != null && id.isNotEmpty) {
+          assets.add(
+            _SelectedAsset(
+              id: id,
+              reason: itemMap['reason']?.toString().trim() ?? '',
+            ),
+          );
         }
       }
     }
     return _SelectorResult(
       chapters: chapters,
       assets: assets,
-      summary: parsed['summary']?.toString().trim() ?? '',
+      summary: root['summary']?.toString().trim() ?? '',
     );
+  }
+
+  Map<Object?, Object?>? _selectorMap(Object? value) {
+    if (value is YamlMap) {
+      return value;
+    }
+    if (value is Map<Object?, Object?>) {
+      return value;
+    }
+    return null;
+  }
+
+  List<Object?> _selectorList(Object? value) {
+    if (value is YamlList) {
+      return value.nodes.map((node) => node.value).toList(growable: false);
+    }
+    if (value is List<Object?>) {
+      return value;
+    }
+    return const [];
+  }
+
+  bool _looksLikeJsonRoot(String value) {
+    final trimmed = value.trimLeft();
+    return trimmed.startsWith('{') || trimmed.startsWith('[');
   }
 
   List<RetrievedChapterExcerpt> _selectedChapterExcerpts({
@@ -598,7 +623,7 @@ ${asset.markdown.trim()}''',
   String _stripFence(String raw) {
     final trimmed = raw.trim();
     final match = RegExp(
-      r'^```(?:json)?\s*([\s\S]*?)\s*```$',
+      r'^```(?:json|yaml|yml)?\s*([\s\S]*?)\s*```$',
       caseSensitive: false,
     ).firstMatch(trimmed);
     return match?.group(1)?.trim() ?? trimmed;

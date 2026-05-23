@@ -993,25 +993,23 @@ name: "雾港剧情"
 - 目标 -> 阻碍 -> 半兑现。''';
 
 const _selectorAssets = '''
-{
-  "selected_chapters": [],
-  "selected_assets": [
-    {"id": "voice_profile", "reason": "保持项目文风"},
-    {"id": "story_engine", "reason": "保持剧情推进规则"},
-    {"id": "runtime_memory.threads", "reason": "承接未解决线索"}
-  ],
-  "summary": "第一章仅需要资产和运行时线索"
-}
+selected_chapters: []
+selected_assets:
+  - id: voice_profile
+    reason: 保持项目文风
+  - id: story_engine
+    reason: 保持剧情推进规则
+  - id: runtime_memory.threads
+    reason: 承接未解决线索
+summary: 第一章仅需要资产和运行时线索
 ''';
 
 const _selectorArchive = '''
-{
-  "selected_chapters": [],
-  "selected_assets": [
-    {"id": "runtime_memory.archive", "reason": "长归档需要压缩后承接"}
-  ],
-  "summary": "使用章节归档作为承接依据"
-}
+selected_chapters: []
+selected_assets:
+  - id: runtime_memory.archive
+    reason: 长归档需要压缩后承接
+summary: 使用章节归档作为承接依据
 ''';
 
 const _auditPass = '''---
