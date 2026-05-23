@@ -14,6 +14,7 @@ abstract class WorkflowTask with _$WorkflowTask {
     required String title,
     String? stage,
     String? errorMessage,
+    DateTime? previewDismissedAt,
     required DateTime createdAt,
     required DateTime updatedAt,
   }) = _WorkflowTask;

@@ -161,10 +161,10 @@ Keep the first workspace project-scoped under `/projects/:projectId/workshop` an
 
 ### 3. Contracts
 - Pending/running task rows and details expose an abandon action with confirmation before dispatching the controller command.
-- Abandoned tasks render `已放弃` and must not appear in the completed preview inbox.
-- The preview inbox only includes succeeded Novel Workshop tasks that have reviewable output: asset generation, chapter generation, and chapter enrichment.
-- Preview inbox entries are sorted by `updatedAt desc` and multiple entries must stay visible at the same time.
-- Inbox actions must include `打开预览` and `忽略`; `应用` is shown only when the entry has a directly applicable asset draft or generated enrichment items.
+- Abandoned tasks render `已放弃` and must not expose preview actions.
+- Succeeded Novel Workshop tasks that have reviewable output render preview actions inline in the normal Workflow Runs list: asset generation, chapter generation, and chapter enrichment.
+- Inline preview actions must include `打开预览` and `忽略`; `应用` is shown only when the entry has a directly applicable asset draft or generated enrichment items.
+- `忽略` persists through `WorkflowTaskRepository.dismissTaskPreview(taskId)` and hides only the inline preview actions; it must not remove the task row, delete Prompt Trace, or delete feature output records.
 - Generic succeeded tasks without reviewable output remain available through the normal task list and Prompt Trace detail, not the preview inbox.
 - Workflow task detail owns Prompt Trace rendering and may show task output previews above trace/log tabs. Feature pages can link to `/workflow-runs/:taskId` for diagnostics.
 
@@ -174,10 +174,10 @@ Keep the first workspace project-scoped under `/projects/:projectId/workshop` an
 - Asset draft empty -> disable direct apply and leave Prompt Trace available.
 - Chapter generation has a chapter id but no run draft -> route to project editor/workshop rather than pretending there is a pending draft.
 - Enrichment batch has no generated items -> disable direct batch apply.
-- Clicking `忽略` removes only that inbox entry from the local page session; it does not delete persisted task data.
+- Clicking `忽略` hides only that task row's preview actions across app restarts; it does not delete persisted task data.
 
 ### 5. Good/Base/Bad Cases
-- Good: Two completed Novel tasks appear together in the inbox; opening one detail does not remove or replace the other.
+- Good: Two completed Novel tasks appear together in the normal task list with independent inline preview actions; opening one detail does not remove or replace the other.
 - Base: A succeeded task without reviewable output is opened from the task table to inspect Prompt Trace.
 - Bad: Stack multiple completion dialogs as concurrent tasks finish.
 - Bad: Put plot/style analysis successes into the review inbox when they only have Prompt Trace or existing business detail pages.
@@ -185,10 +185,10 @@ Keep the first workspace project-scoped under `/projects/:projectId/workshop` an
 ### 6. Tests Required
 - Widget tests for abandon button and confirmation on running/pending tasks.
 - Widget tests for abandoned state rendering and exclusion from the inbox.
-- Widget tests for multiple succeeded Novel outputs, inbox sorting/actions, and detail preview rendering.
+- Widget tests for multiple succeeded Novel outputs, inline preview actions, persistent dismissal, and detail preview rendering.
 
 ### 7. Wrong vs Correct
 #### Wrong
 Automatically open a modal dialog for each completed task and let later completions replace earlier previews.
 #### Correct
-Queue completed Novel outputs in the Workflow Runs preview inbox, where each entry can be opened, applied when safe, or ignored independently.
+Keep completed Novel outputs in the normal Workflow Runs list, where each row can be opened, applied when safe, or persistently ignored independently.

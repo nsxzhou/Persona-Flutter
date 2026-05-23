@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$WorkflowTask {
 
- String get id; String get kind; WorkflowTaskStatus get status; String get title; String? get stage; String? get errorMessage; DateTime get createdAt; DateTime get updatedAt;
+ String get id; String get kind; WorkflowTaskStatus get status; String get title; String? get stage; String? get errorMessage; DateTime? get previewDismissedAt; DateTime get createdAt; DateTime get updatedAt;
 /// Create a copy of WorkflowTask
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $WorkflowTaskCopyWith<WorkflowTask> get copyWith => _$WorkflowTaskCopyWithImpl<W
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkflowTask&&(identical(other.id, id) || other.id == id)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.status, status) || other.status == status)&&(identical(other.title, title) || other.title == title)&&(identical(other.stage, stage) || other.stage == stage)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkflowTask&&(identical(other.id, id) || other.id == id)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.status, status) || other.status == status)&&(identical(other.title, title) || other.title == title)&&(identical(other.stage, stage) || other.stage == stage)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.previewDismissedAt, previewDismissedAt) || other.previewDismissedAt == previewDismissedAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,kind,status,title,stage,errorMessage,createdAt,updatedAt);
+int get hashCode => Object.hash(runtimeType,id,kind,status,title,stage,errorMessage,previewDismissedAt,createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'WorkflowTask(id: $id, kind: $kind, status: $status, title: $title, stage: $stage, errorMessage: $errorMessage, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'WorkflowTask(id: $id, kind: $kind, status: $status, title: $title, stage: $stage, errorMessage: $errorMessage, previewDismissedAt: $previewDismissedAt, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $WorkflowTaskCopyWith<$Res>  {
   factory $WorkflowTaskCopyWith(WorkflowTask value, $Res Function(WorkflowTask) _then) = _$WorkflowTaskCopyWithImpl;
 @useResult
 $Res call({
- String id, String kind, WorkflowTaskStatus status, String title, String? stage, String? errorMessage, DateTime createdAt, DateTime updatedAt
+ String id, String kind, WorkflowTaskStatus status, String title, String? stage, String? errorMessage, DateTime? previewDismissedAt, DateTime createdAt, DateTime updatedAt
 });
 
 
@@ -65,7 +65,7 @@ class _$WorkflowTaskCopyWithImpl<$Res>
 
 /// Create a copy of WorkflowTask
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? kind = null,Object? status = null,Object? title = null,Object? stage = freezed,Object? errorMessage = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? kind = null,Object? status = null,Object? title = null,Object? stage = freezed,Object? errorMessage = freezed,Object? previewDismissedAt = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,kind: null == kind ? _self.kind : kind // ignore: cast_nullable_to_non_nullable
@@ -73,7 +73,8 @@ as String,status: null == status ? _self.status : status // ignore: cast_nullabl
 as WorkflowTaskStatus,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,stage: freezed == stage ? _self.stage : stage // ignore: cast_nullable_to_non_nullable
 as String?,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
-as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as String?,previewDismissedAt: freezed == previewDismissedAt ? _self.previewDismissedAt : previewDismissedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));
@@ -160,10 +161,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String kind,  WorkflowTaskStatus status,  String title,  String? stage,  String? errorMessage,  DateTime createdAt,  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String kind,  WorkflowTaskStatus status,  String title,  String? stage,  String? errorMessage,  DateTime? previewDismissedAt,  DateTime createdAt,  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _WorkflowTask() when $default != null:
-return $default(_that.id,_that.kind,_that.status,_that.title,_that.stage,_that.errorMessage,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.kind,_that.status,_that.title,_that.stage,_that.errorMessage,_that.previewDismissedAt,_that.createdAt,_that.updatedAt);case _:
   return orElse();
 
 }
@@ -181,10 +182,10 @@ return $default(_that.id,_that.kind,_that.status,_that.title,_that.stage,_that.e
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String kind,  WorkflowTaskStatus status,  String title,  String? stage,  String? errorMessage,  DateTime createdAt,  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String kind,  WorkflowTaskStatus status,  String title,  String? stage,  String? errorMessage,  DateTime? previewDismissedAt,  DateTime createdAt,  DateTime updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _WorkflowTask():
-return $default(_that.id,_that.kind,_that.status,_that.title,_that.stage,_that.errorMessage,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.kind,_that.status,_that.title,_that.stage,_that.errorMessage,_that.previewDismissedAt,_that.createdAt,_that.updatedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -201,10 +202,10 @@ return $default(_that.id,_that.kind,_that.status,_that.title,_that.stage,_that.e
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String kind,  WorkflowTaskStatus status,  String title,  String? stage,  String? errorMessage,  DateTime createdAt,  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String kind,  WorkflowTaskStatus status,  String title,  String? stage,  String? errorMessage,  DateTime? previewDismissedAt,  DateTime createdAt,  DateTime updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _WorkflowTask() when $default != null:
-return $default(_that.id,_that.kind,_that.status,_that.title,_that.stage,_that.errorMessage,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.kind,_that.status,_that.title,_that.stage,_that.errorMessage,_that.previewDismissedAt,_that.createdAt,_that.updatedAt);case _:
   return null;
 
 }
@@ -216,7 +217,7 @@ return $default(_that.id,_that.kind,_that.status,_that.title,_that.stage,_that.e
 @JsonSerializable()
 
 class _WorkflowTask implements WorkflowTask {
-  const _WorkflowTask({required this.id, required this.kind, required this.status, required this.title, this.stage, this.errorMessage, required this.createdAt, required this.updatedAt});
+  const _WorkflowTask({required this.id, required this.kind, required this.status, required this.title, this.stage, this.errorMessage, this.previewDismissedAt, required this.createdAt, required this.updatedAt});
   factory _WorkflowTask.fromJson(Map<String, dynamic> json) => _$WorkflowTaskFromJson(json);
 
 @override final  String id;
@@ -225,6 +226,7 @@ class _WorkflowTask implements WorkflowTask {
 @override final  String title;
 @override final  String? stage;
 @override final  String? errorMessage;
+@override final  DateTime? previewDismissedAt;
 @override final  DateTime createdAt;
 @override final  DateTime updatedAt;
 
@@ -241,16 +243,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkflowTask&&(identical(other.id, id) || other.id == id)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.status, status) || other.status == status)&&(identical(other.title, title) || other.title == title)&&(identical(other.stage, stage) || other.stage == stage)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkflowTask&&(identical(other.id, id) || other.id == id)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.status, status) || other.status == status)&&(identical(other.title, title) || other.title == title)&&(identical(other.stage, stage) || other.stage == stage)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.previewDismissedAt, previewDismissedAt) || other.previewDismissedAt == previewDismissedAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,kind,status,title,stage,errorMessage,createdAt,updatedAt);
+int get hashCode => Object.hash(runtimeType,id,kind,status,title,stage,errorMessage,previewDismissedAt,createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'WorkflowTask(id: $id, kind: $kind, status: $status, title: $title, stage: $stage, errorMessage: $errorMessage, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'WorkflowTask(id: $id, kind: $kind, status: $status, title: $title, stage: $stage, errorMessage: $errorMessage, previewDismissedAt: $previewDismissedAt, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -261,7 +263,7 @@ abstract mixin class _$WorkflowTaskCopyWith<$Res> implements $WorkflowTaskCopyWi
   factory _$WorkflowTaskCopyWith(_WorkflowTask value, $Res Function(_WorkflowTask) _then) = __$WorkflowTaskCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String kind, WorkflowTaskStatus status, String title, String? stage, String? errorMessage, DateTime createdAt, DateTime updatedAt
+ String id, String kind, WorkflowTaskStatus status, String title, String? stage, String? errorMessage, DateTime? previewDismissedAt, DateTime createdAt, DateTime updatedAt
 });
 
 
@@ -278,7 +280,7 @@ class __$WorkflowTaskCopyWithImpl<$Res>
 
 /// Create a copy of WorkflowTask
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? kind = null,Object? status = null,Object? title = null,Object? stage = freezed,Object? errorMessage = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? kind = null,Object? status = null,Object? title = null,Object? stage = freezed,Object? errorMessage = freezed,Object? previewDismissedAt = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_WorkflowTask(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,kind: null == kind ? _self.kind : kind // ignore: cast_nullable_to_non_nullable
@@ -286,7 +288,8 @@ as String,status: null == status ? _self.status : status // ignore: cast_nullabl
 as WorkflowTaskStatus,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,stage: freezed == stage ? _self.stage : stage // ignore: cast_nullable_to_non_nullable
 as String?,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
-as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as String?,previewDismissedAt: freezed == previewDismissedAt ? _self.previewDismissedAt : previewDismissedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));

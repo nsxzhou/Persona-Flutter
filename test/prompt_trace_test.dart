@@ -12,6 +12,35 @@ import 'package:persona_flutter/src/core/tasks/domain/workflow_task.dart';
 import 'package:persona_flutter/src/features/settings/domain/provider_config.dart';
 
 void main() {
+  test(
+    'workflow task preview dismissal persists in repository streams',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final repository = DriftWorkflowTaskRepository(database);
+      await database
+          .into(database.workflowTaskRecords)
+          .insert(
+            WorkflowTaskRecordsCompanion.insert(
+              id: 'task-preview-1',
+              kind: 'novel_asset_generation',
+              status: WorkflowTaskStatus.succeeded.name,
+              title: '资产生成',
+              createdAt: DateTime.utc(2026, 5, 23),
+              updatedAt: DateTime.utc(2026, 5, 23),
+            ),
+          );
+
+      await repository.dismissTaskPreview('task-preview-1');
+
+      final found = await repository.findTask('task-preview-1');
+      expect(found!.previewDismissedAt, isNotNull);
+
+      final recent = await repository.watchRecentTasks().first;
+      expect(recent.single.previewDismissedAt, found.previewDismissedAt);
+    },
+  );
+
   test('prompt trace renderer emits YAML+MD with safe fences', () {
     final markdown = renderPromptTraceMarkdown(
       workflowTaskId: 'task-1',

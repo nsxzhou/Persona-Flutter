@@ -65,6 +65,17 @@ class $WorkflowTaskRecordsTable extends WorkflowTaskRecords
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _previewDismissedAtMeta =
+      const VerificationMeta('previewDismissedAt');
+  @override
+  late final GeneratedColumn<DateTime> previewDismissedAt =
+      GeneratedColumn<DateTime>(
+        'preview_dismissed_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -95,6 +106,7 @@ class $WorkflowTaskRecordsTable extends WorkflowTaskRecords
     title,
     stage,
     errorMessage,
+    previewDismissedAt,
     createdAt,
     updatedAt,
   ];
@@ -154,6 +166,15 @@ class $WorkflowTaskRecordsTable extends WorkflowTaskRecords
         ),
       );
     }
+    if (data.containsKey('preview_dismissed_at')) {
+      context.handle(
+        _previewDismissedAtMeta,
+        previewDismissedAt.isAcceptableOrUnknown(
+          data['preview_dismissed_at']!,
+          _previewDismissedAtMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -203,6 +224,10 @@ class $WorkflowTaskRecordsTable extends WorkflowTaskRecords
         DriftSqlType.string,
         data['${effectivePrefix}error_message'],
       ),
+      previewDismissedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}preview_dismissed_at'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -228,6 +253,7 @@ class WorkflowTaskRecord extends DataClass
   final String title;
   final String? stage;
   final String? errorMessage;
+  final DateTime? previewDismissedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
   const WorkflowTaskRecord({
@@ -237,6 +263,7 @@ class WorkflowTaskRecord extends DataClass
     required this.title,
     this.stage,
     this.errorMessage,
+    this.previewDismissedAt,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -252,6 +279,9 @@ class WorkflowTaskRecord extends DataClass
     }
     if (!nullToAbsent || errorMessage != null) {
       map['error_message'] = Variable<String>(errorMessage);
+    }
+    if (!nullToAbsent || previewDismissedAt != null) {
+      map['preview_dismissed_at'] = Variable<DateTime>(previewDismissedAt);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -270,6 +300,9 @@ class WorkflowTaskRecord extends DataClass
       errorMessage: errorMessage == null && nullToAbsent
           ? const Value.absent()
           : Value(errorMessage),
+      previewDismissedAt: previewDismissedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(previewDismissedAt),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -287,6 +320,9 @@ class WorkflowTaskRecord extends DataClass
       title: serializer.fromJson<String>(json['title']),
       stage: serializer.fromJson<String?>(json['stage']),
       errorMessage: serializer.fromJson<String?>(json['errorMessage']),
+      previewDismissedAt: serializer.fromJson<DateTime?>(
+        json['previewDismissedAt'],
+      ),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -301,6 +337,7 @@ class WorkflowTaskRecord extends DataClass
       'title': serializer.toJson<String>(title),
       'stage': serializer.toJson<String?>(stage),
       'errorMessage': serializer.toJson<String?>(errorMessage),
+      'previewDismissedAt': serializer.toJson<DateTime?>(previewDismissedAt),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -313,6 +350,7 @@ class WorkflowTaskRecord extends DataClass
     String? title,
     Value<String?> stage = const Value.absent(),
     Value<String?> errorMessage = const Value.absent(),
+    Value<DateTime?> previewDismissedAt = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => WorkflowTaskRecord(
@@ -322,6 +360,9 @@ class WorkflowTaskRecord extends DataClass
     title: title ?? this.title,
     stage: stage.present ? stage.value : this.stage,
     errorMessage: errorMessage.present ? errorMessage.value : this.errorMessage,
+    previewDismissedAt: previewDismissedAt.present
+        ? previewDismissedAt.value
+        : this.previewDismissedAt,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -335,6 +376,9 @@ class WorkflowTaskRecord extends DataClass
       errorMessage: data.errorMessage.present
           ? data.errorMessage.value
           : this.errorMessage,
+      previewDismissedAt: data.previewDismissedAt.present
+          ? data.previewDismissedAt.value
+          : this.previewDismissedAt,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -349,6 +393,7 @@ class WorkflowTaskRecord extends DataClass
           ..write('title: $title, ')
           ..write('stage: $stage, ')
           ..write('errorMessage: $errorMessage, ')
+          ..write('previewDismissedAt: $previewDismissedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -363,6 +408,7 @@ class WorkflowTaskRecord extends DataClass
     title,
     stage,
     errorMessage,
+    previewDismissedAt,
     createdAt,
     updatedAt,
   );
@@ -376,6 +422,7 @@ class WorkflowTaskRecord extends DataClass
           other.title == this.title &&
           other.stage == this.stage &&
           other.errorMessage == this.errorMessage &&
+          other.previewDismissedAt == this.previewDismissedAt &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -387,6 +434,7 @@ class WorkflowTaskRecordsCompanion extends UpdateCompanion<WorkflowTaskRecord> {
   final Value<String> title;
   final Value<String?> stage;
   final Value<String?> errorMessage;
+  final Value<DateTime?> previewDismissedAt;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -397,6 +445,7 @@ class WorkflowTaskRecordsCompanion extends UpdateCompanion<WorkflowTaskRecord> {
     this.title = const Value.absent(),
     this.stage = const Value.absent(),
     this.errorMessage = const Value.absent(),
+    this.previewDismissedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -408,6 +457,7 @@ class WorkflowTaskRecordsCompanion extends UpdateCompanion<WorkflowTaskRecord> {
     required String title,
     this.stage = const Value.absent(),
     this.errorMessage = const Value.absent(),
+    this.previewDismissedAt = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
@@ -424,6 +474,7 @@ class WorkflowTaskRecordsCompanion extends UpdateCompanion<WorkflowTaskRecord> {
     Expression<String>? title,
     Expression<String>? stage,
     Expression<String>? errorMessage,
+    Expression<DateTime>? previewDismissedAt,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -435,6 +486,8 @@ class WorkflowTaskRecordsCompanion extends UpdateCompanion<WorkflowTaskRecord> {
       if (title != null) 'title': title,
       if (stage != null) 'stage': stage,
       if (errorMessage != null) 'error_message': errorMessage,
+      if (previewDismissedAt != null)
+        'preview_dismissed_at': previewDismissedAt,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -448,6 +501,7 @@ class WorkflowTaskRecordsCompanion extends UpdateCompanion<WorkflowTaskRecord> {
     Value<String>? title,
     Value<String?>? stage,
     Value<String?>? errorMessage,
+    Value<DateTime?>? previewDismissedAt,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
@@ -459,6 +513,7 @@ class WorkflowTaskRecordsCompanion extends UpdateCompanion<WorkflowTaskRecord> {
       title: title ?? this.title,
       stage: stage ?? this.stage,
       errorMessage: errorMessage ?? this.errorMessage,
+      previewDismissedAt: previewDismissedAt ?? this.previewDismissedAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -486,6 +541,11 @@ class WorkflowTaskRecordsCompanion extends UpdateCompanion<WorkflowTaskRecord> {
     if (errorMessage.present) {
       map['error_message'] = Variable<String>(errorMessage.value);
     }
+    if (previewDismissedAt.present) {
+      map['preview_dismissed_at'] = Variable<DateTime>(
+        previewDismissedAt.value,
+      );
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -507,6 +567,7 @@ class WorkflowTaskRecordsCompanion extends UpdateCompanion<WorkflowTaskRecord> {
           ..write('title: $title, ')
           ..write('stage: $stage, ')
           ..write('errorMessage: $errorMessage, ')
+          ..write('previewDismissedAt: $previewDismissedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -20062,6 +20123,7 @@ typedef $$WorkflowTaskRecordsTableCreateCompanionBuilder =
       required String title,
       Value<String?> stage,
       Value<String?> errorMessage,
+      Value<DateTime?> previewDismissedAt,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<int> rowid,
@@ -20074,6 +20136,7 @@ typedef $$WorkflowTaskRecordsTableUpdateCompanionBuilder =
       Value<String> title,
       Value<String?> stage,
       Value<String?> errorMessage,
+      Value<DateTime?> previewDismissedAt,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -20328,6 +20391,11 @@ class $$WorkflowTaskRecordsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<DateTime> get previewDismissedAt => $composableBuilder(
+    column: $table.previewDismissedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
@@ -20571,6 +20639,11 @@ class $$WorkflowTaskRecordsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get previewDismissedAt => $composableBuilder(
+    column: $table.previewDismissedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -20608,6 +20681,11 @@ class $$WorkflowTaskRecordsTableAnnotationComposer
 
   GeneratedColumn<String> get errorMessage => $composableBuilder(
     column: $table.errorMessage,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get previewDismissedAt => $composableBuilder(
+    column: $table.previewDismissedAt,
     builder: (column) => column,
   );
 
@@ -20864,6 +20942,7 @@ class $$WorkflowTaskRecordsTableTableManager
                 Value<String> title = const Value.absent(),
                 Value<String?> stage = const Value.absent(),
                 Value<String?> errorMessage = const Value.absent(),
+                Value<DateTime?> previewDismissedAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -20874,6 +20953,7 @@ class $$WorkflowTaskRecordsTableTableManager
                 title: title,
                 stage: stage,
                 errorMessage: errorMessage,
+                previewDismissedAt: previewDismissedAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -20886,6 +20966,7 @@ class $$WorkflowTaskRecordsTableTableManager
                 required String title,
                 Value<String?> stage = const Value.absent(),
                 Value<String?> errorMessage = const Value.absent(),
+                Value<DateTime?> previewDismissedAt = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<int> rowid = const Value.absent(),
@@ -20896,6 +20977,7 @@ class $$WorkflowTaskRecordsTableTableManager
                 title: title,
                 stage: stage,
                 errorMessage: errorMessage,
+                previewDismissedAt: previewDismissedAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,

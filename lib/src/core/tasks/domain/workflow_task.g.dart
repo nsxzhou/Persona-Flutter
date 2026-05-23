@@ -14,6 +14,9 @@ _WorkflowTask _$WorkflowTaskFromJson(Map<String, dynamic> json) =>
       title: json['title'] as String,
       stage: json['stage'] as String?,
       errorMessage: json['errorMessage'] as String?,
+      previewDismissedAt: json['previewDismissedAt'] == null
+          ? null
+          : DateTime.parse(json['previewDismissedAt'] as String),
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
@@ -26,6 +29,7 @@ Map<String, dynamic> _$WorkflowTaskToJson(_WorkflowTask instance) =>
       'title': instance.title,
       'stage': instance.stage,
       'errorMessage': instance.errorMessage,
+      'previewDismissedAt': instance.previewDismissedAt?.toIso8601String(),
       'createdAt': instance.createdAt.toIso8601String(),
       'updatedAt': instance.updatedAt.toIso8601String(),
     };

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:persona_flutter/src/core/tasks/application/workflow_task_providers.dart';
+import 'package:persona_flutter/src/core/tasks/application/workflow_task_repository.dart';
 import 'package:persona_flutter/src/core/tasks/domain/workflow_prompt_trace.dart';
 import 'package:persona_flutter/src/core/tasks/domain/workflow_task.dart';
 import 'package:persona_flutter/src/features/novel_workshop/application/novel_workshop_providers.dart';
@@ -150,7 +151,7 @@ void main() {
     expect(find.text('放弃任务'), findsWidgets);
   });
 
-  testWidgets('workflow preview inbox lists multiple completed previews', (
+  testWidgets('workflow runs list shows inline preview actions', (
     tester,
   ) async {
     final plotRun = _plotRun();
@@ -186,37 +187,78 @@ void main() {
       createdAt: DateTime(2026, 5, 22, 8),
       updatedAt: DateTime(2026, 5, 22, 8, 10),
     );
+    final dismissedTask = WorkflowTask(
+      id: 'task-dismissed-preview',
+      kind: assetGenerationWorkflowTaskKind,
+      status: WorkflowTaskStatus.succeeded,
+      title: '资产生成：已忽略预览',
+      previewDismissedAt: DateTime(2026, 5, 22, 11),
+      createdAt: DateTime(2026, 5, 22, 11),
+      updatedAt: DateTime(2026, 5, 22, 11, 10),
+    );
+    final appliedTask = WorkflowTask(
+      id: 'task-applied-preview',
+      kind: assetGenerationWorkflowTaskKind,
+      status: WorkflowTaskStatus.succeeded,
+      title: '资产生成：已应用资产',
+      createdAt: DateTime(2026, 5, 22, 12),
+      updatedAt: DateTime(2026, 5, 22, 12, 10),
+    );
+    final repository = _FakeWorkflowTaskRepository(
+      tasks: [
+        assetTask,
+        plotTask,
+        chapterTask,
+        abandonedTask,
+        dismissedTask,
+        appliedTask,
+      ],
+    );
 
     await tester.pumpWidget(
       _WorkflowRunsTestApp(
         task: plotTask,
         run: plotRun,
-        tasks: [assetTask, plotTask, chapterTask, abandonedTask],
-        assetRun: _assetRun(
-          workflowTaskId: assetTask.id,
-          status: AssetGenerationStatus.succeeded,
-          draftMarkdown: '# 世界观\n\n雾港。',
-        ),
+        tasks: repository.tasks,
+        workflowRepository: repository,
+        assetRuns: [
+          _assetRun(
+            workflowTaskId: assetTask.id,
+            status: AssetGenerationStatus.succeeded,
+            draftMarkdown: '# 世界观\n\n雾港。',
+          ),
+          _assetRun(
+            workflowTaskId: dismissedTask.id,
+            status: AssetGenerationStatus.succeeded,
+            draftMarkdown: '# 已忽略\n\n不再提示。',
+          ),
+          _assetRun(
+            workflowTaskId: appliedTask.id,
+            status: AssetGenerationStatus.applied,
+            draftMarkdown: '# 已应用\n\n已写入项目。',
+          ),
+        ],
         chapterRun: _chapterRun(workflowTaskId: chapterTask.id),
       ),
     );
     await _pumpWorkflowRuns(tester);
 
-    expect(find.text('完成预览'), findsOneWidget);
-    expect(find.text('打开预览'), findsNWidgets(2));
+    expect(find.text('完成预览'), findsNothing);
+    expect(find.text('最近工作流活动'), findsOneWidget);
+    expect(find.text('打开预览'), findsNWidgets(3));
     expect(find.text('应用'), findsOneWidget);
-    expect(find.text('忽略'), findsNWidgets(2));
-    expect(find.textContaining('资产草稿待审阅'), findsOneWidget);
-    expect(find.textContaining('章节已生成'), findsOneWidget);
+    expect(find.text('忽略'), findsNWidgets(3));
+    expect(find.text('资产生成：已忽略预览'), findsOneWidget);
+    expect(find.text('资产生成：已应用资产'), findsOneWidget);
     expect(find.text('已放弃'), findsOneWidget);
     expect(find.textContaining('已放弃', findRichText: true), findsWidgets);
 
     await tester.tap(find.text('忽略').first);
     await _pumpWorkflowRuns(tester);
 
-    expect(find.text('打开预览'), findsOneWidget);
+    expect(repository.dismissedTaskIds, ['task-asset-preview']);
 
-    await tester.tap(find.text('打开预览'));
+    await tester.tap(find.text('打开预览').first);
     await _pumpWorkflowRuns(tester);
 
     expect(find.text('任务产出预览'), findsOneWidget);
@@ -229,23 +271,30 @@ class _WorkflowRunsTestApp extends StatelessWidget {
     required this.run,
     this.tasks,
     this.assetRun,
+    this.assetRuns,
     this.chapterRun,
+    this.workflowRepository,
   });
 
   final WorkflowTask task;
   final PlotAnalysisRun run;
   final List<WorkflowTask>? tasks;
   final AssetGenerationRun? assetRun;
+  final List<AssetGenerationRun>? assetRuns;
   final ChapterGenerationRun? chapterRun;
+  final WorkflowTaskRepository? workflowRepository;
 
   @override
   Widget build(BuildContext context) {
     final sample = _sample();
+    final assetRunItems = assetRuns ?? [?assetRun];
     return ProviderScope(
       overrides: [
         recentWorkflowTasksProvider.overrideWith(
           (ref) => Stream<List<WorkflowTask>>.value(tasks ?? [task]),
         ),
+        if (workflowRepository != null)
+          workflowTaskRepositoryProvider.overrideWithValue(workflowRepository!),
         workflowTaskProvider.overrideWith(
           (ref, id) => Stream<WorkflowTask?>.value(
             (tasks ?? [task]).where((item) => item.id == id).firstOrNull,
@@ -277,7 +326,9 @@ class _WorkflowRunsTestApp extends StatelessWidget {
         ),
         assetGenerationRunByWorkflowTaskProvider.overrideWith(
           (ref, workflowTaskId) => Stream<AssetGenerationRun?>.value(
-            workflowTaskId == assetRun?.workflowTaskId ? assetRun : null,
+            assetRunItems
+                .where((item) => item.workflowTaskId == workflowTaskId)
+                .firstOrNull,
           ),
         ),
         chapterGenerationRunByWorkflowTaskProvider.overrideWith(
@@ -303,6 +354,42 @@ class _NoopWorkflowTaskController extends WorkflowTaskController {
   Future<void> abandon(String taskId) async {}
 }
 
+class _FakeWorkflowTaskRepository implements WorkflowTaskRepository {
+  _FakeWorkflowTaskRepository({required this.tasks});
+
+  final List<WorkflowTask> tasks;
+  final List<String> dismissedTaskIds = [];
+
+  @override
+  Stream<List<WorkflowTask>> watchRecentTasks() => Stream.value(tasks);
+
+  @override
+  Stream<WorkflowTask?> watchTask(String id) =>
+      Stream.value(tasks.where((item) => item.id == id).firstOrNull);
+
+  @override
+  Future<WorkflowTask?> findTask(String id) async =>
+      tasks.where((item) => item.id == id).firstOrNull;
+
+  @override
+  Future<void> abandonTask(String id) async {}
+
+  @override
+  Future<void> dismissTaskPreview(String id) async {
+    dismissedTaskIds.add(id);
+  }
+
+  @override
+  Stream<WorkflowPromptTrace?> watchPromptTrace(String workflowTaskId) =>
+      Stream.value(_trace(workflowTaskId));
+
+  @override
+  Future<void> upsertPromptTrace({
+    required String workflowTaskId,
+    required String traceMarkdown,
+  }) async {}
+}
+
 Future<void> _pumpWorkflowRuns(WidgetTester tester) async {
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 250));
@@ -315,12 +402,15 @@ GoRouter _router() {
     routes: [
       GoRoute(
         path: '/workflow-runs',
-        builder: (context, state) => const WorkflowRunsPage(),
+        builder: (context, state) => const Scaffold(body: WorkflowRunsPage()),
         routes: [
           GoRoute(
             path: ':taskId',
-            builder: (context, state) =>
-                WorkflowRunDetailPage(taskId: state.pathParameters['taskId']!),
+            builder: (context, state) => Scaffold(
+              body: WorkflowRunDetailPage(
+                taskId: state.pathParameters['taskId']!,
+              ),
+            ),
           ),
         ],
       ),

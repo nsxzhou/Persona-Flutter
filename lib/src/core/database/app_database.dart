@@ -14,6 +14,7 @@ class WorkflowTaskRecords extends Table {
   TextColumn get title => text()();
   TextColumn get stage => text().nullable()();
   TextColumn get errorMessage => text().nullable()();
+  DateTimeColumn get previewDismissedAt => dateTime().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
@@ -608,7 +609,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 22;
+  int get schemaVersion => 23;
 
   @override
   MigrationStrategy get migration {
@@ -922,6 +923,18 @@ class AppDatabase extends _$AppDatabase {
           }
           if (!await _tableExists('chapter_generation_batch_item_records')) {
             await migrator.createTable(chapterGenerationBatchItemRecords);
+          }
+        }
+        if (from < 23) {
+          if (await _tableExists('workflow_task_records') &&
+              !await _columnExists(
+                'workflow_task_records',
+                'preview_dismissed_at',
+              )) {
+            await migrator.addColumn(
+              workflowTaskRecords,
+              workflowTaskRecords.previewDismissedAt,
+            );
           }
         }
       },

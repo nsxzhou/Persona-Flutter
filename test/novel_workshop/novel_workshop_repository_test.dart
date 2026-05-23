@@ -14,6 +14,26 @@ import 'package:persona_flutter/src/features/settings/domain/provider_config.dar
 import 'package:sqlite3/sqlite3.dart';
 
 void main() {
+  test('schema 22 migration adds workflow preview dismissal column', () async {
+    final sqlite = sqlite3.openInMemory();
+    addTearDown(sqlite.dispose);
+    final now = DateTime.utc(2026, 5, 23).millisecondsSinceEpoch;
+    sqlite.execute('PRAGMA user_version = 22');
+    _createSchema22WorkflowTaskTable(sqlite, now: now);
+
+    final database = AppDatabase(NativeDatabase.opened(sqlite));
+    addTearDown(database.close);
+
+    final repository = DriftWorkflowTaskRepository(database);
+    final migrated = await repository.findTask('task-preview-legacy');
+    expect(migrated, isNotNull);
+    expect(migrated!.previewDismissedAt, isNull);
+
+    await repository.dismissTaskPreview(migrated.id);
+    final dismissed = await repository.findTask(migrated.id);
+    expect(dismissed!.previewDismissedAt, isNotNull);
+  });
+
   test('project bible initializes from project description', () async {
     final database = AppDatabase(NativeDatabase.memory());
     addTearDown(database.close);
@@ -1290,6 +1310,38 @@ class _ChapterFixture {
   final DriftNovelWorkshopRepository repository;
   final ChapterPlan plan;
   final ProjectChapter chapter;
+}
+
+void _createSchema22WorkflowTaskTable(Database sqlite, {required int now}) {
+  sqlite.execute('''
+    CREATE TABLE workflow_task_records (
+      id TEXT NOT NULL PRIMARY KEY,
+      kind TEXT NOT NULL,
+      status TEXT NOT NULL,
+      title TEXT NOT NULL,
+      stage TEXT,
+      error_message TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+  ''');
+  sqlite.execute(
+    '''
+    INSERT INTO workflow_task_records (
+      id, kind, status, title, stage, error_message, created_at, updated_at
+    ) VALUES (
+      'task-preview-legacy',
+      'novel_asset_generation',
+      'succeeded',
+      '资产生成：旧任务',
+      NULL,
+      NULL,
+      ?,
+      ?
+    );
+  ''',
+    [now, now],
+  );
 }
 
 void _createSchema11Database(Database sqlite, {required int now}) {

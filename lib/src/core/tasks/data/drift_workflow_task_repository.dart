@@ -74,6 +74,20 @@ class DriftWorkflowTaskRepository implements WorkflowTaskRepository {
   }
 
   @override
+  Future<void> dismissTaskPreview(String id) async {
+    await (_database.update(_database.workflowTaskRecords)..where(
+          (task) =>
+              task.id.equals(id) &
+              task.status.equals(WorkflowTaskStatus.succeeded.name),
+        ))
+        .write(
+          WorkflowTaskRecordsCompanion(
+            previewDismissedAt: Value(DateTime.now()),
+          ),
+        );
+  }
+
+  @override
   Stream<WorkflowPromptTrace?> watchPromptTrace(String workflowTaskId) {
     final query = _database.select(_database.workflowPromptTraceRecords)
       ..where((trace) => trace.workflowTaskId.equals(workflowTaskId))
@@ -113,6 +127,7 @@ class DriftWorkflowTaskRepository implements WorkflowTaskRepository {
       title: row.title,
       stage: row.stage,
       errorMessage: row.errorMessage,
+      previewDismissedAt: row.previewDismissedAt,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     );

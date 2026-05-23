@@ -72,8 +72,6 @@ class WorkflowRunsPage extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 18),
-                _WorkflowPreviewInbox(items: items),
-                if (items.isNotEmpty) const SizedBox(height: 18),
                 if (items.isEmpty)
                   const _EmptyWorkflowRuns()
                 else
@@ -107,72 +105,21 @@ class _EmptyWorkflowRuns extends StatelessWidget {
   }
 }
 
-class _WorkflowPreviewInbox extends ConsumerStatefulWidget {
-  const _WorkflowPreviewInbox({required this.items});
-
-  final List<WorkflowTask> items;
-
-  @override
-  ConsumerState<_WorkflowPreviewInbox> createState() =>
-      _WorkflowPreviewInboxState();
-}
-
-class _WorkflowPreviewInboxState extends ConsumerState<_WorkflowPreviewInbox> {
-  final Set<String> _dismissedTaskIds = {};
-
-  @override
-  Widget build(BuildContext context) {
-    final previewTasks =
-        widget.items
-            .where(
-              (item) =>
-                  item.status == WorkflowTaskStatus.succeeded &&
-                  _hasWorkflowPreview(item.kind) &&
-                  !_dismissedTaskIds.contains(item.id),
-            )
-            .toList(growable: false)
-          ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-    if (previewTasks.isEmpty) {
-      return const SizedBox.shrink();
-    }
-    return PersonaPanel(
-      padding: EdgeInsets.zero,
-      child: Column(
-        children: [
-          const Padding(
-            padding: EdgeInsets.all(18),
-            child: PersonaSectionHeader(
-              title: '完成预览',
-              description: '集中查看多个已完成任务的可审阅产出。',
-            ),
-          ),
-          const Divider(height: 1),
-          for (final task in previewTasks)
-            _WorkflowPreviewTile(
-              task: task,
-              onDismiss: () => setState(() => _dismissedTaskIds.add(task.id)),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _WorkflowPreviewTile extends ConsumerWidget {
-  const _WorkflowPreviewTile({required this.task, required this.onDismiss});
+class _WorkflowPreviewActions extends ConsumerWidget {
+  const _WorkflowPreviewActions({required this.task});
 
   final WorkflowTask task;
-  final VoidCallback onDismiss;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colorScheme = Theme.of(context).colorScheme;
+    if (task.status != WorkflowTaskStatus.succeeded ||
+        !_hasWorkflowPreview(task.kind) ||
+        task.previewDismissedAt != null) {
+      return const SizedBox.shrink();
+    }
     final assetRun = task.kind == assetGenerationWorkflowTaskKind
         ? ref.watch(assetGenerationRunByWorkflowTaskProvider(task.id))
         : const AsyncValue<AssetGenerationRun?>.data(null);
-    final chapterRun = task.kind == chapterGenerationWorkflowTaskKind
-        ? ref.watch(chapterGenerationRunByWorkflowTaskProvider(task.id))
-        : const AsyncValue<ChapterGenerationRun?>.data(null);
     final enrichmentBatch = task.kind == chapterEnrichmentWorkflowTaskKind
         ? ref.watch(chapterEnrichmentBatchByWorkflowTaskProvider(task.id))
         : const AsyncValue<ChapterEnrichmentBatch?>.data(null);
@@ -182,78 +129,32 @@ class _WorkflowPreviewTile extends ConsumerWidget {
             enrichmentBatch.value != null
         ? ref.watch(chapterEnrichmentItemsProvider(enrichmentBatch.value!.id))
         : const AsyncValue<List<ChapterEnrichmentItem>>.data([]);
-    final preview = _previewSummary(
-      task,
-      assetRun,
-      chapterRun,
-      enrichmentBatch,
-    );
     final canApply = _canApplyPreview(task, assetRun, enrichmentItems);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-      child: Row(
-        children: [
-          Icon(_previewIcon(task.kind), color: colorScheme.primary, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(task.title, style: Theme.of(context).textTheme.titleSmall),
-                const SizedBox(height: 3),
-                Text(
-                  preview,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      alignment: WrapAlignment.end,
+      children: [
+        OutlinedButton.icon(
+          onPressed: () => context.go('/workflow-runs/${task.id}'),
+          icon: const Icon(Icons.visibility_outlined, size: 16),
+          label: const Text('打开预览'),
+          style: OutlinedButton.styleFrom(visualDensity: VisualDensity.compact),
+        ),
+        if (canApply)
+          FilledButton.icon(
+            onPressed: () =>
+                _applyPreview(context, ref, task, assetRun, enrichmentItems),
+            icon: const Icon(Icons.check_outlined, size: 16),
+            label: const Text('应用'),
+            style: FilledButton.styleFrom(visualDensity: VisualDensity.compact),
           ),
-          const SizedBox(width: 12),
-          Text(
-            _formatRunTime(task.updatedAt),
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.end,
-            children: [
-              OutlinedButton.icon(
-                onPressed: () => context.go('/workflow-runs/${task.id}'),
-                icon: const Icon(Icons.visibility_outlined, size: 16),
-                label: const Text('打开预览'),
-                style: OutlinedButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                ),
-              ),
-              if (canApply)
-                FilledButton.icon(
-                  onPressed: () => _applyPreview(
-                    context,
-                    ref,
-                    task,
-                    assetRun,
-                    enrichmentItems,
-                  ),
-                  icon: const Icon(Icons.check_outlined, size: 16),
-                  label: const Text('应用'),
-                  style: FilledButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ),
-              TextButton(onPressed: onDismiss, child: const Text('忽略')),
-            ],
-          ),
-        ],
-      ),
+        TextButton(
+          onPressed: () => _dismissPreview(context, ref, task.id),
+          child: const Text('忽略'),
+        ),
+      ],
     );
   }
 
@@ -265,6 +166,7 @@ class _WorkflowPreviewTile extends ConsumerWidget {
     return switch (task.kind) {
       assetGenerationWorkflowTaskKind =>
         assetRun.hasValue &&
+            assetRun.value?.status == AssetGenerationStatus.succeeded &&
             assetRun.value?.draftMarkdown.trim().isNotEmpty == true,
       chapterEnrichmentWorkflowTaskKind =>
         enrichmentItems.hasValue &&
@@ -322,6 +224,25 @@ class _WorkflowPreviewTile extends ConsumerWidget {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('应用失败：$error')));
+    }
+  }
+
+  Future<void> _dismissPreview(
+    BuildContext context,
+    WidgetRef ref,
+    String taskId,
+  ) async {
+    try {
+      await ref.read(workflowTaskRepositoryProvider).dismissTaskPreview(taskId);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('预览操作已忽略。')));
+    } on Object catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('忽略失败：$error')));
     }
   }
 }
@@ -465,6 +386,18 @@ class _WorkflowRunRowState extends ConsumerState<_WorkflowRunRow> {
     final plotRun = widget.item.kind == plotAnalysisWorkflowTaskKind
         ? ref.watch(plotAnalysisRunByWorkflowTaskProvider(widget.item.id))
         : const AsyncValue<PlotAnalysisRun?>.data(null);
+    final assetRun = widget.item.kind == assetGenerationWorkflowTaskKind
+        ? ref.watch(assetGenerationRunByWorkflowTaskProvider(widget.item.id))
+        : const AsyncValue<AssetGenerationRun?>.data(null);
+    final chapterRun = widget.item.kind == chapterGenerationWorkflowTaskKind
+        ? ref.watch(chapterGenerationRunByWorkflowTaskProvider(widget.item.id))
+        : const AsyncValue<ChapterGenerationRun?>.data(null);
+    final enrichmentBatch =
+        widget.item.kind == chapterEnrichmentWorkflowTaskKind
+        ? ref.watch(
+            chapterEnrichmentBatchByWorkflowTaskProvider(widget.item.id),
+          )
+        : const AsyncValue<ChapterEnrichmentBatch?>.data(null);
     final businessDetailPath = switch (widget.item.kind) {
       styleAnalysisWorkflowTaskKind => switch (styleRun) {
         AsyncData(value: final run?) => '/style-lab/tasks/${run.id}',
@@ -546,6 +479,10 @@ class _WorkflowRunRowState extends ConsumerState<_WorkflowRunRow> {
                     ),
                     const SizedBox(width: 14),
                   ],
+                  _WorkflowPreviewActions(task: widget.item),
+                  if (_hasVisibleWorkflowPreviewActions(widget.item)) ...[
+                    const SizedBox(width: 14),
+                  ],
                   Text(
                     _formatRunTime(widget.item.updatedAt),
                     style: textTheme.labelMedium?.copyWith(
@@ -553,14 +490,27 @@ class _WorkflowRunRowState extends ConsumerState<_WorkflowRunRow> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Icon(
-                    canOpenBusinessDetail
-                        ? Icons.chevron_right
-                        : Icons.radio_button_unchecked,
-                    size: 18,
-                    color: canOpenBusinessDetail
-                        ? colorScheme.primary
-                        : colorScheme.onSurfaceVariant.withValues(alpha: 0.45),
+                  Tooltip(
+                    message: _previewSummary(
+                      widget.item,
+                      assetRun,
+                      chapterRun,
+                      enrichmentBatch,
+                    ),
+                    child: Icon(
+                      canOpenBusinessDetail ||
+                              _hasVisibleWorkflowPreviewActions(widget.item)
+                          ? Icons.chevron_right
+                          : Icons.radio_button_unchecked,
+                      size: 18,
+                      color:
+                          canOpenBusinessDetail ||
+                              _hasVisibleWorkflowPreviewActions(widget.item)
+                          ? colorScheme.primary
+                          : colorScheme.onSurfaceVariant.withValues(
+                              alpha: 0.45,
+                            ),
+                    ),
                   ),
                 ],
               ),
@@ -1140,19 +1090,24 @@ class _AssetWorkflowOutputPreview extends ConsumerWidget {
             ),
             const SizedBox(height: 10),
             _PreviewMarkdownSurface(text: draft),
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton.icon(
-                onPressed: item.status == AssetGenerationStatus.applied
-                    ? null
-                    : () => _applyAssetDraft(context, ref, item.id),
-                icon: const Icon(Icons.check_outlined, size: 18),
-                label: Text(
-                  item.status == AssetGenerationStatus.applied ? '已应用' : '应用草稿',
+            if (item.status == AssetGenerationStatus.applied) ...[
+              const SizedBox(height: 12),
+              PersonaStatusPill(
+                label: '已应用',
+                icon: Icons.check_circle_outline,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ] else ...[
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: FilledButton.icon(
+                  onPressed: () => _applyAssetDraft(context, ref, item.id),
+                  icon: const Icon(Icons.check_outlined, size: 18),
+                  label: const Text('应用草稿'),
                 ),
               ),
-            ),
+            ],
           ],
         );
       },
@@ -2347,13 +2302,10 @@ bool _hasWorkflowPreview(String kind) {
       kind == chapterEnrichmentWorkflowTaskKind;
 }
 
-IconData _previewIcon(String kind) {
-  return switch (kind) {
-    assetGenerationWorkflowTaskKind => Icons.rate_review_outlined,
-    chapterGenerationWorkflowTaskKind => Icons.article_outlined,
-    chapterEnrichmentWorkflowTaskKind => Icons.library_add_check_outlined,
-    _ => Icons.visibility_outlined,
-  };
+bool _hasVisibleWorkflowPreviewActions(WorkflowTask task) {
+  return task.status == WorkflowTaskStatus.succeeded &&
+      _hasWorkflowPreview(task.kind) &&
+      task.previewDismissedAt == null;
 }
 
 String _assetKindLabel(AssetGenerationKind kind) {
