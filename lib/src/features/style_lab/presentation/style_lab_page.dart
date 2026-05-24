@@ -9,6 +9,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/analysis_lab_widgets.dart';
 import '../../../core/ui/glass_container.dart';
 import '../../../core/ui/persona_page.dart';
+import '../../../core/ui/skeleton_loader.dart';
 import '../../../core/utils/markdown_utils.dart';
 import '../../projects/application/project_providers.dart';
 import '../../projects/domain/writing_project.dart';
@@ -165,8 +166,9 @@ class _StyleLabPageState extends ConsumerState<StyleLabPage> {
   }
 
   Future<void> _showCreateProfileDialog(BuildContext context) async {
-    await showDialog<void>(
+    await showGlassDialog<void>(
       context: context,
+      maxWidth: 560,
       builder: (context) => const _CreateProfileDialog(),
     );
   }
@@ -188,10 +190,33 @@ class _StyleLabPageState extends ConsumerState<StyleLabPage> {
   }
 
   Widget _loadingPanel() {
-    return const PersonaPanel(
-      child: SizedBox(
-        height: 260,
-        child: Center(child: CircularProgressIndicator()),
+    return PersonaPanel(
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: [
+          for (var i = 0; i < 5; i++)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+              child: Row(
+                children: [
+                  SkeletonBox(width: 100, height: 28, borderRadius: 999),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SkeletonBox(width: 180, height: 14),
+                        SizedBox(height: 6),
+                        SkeletonBox(width: 120, height: 12),
+                      ],
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  SkeletonBox(width: 80, height: 12),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -469,13 +494,9 @@ class _CreateProfileDialogState extends ConsumerState<_CreateProfileDialog> {
     final providers = ref.watch(providerConfigsProvider);
     final projects = ref.watch(writingProjectsProvider(ProjectStatus.active));
     final controller = ref.watch(styleLabControllerProvider);
-    return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 560),
-        child: Padding(
-          padding: const EdgeInsets.all(22),
-          child: samples.when(
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 560),
+      child: samples.when(
             data: (sampleItems) => providers.when(
               data: (providerItems) => projects.when(
                 data: (projectItems) {
@@ -558,8 +579,6 @@ class _CreateProfileDialogState extends ConsumerState<_CreateProfileDialog> {
             ),
             error: (error, stackTrace) => InlineError(message: '$error'),
           ),
-        ),
-      ),
     );
   }
 
@@ -908,9 +927,9 @@ class _LibraryTableHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
+    final textStyle = Theme.of(context).textTheme.labelMedium?.copyWith(
       color: Theme.of(context).colorScheme.onSurfaceVariant,
-      letterSpacing: 0.2,
+      fontWeight: FontWeight.w600,
     );
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -921,7 +940,7 @@ class _LibraryTableHeader extends StatelessWidget {
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+        padding: const EdgeInsets.fromLTRB(18, 12, 18, 10),
         child: Row(
           children: [
             Expanded(flex: 4, child: Text('档案', style: textStyle)),
@@ -936,7 +955,7 @@ class _LibraryTableHeader extends StatelessWidget {
   }
 }
 
-class _LibraryAssetRow extends StatelessWidget {
+class _LibraryAssetRow extends StatefulWidget {
   const _LibraryAssetRow({
     required this.asset,
     required this.compact,
@@ -950,23 +969,38 @@ class _LibraryAssetRow extends StatelessWidget {
   final VoidCallback onDelete;
 
   @override
+  State<_LibraryAssetRow> createState() => _LibraryAssetRowState();
+}
+
+class _LibraryAssetRowState extends State<_LibraryAssetRow> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    return InkWell(
-      onTap: onTap,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: colorScheme.outlineVariant.withValues(alpha: 0.8),
+    final asset = widget.asset;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: widget.onTap,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: _isHovered
+                  ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.15)
+                  : Colors.transparent,
+              border: Border(
+                bottom: BorderSide(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.8),
+                ),
+              ),
             ),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-          child: compact
-              ? Column(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
+              child: widget.compact ? Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _AssetTitle(asset: asset),
@@ -989,7 +1023,7 @@ class _LibraryAssetRow extends StatelessWidget {
                           icon: statusIcon(asset.status.name),
                           color: statusColor(colorScheme, asset.status.name),
                         ),
-                        _AssetMoreButton(onDelete: onDelete),
+                        _AssetMoreButton(onDelete: widget.onDelete),
                       ],
                     ),
                   ],
@@ -1036,11 +1070,13 @@ class _LibraryAssetRow extends StatelessWidget {
                     ),
                     SizedBox(
                       width: 44,
-                      child: _AssetMoreButton(onDelete: onDelete),
+                      child: _AssetMoreButton(onDelete: widget.onDelete),
                     ),
                   ],
                 ),
-        ),
+              ),
+            ),
+          ),
       ),
     );
   }
@@ -1086,6 +1122,7 @@ class _AssetTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final icon = asset.kind == _StyleLibraryAssetKind.saved
         ? Icons.bookmark_added_outlined
         : Icons.edit_document;
@@ -1097,7 +1134,14 @@ class _AssetTitle extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(asset.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+              Text(
+                asset.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: 2),
               Text(
                 asset.kind == _StyleLibraryAssetKind.saved
@@ -1195,7 +1239,7 @@ class _ActivityRunsPanel extends StatelessWidget {
   }
 }
 
-class _ActivityRunRow extends StatelessWidget {
+class _ActivityRunRow extends StatefulWidget {
   const _ActivityRunRow({
     required this.run,
     required this.onRerun,
@@ -1207,21 +1251,34 @@ class _ActivityRunRow extends StatelessWidget {
   final VoidCallback onDelete;
 
   @override
+  State<_ActivityRunRow> createState() => _ActivityRunRowState();
+}
+
+class _ActivityRunRowState extends State<_ActivityRunRow> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final run = widget.run;
     final progress = _progressForRun(run);
     final summary = _runActivitySummary(run);
     final progressValue = _visibleProgressValue(run, progress);
 
-    return Material(
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(kPanelRadius),
         onTap: () => context.go('/style-lab/tasks/${run.id}'),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.14),
-            borderRadius: BorderRadius.circular(6),
+            color: _isHovered
+                ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.18)
+                : colorScheme.surfaceContainerHighest.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(kPanelRadius),
             border: Border.all(color: colorScheme.outlineVariant),
           ),
           child: Padding(
@@ -1271,14 +1328,14 @@ class _ActivityRunRow extends StatelessWidget {
                     );
                     final rerunAction = OutlinedButton.icon(
                       onPressed: run.status == StyleAnalysisStatus.failed
-                          ? onRerun
+                          ? widget.onRerun
                           : null,
                       icon: const Icon(Icons.replay_outlined),
                       label: const Text('重跑'),
                     );
                     final deleteAction = IconButton.outlined(
                       tooltip: '删除分析任务',
-                      onPressed: onDelete,
+                      onPressed: widget.onDelete,
                       icon: const Icon(Icons.delete_outline),
                     );
                     if (compact) {
@@ -1360,6 +1417,7 @@ class _ActivityRunRow extends StatelessWidget {
           ),
         ),
       ),
+    ),
     );
   }
 }

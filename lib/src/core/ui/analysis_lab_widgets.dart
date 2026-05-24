@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../theme/app_theme.dart';
 import 'persona_page.dart';
+import 'skeleton_loader.dart';
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -120,7 +121,7 @@ class InlineError extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: colorScheme.error.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(kPanelRadius),
         border: Border.all(color: colorScheme.error.withValues(alpha: 0.24)),
       ),
       child: Padding(
@@ -158,29 +159,7 @@ class StageStepPill extends StatelessWidget {
         colorScheme.onSurfaceVariant,
       ),
     };
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.24)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 13, color: color),
-            const SizedBox(width: 5),
-            Text(
-              label,
-              style: Theme.of(
-                context,
-              ).textTheme.labelMedium?.copyWith(color: color),
-            ),
-          ],
-        ),
-      ),
-    );
+    return PersonaStatusPill(label: label, icon: icon, color: color);
   }
 }
 
@@ -201,11 +180,37 @@ class AnalysisDetailLoading extends StatelessWidget {
       eyebrow: eyebrow,
       title: '读取中',
       description: description,
-      children: const [
+      children: [
         PersonaPanel(
-          child: SizedBox(
-            height: 260,
-            child: Center(child: CircularProgressIndicator()),
+          padding: EdgeInsets.zero,
+          child: Column(
+            children: [
+              for (var i = 0; i < 5; i++)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 14,
+                  ),
+                  child: Row(
+                    children: [
+                      const SkeletonBox(width: 100, height: 28, borderRadius: 999),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            SkeletonBox(width: 180, height: 14),
+                            SizedBox(height: 6),
+                            SkeletonBox(width: 120, height: 12),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const SkeletonBox(width: 80, height: 12),
+                    ],
+                  ),
+                ),
+            ],
           ),
         ),
       ],

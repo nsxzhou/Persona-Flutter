@@ -125,7 +125,7 @@ class _WorkspaceOverview extends StatelessWidget {
               DecoratedBox(
                 decoration: BoxDecoration(
                   color: colorScheme.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(kPanelRadius),
                   border: Border.all(
                     color: colorScheme.primary.withValues(alpha: 0.18),
                   ),
@@ -251,7 +251,7 @@ class _ProjectListPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 10),
             child: PersonaSectionHeader(
               title: selectedStatus == ProjectStatus.active ? '写作档案' : '归档档案',
               description: selectedStatus == ProjectStatus.active
@@ -263,7 +263,10 @@ class _ProjectListPanel extends StatelessWidget {
           if (items.isEmpty)
             _EmptyProjectsState(status: selectedStatus)
           else
-            for (final item in items) _ProjectRow(project: item),
+            for (var i = 0; i < items.length; i++) ...[
+              _ProjectRow(project: items[i]),
+              if (i < items.length - 1) const Divider(height: 1),
+            ],
         ],
       ),
     );
@@ -277,107 +280,91 @@ class _EmptyProjectsState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
     final isArchived = status == ProjectStatus.archived;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 26, 20, 26),
-      child: Row(
-        children: [
-          Icon(
-            isArchived
-                ? Icons.inventory_2_outlined
-                : Icons.library_books_outlined,
-            color: colorScheme.primary,
-            size: 32,
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isArchived ? '没有归档项目' : '尚未创建项目',
-                  style: textTheme.titleLarge,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  isArchived
-                      ? '归档后的项目会保留在这里，方便恢复或永久删除。'
-                      : '创建第一个本地写作档案后，可以在这里维护简介和创作配置。',
-                  style: textTheme.bodyMedium,
-                ),
-              ],
-            ),
-          ),
-          if (!isArchived) ...[
-            const SizedBox(width: 16),
-            OutlinedButton.icon(
+    return PersonaEmptyStateCard(
+      icon: isArchived
+          ? Icons.inventory_2_outlined
+          : Icons.library_books_outlined,
+      title: isArchived ? '没有归档项目' : '尚未创建项目',
+      description: isArchived
+          ? '归档后的项目会保留在这里，方便恢复或永久删除。'
+          : '创建第一个本地写作档案后，可以在这里维护简介和创作配置。',
+      action: isArchived
+          ? null
+          : OutlinedButton.icon(
               onPressed: () => _showProjectDialog(context),
               icon: const Icon(Icons.add),
               label: const Text('新建项目'),
             ),
-          ],
-        ],
-      ),
     );
   }
 }
 
-class _ProjectRow extends StatelessWidget {
+class _ProjectRow extends StatefulWidget {
   const _ProjectRow({required this.project});
 
   final WritingProject project;
 
   @override
+  State<_ProjectRow> createState() => _ProjectRowState();
+}
+
+class _ProjectRowState extends State<_ProjectRow> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final isActive = project.status == ProjectStatus.active;
+    final isActive = widget.project.status == ProjectStatus.active;
 
-    return InkWell(
-      onTap: isActive
-          ? () => context.go('/projects/${project.id}/workshop')
-          : null,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: colorScheme.outlineVariant)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final details = _ProjectRowDetails(project: project);
-              final actions = _ProjectRowActions(project: project);
-              final updated = Text(
-                _formatProjectTime(project.updatedAt),
-                style: textTheme.labelMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              );
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: Material(
+        color: _isHovered
+            ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.15)
+            : Colors.transparent,
+        child: InkWell(
+          onTap: isActive
+              ? () => context.go('/projects/${widget.project.id}/workshop')
+              : null,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final details = _ProjectRowDetails(project: widget.project);
+                final actions = _ProjectRowActions(project: widget.project);
+                final updated = Text(
+                  _formatProjectTime(widget.project.updatedAt),
+                  style: textTheme.labelMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                );
 
-              if (constraints.maxWidth < 720) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                if (constraints.maxWidth < 720) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      details,
+                      const SizedBox(height: 12),
+                      Row(children: [updated, const Spacer(), actions]),
+                    ],
+                  );
+                }
+
+                return Row(
                   children: [
-                    details,
-                    const SizedBox(height: 12),
-                    Row(children: [updated, const Spacer(), actions]),
+                    Expanded(child: details),
+                    const SizedBox(width: 18),
+                    SizedBox(width: 92, child: updated),
+                    const SizedBox(width: 10),
+                    actions,
                   ],
                 );
-              }
-
-              return Row(
-                children: [
-                  Expanded(child: details),
-                  const SizedBox(width: 18),
-                  SizedBox(width: 92, child: updated),
-                  const SizedBox(width: 10),
-                  actions,
-                ],
-              );
-            },
+              },
+            ),
           ),
         ),
       ),
@@ -401,7 +388,7 @@ class _ProjectRowDetails extends StatelessWidget {
         DecoratedBox(
           decoration: BoxDecoration(
             color: colorScheme.primary.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(kPanelRadius),
             border: Border.all(
               color: colorScheme.primary.withValues(alpha: 0.2),
             ),
@@ -1229,9 +1216,24 @@ class _ProjectDialogLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox(
+    return SizedBox(
       height: 180,
-      child: Center(child: CircularProgressIndicator()),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: List.generate(
+          4,
+          (_) => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            child: Row(
+              children: [
+                SkeletonBox(width: 80, height: 12),
+                SizedBox(width: 14),
+                Expanded(child: SkeletonBox(width: double.infinity, height: 38)),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1752,11 +1754,31 @@ class _NovelImportDialogState extends ConsumerState<_NovelImportDialog> {
         },
         error: (error, stackTrace) =>
             InlineError(message: '无法加载 Style Profiles：$error'),
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: Column(
+            children: [
+              SkeletonBox(width: 200, height: 14),
+              SizedBox(height: 12),
+              SkeletonBox(width: 280, height: 38),
+              SizedBox(height: 12),
+              SkeletonBox(width: 280, height: 38),
+            ],
+          ),
+        ),
       ),
       error: (error, stackTrace) =>
           InlineError(message: '无法加载 Providers：$error'),
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Column(
+          children: [
+            SkeletonBox(width: 200, height: 14),
+            SizedBox(height: 12),
+            SkeletonBox(width: 280, height: 38),
+          ],
+        ),
+      ),
     );
   }
 }
