@@ -13,6 +13,7 @@ import 'package:persona_flutter/src/features/novel_workshop/application/chapter_
 import 'package:persona_flutter/src/features/novel_workshop/application/project_prompt_asset_resolver.dart';
 import 'package:persona_flutter/src/features/novel_workshop/data/drift_novel_workshop_repository.dart';
 import 'package:persona_flutter/src/features/novel_workshop/domain/novel_workshop.dart';
+import 'package:persona_flutter/src/features/novel_workshop/domain/novel_workshop_repository.dart';
 import 'package:persona_flutter/src/features/novel_workshop/domain/writing_context.dart';
 import 'package:persona_flutter/src/features/plot_lab/data/drift_plot_lab_repository.dart';
 import 'package:persona_flutter/src/features/projects/data/drift_project_repository.dart';
@@ -118,6 +119,41 @@ void main() {
     );
     expect(fixture.llmClient.invocationCount, 0);
   });
+
+  test('batch enrichment failure marks batch terminal', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final fixture = await _Fixture.create(
+      database,
+      llmClient: _StaticLlmClient(['新正文。']),
+    );
+    final batch = await fixture.novelRepository.createChapterEnrichmentBatch(
+      ChapterEnrichmentBatchInput(
+        projectId: fixture.project.id,
+        chapterIds: [fixture.chapters.first.id],
+        instruction: '加料。',
+        expansionRatioPercent: 20,
+        providerId: fixture.project.defaultProviderId!,
+        modelName: fixture.project.defaultModelName!,
+      ),
+    );
+    final pipeline = fixture.createPipeline(
+      _FailingEnrichmentItemsRepository(delegate: fixture.novelRepository),
+    );
+
+    await expectLater(pipeline.processBatch(batch.id), throwsStateError);
+
+    final updated = await fixture.novelRepository.findChapterEnrichmentBatch(
+      batch.id,
+    );
+    expect(updated!.status, ChapterEnrichmentBatchStatus.failed);
+    expect(updated.errorMessage, contains('enrichment items stream failed'));
+    expect(updated.completedAt, isNotNull);
+    final task = await fixture.workflowRepository.findTask(
+      batch.workflowTaskId,
+    );
+    expect(task!.status, WorkflowTaskStatus.failed);
+  });
 }
 
 class _Fixture {
@@ -128,6 +164,10 @@ class _Fixture {
     required this.novelRepository,
     required this.workflowRepository,
     required this.llmClient,
+    required this.projectRepository,
+    required this.providerRepository,
+    required this.promptAssetResolver,
+    required this.completionService,
   });
 
   final WritingProject project;
@@ -136,6 +176,22 @@ class _Fixture {
   final DriftNovelWorkshopRepository novelRepository;
   final DriftWorkflowTaskRepository workflowRepository;
   final _StaticLlmClient llmClient;
+  final DriftProjectRepository projectRepository;
+  final DriftProviderConfigRepository providerRepository;
+  final ProjectPromptAssetResolver promptAssetResolver;
+  final MarkdownCompletionService completionService;
+
+  ChapterEnrichmentPipeline createPipeline(NovelWorkshopRepository repository) {
+    return ChapterEnrichmentPipeline(
+      repository: repository,
+      projectRepository: projectRepository,
+      providerRepository: providerRepository,
+      promptAssetResolver: promptAssetResolver,
+      completionService: completionService,
+      workflowTaskRepository: workflowRepository,
+      cancellationRegistry: WorkflowTaskCancellationRegistry(),
+    );
+  }
 
   static Future<_Fixture> create(
     AppDatabase database, {
@@ -206,18 +262,20 @@ class _Fixture {
       );
     }
     final workflowRepository = DriftWorkflowTaskRepository(database);
+    final promptAssetResolver = ProjectPromptAssetResolver(
+      projectRepository: projectRepository,
+      styleLabRepository: styleRepository,
+      plotLabRepository: plotRepository,
+    );
+    final completionService = MarkdownCompletionService(
+      invocation: LlmInvocationService(client: llmClient),
+    );
     final pipeline = ChapterEnrichmentPipeline(
       repository: novelRepository,
       projectRepository: projectRepository,
       providerRepository: providerRepository,
-      promptAssetResolver: ProjectPromptAssetResolver(
-        projectRepository: projectRepository,
-        styleLabRepository: styleRepository,
-        plotLabRepository: plotRepository,
-      ),
-      completionService: MarkdownCompletionService(
-        invocation: LlmInvocationService(client: llmClient),
-      ),
+      promptAssetResolver: promptAssetResolver,
+      completionService: completionService,
       workflowTaskRepository: workflowRepository,
       cancellationRegistry: WorkflowTaskCancellationRegistry(),
     );
@@ -228,8 +286,56 @@ class _Fixture {
       novelRepository: novelRepository,
       workflowRepository: workflowRepository,
       llmClient: llmClient,
+      projectRepository: projectRepository,
+      providerRepository: providerRepository,
+      promptAssetResolver: promptAssetResolver,
+      completionService: completionService,
     );
   }
+}
+
+class _FailingEnrichmentItemsRepository implements NovelWorkshopRepository {
+  const _FailingEnrichmentItemsRepository({required this.delegate});
+
+  final DriftNovelWorkshopRepository delegate;
+
+  @override
+  Future<ChapterEnrichmentBatch?> findChapterEnrichmentBatch(String id) {
+    return delegate.findChapterEnrichmentBatch(id);
+  }
+
+  @override
+  Future<ChapterEnrichmentBatch> updateChapterEnrichmentBatchState({
+    required String id,
+    required ChapterEnrichmentBatchStatus status,
+    String? providerId,
+    String? modelName,
+    String? errorMessage,
+    String? logs,
+    DateTime? startedAt,
+    DateTime? completedAt,
+  }) {
+    return delegate.updateChapterEnrichmentBatchState(
+      id: id,
+      status: status,
+      providerId: providerId,
+      modelName: modelName,
+      errorMessage: errorMessage,
+      logs: logs,
+      startedAt: startedAt,
+      completedAt: completedAt,
+    );
+  }
+
+  @override
+  Stream<List<ChapterEnrichmentItem>> watchChapterEnrichmentItems(
+    String batchId,
+  ) async* {
+    throw StateError('enrichment items stream failed');
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 Future<StyleProfile> _saveStyleProfile({
@@ -270,7 +376,7 @@ Future<StyleProfile> _saveStyleProfile({
 class _StaticLlmClient implements LlmClient {
   _StaticLlmClient(this.outputs);
 
-  final List<String> outputs;
+  final List<Object> outputs;
   int invocationCount = 0;
   final prompts = <String>[];
 
@@ -282,6 +388,9 @@ class _StaticLlmClient implements LlmClient {
     prompts.add(request.messages.map((message) => message.content).join('\n'));
     final output = outputs[invocationCount.clamp(0, outputs.length - 1)];
     invocationCount += 1;
+    if (output is! String) {
+      throw output;
+    }
     if (output.isNotEmpty) {
       yield LlmStreamDelta(output);
     }

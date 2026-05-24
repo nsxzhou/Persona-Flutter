@@ -104,22 +104,6 @@ class ChapterEnrichmentPipeline {
     }
     final provider = await _requireProvider(project);
     final modelName = _requireModelName(project, provider);
-    final items = await _repository.watchChapterEnrichmentItems(batch.id).first;
-    final pendingItems = items
-        .where(
-          (item) =>
-              item.status == ChapterEnrichmentItemStatus.waiting &&
-              (onlyItemIds == null || onlyItemIds.contains(item.id)),
-        )
-        .toList(growable: false);
-    if (pendingItems.isEmpty) {
-      return ChapterEnrichmentResult(
-        batch: batch,
-        items: items,
-        workflowTaskId: batch.workflowTaskId,
-      );
-    }
-
     final log = StringBuffer(batch.logs);
     final cancellationToken = _cancellationRegistry.register(
       batch.workflowTaskId,
@@ -159,6 +143,23 @@ class ChapterEnrichmentPipeline {
 
     try {
       cancellationToken.throwIfCancelled();
+      final items = await _repository
+          .watchChapterEnrichmentItems(batch.id)
+          .first;
+      final pendingItems = items
+          .where(
+            (item) =>
+                item.status == ChapterEnrichmentItemStatus.waiting &&
+                (onlyItemIds == null || onlyItemIds.contains(item.id)),
+          )
+          .toList(growable: false);
+      if (pendingItems.isEmpty) {
+        return ChapterEnrichmentResult(
+          batch: batch,
+          items: items,
+          workflowTaskId: batch.workflowTaskId,
+        );
+      }
       await updateBatch(
         ChapterEnrichmentBatchStatus.running,
         message: '阶段: 开始章节加料。共 ${pendingItems.length} 个待处理章节。',
@@ -210,6 +211,14 @@ class ChapterEnrichmentPipeline {
       );
     } on LlmCancellationException {
       await _repository.abandonWorkflowTask(batch.workflowTaskId);
+      rethrow;
+    } on Object catch (error) {
+      await updateBatch(
+        ChapterEnrichmentBatchStatus.failed,
+        message: '章节加料失败：${_sanitizeError(error, provider)}',
+        errorMessage: _sanitizeError(error, provider),
+        completedAt: DateTime.now(),
+      );
       rethrow;
     } finally {
       _cancellationRegistry.unregister(batch.workflowTaskId, cancellationToken);

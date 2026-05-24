@@ -15,6 +15,7 @@ import 'package:persona_flutter/src/features/novel_workshop/application/writing_
 import 'package:persona_flutter/src/features/novel_workshop/application/writing_context_retriever.dart';
 import 'package:persona_flutter/src/features/novel_workshop/data/drift_novel_workshop_repository.dart';
 import 'package:persona_flutter/src/features/novel_workshop/domain/novel_workshop.dart';
+import 'package:persona_flutter/src/features/novel_workshop/domain/novel_workshop_repository.dart';
 import 'package:persona_flutter/src/features/novel_workshop/domain/writing_context.dart';
 import 'package:persona_flutter/src/features/plot_lab/data/drift_plot_lab_repository.dart';
 import 'package:persona_flutter/src/features/plot_lab/domain/plot_analysis_run.dart';
@@ -465,6 +466,51 @@ runtimeMemory:
     );
   });
 
+  test('batch generation failure marks batch terminal', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final fixture = await _Fixture.create(
+      database,
+      llmClient: _StaticLlmClient('正文。'),
+      withRuntimeMemory: true,
+      withCharacterGraph: true,
+    );
+    final batch = await fixture.novelRepository.createChapterGenerationBatch(
+      ChapterGenerationBatchInput(
+        projectId: fixture.project.id,
+        chapterPlanIds: [fixture.plan.id],
+        providerId: fixture.project.defaultProviderId!,
+        modelName: fixture.project.defaultModelName!,
+      ),
+    );
+    final repository = _FailingBatchItemsRepository(
+      delegate: fixture.novelRepository,
+    );
+    final pipeline = fixture.createPipeline(repository);
+
+    await expectLater(
+      pipeline.processChapterGenerationBatch(batch.id),
+      throwsStateError,
+    );
+
+    final updated = await fixture.novelRepository.findChapterGenerationBatch(
+      batch.id,
+    );
+    expect(updated!.status, ChapterGenerationBatchStatus.failed);
+    expect(updated.errorMessage, contains('batch items stream failed'));
+    expect(updated.completedAt, isNotNull);
+    expect(
+      await fixture.novelRepository.hasRunningChapterGenerationBatch(
+        fixture.project.id,
+      ),
+      isFalse,
+    );
+    final task = await fixture.workflowRepository.findTask(
+      batch.workflowTaskId,
+    );
+    expect(task!.status, WorkflowTaskStatus.failed);
+  });
+
   test(
     'continues with warnings when prompt assets and memory are absent',
     () async {
@@ -782,6 +828,11 @@ class _Fixture {
     required this.novelRepository,
     required this.workflowRepository,
     required this.llmClient,
+    required this.projectRepository,
+    required this.providerRepository,
+    required this.promptAssetResolver,
+    required this.contextRetriever,
+    required this.completionService,
   });
 
   final WritingProject project;
@@ -790,6 +841,25 @@ class _Fixture {
   final DriftNovelWorkshopRepository novelRepository;
   final DriftWorkflowTaskRepository workflowRepository;
   final _StaticLlmClient llmClient;
+  final DriftProjectRepository projectRepository;
+  final DriftProviderConfigRepository providerRepository;
+  final ProjectPromptAssetResolver promptAssetResolver;
+  final WritingContextRetriever contextRetriever;
+  final MarkdownCompletionService completionService;
+
+  ChapterGenerationPipeline createPipeline(NovelWorkshopRepository repository) {
+    return ChapterGenerationPipeline(
+      repository: repository,
+      projectRepository: projectRepository,
+      providerRepository: providerRepository,
+      promptAssetResolver: promptAssetResolver,
+      contextAssembler: const WritingContextAssembler(),
+      contextRetriever: contextRetriever,
+      completionService: completionService,
+      workflowTaskRepository: workflowRepository,
+      cancellationRegistry: WorkflowTaskCancellationRegistry(),
+    );
+  }
 
   static Future<_Fixture> create(
     AppDatabase database, {
@@ -898,24 +968,25 @@ class _Fixture {
       );
     }
     final workflowRepository = DriftWorkflowTaskRepository(database);
+    final completionService = MarkdownCompletionService(
+      invocation: LlmInvocationService(client: llmClient),
+    );
+    final promptAssetResolver = ProjectPromptAssetResolver(
+      projectRepository: projectRepository,
+      styleLabRepository: styleRepository,
+      plotLabRepository: plotRepository,
+    );
+    final contextRetriever = WritingContextRetriever(
+      completionService: completionService,
+    );
     final pipeline = ChapterGenerationPipeline(
       repository: novelRepository,
       projectRepository: projectRepository,
       providerRepository: providerRepository,
-      promptAssetResolver: ProjectPromptAssetResolver(
-        projectRepository: projectRepository,
-        styleLabRepository: styleRepository,
-        plotLabRepository: plotRepository,
-      ),
+      promptAssetResolver: promptAssetResolver,
       contextAssembler: const WritingContextAssembler(),
-      contextRetriever: WritingContextRetriever(
-        completionService: MarkdownCompletionService(
-          invocation: LlmInvocationService(client: llmClient),
-        ),
-      ),
-      completionService: MarkdownCompletionService(
-        invocation: LlmInvocationService(client: llmClient),
-      ),
+      contextRetriever: contextRetriever,
+      completionService: completionService,
       workflowTaskRepository: workflowRepository,
       cancellationRegistry: WorkflowTaskCancellationRegistry(),
     );
@@ -926,8 +997,57 @@ class _Fixture {
       novelRepository: novelRepository,
       workflowRepository: workflowRepository,
       llmClient: llmClient,
+      projectRepository: projectRepository,
+      providerRepository: providerRepository,
+      promptAssetResolver: promptAssetResolver,
+      contextRetriever: contextRetriever,
+      completionService: completionService,
     );
   }
+}
+
+class _FailingBatchItemsRepository implements NovelWorkshopRepository {
+  const _FailingBatchItemsRepository({required this.delegate});
+
+  final DriftNovelWorkshopRepository delegate;
+
+  @override
+  Future<ChapterGenerationBatch?> findChapterGenerationBatch(String id) {
+    return delegate.findChapterGenerationBatch(id);
+  }
+
+  @override
+  Future<ChapterGenerationBatch> updateChapterGenerationBatchState({
+    required String id,
+    required ChapterGenerationBatchStatus status,
+    String? providerId,
+    String? modelName,
+    String? errorMessage,
+    String? logs,
+    DateTime? startedAt,
+    DateTime? completedAt,
+  }) {
+    return delegate.updateChapterGenerationBatchState(
+      id: id,
+      status: status,
+      providerId: providerId,
+      modelName: modelName,
+      errorMessage: errorMessage,
+      logs: logs,
+      startedAt: startedAt,
+      completedAt: completedAt,
+    );
+  }
+
+  @override
+  Stream<List<ChapterGenerationBatchItem>> watchChapterGenerationBatchItems(
+    String batchId,
+  ) async* {
+    throw StateError('batch items stream failed');
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 Future<StyleProfile> _saveStyleProfile({
@@ -1003,11 +1123,9 @@ Future<PlotProfile> _savePlotProfile({
 
 class _StaticLlmClient implements LlmClient {
   _StaticLlmClient(Object output)
-    : outputs = output is List<String>
-          ? List<String>.from(output)
-          : [output as String];
+    : outputs = output is List<Object> ? List<Object>.from(output) : [output];
 
-  final List<String> outputs;
+  final List<Object> outputs;
   int invocationCount = 0;
   String? lastPrompt;
   final prompts = <String>[];
@@ -1021,6 +1139,9 @@ class _StaticLlmClient implements LlmClient {
     lastPrompt = request.messages.map((message) => message.content).join('\n');
     prompts.add(lastPrompt!);
     final output = outputs[(invocationCount - 1).clamp(0, outputs.length - 1)];
+    if (output is! String) {
+      throw output;
+    }
     yield LlmStreamDelta(output);
     yield const LlmStreamDone();
   }

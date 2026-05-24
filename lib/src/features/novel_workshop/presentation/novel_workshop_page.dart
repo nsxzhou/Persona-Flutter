@@ -155,6 +155,7 @@ class _NovelWorkshopPageState extends ConsumerState<NovelWorkshopPage> {
 
 class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
   final _editorController = TextEditingController();
+  final Set<String> _dismissedGenerationBatchIds = {};
   String? _selectedPlanId;
   String? _loadedChapterId;
   String _loadedContent = '';
@@ -166,6 +167,30 @@ class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
   }
 
   bool get _isDirty => _editorController.text != _loadedContent;
+
+  ChapterGenerationBatch? _visibleGenerationBatch(
+    List<ChapterGenerationBatch> batches,
+  ) {
+    final runningBatch = batches
+        .where(
+          (batch) =>
+              batch.status == ChapterGenerationBatchStatus.pending ||
+              batch.status == ChapterGenerationBatchStatus.running,
+        )
+        .firstOrNull;
+    if (runningBatch != null) {
+      return runningBatch;
+    }
+    return batches
+        .where((batch) => !_dismissedGenerationBatchIds.contains(batch.id))
+        .firstOrNull;
+  }
+
+  void _dismissGenerationBatch(String batchId) {
+    setState(() {
+      _dismissedGenerationBatchIds.add(batchId);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -217,11 +242,13 @@ class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
                         ? const <String>{}
                         : <String>{selectedChapter.id};
                     final busy = controller.isLoading || selectedRunning;
-                    final latestBatch = generationBatchItems.firstOrNull;
+                    final visibleBatch = _visibleGenerationBatch(
+                      generationBatchItems,
+                    );
                     final batchRunning =
-                        latestBatch?.status ==
+                        visibleBatch?.status ==
                             ChapterGenerationBatchStatus.pending ||
-                        latestBatch?.status ==
+                        visibleBatch?.status ==
                             ChapterGenerationBatchStatus.running;
 
                     return _WorkshopScaffold(
@@ -230,7 +257,7 @@ class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
                       plans: planItems,
                       chapters: chapterItems,
                       runs: runItems,
-                      generationBatch: latestBatch,
+                      generationBatch: visibleBatch,
                       selectedPlan: selectedPlan,
                       selectedChapter: selectedChapter,
                       selectedRun: selectedRun,
@@ -293,9 +320,12 @@ class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
                               chapters: chapterItems,
                               selectedPlan: selectedPlan,
                             ),
-                      onStopBatch: latestBatch == null || !batchRunning
+                      onStopBatch: visibleBatch == null || !batchRunning
                           ? null
-                          : () => _stopBatchGeneration(latestBatch),
+                          : () => _stopBatchGeneration(visibleBatch),
+                      onDismissBatch: visibleBatch == null || batchRunning
+                          ? null
+                          : () => _dismissGenerationBatch(visibleBatch.id),
                       onProposeMemoryPatch:
                           selectedChapter == null ||
                               busy ||
@@ -6584,6 +6614,7 @@ class _WorkshopScaffold extends StatefulWidget {
     required this.onGenerate,
     required this.onStartBatch,
     required this.onStopBatch,
+    required this.onDismissBatch,
     required this.onProposeMemoryPatch,
   });
 
@@ -6609,6 +6640,7 @@ class _WorkshopScaffold extends StatefulWidget {
   final VoidCallback? onGenerate;
   final VoidCallback? onStartBatch;
   final VoidCallback? onStopBatch;
+  final VoidCallback? onDismissBatch;
   final VoidCallback? onProposeMemoryPatch;
 
   @override
@@ -6742,6 +6774,7 @@ class _WorkshopScaffoldState extends State<_WorkshopScaffold> {
                           plans: widget.plans,
                           runs: widget.runs,
                           onStop: widget.onStopBatch,
+                          onDismiss: widget.onDismissBatch,
                         ),
                       ),
                     if (_showInspector)
@@ -6981,12 +7014,14 @@ class _BatchGenerationPanel extends ConsumerWidget {
     required this.plans,
     required this.runs,
     required this.onStop,
+    required this.onDismiss,
   });
 
   final ChapterGenerationBatch batch;
   final List<ChapterPlan> plans;
   final List<ChapterGenerationRun> runs;
   final VoidCallback? onStop;
+  final VoidCallback? onDismiss;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -7021,6 +7056,13 @@ class _BatchGenerationPanel extends ConsumerWidget {
                     onPressed: onStop,
                     icon: const Icon(Icons.stop_circle_outlined, size: 18),
                     color: colorScheme.error,
+                    visualDensity: VisualDensity.compact,
+                  )
+                else
+                  IconButton(
+                    tooltip: '关闭批量草稿状态',
+                    onPressed: onDismiss,
+                    icon: const Icon(Icons.close, size: 18),
                     visualDensity: VisualDensity.compact,
                   ),
               ],
@@ -7057,6 +7099,19 @@ class _BatchGenerationPanel extends ConsumerWidget {
                     style: Theme.of(
                       context,
                     ).textTheme.bodySmall?.copyWith(color: colorScheme.error),
+                  ),
+                ],
+                if (!running) ...[
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed: () =>
+                        context.go('/workflow-runs/${batch.workflowTaskId}'),
+                    icon: const Icon(Icons.receipt_long_outlined, size: 16),
+                    label: const Text('查看工作流任务'),
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                    ),
                   ),
                 ],
               ],

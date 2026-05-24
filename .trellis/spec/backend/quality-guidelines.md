@@ -255,6 +255,7 @@ Audit before chapter save; only `pass` and `warning` create or update a chapter,
 - Draft retry exhaustion or Patch review retry exhaustion fails the batch and leaves later waiting items unprocessed.
 - Stopping a batch marks it `failed`; already `synced` items remain synced, and `processChapterGenerationBatch` must not restart a failed or succeeded batch.
 - Retrying Patch generation/review must not rewrite the chapter draft.
+- After a batch enters `running`, every non-cancellation exception that escapes item processing or batch stream reads must mark the batch and workflow task `failed` before rethrowing. Do not leave `pending`/`running` task locks behind.
 
 ### 4. Validation & Error Matrix
 - Cross-volume selection -> reject before creating records.
@@ -265,6 +266,7 @@ Audit before chapter save; only `pass` and `warning` create or update a chapter,
 - `warning` or `fail` continuity verdict after max draft attempts -> mark item and batch failed.
 - `warning` or `fail` Patch review after max patch attempts -> mark item and batch failed without rewriting the draft.
 - `stopChapterGenerationBatch` followed by `processChapterGenerationBatch` -> return the failed batch state without processing waiting items.
+- Batch item stream or batch-level processing throws after start -> mark batch failed, persist sanitized error, set `completedAt`, and make `hasRunningChapterGenerationBatch(projectId)` return false.
 
 ### 5. Good/Base/Bad Cases
 - Good: Chapter 1 syncs Runtime Memory, then Chapter 2 builds context from the updated memory.
@@ -273,7 +275,7 @@ Audit before chapter save; only `pass` and `warning` create or update a chapter,
 - Bad: Check running single generation only for selected chapters; the lock is project-scoped.
 
 ### 6. Tests Required
-- Pipeline tests for successful sequential sync, project-level running-generation lockout, retry exhaustion, Patch-only retry, and stop idempotence.
+- Pipeline tests for successful sequential sync, project-level running-generation lockout, retry exhaustion, Patch-only retry, stop idempotence, and non-cancellation batch-level failure releasing the running lock.
 - Repository tests for batch/item persistence, counts, workflow task synchronization, and project-level running-generation lookup.
 - Widget tests for entry point, range selection, progress list, stop action, and failure details.
 

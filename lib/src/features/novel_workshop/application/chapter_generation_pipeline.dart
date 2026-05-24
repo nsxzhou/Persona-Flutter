@@ -516,6 +516,14 @@ class ChapterGenerationPipeline {
     } on LlmCancellationException {
       await _repository.abandonWorkflowTask(batch.workflowTaskId);
       rethrow;
+    } on Object catch (error) {
+      await updateBatch(
+        ChapterGenerationBatchStatus.failed,
+        message: '批量草稿失败：${_sanitizeError(error, provider)}',
+        errorMessage: _sanitizeError(error, provider),
+        completedAt: DateTime.now(),
+      );
+      rethrow;
     } finally {
       _cancellationRegistry.unregister(batch.workflowTaskId, cancellationToken);
       await cancellationToken.dispose();

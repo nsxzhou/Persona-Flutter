@@ -1013,6 +1013,62 @@ characters:
     expect(fixture.repository.generationBatches.single.totalCount, 2);
   });
 
+  testWidgets('terminal batch draft panel can be dismissed for session', (
+    tester,
+  ) async {
+    final fixture = _WorkshopFixture(
+      plans: [
+        _plan(id: 'plan-1', index: 1, title: '第一章', objective: '主角进入雾港。'),
+      ],
+      generationBatches: [
+        _generationBatch(
+          id: 'generation-batch-done',
+          status: ChapterGenerationBatchStatus.succeeded,
+          syncedCount: 1,
+        ),
+      ],
+      generationBatchItems: [
+        _generationBatchItem(
+          id: 'generation-batch-item-done',
+          batchId: 'generation-batch-done',
+          planId: 'plan-1',
+          status: ChapterGenerationBatchItemStatus.synced,
+        ),
+      ],
+    );
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(
+      _WorkshopTestApp(fixture: fixture, initialLocation: _editorLocation),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('批量草稿'), findsWidgets);
+    expect(find.text('已完成'), findsWidgets);
+    expect(find.text('查看工作流任务'), findsOneWidget);
+    expect(find.byTooltip('关闭批量草稿状态'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('关闭批量草稿状态'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('查看工作流任务'), findsNothing);
+    expect(find.byTooltip('关闭批量草稿状态'), findsNothing);
+    expect(find.widgetWithText(OutlinedButton, '批量草稿'), findsOneWidget);
+
+    await fixture.repository.createChapterGenerationBatch(
+      ChapterGenerationBatchInput(
+        projectId: 'project-1',
+        chapterPlanIds: ['plan-1'],
+        providerId: 'provider-1',
+        modelName: 'model-1',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('等待中'), findsWidgets);
+    expect(find.byTooltip('停止批次'), findsWidgets);
+  });
+
   testWidgets('dirty editor asks before switching chapters and can save', (
     tester,
   ) async {
@@ -1391,6 +1447,8 @@ class _WorkshopFixture {
     List<NovelRelationship> relationships = const [],
     List<ChapterEnrichmentBatch> enrichmentBatches = const [],
     List<ChapterEnrichmentItem> enrichmentItems = const [],
+    List<ChapterGenerationBatch> generationBatches = const [],
+    List<ChapterGenerationBatchItem> generationBatchItems = const [],
   }) : projectRepository = _FakeProjectRepository(
          status: projectStatus,
          origin: projectOrigin,
@@ -1407,6 +1465,8 @@ class _WorkshopFixture {
          relationships: relationships,
          enrichmentBatches: enrichmentBatches,
          enrichmentItems: enrichmentItems,
+         generationBatches: generationBatches,
+         generationBatchItems: generationBatchItems,
        ),
        styleRepository = _FakeStyleLabRepository(),
        plotRepository = _FakePlotLabRepository() {
@@ -1817,9 +1877,13 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
     required List<NovelRelationship> relationships,
     required List<ChapterEnrichmentBatch> enrichmentBatches,
     required List<ChapterEnrichmentItem> enrichmentItems,
+    required List<ChapterGenerationBatch> generationBatches,
+    required List<ChapterGenerationBatchItem> generationBatchItems,
   }) : plans = [...plans],
        chapters = [...chapters],
        runs = [...runs],
+       generationBatches = [...generationBatches],
+       generationBatchItems = [...generationBatchItems],
        enrichmentBatches = [...enrichmentBatches],
        enrichmentItems = [...enrichmentItems],
        characters = [...characters],
@@ -1856,8 +1920,8 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   final List<ChapterPlan> plans;
   final List<ProjectChapter> chapters;
   final List<ChapterGenerationRun> runs;
-  final List<ChapterGenerationBatch> generationBatches = [];
-  final List<ChapterGenerationBatchItem> generationBatchItems = [];
+  final List<ChapterGenerationBatch> generationBatches;
+  final List<ChapterGenerationBatchItem> generationBatchItems;
   final List<AssetGenerationRun> assetRuns = [];
   final List<ChapterEnrichmentBatch> enrichmentBatches;
   final List<ChapterEnrichmentItem> enrichmentItems;
@@ -3164,6 +3228,76 @@ ChapterEnrichmentItem _enrichmentItem() {
     startedAt: _testCreatedAt,
     completedAt: _testUpdatedAt,
     appliedAt: null,
+  );
+}
+
+ChapterGenerationBatch _generationBatch({
+  required String id,
+  required ChapterGenerationBatchStatus status,
+  int totalCount = 1,
+  int syncedCount = 0,
+  int failedCount = 0,
+  String? errorMessage,
+}) {
+  return ChapterGenerationBatch(
+    id: id,
+    workflowTaskId: 'task-$id',
+    projectId: 'project-1',
+    providerId: 'provider-1',
+    modelName: 'model-1',
+    status: status,
+    errorMessage: errorMessage,
+    totalCount: totalCount,
+    syncedCount: syncedCount,
+    failedCount: failedCount,
+    logs: '批量草稿完成。',
+    createdAt: _testCreatedAt,
+    updatedAt: _testUpdatedAt,
+    startedAt: _testCreatedAt,
+    completedAt:
+        status == ChapterGenerationBatchStatus.pending ||
+            status == ChapterGenerationBatchStatus.running
+        ? null
+        : _testUpdatedAt,
+  );
+}
+
+ChapterGenerationBatchItem _generationBatchItem({
+  required String id,
+  required String batchId,
+  required String planId,
+  required ChapterGenerationBatchItemStatus status,
+}) {
+  return ChapterGenerationBatchItem(
+    id: id,
+    batchId: batchId,
+    projectId: 'project-1',
+    chapterPlanId: planId,
+    chapterId: null,
+    latestRunId: null,
+    position: 0,
+    status: status,
+    errorMessage: null,
+    draftAttemptCount: status == ChapterGenerationBatchItemStatus.waiting
+        ? 0
+        : 1,
+    patchAttemptCount: status == ChapterGenerationBatchItemStatus.waiting
+        ? 0
+        : 1,
+    logs: '',
+    createdAt: _testCreatedAt,
+    updatedAt: _testUpdatedAt,
+    startedAt: status == ChapterGenerationBatchItemStatus.waiting
+        ? null
+        : _testCreatedAt,
+    completedAt:
+        status == ChapterGenerationBatchItemStatus.running ||
+            status == ChapterGenerationBatchItemStatus.waiting
+        ? null
+        : _testUpdatedAt,
+    syncedAt: status == ChapterGenerationBatchItemStatus.synced
+        ? _testUpdatedAt
+        : null,
   );
 }
 
