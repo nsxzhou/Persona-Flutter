@@ -3,7 +3,6 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:diff_match_patch/diff_match_patch.dart' as dmp;
-import 'package:yaml/yaml.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/analysis_lab_widgets.dart';
@@ -21,6 +20,7 @@ import '../../style_lab/application/style_lab_providers.dart';
 import '../../style_lab/application/voice_profile_front_matter.dart';
 import '../../style_lab/domain/style_profile.dart';
 import '../application/character_graph_parser.dart';
+import '../application/memory_patch_document.dart';
 import '../application/memory_patch_yaml.dart';
 import '../application/novel_workshop_providers.dart';
 import '../application/outline_detail_parser.dart';
@@ -5632,15 +5632,18 @@ _MemoryPatchPreview _buildMemoryPatchPreview({
   required List<NovelCharacter> characters,
   required List<NovelRelationship> relationships,
 }) {
-  final rawYaml = normalizeMemoryPatchYaml(chapter.memorySyncPatchYaml);
+  final rawYaml = stripMemoryPatchCodeFence(chapter.memorySyncPatchYaml);
   CharacterGraphDocument? graphPatch;
   String? parseError;
   if (rawYaml.isNotEmpty) {
     try {
-      if (_hasCharacterGraphPatchForPreview(rawYaml)) {
+      final patch = const MemoryPatchParser().parse(rawYaml);
+      if (patch.hasCharacterGraphPatch) {
         graphPatch = const CharacterGraphParser().parse(rawYaml);
       }
     } on CharacterGraphValidationException catch (error) {
+      parseError = error.message;
+    } on MemoryPatchValidationException catch (error) {
       parseError = error.message;
     } on Object catch (error) {
       parseError = '无法解析 Patch YAML：$error';
@@ -5660,25 +5663,6 @@ _MemoryPatchPreview _buildMemoryPatchPreview({
     rawYaml: rawYaml,
     parseError: parseError,
   );
-}
-
-bool _hasCharacterGraphPatchForPreview(String rawYaml) {
-  final parsed = loadYaml(rawYaml);
-  if (parsed is! YamlMap) {
-    throw const CharacterGraphValidationException('Patch YAML 根节点必须是对象。');
-  }
-  return _hasYamlListItems(parsed['characters']) ||
-      _hasYamlListItems(parsed['relationships']);
-}
-
-bool _hasYamlListItems(Object? value) {
-  if (value is YamlList) {
-    return value.isNotEmpty;
-  }
-  if (value is List<Object?>) {
-    return value.isNotEmpty;
-  }
-  return false;
 }
 
 _PatchDiffSection _buildRuntimeMemoryPatchSection(

@@ -54,3 +54,39 @@ Add widget tests for navigation, shell behavior, and user-visible feature state.
 * Are generated files committed and current?
 * Is feature code placed under the correct `features/<feature>/` layer?
 * Have redundant helper layers, placeholder files, and duplicate state fragments been removed or justified?
+
+## Scenario: Malformed memory patch preview
+
+### 1. Scope / Trigger
+- Trigger: A review panel renders persisted Memory Patch YAML for user inspection.
+- This is a presentation-layer contract because preview must surface parse problems without hiding the raw source the user needs to inspect.
+
+### 2. Signatures
+- Preview builder: `_buildMemoryPatchPreview(...)`
+- Error banner: `InlineError`
+- Raw source block: `CodeBlock` / selectable YAML source
+
+### 3. Contracts
+- Preview must strip code fences only as a display cleanup step.
+- Preview must not use storage-only normalization to rewrite stored YAML into a different structure before parsing.
+- When parsing fails, the panel must still render the raw YAML and the diff sections that are still available.
+
+### 4. Validation & Error Matrix
+- Malformed stored YAML -> render `InlineError` with the parse message
+- Valid stored YAML -> render diff sections normally
+- Raw YAML non-empty but malformed -> do not fail the whole page or hide the source block
+
+### 5. Good/Base/Bad Cases
+- Good: preview shows `Patch YAML 解析失败` and keeps raw YAML visible.
+- Base: preview can parse the runtime memory section but some character graph fields are missing.
+- Bad: preview silently rewrites malformed stored YAML and hides the fact that persistence is dirty.
+
+### 6. Tests Required
+- Widget tests for parse warning rendering and raw YAML visibility.
+- Regression tests for preserving diff output when parse errors occur.
+
+### 7. Wrong vs Correct
+#### Wrong
+Treat preview as a repair step for persisted YAML.
+#### Correct
+Treat preview as a read-only inspection surface with explicit parse warnings and raw source visibility.

@@ -7,6 +7,7 @@ import 'package:yaml/yaml.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/tasks/domain/workflow_task.dart';
 import '../application/character_graph_parser.dart';
+import '../application/memory_patch_document.dart';
 import '../application/memory_patch_yaml.dart';
 import '../application/outline_detail_parser.dart';
 import '../application/volume_blueprint_parser.dart';
@@ -1245,11 +1246,11 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     if (chapter.memorySyncContentHash != chapter.contentHash) {
       throw StateError('记忆同步提案已过期。');
     }
-    final patchYaml = normalizeMemoryPatchYaml(chapter.memorySyncPatchYaml);
-    if (_hasCharacterGraphPatch(patchYaml)) {
+    final patch = const MemoryPatchParser().parse(chapter.memorySyncPatchYaml);
+    if (patch.hasCharacterGraphPatch) {
       await applyCharactersYaml(
         projectId: chapter.projectId,
-        charactersYaml: patchYaml,
+        charactersYaml: patch.rawYaml,
       );
     }
     final currentMemory =
@@ -1257,7 +1258,7 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
         const RuntimeMemoryState();
     await saveRuntimeMemory(
       projectId: chapter.projectId,
-      state: _mergeRuntimeMemoryPatch(currentMemory, patchYaml),
+      state: _mergeRuntimeMemoryPatch(currentMemory, patch.runtimeMemory),
     );
     final now = DateTime.now();
     await (_database.update(
@@ -1300,33 +1301,6 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     return saved;
   }
 
-  bool _hasCharacterGraphPatch(String patchYaml) {
-    final trimmed = normalizeMemoryPatchYaml(patchYaml);
-    if (trimmed.isEmpty) {
-      return false;
-    }
-    try {
-      final parsed = loadYaml(trimmed);
-      if (parsed is! YamlMap) {
-        return false;
-      }
-      return _hasYamlItems(parsed['characters']) ||
-          _hasYamlItems(parsed['relationships']);
-    } on Object {
-      return true;
-    }
-  }
-
-  bool _hasYamlItems(Object? value) {
-    if (value is YamlList) {
-      return value.isNotEmpty;
-    }
-    if (value is List<Object?>) {
-      return value.isNotEmpty;
-    }
-    return false;
-  }
-
   String _mergeString(
     Set<String> fields,
     String key,
@@ -1353,40 +1327,26 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
 
   RuntimeMemoryState _mergeRuntimeMemoryPatch(
     RuntimeMemoryState current,
-    String patchYaml,
+    YamlMap? memory,
   ) {
-    final trimmed = normalizeMemoryPatchYaml(patchYaml);
-    if (trimmed.isEmpty) {
+    if (memory == null) {
       return current;
     }
-    try {
-      final parsed = loadYaml(trimmed);
-      if (parsed is! YamlMap) {
-        return current;
-      }
-      final memory = parsed['runtimeMemory'];
-      if (memory is! YamlMap) {
-        return current;
-      }
-      return RuntimeMemoryState(
-        runtimeState:
-            _yamlPatchString(memory, 'runtimeState') ?? current.runtimeState,
-        runtimeThreads:
-            _yamlPatchString(memory, 'runtimeThreads') ??
-            current.runtimeThreads,
-        storySummary:
-            _yamlPatchString(memory, 'storySummary') ?? current.storySummary,
-        continuityIndex:
-            _yamlPatchString(memory, 'continuityIndex') ??
-            current.continuityIndex,
-        chapterArchiveMarkdown: _mergeChapterArchive(
-          current.chapterArchiveMarkdown,
-          _yamlPatchString(memory, 'chapterArchiveMarkdown'),
-        ),
-      );
-    } on Object {
-      return current;
-    }
+    return RuntimeMemoryState(
+      runtimeState:
+          _yamlPatchString(memory, 'runtimeState') ?? current.runtimeState,
+      runtimeThreads:
+          _yamlPatchString(memory, 'runtimeThreads') ?? current.runtimeThreads,
+      storySummary:
+          _yamlPatchString(memory, 'storySummary') ?? current.storySummary,
+      continuityIndex:
+          _yamlPatchString(memory, 'continuityIndex') ??
+          current.continuityIndex,
+      chapterArchiveMarkdown: _mergeChapterArchive(
+        current.chapterArchiveMarkdown,
+        _yamlPatchString(memory, 'chapterArchiveMarkdown'),
+      ),
+    );
   }
 
   String? _yamlPatchString(YamlMap map, String key) {

@@ -284,6 +284,55 @@ runtimeMemory:
   });
 
   test(
+    'batch generation normalizes multiline runtime memory patch yaml',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final fixture = await _Fixture.create(
+        database,
+        llmClient: _StaticLlmClient([
+          _selectorAssets,
+          '第一章正文。',
+          _auditPass,
+          '''
+runtimeMemory:
+  runtimeState: 抵达雾港。
+  runtimeThreads: 港务处线索待查。
+  storySummary: 林岚抵达雾港。
+  continuityIndex: 港务处线索
+  chapterArchiveMarkdown:
+  ## 第 1 章
+
+  林岚抵达雾港。
+''',
+          _patchReviewPass,
+        ]),
+        withRuntimeMemory: true,
+        withCharacterGraph: true,
+      );
+
+      final result = await fixture.pipeline.startChapterGenerationBatch(
+        projectId: fixture.project.id,
+        chapterPlanIds: [fixture.plan.id],
+      );
+
+      expect(result.batch.status, ChapterGenerationBatchStatus.succeeded);
+      final chapters = await fixture.novelRepository
+          .watchChapters(fixture.project.id)
+          .first;
+      expect(chapters.single.memorySyncPatchYaml, isNot(contains('```')));
+      expect(
+        chapters.single.memorySyncPatchYaml,
+        contains('chapterArchiveMarkdown:'),
+      );
+      expect(
+        chapters.single.memorySyncPatchYaml,
+        contains('storySummary: 林岚抵达雾港。'),
+      );
+    },
+  );
+
+  test(
     'batch generation blocks when selected chapter already has content',
     () async {
       final database = AppDatabase(NativeDatabase.memory());

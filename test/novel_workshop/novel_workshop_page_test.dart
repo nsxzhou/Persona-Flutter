@@ -609,6 +609,49 @@ runtimeMemory:
   });
 
   testWidgets(
+    'pending memory patch tolerates malformed raw yaml by showing parse error',
+    (tester) async {
+      final fixture = _WorkshopFixture(
+        runtimeMemory: const RuntimeMemoryState(storySummary: '旧摘要。'),
+        chapters: [
+          _chapter(
+            planId: 'plan-1',
+            index: 1,
+            content: '正文。',
+            memorySyncStatus: MemorySyncStatus.pendingReview,
+            proposedMemory: const RuntimeMemoryState(storySummary: '新摘要。'),
+            memorySyncPatchYaml: '''
+runtimeMemory:
+  storySummary: 新摘要。
+  chapterArchiveMarkdown:
+    [not valid
+characters:
+  - name: 林岚
+    currentStatus: 发现港务处新线索。
+''',
+          ),
+        ],
+      );
+      addTearDown(fixture.dispose);
+
+      await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Runtime Memory').last);
+      await tester.tap(find.text('Runtime Memory').last);
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Patch YAML 解析失败'), findsOneWidget);
+      expect(find.text('Raw YAML'), findsOneWidget);
+      await tester.ensureVisible(find.text('Raw YAML'));
+      await tester.tap(find.text('Raw YAML'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('runtimeMemory:'), findsWidgets);
+      expect(find.textContaining('characters:'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'chapter tile distinguishes discarded from no-change patch state',
     (tester) async {
       final fixture = _WorkshopFixture(

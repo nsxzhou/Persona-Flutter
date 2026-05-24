@@ -327,3 +327,47 @@ Audit before chapter save; only `pass` and `warning` create or update a chapter,
 Catch cancellation as a generic error and persist a failed task with the partial trace.
 #### Correct
 Catch `LlmCancellationException`, call `abandonWorkflowTask`, clear recoverable outputs, remove prompt trace, and rethrow cancellation to stop the pipeline.
+
+## Scenario: Novel Workshop memory patch YAML boundary
+
+### 1. Scope / Trigger
+- Trigger: Memory Patch generation, preview, storage, and application all consume the same patch document.
+- This is a cross-layer contract because the generation pipeline may normalize draft output before storage, while preview and apply paths must reject malformed persisted YAML instead of silently repairing it.
+
+### 2. Signatures
+- Prompt builder / pipeline: `ChapterGenerationPipeline.proposeMemoryPatchForChapter(projectId, chapterId)`
+- Shared parser: `MemoryPatchParser.parse(rawYaml)`
+- Storage normalizer: `normalizeMemoryPatchYaml(rawYaml)`
+- Preview source: `novel_workshop_page.dart` memory patch preview block
+- Apply path: `DriftNovelWorkshopRepository.applyMemorySyncPatch(chapterId)`
+
+### 3. Contracts
+- `normalizeMemoryPatchYaml` may clean fenced drafts and canonicalize eligible runtime memory block scalars before storage.
+- `MemoryPatchParser.parse` must be strict: it strips fences, parses YAML, and returns structured patch data or `MemoryPatchValidationException`.
+- Preview and apply paths must use the strict parser, not the storage normalizer.
+- A malformed persisted patch must keep raw YAML visible in the UI while surfacing a parse warning.
+
+### 4. Validation & Error Matrix
+- Root node not a YAML map -> `MemoryPatchValidationException('Patch YAML 根节点必须是对象。')`
+- Non-list `characters` / `relationships` -> `MemoryPatchValidationException('Patch YAML 列表字段必须是列表。')`
+- Non-map `runtimeMemory` -> `MemoryPatchValidationException('runtimeMemory 必须是对象。')`
+- Fenced YAML -> strip fence before parsing
+- Parsed patch with invalid structure in preview/apply -> show inline warning, do not auto-repair persisted data
+
+### 5. Good/Base/Bad Cases
+- Good: generation normalizes a fenced draft with block scalar runtime memory before saving.
+- Base: preview shows a warning and raw YAML when a stored patch is malformed.
+- Bad: preview or apply path calls the storage normalizer and silently repairs a malformed persisted patch.
+- Bad: apply path swallows parser failures and merges partial memory changes.
+
+### 6. Tests Required
+- Parser tests for fenced and unfenced valid YAML, malformed YAML, and non-map root input.
+- Repository tests that invalid persisted patches are rejected and do not mutate Runtime Memory.
+- Widget tests that the review panel renders raw YAML plus a parse warning when the stored patch is malformed.
+- Pipeline tests that generation still normalizes valid multiline runtime memory output before storage.
+
+### 7. Wrong vs Correct
+#### Wrong
+Use the same lenient normalization path for generated drafts, preview, and apply.
+#### Correct
+Normalize only at generation/storage boundaries; keep preview and apply strict so persisted malformed patches cannot be silently repaired.

@@ -12,6 +12,7 @@ import '../../settings/domain/provider_config_repository.dart';
 import '../domain/novel_workshop.dart';
 import '../domain/novel_workshop_repository.dart';
 import '../domain/writing_context.dart';
+import 'memory_patch_document.dart';
 import 'memory_patch_yaml.dart';
 import 'project_prompt_asset_resolver.dart';
 import 'writing_context_assembler.dart';
@@ -1373,6 +1374,8 @@ $archive
 - `characters` 中每项必须有 `name`，只写本章需要新增或修改的字段，可更新 `aliases`、`tags`、`faction`、`role`、`longTermGoal`、`currentStatus`、`secrets`、`firstChapterIndex`、`lastChapterIndex`。
 - `relationships` 中每项必须有 `from`、`to`，只写本章需要新增或修改的字段，可更新 `type`、`strength`、`status`、`description`、`lastChangedChapterIndex`。
 - `runtimeMemory` 只输出本章需要修改或追加的字段，可包含 `runtimeState`、`runtimeThreads`、`storySummary`、`continuityIndex`、`chapterArchiveMarkdown`。
+- 当 `runtimeMemory` 中的任一字段包含换行时，必须使用 YAML block scalar（`|` 或 `|-`）表示，不要用裸多行字符串。
+- `chapterArchiveMarkdown` 必须用 YAML block scalar（`|` 或 `|-`）表示。
 
 ## 更新原则
 只记录本章正文明确发生或明确确认的变化，不补全、不推测、不替作者规划未来。不要输出全量快照；没有变化的角色、关系和 Runtime Memory 字段不要重复写入。
@@ -1420,18 +1423,30 @@ ${chapter.contentMarkdown}
       );
       return;
     }
-    final proposedMemory = _parseProposedRuntimeMemory(
-      patchYaml,
-      fallback: currentMemory,
-    );
-    await _repository.saveMemorySyncProposal(
-      MemorySyncProposalInput(
-        chapterId: chapter.id,
-        contentHash: chapter.contentHash,
-        proposedMemory: proposedMemory,
-        patchYaml: patchYaml,
-      ),
-    );
+    try {
+      final patch = const MemoryPatchParser().parse(patchYaml);
+      final proposedMemory = _parseProposedRuntimeMemory(
+        patch.runtimeMemory,
+        fallback: currentMemory,
+      );
+      await _repository.saveMemorySyncProposal(
+        MemorySyncProposalInput(
+          chapterId: chapter.id,
+          contentHash: chapter.contentHash,
+          proposedMemory: proposedMemory,
+          patchYaml: patch.rawYaml,
+        ),
+      );
+    } on MemoryPatchValidationException {
+      await _repository.saveMemorySyncProposal(
+        MemorySyncProposalInput(
+          chapterId: chapter.id,
+          contentHash: chapter.contentHash,
+          proposedMemory: currentMemory,
+          patchYaml: patchYaml,
+        ),
+      );
+    }
   }
 
   Future<ProjectChapter> _ensureMemoryPatchForBatch({
@@ -1589,16 +1604,11 @@ ${chapter.contentMarkdown}
   }
 
   RuntimeMemoryState _parseProposedRuntimeMemory(
-    String patchYaml, {
+    YamlMap? memory, {
     required RuntimeMemoryState fallback,
   }) {
     try {
-      final parsed = loadYaml(normalizeMemoryPatchYaml(patchYaml));
-      if (parsed is! YamlMap) {
-        return fallback;
-      }
-      final memory = parsed['runtimeMemory'];
-      if (memory is! YamlMap) {
+      if (memory == null) {
         return fallback;
       }
       return RuntimeMemoryState(

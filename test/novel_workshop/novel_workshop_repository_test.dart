@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:persona_flutter/src/core/database/app_database.dart';
 import 'package:persona_flutter/src/core/tasks/data/drift_workflow_task_repository.dart';
 import 'package:persona_flutter/src/core/tasks/domain/workflow_task.dart';
+import 'package:persona_flutter/src/features/novel_workshop/application/memory_patch_document.dart';
 import 'package:persona_flutter/src/features/novel_workshop/data/drift_novel_workshop_repository.dart';
 import 'package:persona_flutter/src/features/novel_workshop/application/outline_detail_parser.dart';
 import 'package:persona_flutter/src/features/novel_workshop/domain/novel_workshop.dart';
@@ -925,6 +926,135 @@ runtimeMemory:
       final memory = await repository.findRuntimeMemory(project.id);
 
       expect(memory!.state.storySummary, '林岚抵达雾港。');
+    },
+  );
+
+  test(
+    'memory sync patch applies multiline runtime memory yaml from existing proposals',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final project = await _saveProject(database);
+      final repository = DriftNovelWorkshopRepository(database);
+      final volume = await repository.saveChapterVolume(
+        input: ChapterVolumeInput(
+          projectId: project.id,
+          volumeIndex: 1,
+          title: '第一卷',
+        ),
+      );
+      final plan = await repository.saveChapterPlan(
+        input: ChapterPlanInput(
+          projectId: project.id,
+          volumeId: volume.id,
+          volumeIndex: volume.volumeIndex,
+          volumeTitle: volume.title,
+          chapterLocalIndex: 1,
+          chapterIndex: 1,
+          objectiveCard: const ChapterObjectiveCard(objective: '推进调查。'),
+        ),
+      );
+      final chapter = await repository.saveChapter(
+        input: ProjectChapterInput(
+          projectId: project.id,
+          chapterPlanId: plan.id,
+          chapterIndex: 1,
+          title: '第一章',
+          contentMarkdown: '正文。',
+        ),
+      );
+
+      await repository.saveMemorySyncProposal(
+        MemorySyncProposalInput(
+          chapterId: chapter.id,
+          contentHash: chapter.contentHash,
+          patchYaml: '''
+runtimeMemory:
+  storySummary: 林岚抵达雾港。
+  chapterArchiveMarkdown:
+    ## 第 1 章
+
+    林岚抵达雾港。
+''',
+        ),
+      );
+
+      final saved = await repository.findChapter(chapter.id);
+      await repository.applyMemorySyncPatch(saved!.id);
+      final memory = await repository.findRuntimeMemory(project.id);
+
+      expect(memory!.state.storySummary, '林岚抵达雾港。');
+      expect(memory.state.chapterArchiveMarkdown, contains('## 第 1 章'));
+      expect(memory.state.chapterArchiveMarkdown, contains('林岚抵达雾港。'));
+    },
+  );
+
+  test(
+    'memory sync patch rejects malformed existing proposals without mutating memory',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final project = await _saveProject(database);
+      final repository = DriftNovelWorkshopRepository(database);
+      await repository.saveRuntimeMemory(
+        projectId: project.id,
+        state: const RuntimeMemoryState(
+          storySummary: '旧摘要。',
+          chapterArchiveMarkdown: '## 第 0 章\n\n旧归档。',
+        ),
+      );
+      final volume = await repository.saveChapterVolume(
+        input: ChapterVolumeInput(
+          projectId: project.id,
+          volumeIndex: 1,
+          title: '第一卷',
+        ),
+      );
+      final plan = await repository.saveChapterPlan(
+        input: ChapterPlanInput(
+          projectId: project.id,
+          volumeId: volume.id,
+          volumeIndex: volume.volumeIndex,
+          volumeTitle: volume.title,
+          chapterLocalIndex: 1,
+          chapterIndex: 1,
+          objectiveCard: const ChapterObjectiveCard(objective: '推进调查。'),
+        ),
+      );
+      final chapter = await repository.saveChapter(
+        input: ProjectChapterInput(
+          projectId: project.id,
+          chapterPlanId: plan.id,
+          chapterIndex: 1,
+          title: '第一章',
+          contentMarkdown: '正文。',
+        ),
+      );
+
+      await repository.saveMemorySyncProposal(
+        MemorySyncProposalInput(
+          chapterId: chapter.id,
+          contentHash: chapter.contentHash,
+          patchYaml: '''
+- runtimeMemory:
+    storySummary: 林岚抵达雾港。
+''',
+        ),
+      );
+
+      expect(
+        () => repository.applyMemorySyncPatch(chapter.id),
+        throwsA(
+          isA<MemoryPatchValidationException>().having(
+            (error) => error.message,
+            'message',
+            contains('Patch YAML 根节点必须是对象'),
+          ),
+        ),
+      );
+      final memory = await repository.findRuntimeMemory(project.id);
+      expect(memory!.state.storySummary, '旧摘要。');
+      expect(memory.state.chapterArchiveMarkdown, contains('旧归档'));
     },
   );
 
