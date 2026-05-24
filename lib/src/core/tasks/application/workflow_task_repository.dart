@@ -2,7 +2,7 @@ import '../domain/workflow_task.dart';
 import '../domain/workflow_prompt_trace.dart';
 
 abstract interface class WorkflowTaskRepository {
-  Stream<List<WorkflowTask>> watchRecentTasks();
+  Stream<List<WorkflowTask>> watchTasks();
 
   Stream<WorkflowTask?> watchTask(String id);
 

@@ -95,7 +95,7 @@ void main() {
 
       final tasks = await DriftWorkflowTaskRepository(
         database,
-      ).watchRecentTasks().first;
+      ).watchTasks().first;
       expect(tasks, hasLength(2));
       expect(tasks.first.kind, styleAnalysisWorkflowTaskKind);
       expect(
@@ -111,13 +111,13 @@ void main() {
       expect(await repository.findProfile(profile.id), isNull);
       expect(await repository.findRun(run.id), isNull);
       expect(
-        await DriftWorkflowTaskRepository(database).watchRecentTasks().first,
+        await DriftWorkflowTaskRepository(database).watchTasks().first,
         hasLength(1),
       );
 
       await repository.deleteRun(rerun.id);
       expect(
-        await DriftWorkflowTaskRepository(database).watchRecentTasks().first,
+        await DriftWorkflowTaskRepository(database).watchTasks().first,
         isEmpty,
       );
     },

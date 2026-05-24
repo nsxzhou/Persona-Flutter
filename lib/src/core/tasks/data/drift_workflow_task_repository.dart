@@ -11,13 +11,12 @@ class DriftWorkflowTaskRepository implements WorkflowTaskRepository {
   final AppDatabase _database;
 
   @override
-  Stream<List<WorkflowTask>> watchRecentTasks() {
+  Stream<List<WorkflowTask>> watchTasks() {
     final query = _database.select(_database.workflowTaskRecords)
       ..orderBy([
         (task) =>
             OrderingTerm(expression: task.updatedAt, mode: OrderingMode.desc),
-      ])
-      ..limit(20);
+      ]);
 
     return query.watch().map(
       (rows) => rows.map(_mapRecord).toList(growable: false),

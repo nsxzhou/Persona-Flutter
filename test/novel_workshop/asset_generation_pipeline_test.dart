@@ -243,9 +243,7 @@ relationships:
         modelName: '',
       ),
     );
-    final tasksBefore = await fixture.workflowRepository
-        .watchRecentTasks()
-        .first;
+    final tasksBefore = await fixture.workflowRepository.watchTasks().first;
 
     await expectLater(
       fixture.pipeline.generateAsset(
@@ -261,9 +259,7 @@ relationships:
       ),
     );
 
-    final tasksAfter = await fixture.workflowRepository
-        .watchRecentTasks()
-        .first;
+    final tasksAfter = await fixture.workflowRepository.watchTasks().first;
     expect(tasksAfter.length, tasksBefore.length);
   });
 
@@ -293,9 +289,7 @@ volumes:
       projectId: fixture.project.id,
       volumeId: volume.id,
     );
-    final tasksBefore = await fixture.workflowRepository
-        .watchRecentTasks()
-        .first;
+    final tasksBefore = await fixture.workflowRepository.watchTasks().first;
 
     await expectLater(
       fixture.pipeline.generateAsset(
@@ -312,9 +306,7 @@ volumes:
       ),
     );
 
-    final tasksAfter = await fixture.workflowRepository
-        .watchRecentTasks()
-        .first;
+    final tasksAfter = await fixture.workflowRepository.watchTasks().first;
     expect(tasksAfter.length, tasksBefore.length);
   });
 
@@ -392,7 +384,7 @@ volumes:
     fixture = await _Fixture.create(
       database,
       llmClient: _CancellingLlmClient(() {
-        fixture.workflowRepository.watchRecentTasks().first.then((tasks) {
+        fixture.workflowRepository.watchTasks().first.then((tasks) {
           registry.cancel(tasks.single.id);
         });
       }),

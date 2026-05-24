@@ -152,6 +152,7 @@ Keep the first workspace project-scoped under `/projects/:projectId/workshop` an
 ### 2. Signatures
 - Page: `WorkflowRunsPage`
 - Detail page: `WorkflowRunDetailPage(taskId)`
+- Task list stream: `workflowTasksProvider` backed by `WorkflowTaskRepository.watchTasks()`
 - Command provider: `workflowTaskControllerProvider.notifier.abandon(taskId)`
 - Preview sources:
   - `assetGenerationRunByWorkflowTaskProvider(workflowTaskId)`
@@ -161,6 +162,8 @@ Keep the first workspace project-scoped under `/projects/:projectId/workshop` an
 
 ### 3. Contracts
 - Pending/running task rows and details expose an abandon action with confirmation before dispatching the controller command.
+- Workflow Runs consumes the full persisted task list; do not cap the stream to a "recent N" subset.
+- Status and kind filters are widget-local list filters. Top-level task metrics must remain based on the full unfiltered task list.
 - Abandoned tasks render `已放弃` and must not expose preview actions.
 - Succeeded Novel Workshop tasks that have reviewable output render preview actions inline in the normal Workflow Runs list: asset generation, chapter generation, and chapter enrichment.
 - Inline preview actions must include `打开预览` and `忽略`; `应用` is shown only when the entry has a directly applicable asset draft or generated enrichment items.

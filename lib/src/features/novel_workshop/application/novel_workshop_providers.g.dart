@@ -489,6 +489,54 @@ final class NovelImportServiceProvider
 String _$novelImportServiceHash() =>
     r'80726bc4d0bedfb8e84037baf0a476a2486dccfc';
 
+@ProviderFor(novelExportService)
+final novelExportServiceProvider = NovelExportServiceProvider._();
+
+final class NovelExportServiceProvider
+    extends
+        $FunctionalProvider<
+          NovelExportService,
+          NovelExportService,
+          NovelExportService
+        >
+    with $Provider<NovelExportService> {
+  NovelExportServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'novelExportServiceProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$novelExportServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<NovelExportService> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  NovelExportService create(Ref ref) {
+    return novelExportService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(NovelExportService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<NovelExportService>(value),
+    );
+  }
+}
+
+String _$novelExportServiceHash() =>
+    r'21b3d3c3c94e2f5941bda435a7af44c6aab005d4';
+
 @ProviderFor(projectBible)
 final projectBibleProvider = ProjectBibleFamily._();
 
@@ -2058,7 +2106,7 @@ final class NovelWorkshopControllerProvider
 }
 
 String _$novelWorkshopControllerHash() =>
-    r'4d8872f7efa760df81707d7429dcb523107ef27e';
+    r'7aa7b3ac96f0a18909c64aef89fb324a5e050d84';
 
 abstract class _$NovelWorkshopController extends $AsyncNotifier<void> {
   FutureOr<void> build();

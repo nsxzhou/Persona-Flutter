@@ -117,6 +117,12 @@ class _NovelWorkshopPageState extends ConsumerState<NovelWorkshopPage> {
                           volumes: volumeItems,
                           plan: plan,
                         ),
+                        onExportTxt: () => _exportTxt(
+                          project: item,
+                          volumes: volumeItems,
+                          plans: planItems,
+                          chapters: chapterItems,
+                        ),
                       ),
                       error: (error, stackTrace) =>
                           _WorkshopError(message: '无法加载加料任务：$error'),
@@ -150,6 +156,35 @@ class _NovelWorkshopPageState extends ConsumerState<NovelWorkshopPage> {
       error: (error, stackTrace) => _WorkshopError(message: '无法加载项目：$error'),
       loading: () => const _WorkshopLoading(),
     );
+  }
+
+  Future<void> _exportTxt({
+    required WritingProject project,
+    required List<ChapterVolume> volumes,
+    required List<ChapterPlan> plans,
+    required List<ProjectChapter> chapters,
+  }) async {
+    try {
+      final path = await ref
+          .read(novelWorkshopControllerProvider.notifier)
+          .exportTxt(
+            project: project,
+            volumes: volumes,
+            plans: plans,
+            chapters: chapters,
+          );
+      if (!mounted || path == null) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('已导出 TXT：$path')));
+    } on Object catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('导出失败：$error')));
+    }
   }
 }
 
@@ -692,6 +727,7 @@ class _AssetWorkbenchPage extends StatelessWidget {
     required this.onCreateVolume,
     required this.onEditVolume,
     required this.onEditPlan,
+    required this.onExportTxt,
   });
 
   final WritingProject project;
@@ -710,6 +746,7 @@ class _AssetWorkbenchPage extends StatelessWidget {
   final VoidCallback onCreateVolume;
   final ValueChanged<ChapterVolume> onEditVolume;
   final ValueChanged<ChapterPlan> onEditPlan;
+  final VoidCallback onExportTxt;
 
   @override
   Widget build(BuildContext context) {
@@ -723,6 +760,11 @@ class _AssetWorkbenchPage extends StatelessWidget {
           onPressed: () => context.go('/projects'),
           icon: const Icon(Icons.arrow_back_outlined),
           label: const Text('返回项目'),
+        ),
+        OutlinedButton.icon(
+          onPressed: onExportTxt,
+          icon: const Icon(Icons.download_outlined),
+          label: const Text('导出 TXT'),
         ),
         FilledButton.icon(
           onPressed: () =>

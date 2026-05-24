@@ -15,9 +15,9 @@ WorkflowTaskRepository workflowTaskRepository(Ref ref) {
 }
 
 @riverpod
-Stream<List<WorkflowTask>> recentWorkflowTasks(Ref ref) {
+Stream<List<WorkflowTask>> workflowTasks(Ref ref) {
   final repository = ref.watch(workflowTaskRepositoryProvider);
-  return repository.watchRecentTasks();
+  return repository.watchTasks();
 }
 
 @riverpod

@@ -20,12 +20,20 @@ import '../../style_lab/application/style_lab_providers.dart';
 import '../../style_lab/domain/style_analysis_run.dart';
 import '../application/workflow_task_controller.dart';
 
-class WorkflowRunsPage extends ConsumerWidget {
+class WorkflowRunsPage extends ConsumerStatefulWidget {
   const WorkflowRunsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final tasks = ref.watch(recentWorkflowTasksProvider);
+  ConsumerState<WorkflowRunsPage> createState() => _WorkflowRunsPageState();
+}
+
+class _WorkflowRunsPageState extends ConsumerState<WorkflowRunsPage> {
+  WorkflowTaskStatus? _statusFilter;
+  String? _kindFilter;
+
+  @override
+  Widget build(BuildContext context) {
+    final tasks = ref.watch(workflowTasksProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
     return PersonaPage(
@@ -41,6 +49,13 @@ class WorkflowRunsPage extends ConsumerWidget {
             final failed = items
                 .where((item) => item.status == WorkflowTaskStatus.failed)
                 .length;
+            final filteredItems = items
+                .where(
+                  (item) =>
+                      (_statusFilter == null || item.status == _statusFilter) &&
+                      (_kindFilter == null || item.kind == _kindFilter),
+                )
+                .toList(growable: false);
 
             return Column(
               children: [
@@ -72,10 +87,21 @@ class WorkflowRunsPage extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 18),
+                _WorkflowRunFilters(
+                  items: items,
+                  statusFilter: _statusFilter,
+                  kindFilter: _kindFilter,
+                  onStatusChanged: (value) =>
+                      setState(() => _statusFilter = value),
+                  onKindChanged: (value) => setState(() => _kindFilter = value),
+                ),
+                const SizedBox(height: 18),
                 if (items.isEmpty)
                   const _EmptyWorkflowRuns()
+                else if (filteredItems.isEmpty)
+                  const _EmptyFilteredWorkflowRuns()
                 else
-                  _WorkflowRunTable(items: items),
+                  _WorkflowRunTable(items: filteredItems),
               ],
             );
           },
@@ -92,6 +118,82 @@ class WorkflowRunsPage extends ConsumerWidget {
   }
 }
 
+class _WorkflowRunFilters extends StatelessWidget {
+  const _WorkflowRunFilters({
+    required this.items,
+    required this.statusFilter,
+    required this.kindFilter,
+    required this.onStatusChanged,
+    required this.onKindChanged,
+  });
+
+  final List<WorkflowTask> items;
+  final WorkflowTaskStatus? statusFilter;
+  final String? kindFilter;
+  final ValueChanged<WorkflowTaskStatus?> onStatusChanged;
+  final ValueChanged<String?> onKindChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final kinds = items.map((item) => item.kind).toSet().toList()
+      ..sort((a, b) => _kindLabel(a).compareTo(_kindLabel(b)));
+    return PersonaPanel(
+      padding: const EdgeInsets.all(14),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 760;
+          final filters = [
+            DropdownButtonFormField<WorkflowTaskStatus?>(
+              initialValue: statusFilter,
+              decoration: const InputDecoration(
+                labelText: '状态',
+                isDense: true,
+                border: OutlineInputBorder(),
+              ),
+              items: [
+                const DropdownMenuItem(value: null, child: Text('全部状态')),
+                for (final status in WorkflowTaskStatus.values)
+                  DropdownMenuItem(
+                    value: status,
+                    child: Text(_statusLabel(status)),
+                  ),
+              ],
+              onChanged: onStatusChanged,
+            ),
+            DropdownButtonFormField<String?>(
+              initialValue: kindFilter,
+              decoration: const InputDecoration(
+                labelText: '类型',
+                isDense: true,
+                border: OutlineInputBorder(),
+              ),
+              items: [
+                const DropdownMenuItem(value: null, child: Text('全部类型')),
+                for (final kind in kinds)
+                  DropdownMenuItem(value: kind, child: Text(_kindLabel(kind))),
+              ],
+              onChanged: onKindChanged,
+            ),
+          ];
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [filters[0], const SizedBox(height: 10), filters[1]],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: filters[0]),
+              const SizedBox(width: 12),
+              Expanded(child: filters[1]),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _EmptyWorkflowRuns extends StatelessWidget {
   const _EmptyWorkflowRuns();
 
@@ -101,6 +203,19 @@ class _EmptyWorkflowRuns extends StatelessWidget {
       icon: Icons.check_circle_outline,
       title: '尚未创建本地工作流任务。',
       description: '这里会显示最近的本地长任务、失败原因和可恢复任务。',
+    );
+  }
+}
+
+class _EmptyFilteredWorkflowRuns extends StatelessWidget {
+  const _EmptyFilteredWorkflowRuns();
+
+  @override
+  Widget build(BuildContext context) {
+    return const PersonaEmptyStateCard(
+      icon: Icons.filter_alt_off_outlined,
+      title: '没有符合筛选条件的任务。',
+      description: '调整状态或类型筛选后再查看。',
     );
   }
 }
@@ -275,10 +390,6 @@ class _WorkflowPreviewActions extends ConsumerWidget {
   ) async {
     try {
       await ref.read(workflowTaskRepositoryProvider).dismissTaskPreview(taskId);
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('任务预览提醒已关闭，产出仍可在项目工作台查看。')));
     } on Object catch (error) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
@@ -302,7 +413,7 @@ class _WorkflowRunTable extends StatelessWidget {
           const Padding(
             padding: EdgeInsets.all(18),
             child: PersonaSectionHeader(
-              title: '最近工作流活动',
+              title: '工作流活动',
               description: '用于分析、导入和生成任务的紧凑状态视图。',
             ),
           ),
@@ -2434,6 +2545,18 @@ String _statusLabel(WorkflowTaskStatus status) {
     WorkflowTaskStatus.succeeded => '完成',
     WorkflowTaskStatus.pending => '排队中',
     WorkflowTaskStatus.abandoned => '已放弃',
+  };
+}
+
+String _kindLabel(String kind) {
+  return switch (kind) {
+    styleAnalysisWorkflowTaskKind => '风格分析',
+    plotAnalysisWorkflowTaskKind => '剧情分析',
+    assetGenerationWorkflowTaskKind => '资产生成',
+    chapterGenerationWorkflowTaskKind => '章节生成',
+    chapterGenerationBatchWorkflowTaskKind => '批量草稿',
+    chapterEnrichmentWorkflowTaskKind => '章节加料',
+    _ => kind,
   };
 }
 

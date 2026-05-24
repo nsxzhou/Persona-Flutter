@@ -57,10 +57,10 @@ final class WorkflowTaskRepositoryProvider
 String _$workflowTaskRepositoryHash() =>
     r'30a39fe15d75afd934038b0125693b252981e30b';
 
-@ProviderFor(recentWorkflowTasks)
-final recentWorkflowTasksProvider = RecentWorkflowTasksProvider._();
+@ProviderFor(workflowTasks)
+final workflowTasksProvider = WorkflowTasksProvider._();
 
-final class RecentWorkflowTasksProvider
+final class WorkflowTasksProvider
     extends
         $FunctionalProvider<
           AsyncValue<List<WorkflowTask>>,
@@ -70,19 +70,19 @@ final class RecentWorkflowTasksProvider
     with
         $FutureModifier<List<WorkflowTask>>,
         $StreamProvider<List<WorkflowTask>> {
-  RecentWorkflowTasksProvider._()
+  WorkflowTasksProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'recentWorkflowTasksProvider',
+        name: r'workflowTasksProvider',
         isAutoDispose: true,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$recentWorkflowTasksHash();
+  String debugGetCreateSourceHash() => _$workflowTasksHash();
 
   @$internal
   @override
@@ -92,12 +92,11 @@ final class RecentWorkflowTasksProvider
 
   @override
   Stream<List<WorkflowTask>> create(Ref ref) {
-    return recentWorkflowTasks(ref);
+    return workflowTasks(ref);
   }
 }
 
-String _$recentWorkflowTasksHash() =>
-    r'a71bf2f4be9fbc815ac2b4ae77f0bb3236d24a54';
+String _$workflowTasksHash() => r'1036153a5b3d152da655713e23a0b240865bd7a8';
 
 @ProviderFor(workflowTask)
 final workflowTaskProvider = WorkflowTaskFamily._();

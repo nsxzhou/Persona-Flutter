@@ -337,7 +337,7 @@ void main() {
     await _pumpWorkflowRuns(tester);
 
     expect(find.text('完成预览'), findsNothing);
-    expect(find.text('最近工作流活动'), findsOneWidget);
+    expect(find.text('工作流活动'), findsOneWidget);
     expect(find.text('打开预览'), findsNWidgets(3));
     expect(find.text('应用'), findsNWidgets(2));
     expect(find.text('忽略'), findsNWidgets(3));
@@ -376,17 +376,104 @@ void main() {
       findsNothing,
     );
 
+    await tester.ensureVisible(find.text('忽略').first);
     await tester.tap(find.text('忽略').first);
     await _pumpWorkflowRuns(tester);
 
     expect(repository.dismissedTaskIds, ['task-asset-preview']);
-    expect(find.text('任务预览提醒已关闭，产出仍可在项目工作台查看。'), findsOneWidget);
+    expect(find.text('任务预览提醒已关闭，产出仍可在项目工作台查看。'), findsNothing);
 
     await tester.tap(find.text('打开预览').first);
     await _pumpWorkflowRuns(tester);
 
     expect(find.text('任务产出预览'), findsOneWidget);
   });
+
+  testWidgets('workflow runs shows all tasks beyond previous recent limit', (
+    tester,
+  ) async {
+    final run = _plotRun();
+    final tasks = List.generate(
+      21,
+      (index) => WorkflowTask(
+        id: 'task-$index',
+        kind: plotAnalysisWorkflowTaskKind,
+        status: WorkflowTaskStatus.succeeded,
+        title: '任务 $index',
+        createdAt: DateTime(2026, 5, 24, 10, index),
+        updatedAt: DateTime(2026, 5, 24, 10, index),
+      ),
+    );
+
+    await tester.pumpWidget(
+      _WorkflowRunsTestApp(task: tasks.first, run: run, tasks: tasks),
+    );
+    await _pumpWorkflowRuns(tester);
+
+    expect(find.text('21'), findsOneWidget);
+    expect(find.text('任务 20'), findsOneWidget);
+  });
+
+  testWidgets(
+    'workflow runs filters by status and kind without changing metrics',
+    (tester) async {
+      final run = _plotRun();
+      final tasks = [
+        WorkflowTask(
+          id: 'task-plot',
+          kind: plotAnalysisWorkflowTaskKind,
+          status: WorkflowTaskStatus.succeeded,
+          title: '剧情任务',
+          createdAt: DateTime(2026, 5, 24, 10),
+          updatedAt: DateTime(2026, 5, 24, 10),
+        ),
+        WorkflowTask(
+          id: 'task-style',
+          kind: styleAnalysisWorkflowTaskKind,
+          status: WorkflowTaskStatus.failed,
+          title: '风格任务',
+          createdAt: DateTime(2026, 5, 24, 11),
+          updatedAt: DateTime(2026, 5, 24, 11),
+        ),
+        WorkflowTask(
+          id: 'task-chapter',
+          kind: chapterGenerationWorkflowTaskKind,
+          status: WorkflowTaskStatus.running,
+          title: '章节任务',
+          createdAt: DateTime(2026, 5, 24, 12),
+          updatedAt: DateTime(2026, 5, 24, 12),
+        ),
+      ];
+
+      await tester.pumpWidget(
+        _WorkflowRunsTestApp(task: tasks.first, run: run, tasks: tasks),
+      );
+      await _pumpWorkflowRuns(tester);
+
+      expect(find.text('3'), findsOneWidget);
+      expect(find.text('剧情任务'), findsOneWidget);
+      expect(find.text('风格任务'), findsOneWidget);
+      expect(find.text('章节任务'), findsOneWidget);
+
+      await tester.tap(find.text('全部状态'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('失败').last);
+      await tester.pumpAndSettle();
+
+      expect(find.text('3'), findsOneWidget);
+      expect(find.text('风格任务'), findsOneWidget);
+      expect(find.text('剧情任务'), findsNothing);
+      expect(find.text('章节任务'), findsNothing);
+
+      await tester.tap(find.text('全部类型'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('剧情分析').last);
+      await tester.pumpAndSettle();
+
+      expect(find.text('没有符合筛选条件的任务。'), findsOneWidget);
+      expect(find.text('3'), findsOneWidget);
+    },
+  );
 }
 
 class _WorkflowRunsTestApp extends StatelessWidget {
@@ -426,7 +513,7 @@ class _WorkflowRunsTestApp extends StatelessWidget {
     final enrichmentItemItems = enrichmentItems ?? const [];
     return ProviderScope(
       overrides: [
-        recentWorkflowTasksProvider.overrideWith(
+        workflowTasksProvider.overrideWith(
           (ref) => Stream<List<WorkflowTask>>.value(tasks ?? [task]),
         ),
         if (workflowRepository != null)
@@ -521,7 +608,7 @@ class _FakeWorkflowTaskRepository implements WorkflowTaskRepository {
   final List<String> dismissedTaskIds = [];
 
   @override
-  Stream<List<WorkflowTask>> watchRecentTasks() => Stream.value(tasks);
+  Stream<List<WorkflowTask>> watchTasks() => Stream.value(tasks);
 
   @override
   Stream<WorkflowTask?> watchTask(String id) =>

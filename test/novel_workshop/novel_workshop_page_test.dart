@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:persona_flutter/src/features/novel_workshop/application/asset_generation_pipeline.dart';
 import 'package:persona_flutter/src/features/novel_workshop/application/chapter_generation_pipeline.dart';
+import 'package:persona_flutter/src/features/novel_workshop/application/novel_export_service.dart';
 import 'package:persona_flutter/src/features/novel_workshop/application/novel_workshop_providers.dart';
 import 'package:persona_flutter/src/features/novel_workshop/domain/novel_workshop.dart';
 import 'package:persona_flutter/src/features/novel_workshop/domain/novel_workshop_repository.dart';
@@ -51,8 +52,32 @@ void main() {
     expect(find.text('Prompt 栈'), findsWidgets);
     expect(find.text('设置'), findsWidgets);
     expect(find.text('骨架大纲'), findsNothing);
+    expect(find.text('导出 TXT'), findsOneWidget);
     expect(find.text('进入编辑器'), findsOneWidget);
     expect(find.byKey(const ValueKey('novel-workshop-editor')), findsNothing);
+  });
+
+  testWidgets('workshop exports saved novel txt from header action', (
+    tester,
+  ) async {
+    final fixture = _WorkshopFixture(
+      plans: [
+        _plan(id: 'plan-1', index: 1, title: '第一章', objective: '主角进入雾港。'),
+      ],
+      chapters: [_chapter(planId: 'plan-1', index: 1, content: '正文。')],
+    );
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('导出 TXT'));
+    await tester.pumpAndSettle();
+
+    expect(fixture.exportService.calls, 1);
+    expect(fixture.exportService.lastProjectTitle, '雾港纪事');
+    expect(fixture.exportService.lastChapterCount, 1);
+    expect(find.textContaining('已导出 TXT：'), findsOneWidget);
   });
 
   testWidgets('workshop creates chapter plan from chapter planning tab', (
@@ -1395,6 +1420,7 @@ class _WorkshopTestApp extends StatelessWidget {
           fixture.providerRepository,
         ),
         novelWorkshopRepositoryProvider.overrideWithValue(fixture.repository),
+        novelExportServiceProvider.overrideWithValue(fixture.exportService),
         assetGenerationPipelineProvider.overrideWithValue(
           fixture.assetPipeline,
         ),
@@ -1487,6 +1513,7 @@ class _WorkshopFixture {
   final _FakeProviderConfigRepository providerRepository =
       _FakeProviderConfigRepository();
   final _FakeNovelWorkshopRepository repository;
+  final _FakeNovelExportService exportService = _FakeNovelExportService();
   final _FakeStyleLabRepository styleRepository;
   final _FakePlotLabRepository plotRepository;
   late final _FakeAssetGenerationPipeline assetPipeline;
@@ -1715,6 +1742,28 @@ ${repository.plans.singleWhere((item) => item.id == chapterPlanId).objectiveCard
       workflowTaskId: batch.workflowTaskId,
     );
   }
+}
+
+class _FakeNovelExportService implements NovelExportService {
+  int calls = 0;
+  String? lastProjectTitle;
+  int? lastChapterCount;
+
+  @override
+  Future<String?> exportTxt({
+    required WritingProject project,
+    required List<ChapterVolume> volumes,
+    required List<ChapterPlan> plans,
+    required List<ProjectChapter> chapters,
+  }) async {
+    calls += 1;
+    lastProjectTitle = project.title;
+    lastChapterCount = chapters.length;
+    return '/tmp/${project.title}.txt';
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _FakeProjectRepository implements ProjectRepository {

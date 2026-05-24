@@ -7,6 +7,7 @@ import '../../../core/tasks/application/workflow_task_cancellation_registry.dart
 import '../../../core/tasks/application/workflow_task_providers.dart';
 import '../../plot_lab/application/plot_lab_providers.dart';
 import '../../projects/application/project_providers.dart';
+import '../../projects/domain/writing_project.dart';
 import '../../settings/application/provider_config_providers.dart';
 import '../../style_lab/application/style_lab_providers.dart';
 import '../data/drift_novel_workshop_repository.dart';
@@ -16,6 +17,7 @@ import '../domain/writing_context.dart';
 import 'asset_generation_pipeline.dart';
 import 'chapter_enrichment_pipeline.dart';
 import 'chapter_generation_pipeline.dart';
+import 'novel_export_service.dart';
 import 'novel_import_parser.dart';
 import 'novel_import_service.dart';
 import 'outline_detail_parser.dart';
@@ -109,6 +111,11 @@ NovelImportService novelImportService(Ref ref) {
     projectRepository: ref.watch(projectRepositoryProvider),
     workshopRepository: ref.watch(novelWorkshopRepositoryProvider),
   );
+}
+
+@Riverpod(keepAlive: true)
+NovelExportService novelExportService(Ref ref) {
+  return const NovelExportService();
 }
 
 @riverpod
@@ -360,6 +367,30 @@ class NovelWorkshopController extends _$NovelWorkshopController {
       Error.throwWithStackTrace(state.error!, state.stackTrace!);
     }
     return saved;
+  }
+
+  Future<String?> exportTxt({
+    required WritingProject project,
+    required List<ChapterVolume> volumes,
+    required List<ChapterPlan> plans,
+    required List<ProjectChapter> chapters,
+  }) async {
+    state = const AsyncLoading();
+    String? path;
+    state = await AsyncValue.guard(() async {
+      path = await ref
+          .read(novelExportServiceProvider)
+          .exportTxt(
+            project: project,
+            volumes: volumes,
+            plans: plans,
+            chapters: chapters,
+          );
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
+    return path;
   }
 
   Future<ProjectChapter> proposeMemoryPatchForChapter({

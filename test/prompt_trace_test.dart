@@ -36,7 +36,7 @@ void main() {
       final found = await repository.findTask('task-preview-1');
       expect(found!.previewDismissedAt, isNotNull);
 
-      final recent = await repository.watchRecentTasks().first;
+      final recent = await repository.watchTasks().first;
       expect(recent.single.previewDismissedAt, found.previewDismissedAt);
     },
   );
