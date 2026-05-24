@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/image_generation/domain/image_generation_request.dart';
-import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/persona_page.dart';
 import '../application/image_provider_config_providers.dart';
 import '../domain/image_provider_config.dart';
@@ -95,6 +94,7 @@ class _ImageProviderDetailContentState
   _ActualImageRequest? _lastRequest;
   String? _errorMessage;
   var _isGenerating = false;
+  bool _sidebarExpanded = true;
 
   String get _resolvedModelName {
     final modelNames = _normalizedModelNames(widget.provider);
@@ -147,24 +147,65 @@ class _ImageProviderDetailContentState
   @override
   Widget build(BuildContext context) {
     final provider = widget.provider;
+    final colorScheme = Theme.of(context).colorScheme;
+    final statusColor = _statusColor(colorScheme, provider.testStatus);
 
     return PersonaPage(
       eyebrow: 'Image Provider',
       title: provider.name,
       description:
-          '${provider.baseUrl} · ${provider.defaultModel} · ${provider.defaultAspectRatio.label} · ${provider.defaultSize.label}',
+          '${provider.baseUrl} · ${provider.defaultModel} · Bearer auth',
       actions: [
-        OutlinedButton.icon(
-          onPressed: () => context.go('/settings'),
-          icon: const Icon(Icons.arrow_back),
-          label: const Text('返回设置'),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isCompact = constraints.maxWidth < 400;
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                if (!isCompact) ...[
+                  _HeaderStatusBadge(
+                    label: _statusLabel(provider.testStatus),
+                    icon: _statusIcon(provider.testStatus),
+                    color: statusColor,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    '启用',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  SizedBox(
+                    height: 24,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: Switch(
+                        value: provider.isEnabled,
+                        onChanged: null,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                ],
+                OutlinedButton.icon(
+                  onPressed: () => context.go('/settings'),
+                  icon: const Icon(Icons.arrow_back, size: 16),
+                  label: const Text('返回设置'),
+                ),
+              ],
+            );
+          },
         ),
       ],
       children: [
-        _ImageProviderCommandBar(provider: provider),
-        const SizedBox(height: 16),
         LayoutBuilder(
           builder: (context, constraints) {
+            final viewHeight = MediaQuery.of(context).size.height;
+            final panelHeight = (viewHeight - 220).clamp(480.0, 900.0);
+
             final workbench = _ImageGenerationWorkbench(
               provider: provider,
               promptController: _promptController,
@@ -176,8 +217,25 @@ class _ImageProviderDetailContentState
               isGenerating: _isGenerating,
               result: _lastResult,
               errorMessage: _errorMessage,
+              sidebarExpanded: _sidebarExpanded,
+              modelNames: _normalizedModelNames(provider),
               onGenerate: _generate,
               onClear: _clear,
+              onToggleSidebar: () {
+                setState(() => _sidebarExpanded = !_sidebarExpanded);
+              },
+              onModelSelected: (value) {
+                setState(() => _selectedModelName = value);
+              },
+              onAspectRatioChanged: (value) {
+                setState(() => _selectedAspectRatio = value);
+              },
+              onSizeChanged: (value) {
+                setState(() => _selectedSize = value);
+              },
+              onQualityChanged: (value) {
+                setState(() => _selectedQuality = value);
+              },
             );
             final inspector = _ImageGenerationInspector(
               provider: provider,
@@ -207,18 +265,37 @@ class _ImageProviderDetailContentState
             );
 
             if (constraints.maxWidth < 980) {
-              return Column(
-                children: [workbench, const SizedBox(height: 16), inspector],
+              return SizedBox(
+                height: panelHeight,
+                child: Column(
+                  children: [
+                    Expanded(child: workbench),
+                    const SizedBox(height: 16),
+                    Expanded(child: inspector),
+                  ],
+                ),
               );
             }
 
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: workbench),
-                const SizedBox(width: 16),
-                SizedBox(width: 410, child: inspector),
-              ],
+            return SizedBox(
+              height: panelHeight,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(child: workbench),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOutCubic,
+                    width: _sidebarExpanded ? 410 : 0,
+                    child: _sidebarExpanded
+                        ? Padding(
+                            padding: const EdgeInsets.only(left: 16),
+                            child: inspector,
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ),
             );
           },
         ),
@@ -284,51 +361,53 @@ class _ImageProviderDetailContentState
   }
 }
 
-class _ImageProviderCommandBar extends StatelessWidget {
-  const _ImageProviderCommandBar({required this.provider});
+// ---------------------------------------------------------------------------
+// Header badge
+// ---------------------------------------------------------------------------
 
-  final ImageProviderConfig provider;
+class _HeaderStatusBadge extends StatelessWidget {
+  const _HeaderStatusBadge({
+    required this.label,
+    required this.icon,
+    required this.color,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final statusColor = _statusColor(colorScheme, provider.testStatus);
-
-    return PersonaPanel(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          PersonaStatusPill(
-            label: provider.isEnabled ? '未来正式生成可选' : '已停用 · 仍可测试',
-            icon: provider.isEnabled
-                ? Icons.check_circle_outline
-                : Icons.pause_circle_outline,
-            color: provider.isEnabled
-                ? const Color(0xFF16825D)
-                : colorScheme.onSurfaceVariant,
-          ),
-          PersonaStatusPill(
-            label: _statusLabel(provider.testStatus),
-            icon: _statusIcon(provider.testStatus),
-            color: statusColor,
-          ),
-          PersonaStatusPill(
-            label: 'Bearer auth',
-            icon: Icons.key_outlined,
-            color: colorScheme.primary,
-          ),
-          PersonaStatusPill(
-            label:
-                '${provider.defaultAspectRatio.label} · ${provider.defaultSize.label} · ${provider.defaultQuality.label}',
-            icon: Icons.aspect_ratio_outlined,
-          ),
-        ],
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.26)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 13, color: color),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Image Generation Workbench
+// ---------------------------------------------------------------------------
 
 class _ImageGenerationWorkbench extends StatelessWidget {
   const _ImageGenerationWorkbench({
@@ -342,6 +421,13 @@ class _ImageGenerationWorkbench extends StatelessWidget {
     required this.isGenerating,
     required this.onGenerate,
     required this.onClear,
+    required this.sidebarExpanded,
+    required this.modelNames,
+    required this.onToggleSidebar,
+    required this.onModelSelected,
+    required this.onAspectRatioChanged,
+    required this.onSizeChanged,
+    required this.onQualityChanged,
     this.result,
     this.errorMessage,
   });
@@ -358,6 +444,13 @@ class _ImageGenerationWorkbench extends StatelessWidget {
   final String? errorMessage;
   final VoidCallback onGenerate;
   final VoidCallback onClear;
+  final bool sidebarExpanded;
+  final List<String> modelNames;
+  final VoidCallback onToggleSidebar;
+  final ValueChanged<String> onModelSelected;
+  final ValueChanged<ImageAspectRatioPreset> onAspectRatioChanged;
+  final ValueChanged<ImageSizePreset> onSizeChanged;
+  final ValueChanged<ImageQualityPreset> onQualityChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -366,39 +459,89 @@ class _ImageGenerationWorkbench extends StatelessWidget {
 
     return PersonaPanel(
       padding: EdgeInsets.zero,
-      child: SizedBox(
-        height: 760,
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(18, 16, 18, 10),
-              child: PersonaSectionHeader(
-                title: '文生图测试',
-                description:
-                    '$selectedModelName · ${selectedAspectRatio.label} · ${selectedSize.label} · ${selectedQuality.label}',
-                trailing: isGenerating
-                    ? PersonaStatusPill(
-                        label: '生成中',
-                        icon: Icons.sync,
-                        color: colorScheme.primary,
-                      )
-                    : null,
-              ),
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(18),
-                child: _ImagePreviewSurface(
-                  result: result,
-                  isGenerating: isGenerating,
+      child: Column(
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '文生图测试',
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '$selectedModelName · ${selectedAspectRatio.label} · ${selectedSize.label}',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+                if (isGenerating)
+                  PersonaStatusPill(
+                    label: '生成中',
+                    icon: Icons.sync,
+                    color: colorScheme.primary,
+                  ),
+              ],
+            ),
+          ),
+          // Inline control bar
+          _ImageInlineControlBar(
+            selectedModelName: selectedModelName,
+            modelNames: modelNames,
+            sidebarExpanded: sidebarExpanded,
+            isGenerating: isGenerating,
+            onModelSelected: onModelSelected,
+            onToggleSidebar: onToggleSidebar,
+          ),
+          // Parameter chips
+          _ImageParameterChips(
+            selectedAspectRatio: selectedAspectRatio,
+            selectedSize: selectedSize,
+            selectedQuality: selectedQuality,
+            isGenerating: isGenerating,
+            onAspectRatioChanged: onAspectRatioChanged,
+            onSizeChanged: onSizeChanged,
+            onQualityChanged: onQualityChanged,
+          ),
+          const Divider(height: 1),
+          // Preview area
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: _ImagePreviewSurface(
+                result: result,
+                isGenerating: isGenerating,
               ),
             ),
-            if (errorMessage != null) ...[
-              const Divider(height: 1),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 10, 18, 0),
+          ),
+          // Error
+          if (errorMessage != null) ...[
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 10, 18, 0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: colorScheme.errorContainer.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: colorScheme.error.withValues(alpha: 0.3),
+                  ),
+                ),
                 child: Row(
                   children: [
                     Icon(
@@ -410,7 +553,7 @@ class _ImageGenerationWorkbench extends StatelessWidget {
                     Expanded(
                       child: Text(
                         errorMessage!,
-                        style: textTheme.bodyMedium?.copyWith(
+                        style: textTheme.bodySmall?.copyWith(
                           color: colorScheme.error,
                         ),
                       ),
@@ -418,56 +561,353 @@ class _ImageGenerationWorkbench extends StatelessWidget {
                   ],
                 ),
               ),
-            ],
-            const Divider(height: 1),
-            Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                children: [
-                  TextField(
-                    controller: promptController,
-                    minLines: 3,
-                    maxLines: 5,
-                    decoration: const InputDecoration(
-                      labelText: 'Prompt',
-                      hintText: '输入用于测试的文生图 Prompt。',
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed: result == null && errorMessage == null
-                            ? null
-                            : onClear,
-                        icon: const Icon(Icons.delete_sweep_outlined),
-                        label: const Text('清空'),
-                      ),
-                      const Spacer(),
-                      FilledButton.icon(
-                        onPressed: isGenerating ? null : onGenerate,
-                        icon: isGenerating
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.auto_awesome_outlined),
-                        label: Text(isGenerating ? '生成中' : '生成测试'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
             ),
           ],
+          const Divider(height: 1),
+          // Input
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              children: [
+                TextField(
+                  controller: promptController,
+                  minLines: 2,
+                  maxLines: 4,
+                  style: textTheme.bodyMedium,
+                  decoration: InputDecoration(
+                    hintText: '输入用于测试的文生图 Prompt。',
+                    hintStyle: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.5,
+                      ),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: colorScheme.outlineVariant),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: colorScheme.outlineVariant),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                        color: colorScheme.primary,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: result == null && errorMessage == null
+                          ? null
+                          : onClear,
+                      icon: const Icon(Icons.delete_sweep_outlined, size: 16),
+                      label: const Text('清空'),
+                      style: OutlinedButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                    const Spacer(),
+                    FilledButton.icon(
+                      onPressed: isGenerating ? null : onGenerate,
+                      icon: isGenerating
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.auto_awesome_outlined, size: 16),
+                      label: Text(isGenerating ? '生成中' : '生成测试'),
+                      style: FilledButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Image inline control bar
+// ---------------------------------------------------------------------------
+
+class _ImageInlineControlBar extends StatelessWidget {
+  const _ImageInlineControlBar({
+    required this.selectedModelName,
+    required this.modelNames,
+    required this.sidebarExpanded,
+    required this.isGenerating,
+    required this.onModelSelected,
+    required this.onToggleSidebar,
+  });
+
+  final String selectedModelName;
+  final List<String> modelNames;
+  final bool sidebarExpanded;
+  final bool isGenerating;
+  final ValueChanged<String> onModelSelected;
+  final VoidCallback onToggleSidebar;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        border: Border(
+          top: BorderSide(color: colorScheme.outlineVariant),
+          bottom: BorderSide(color: colorScheme.outlineVariant),
+        ),
+      ),
+      child: Row(
+        children: [
+          Text(
+            'MODEL',
+            style: textTheme.labelSmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+              letterSpacing: 0.8,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: 8),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 180),
+            child: DropdownButton<String>(
+              value: selectedModelName,
+              isDense: true,
+              isExpanded: true,
+              underline: const SizedBox.shrink(),
+              style: textTheme.bodySmall?.copyWith(
+                fontFamily: 'monospace',
+                color: colorScheme.onSurface,
+              ),
+              items: [
+                for (final name in modelNames)
+                  DropdownMenuItem(
+                    value: name,
+                    child: Text(name, overflow: TextOverflow.ellipsis),
+                  ),
+              ],
+              onChanged: isGenerating
+                  ? null
+                  : (value) {
+                      if (value != null) onModelSelected(value);
+                    },
+            ),
+          ),
+          const Spacer(),
+          Tooltip(
+            message: sidebarExpanded ? '收起 Inspector' : '展开 Inspector',
+            child: InkWell(
+              onTap: onToggleSidebar,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: colorScheme.outlineVariant),
+                  color: sidebarExpanded
+                      ? colorScheme.primaryContainer.withValues(alpha: 0.3)
+                      : Colors.transparent,
+                ),
+                child: Icon(
+                  sidebarExpanded
+                      ? Icons.keyboard_double_arrow_right
+                      : Icons.keyboard_double_arrow_left,
+                  size: 16,
+                  color: sidebarExpanded
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Image parameter chips
+// ---------------------------------------------------------------------------
+
+class _ImageParameterChips extends StatelessWidget {
+  const _ImageParameterChips({
+    required this.selectedAspectRatio,
+    required this.selectedSize,
+    required this.selectedQuality,
+    required this.isGenerating,
+    required this.onAspectRatioChanged,
+    required this.onSizeChanged,
+    required this.onQualityChanged,
+  });
+
+  final ImageAspectRatioPreset selectedAspectRatio;
+  final ImageSizePreset selectedSize;
+  final ImageQualityPreset selectedQuality;
+  final bool isGenerating;
+  final ValueChanged<ImageAspectRatioPreset> onAspectRatioChanged;
+  final ValueChanged<ImageSizePreset> onSizeChanged;
+  final ValueChanged<ImageQualityPreset> onQualityChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.15),
+      ),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 6,
+        children: [
+          // Aspect ratio
+          _ChipGroup(
+            label: 'Ratio',
+            children: [
+              for (final ar in ImageAspectRatioPreset.values)
+                _ParamChip(
+                  label: ar.label,
+                  selected: ar == selectedAspectRatio,
+                  onTap: isGenerating ? null : () => onAspectRatioChanged(ar),
+                ),
+            ],
+          ),
+          // Size
+          _ChipGroup(
+            label: 'Size',
+            children: [
+              for (final sz in ImageSizePreset.values)
+                _ParamChip(
+                  label: sz.label,
+                  selected: sz == selectedSize,
+                  onTap: isGenerating ? null : () => onSizeChanged(sz),
+                ),
+            ],
+          ),
+          // Quality
+          _ChipGroup(
+            label: 'Quality',
+            children: [
+              for (final q in ImageQualityPreset.values)
+                _ParamChip(
+                  label: q.label,
+                  selected: q == selectedQuality,
+                  onTap: isGenerating ? null : () => onQualityChanged(q),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChipGroup extends StatelessWidget {
+  const _ChipGroup({required this.label, required this.children});
+
+  final String label;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: textTheme.labelSmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+            letterSpacing: 0.6,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(width: 6),
+        ...children,
+      ],
+    );
+  }
+}
+
+class _ParamChip extends StatelessWidget {
+  const _ParamChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 3),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: selected
+                  ? colorScheme.primary.withValues(alpha: 0.5)
+                  : colorScheme.outlineVariant,
+            ),
+            color: selected
+                ? colorScheme.primaryContainer.withValues(alpha: 0.3)
+                : Colors.transparent,
+          ),
+          child: Text(
+            label,
+            style: textTheme.labelSmall?.copyWith(
+              color: selected
+                  ? colorScheme.primary
+                  : colorScheme.onSurfaceVariant,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+            ),
+          ),
         ),
       ),
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Image preview surface
+// ---------------------------------------------------------------------------
 
 class _ImagePreviewSurface extends StatelessWidget {
   const _ImagePreviewSurface({required this.isGenerating, this.result});
@@ -487,9 +927,21 @@ class _ImagePreviewSurface extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircularProgressIndicator(),
+            SizedBox(
+              width: 36,
+              height: 36,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: colorScheme.primary,
+              ),
+            ),
             const SizedBox(height: 14),
-            Text('正在生成样例图片', style: textTheme.titleSmall),
+            Text(
+              '正在生成样例图片',
+              style: textTheme.titleSmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
           ],
         ),
       );
@@ -500,18 +952,29 @@ class _ImagePreviewSurface extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.image_outlined,
-              color: colorScheme.onSurfaceVariant,
-              size: 38,
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: colorScheme.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Icon(
+                  Icons.image_outlined,
+                  color: colorScheme.primary.withValues(alpha: 0.6),
+                  size: 32,
+                ),
+              ),
             ),
-            const SizedBox(height: 12),
-            Text('生成后图片会在这里预览', style: textTheme.titleMedium),
-            const SizedBox(height: 6),
+            const SizedBox(height: 14),
+            Text('生成后图片会在这里预览', style: textTheme.titleSmall),
+            const SizedBox(height: 4),
             Text(
               '预览仅保存在当前页面内存中，离开页面后消失。',
               textAlign: TextAlign.center,
-              style: textTheme.bodyMedium,
+              style: textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -526,7 +989,7 @@ class _ImagePreviewSurface extends StatelessWidget {
         _decodeImageBytes(b64),
         fit: BoxFit.contain,
         errorBuilder: (context, error, stackTrace) =>
-            _BrokenImage(message: '无法解码 b64_json 图片。'),
+            const _BrokenImage(message: '无法解码 b64_json 图片。'),
       );
     } else if (url != null && url.trim().isNotEmpty) {
       imageWidget = Image.network(
@@ -542,12 +1005,15 @@ class _ImagePreviewSurface extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(kPanelRadius),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Center(child: imageWidget),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Center(child: imageWidget),
+        ),
       ),
     );
   }
@@ -570,6 +1036,10 @@ class _BrokenImage extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Image Generation Inspector
+// ---------------------------------------------------------------------------
 
 class _ImageGenerationInspector extends StatefulWidget {
   const _ImageGenerationInspector({
@@ -614,28 +1084,64 @@ class _ImageGenerationInspectorState extends State<_ImageGenerationInspector> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return PersonaPanel(
       padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Inspector',
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '参数、请求与响应详情。',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (widget.isGenerating)
+                  PersonaStatusPill(
+                    label: '生成中',
+                    icon: Icons.sync,
+                    color: colorScheme.primary,
+                  ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
             child: SegmentedButton<int>(
               segments: const [
                 ButtonSegment(
                   value: 0,
-                  icon: Icon(Icons.tune_outlined),
+                  icon: Icon(Icons.tune_outlined, size: 15),
                   label: Text('参数'),
                 ),
                 ButtonSegment(
                   value: 1,
-                  icon: Icon(Icons.receipt_long_outlined),
+                  icon: Icon(Icons.receipt_long_outlined, size: 15),
                   label: Text('请求'),
                 ),
                 ButtonSegment(
                   value: 2,
-                  icon: Icon(Icons.data_object_outlined),
+                  icon: Icon(Icons.data_object_outlined, size: 15),
                   label: Text('响应'),
                 ),
               ],
@@ -643,35 +1149,47 @@ class _ImageGenerationInspectorState extends State<_ImageGenerationInspector> {
               onSelectionChanged: (value) {
                 setState(() => _selectedIndex = value.single);
               },
+              style: ButtonStyle(
+                visualDensity: VisualDensity.compact,
+                textStyle: WidgetStatePropertyAll(
+                  Theme.of(context).textTheme.labelSmall,
+                ),
+              ),
             ),
           ),
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: switch (_selectedIndex) {
-              0 => _ImageParameterTab(
-                provider: widget.provider,
-                selectedModelName: widget.selectedModelName,
-                selectedAspectRatio: widget.selectedAspectRatio,
-                selectedSize: widget.selectedSize,
-                selectedQuality: widget.selectedQuality,
-                selectedResponseFormat: widget.selectedResponseFormat,
-                isGenerating: widget.isGenerating,
-                onModelSelected: widget.onModelSelected,
-                onAspectRatioChanged: widget.onAspectRatioChanged,
-                onSizeChanged: widget.onSizeChanged,
-                onQualityChanged: widget.onQualityChanged,
-                onResponseFormatChanged: widget.onResponseFormatChanged,
-              ),
-              1 => _ImageRequestTab(actualRequest: widget.actualRequest),
-              _ => _ImageResponseTab(result: widget.result),
-            },
+          const Divider(height: 20),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+              child: switch (_selectedIndex) {
+                0 => _ImageParameterTab(
+                  provider: widget.provider,
+                  selectedModelName: widget.selectedModelName,
+                  selectedAspectRatio: widget.selectedAspectRatio,
+                  selectedSize: widget.selectedSize,
+                  selectedQuality: widget.selectedQuality,
+                  selectedResponseFormat: widget.selectedResponseFormat,
+                  isGenerating: widget.isGenerating,
+                  onModelSelected: widget.onModelSelected,
+                  onAspectRatioChanged: widget.onAspectRatioChanged,
+                  onSizeChanged: widget.onSizeChanged,
+                  onQualityChanged: widget.onQualityChanged,
+                  onResponseFormatChanged: widget.onResponseFormatChanged,
+                ),
+                1 => _ImageRequestTab(actualRequest: widget.actualRequest),
+                _ => _ImageResponseTab(result: widget.result),
+              },
+            ),
           ),
         ],
       ),
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Image parameter tab
+// ---------------------------------------------------------------------------
 
 class _ImageParameterTab extends StatelessWidget {
   const _ImageParameterTab({
@@ -705,122 +1223,229 @@ class _ImageParameterTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
     final modelNames = _normalizedModelNames(provider);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        PersonaSectionHeader(
-          title: '测试参数',
-          description: '只影响当前页面的文生图测试。',
-          trailing: PersonaStatusPill(
-            label: isGenerating ? '锁定中' : '可调整',
-            icon: Icons.tune_outlined,
-          ),
-        ),
-        const SizedBox(height: 16),
-        DropdownButtonFormField<String>(
-          initialValue: selectedModelName,
-          items: [
-            for (final modelName in modelNames)
-              DropdownMenuItem(
-                value: modelName,
-                child: Text(modelName, overflow: TextOverflow.ellipsis),
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '测试参数',
+                  style: textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
-          ],
-          onChanged: isGenerating
-              ? null
-              : (value) {
-                  if (value != null) onModelSelected(value);
-                },
-          decoration: const InputDecoration(
-            labelText: 'Model',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: 16),
-        DropdownButtonFormField<ImageAspectRatioPreset>(
-          initialValue: selectedAspectRatio,
-          items: [
-            for (final aspectRatio in ImageAspectRatioPreset.values)
-              DropdownMenuItem(
-                value: aspectRatio,
-                child: Text(aspectRatio.label),
+              PersonaStatusPill(
+                label: isGenerating ? '锁定中' : '可调整',
+                icon: Icons.tune_outlined,
               ),
-          ],
-          onChanged: isGenerating
-              ? null
-              : (value) {
-                  if (value != null) onAspectRatioChanged(value);
-                },
-          decoration: const InputDecoration(
-            labelText: 'Aspect ratio',
-            border: OutlineInputBorder(),
+            ],
           ),
-        ),
-        const SizedBox(height: 16),
-        DropdownButtonFormField<ImageSizePreset>(
-          initialValue: selectedSize,
-          items: [
-            for (final size in ImageSizePreset.values)
-              DropdownMenuItem(value: size, child: Text(size.label)),
-          ],
-          onChanged: isGenerating
-              ? null
-              : (value) {
-                  if (value != null) onSizeChanged(value);
-                },
-          decoration: const InputDecoration(
-            labelText: 'Size tier',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: 16),
-        DropdownButtonFormField<ImageQualityPreset>(
-          initialValue: selectedQuality,
-          items: [
-            for (final quality in ImageQualityPreset.values)
-              DropdownMenuItem(value: quality, child: Text(quality.label)),
-          ],
-          onChanged: isGenerating
-              ? null
-              : (value) {
-                  if (value != null) onQualityChanged(value);
-                },
-          decoration: const InputDecoration(
-            labelText: 'Quality',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: 16),
-        DropdownButtonFormField<ImageResponseFormat>(
-          initialValue: selectedResponseFormat,
-          items: const [
-            DropdownMenuItem(
-              value: ImageResponseFormat.url,
-              child: Text('url'),
+          const SizedBox(height: 16),
+          _ParamField(
+            label: 'Model',
+            child: DropdownButtonFormField<String>(
+              initialValue: selectedModelName,
+              items: [
+                for (final modelName in modelNames)
+                  DropdownMenuItem(
+                    value: modelName,
+                    child: Text(
+                      modelName,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodySmall,
+                    ),
+                  ),
+              ],
+              onChanged: isGenerating
+                  ? null
+                  : (value) {
+                      if (value != null) onModelSelected(value);
+                    },
+              decoration: InputDecoration(
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                isDense: true,
+              ),
+              style: textTheme.bodySmall,
             ),
-            DropdownMenuItem(
-              value: ImageResponseFormat.b64Json,
-              child: Text('b64_json'),
-            ),
-          ],
-          onChanged: isGenerating
-              ? null
-              : (value) {
-                  if (value != null) onResponseFormatChanged(value);
-                },
-          decoration: const InputDecoration(
-            labelText: 'Response format',
-            border: OutlineInputBorder(),
           ),
-        ),
-        const SizedBox(height: 12),
-        Text('n 固定为 1；style、user 当前不发送。', style: textTheme.bodyMedium),
-      ],
+          _ParamField(
+            label: 'Aspect Ratio',
+            child: DropdownButtonFormField<ImageAspectRatioPreset>(
+              initialValue: selectedAspectRatio,
+              items: [
+                for (final aspectRatio in ImageAspectRatioPreset.values)
+                  DropdownMenuItem(
+                    value: aspectRatio,
+                    child: Text(aspectRatio.label, style: textTheme.bodySmall),
+                  ),
+              ],
+              onChanged: isGenerating
+                  ? null
+                  : (value) {
+                      if (value != null) onAspectRatioChanged(value);
+                    },
+              decoration: InputDecoration(
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                isDense: true,
+              ),
+              style: textTheme.bodySmall,
+            ),
+          ),
+          _ParamField(
+            label: 'Size Tier',
+            child: DropdownButtonFormField<ImageSizePreset>(
+              initialValue: selectedSize,
+              items: [
+                for (final size in ImageSizePreset.values)
+                  DropdownMenuItem(
+                    value: size,
+                    child: Text(size.label, style: textTheme.bodySmall),
+                  ),
+              ],
+              onChanged: isGenerating
+                  ? null
+                  : (value) {
+                      if (value != null) onSizeChanged(value);
+                    },
+              decoration: InputDecoration(
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                isDense: true,
+              ),
+              style: textTheme.bodySmall,
+            ),
+          ),
+          _ParamField(
+            label: 'Quality',
+            child: DropdownButtonFormField<ImageQualityPreset>(
+              initialValue: selectedQuality,
+              items: [
+                for (final quality in ImageQualityPreset.values)
+                  DropdownMenuItem(
+                    value: quality,
+                    child: Text(quality.label, style: textTheme.bodySmall),
+                  ),
+              ],
+              onChanged: isGenerating
+                  ? null
+                  : (value) {
+                      if (value != null) onQualityChanged(value);
+                    },
+              decoration: InputDecoration(
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                isDense: true,
+              ),
+              style: textTheme.bodySmall,
+            ),
+          ),
+          _ParamField(
+            label: 'Response Format',
+            child: DropdownButtonFormField<ImageResponseFormat>(
+              initialValue: selectedResponseFormat,
+              items: const [
+                DropdownMenuItem(
+                  value: ImageResponseFormat.url,
+                  child: Text('url'),
+                ),
+                DropdownMenuItem(
+                  value: ImageResponseFormat.b64Json,
+                  child: Text('b64_json'),
+                ),
+              ],
+              onChanged: isGenerating
+                  ? null
+                  : (value) {
+                      if (value != null) onResponseFormatChanged(value);
+                    },
+              decoration: InputDecoration(
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                isDense: true,
+              ),
+              style: textTheme.bodySmall,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'n 固定为 1；style、user 当前不发送。',
+            style: textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
+
+class _ParamField extends StatelessWidget {
+  const _ParamField({required this.label, required this.child});
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: textTheme.labelSmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Image request tab
+// ---------------------------------------------------------------------------
 
 class _ImageRequestTab extends StatelessWidget {
   const _ImageRequestTab({required this.actualRequest});
@@ -829,36 +1454,60 @@ class _ImageRequestTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
     final request = actualRequest;
+
     if (request == null) {
       return Text(
         '发送测试后显示最终请求；不会展示 API Key。',
-        style: Theme.of(context).textTheme.bodyMedium,
+        style: textTheme.bodySmall?.copyWith(
+          color: colorScheme.onSurfaceVariant,
+        ),
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const PersonaSectionHeader(
-          title: 'Actual Request',
-          description: '展示最终参数；不会展示 API Key。',
-        ),
-        const SizedBox(height: 12),
-        _MetaLine(label: 'endpoint', value: request.endpoint),
-        _MetaLine(label: 'model', value: request.model),
-        _MetaLine(label: 'size', value: request.size),
-        _MetaLine(label: 'quality', value: request.quality),
-        _MetaLine(label: 'response_format', value: request.responseFormat),
-        _MetaLine(label: 'n', value: request.n.toString()),
-        const SizedBox(height: 12),
-        Text('prompt', style: Theme.of(context).textTheme.labelMedium),
-        const SizedBox(height: 4),
-        _CodeBlock(text: request.prompt),
-      ],
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Actual Request',
+            style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '展示最终参数；不会展示 API Key。',
+            style: textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _MetaLine(label: 'endpoint', value: request.endpoint),
+          _MetaLine(label: 'model', value: request.model),
+          _MetaLine(label: 'size', value: request.size),
+          _MetaLine(label: 'quality', value: request.quality),
+          _MetaLine(label: 'response_format', value: request.responseFormat),
+          _MetaLine(label: 'n', value: request.n.toString()),
+          const SizedBox(height: 12),
+          Text(
+            'prompt',
+            style: textTheme.labelSmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          _CodeBlock(text: request.prompt),
+        ],
+      ),
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Image response tab
+// ---------------------------------------------------------------------------
 
 class _ImageResponseTab extends StatelessWidget {
   const _ImageResponseTab({required this.result});
@@ -867,50 +1516,84 @@ class _ImageResponseTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
     final result = this.result;
+
     if (result == null) {
       return Text(
         '生成成功后显示响应摘要。',
-        style: Theme.of(context).textTheme.bodyMedium,
+        style: textTheme.bodySmall?.copyWith(
+          color: colorScheme.onSurfaceVariant,
+        ),
       );
     }
+
     final image = result.images.first;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const PersonaSectionHeader(
-          title: 'Response',
-          description: '图片数据只保存在当前页面内存中。',
-        ),
-        const SizedBox(height: 12),
-        if (result.created != null)
-          _MetaLine(label: 'created', value: result.created.toString()),
-        _MetaLine(label: 'images', value: result.images.length.toString()),
-        if (image.url != null)
-          _MetaLine(label: 'url', value: image.url!, selectable: true),
-        if (image.b64Json != null)
-          _MetaLine(label: 'b64_json', value: '${image.b64Json!.length} chars'),
-        if (image.revisedPrompt != null) ...[
-          const SizedBox(height: 12),
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Text(
-            'revised_prompt',
-            style: Theme.of(context).textTheme.labelMedium,
+            'Response',
+            style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
-          _CodeBlock(text: image.revisedPrompt!),
-        ],
-        if (result.usage != null) ...[
+          Text(
+            '图片数据只保存在当前页面内存中。',
+            style: textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(height: 12),
-          Text('usage', style: Theme.of(context).textTheme.labelMedium),
-          const SizedBox(height: 4),
-          _CodeBlock(
-            text: const JsonEncoder.withIndent('  ').convert(result.usage),
+          if (result.created != null)
+            _MetaLine(label: 'created', value: result.created.toString()),
+          _MetaLine(
+            label: 'images',
+            value: result.images.length.toString(),
           ),
+          if (image.url != null)
+            _MetaLine(label: 'url', value: image.url!, selectable: true),
+          if (image.b64Json != null)
+            _MetaLine(
+              label: 'b64_json',
+              value: '${image.b64Json!.length} chars',
+            ),
+          if (image.revisedPrompt != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              'revised_prompt',
+              style: textTheme.labelSmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            _CodeBlock(text: image.revisedPrompt!),
+          ],
+          if (result.usage != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              'usage',
+              style: textTheme.labelSmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            _CodeBlock(
+              text: const JsonEncoder.withIndent('  ').convert(result.usage),
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Shared widgets
+// ---------------------------------------------------------------------------
 
 class _MetaLine extends StatelessWidget {
   const _MetaLine({
@@ -926,17 +1609,19 @@ class _MetaLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 120,
+            width: 110,
             child: Text(
               label,
-              style: textTheme.labelMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              style: textTheme.labelSmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -947,7 +1632,9 @@ class _MetaLine extends StatelessWidget {
                     value,
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
-                    style: textTheme.bodySmall,
+                    style: textTheme.bodySmall?.copyWith(
+                      fontFamily: 'monospace',
+                    ),
                   ),
           ),
         ],
@@ -965,10 +1652,11 @@ class _CodeBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+
     return DecoratedBox(
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Padding(
@@ -984,6 +1672,10 @@ class _CodeBlock extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Actual request model
+// ---------------------------------------------------------------------------
 
 class _ActualImageRequest {
   const _ActualImageRequest({
@@ -1004,6 +1696,10 @@ class _ActualImageRequest {
   final String responseFormat;
   final int n;
 }
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 List<String> _normalizedModelNames(ImageProviderConfig provider) {
   final seen = <String>{};

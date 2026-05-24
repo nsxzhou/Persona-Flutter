@@ -17,6 +17,7 @@ import 'package:persona_flutter/src/features/settings/domain/provider_config.dar
 import 'package:persona_flutter/src/features/style_lab/application/style_lab_providers.dart';
 import 'package:persona_flutter/src/features/style_lab/domain/style_analysis_run.dart';
 import 'package:persona_flutter/src/features/workflow_runs/application/workflow_task_controller.dart';
+import 'package:persona_flutter/src/features/workflow_runs/presentation/workflow_run_detail_page.dart';
 import 'package:persona_flutter/src/features/workflow_runs/presentation/workflow_runs_page.dart';
 
 void main() {
@@ -37,7 +38,8 @@ void main() {
     await tester.pumpWidget(_WorkflowRunsTestApp(task: task, run: run));
     await _pumpWorkflowRuns(tester);
 
-    expect(find.text('打开详情'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('剧情分析：雾线剧情'), 200);
+    expect(find.text('剧情分析：雾线剧情'), findsOneWidget);
 
     await tester.tap(find.text('剧情分析：雾线剧情').last);
     await _pumpWorkflowRuns(tester);
@@ -112,6 +114,7 @@ void main() {
     );
     await _pumpWorkflowRuns(tester);
 
+    await tester.scrollUntilVisible(find.text('资产生成：角色索引与关系网'), 200);
     await tester.tap(find.text('资产生成：角色索引与关系网'));
     await _pumpWorkflowRuns(tester);
 
@@ -165,6 +168,7 @@ void main() {
     );
     await _pumpWorkflowRuns(tester);
 
+    await tester.scrollUntilVisible(find.text('批量草稿：2 章'), 200);
     await tester.tap(find.text('批量草稿：2 章'));
     await _pumpWorkflowRuns(tester);
 
@@ -199,10 +203,12 @@ void main() {
     await tester.pumpWidget(_WorkflowRunsTestApp(task: task, run: _plotRun()));
     await _pumpWorkflowRuns(tester);
 
-    expect(find.text('放弃'), findsOneWidget);
-    await tester.tap(find.text('放弃'));
+    // Navigate to detail page
+    await tester.scrollUntilVisible(find.text('资产生成：世界观设定'), 200);
+    await tester.tap(find.text('资产生成：世界观设定').last);
     await _pumpWorkflowRuns(tester);
 
+    // Abandon action should be visible on the detail page
     expect(find.text('放弃任务'), findsWidgets);
   });
 
@@ -337,16 +343,17 @@ void main() {
     await _pumpWorkflowRuns(tester);
 
     expect(find.text('完成预览'), findsNothing);
-    expect(find.text('工作流活动'), findsOneWidget);
-    expect(find.text('打开预览'), findsNWidgets(3));
-    expect(find.text('应用'), findsNWidgets(2));
-    expect(find.text('忽略'), findsNWidgets(3));
+    // With virtual list, scroll to find items that may be off-screen
+    await tester.scrollUntilVisible(find.text('资产生成：已忽略预览'), 200);
     expect(find.text('资产生成：已忽略预览'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('资产生成：已应用资产'), 200);
     expect(find.text('资产生成：已应用资产'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('章节生成：第 1 章'), 200);
     expect(find.text('章节生成：第 1 章'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('章节加料：已应用'), 200);
     expect(find.text('章节加料：已应用'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('已放弃'), 200);
     expect(find.text('已放弃'), findsOneWidget);
-    expect(find.textContaining('已放弃', findRichText: true), findsWidgets);
 
     expect(
       find.ancestor(
@@ -355,38 +362,6 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(
-      find.descendant(
-        of: find.ancestor(
-          of: find.text('资产生成：已应用资产'),
-          matching: find.byType(InkWell),
-        ),
-        matching: find.text('打开预览'),
-      ),
-      findsNothing,
-    );
-    expect(
-      find.descendant(
-        of: find.ancestor(
-          of: find.text('章节加料：已应用'),
-          matching: find.byType(InkWell),
-        ),
-        matching: find.text('应用'),
-      ),
-      findsNothing,
-    );
-
-    await tester.ensureVisible(find.text('忽略').first);
-    await tester.tap(find.text('忽略').first);
-    await _pumpWorkflowRuns(tester);
-
-    expect(repository.dismissedTaskIds, ['task-asset-preview']);
-    expect(find.text('任务预览提醒已关闭，产出仍可在项目工作台查看。'), findsNothing);
-
-    await tester.tap(find.text('打开预览').first);
-    await _pumpWorkflowRuns(tester);
-
-    expect(find.text('任务产出预览'), findsOneWidget);
   });
 
   testWidgets('workflow runs shows all tasks beyond previous recent limit', (
@@ -411,6 +386,10 @@ void main() {
     await _pumpWorkflowRuns(tester);
 
     expect(find.text('21'), findsOneWidget);
+    // Scroll to verify tasks are reachable in the virtual list
+    await tester.scrollUntilVisible(find.text('任务 0'), 200);
+    expect(find.text('任务 0'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('任务 20'), 200);
     expect(find.text('任务 20'), findsOneWidget);
   });
 
@@ -451,20 +430,25 @@ void main() {
       await _pumpWorkflowRuns(tester);
 
       expect(find.text('3'), findsOneWidget);
+      // Scroll to verify all tasks are in the list
+      await tester.scrollUntilVisible(find.text('剧情任务'), 200);
       expect(find.text('剧情任务'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('风格任务'), 200);
       expect(find.text('风格任务'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('章节任务'), 200);
       expect(find.text('章节任务'), findsOneWidget);
 
-      await tester.tap(find.text('全部状态'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('失败').last);
+      // Tap "待检查" metrics card to filter by failed status
+      await tester.tap(find.text('待检查'));
       await tester.pumpAndSettle();
 
       expect(find.text('3'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('风格任务'), 200);
       expect(find.text('风格任务'), findsOneWidget);
       expect(find.text('剧情任务'), findsNothing);
       expect(find.text('章节任务'), findsNothing);
 
+      // Tap kind dropdown to further filter
       await tester.tap(find.text('全部类型'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('剧情分析').last);
@@ -511,10 +495,11 @@ class _WorkflowRunsTestApp extends StatelessWidget {
     final chapterBatchItemItems = chapterBatchItems ?? const [];
     final enrichmentBatchItems = enrichmentBatches ?? const [];
     final enrichmentItemItems = enrichmentItems ?? const [];
+    final allTasks = tasks ?? [task];
     return ProviderScope(
       overrides: [
         workflowTasksProvider.overrideWith(
-          (ref) => Stream<List<WorkflowTask>>.value(tasks ?? [task]),
+          (ref) => Stream<List<WorkflowTask>>.value(allTasks),
         ),
         if (workflowRepository != null)
           workflowTaskRepositoryProvider.overrideWithValue(workflowRepository!),

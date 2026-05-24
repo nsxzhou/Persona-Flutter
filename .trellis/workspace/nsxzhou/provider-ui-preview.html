@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Provider UI Redesign Preview</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --surface: #1a1a1f;
+    --surface-container: #222228;
+    --surface-container-high: #2a2a32;
+    --surface-container-highest: #33333d;
+    --outline: #3d3d48;
+    --outline-variant: #2e2e38;
+    --on-surface: #e8e6f0;
+    --on-surface-variant: #9d9baa;
+    --primary: #c4a0ff;
+    --primary-container: rgba(196, 160, 255, 0.12);
+    --on-primary: #1a1028;
+    --success: #7dd3a8;
+    --success-container: rgba(125, 211, 168, 0.1);
+    --error: #ffb4ab;
+    --error-container: rgba(255, 180, 171, 0.1);
+    --panel-radius: 14px;
+    --chip-radius: 8px;
+    --transition: 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #111115;
+    color: var(--on-surface);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .preview-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: rgba(17, 17, 21, 0.88);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--outline-variant);
+    padding: 12px 32px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .preview-nav .logo {
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    color: var(--primary);
+    text-transform: uppercase;
+  }
+
+  .preview-nav .tabs {
+    display: flex;
+    gap: 4px;
+  }
+
+  .preview-nav .tab {
+    padding: 6px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    border: none;
+    background: transparent;
+    color: var(--on-surface-variant);
+  }
+
+  .preview-nav .tab.active {
+    background: var(--surface-container-high);
+    color: var(--on-surface);
+  }
+
+  .preview-nav .tab:hover:not(.active) {
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+
+  .page {
+    display: none;
+    padding: 72px 32px 40px;
+    max-width: 1400px;
+    margin: 0 auto;
+    min-height: 100vh;
+  }
+
+  .page.active { display: block; }
+
+  /* ---- HEADER ---- */
+  .page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    gap: 20px;
+  }
+
+  .page-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--primary);
+  }
+
+  .page-title-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .page-title {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--on-surface);
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .status-badge.success {
+    background: var(--success-container);
+    color: var(--success);
+    border: 1px solid rgba(125, 211, 168, 0.2);
+  }
+
+  .status-badge.error {
+    background: var(--error-container);
+    color: var(--error);
+    border: 1px solid rgba(255, 180, 171, 0.2);
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  .status-dot.success { background: var(--success); }
+  .status-dot.error { background: var(--error); }
+
+  .page-description {
+    font-size: 14px;
+    color: var(--on-surface-variant);
+    max-width: 600px;
+  }
+
+  .page-description code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    background: var(--surface-container);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--on-surface);
+  }
+
+  .page-header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  /* ---- TOGGLE ---- */
+  .toggle-switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    cursor: pointer;
+  }
+
+  .toggle-switch input { display: none; }
+
+  .toggle-track {
+    position: absolute;
+    inset: 0;
+    background: var(--surface-container-highest);
+    border-radius: 999px;
+    border: 1px solid var(--outline);
+    transition: var(--transition);
+  }
+
+  .toggle-switch input:checked + .toggle-track {
+    background: var(--primary-container);
+    border-color: var(--primary);
+  }
+
+  .toggle-knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--on-surface-variant);
+    transition: var(--transition);
+  }
+
+  .toggle-switch input:checked ~ .toggle-knob {
+    left: 23px;
+    background: var(--primary);
+  }
+
+  .toggle-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--on-surface-variant);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ---- BUTTONS ---- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: var(--chip-radius);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: var(--transition);
+    border: 1px solid var(--outline);
+    background: transparent;
+    color: var(--on-surface-variant);
+  }
+
+  .btn:hover {
+    background: var(--surface-container);
+    border-color: var(--on-surface-variant);
+    color: var(--on-surface);
+  }
+
+  .btn-filled {
+    background: var(--primary);
+    color: var(--on-primary);
+    border-color: var(--primary);
+    font-weight: 600;
+  }
+
+  .btn-filled:hover {
+    opacity: 0.9;
+    background: var(--primary);
+    color: var(--on-primary);
+  }
+
+  .btn-sm {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
+  /* ---- PANEL ---- */
+  .panel {
+    background: var(--surface-container);
+    border: 1px solid var(--outline-variant);
+    border-radius: var(--panel-radius);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  }
+
+  /* ---- MAIN LAYOUT ---- */
+  .main-layout {
+    display: flex;
+    gap: 16px;
+    min-height: calc(100vh - 160px);
+  }
+
+  .main-layout.narrow {
+    flex-direction: column;
+  }
+
+  .workbench {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 410px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    transition: width var(--transition), opacity var(--transition);
+    overflow: hidden;
+  }
+
+  .sidebar.collapsed {
+    width: 0;
+    opacity: 0;
+  }
+
+  /* ---- INLINE CONTROL BAR ---- */
+  .inline-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--outline-variant);
+    background: var(--surface-container);
+    flex-wrap: wrap;
+  }
+
+  .control-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .control-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--on-surface-variant);
+    white-space: nowrap;
+  }
+
+  .control-select {
+    background: var(--surface-container-high);
+    border: 1px solid var(--outline);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--on-surface);
+    cursor: pointer;
+    outline: none;
+    min-width: 140px;
+  }
+
+  .control-select:focus {
+    border-color: var(--primary);
+  }
+
+  .slider-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 160px;
+  }
+
+  .slider-group input[type="range"] {
+    flex: 1;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--outline);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  .slider-group input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    border: 2px solid var(--surface-container);
+  }
+
+  .slider-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--primary);
+    min-width: 24px;
+    text-align: center;
+  }
+
+  .sidebar-toggle {
+    margin-left: auto;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: 1px solid var(--outline);
+    background: var(--surface-container-high);
+    color: var(--on-surface-variant);
+    transition: var(--transition);
+  }
+
+  .sidebar-toggle:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  /* ---- CHAT WORKBENCH ---- */
+  .chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .chat-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--outline-variant);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .chat-header-title {
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .chat-header-sub {
+    font-size: 12px;
+    color: var(--on-surface-variant);
+    margin-top: 2px;
+  }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .message {
+    display: flex;
+    gap: 10px;
+    max-width: 75%;
+    animation: msgIn 0.3s ease-out;
+  }
+
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .message.user {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+  }
+
+  .message.assistant {
+    align-self: flex-start;
+  }
+
+  .msg-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 14px;
+  }
+
+  .message.user .msg-avatar {
+    background: var(--primary-container);
+    color: var(--primary);
+  }
+
+  .message.assistant .msg-avatar {
+    background: var(--surface-container-highest);
+    color: var(--on-surface-variant);
+  }
+
+  .msg-bubble {
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 1.6;
+    position: relative;
+  }
+
+  .message.user .msg-bubble {
+    background: var(--primary);
+    color: var(--on-primary);
+    border-bottom-right-radius: 4px;
+  }
+
+  .message.assistant .msg-bubble {
+    background: var(--surface-container-high);
+    color: var(--on-surface);
+    border: 1px solid var(--outline-variant);
+    border-bottom-left-radius: 4px;
+  }
+
+  .msg-bubble.streaming .cursor {
+    display: inline-block;
+    width: 2px;
+    height: 14px;
+    background: var(--primary);
+    margin-left: 2px;
+    vertical-align: middle;
+    animation: blink 0.8s step-end infinite;
+  }
+
+  @keyframes blink {
+    50% { opacity: 0; }
+  }
+
+  .msg-bubble.skeleton {
+    background: var(--surface-container-high);
+    border: 1px solid var(--outline-variant);
+    min-width: 200px;
+  }
+
+  .skeleton-line {
+    height: 12px;
+    border-radius: 6px;
+    background: linear-gradient(
+      90deg,
+      var(--surface-container-highest) 25%,
+      var(--outline-variant) 50%,
+      var(--surface-container-highest) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    margin-bottom: 8px;
+  }
+
+  .skeleton-line:last-child { margin-bottom: 0; }
+  .skeleton-line.w60 { width: 60%; }
+  .skeleton-line.w80 { width: 80%; }
+  .skeleton-line.w45 { width: 45%; }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: var(--on-surface-variant);
+    padding: 40px;
+  }
+
+  .empty-state .icon {
+    font-size: 32px;
+    opacity: 0.5;
+  }
+
+  .empty-state .title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--on-surface);
+  }
+
+  .empty-state .desc {
+    font-size: 13px;
+    text-align: center;
+    max-width: 300px;
+  }
+
+  .chat-input-area {
+    border-top: 1px solid var(--outline-variant);
+    padding: 14px 18px;
+  }
+
+  .chat-input {
+    width: 100%;
+    min-height: 72px;
+    max-height: 120px;
+    padding: 10px 14px;
+    background: var(--surface-container-high);
+    border: 1px solid var(--outline);
+    border-radius: 10px;
+    color: var(--on-surface);
+    font-family: inherit;
+    font-size: 13px;
+    resize: vertical;
+    outline: none;
+    transition: var(--transition);
+  }
+
+  .chat-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-container);
+  }
+
+  .chat-input::placeholder {
+    color: var(--on-surface-variant);
+    opacity: 0.6;
+  }
+
+  .chat-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+  }
+
+  /* ---- SIDEBAR PANEL ---- */
+  .sidebar .panel {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--outline-variant);
+  }
+
+  .sidebar-header-title {
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .sidebar-header-sub {
+    font-size: 12px;
+    color: var(--on-surface-variant);
+    margin-top: 2px;
+  }
+
+  .tab-bar {
+    display: flex;
+    padding: 8px 14px;
+    gap: 4px;
+    border-bottom: 1px solid var(--outline-variant);
+  }
+
+  .tab-item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 7px 0;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--on-surface-variant);
+    border: none;
+    background: transparent;
+  }
+
+  .tab-item.active {
+    background: var(--surface-container-highest);
+    color: var(--on-surface);
+  }
+
+  .tab-item:hover:not(.active) {
+    background: var(--surface-container-high);
+  }
+
+  .tab-content {
+    flex: 1;
+    padding: 16px 18px;
+    overflow-y: auto;
+  }
+
+  .tab-content .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .tab-content .section-desc {
+    font-size: 12px;
+    color: var(--on-surface-variant);
+    margin-bottom: 14px;
+  }
+
+  .prompt-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: var(--primary-container);
+    border: 1px solid rgba(196, 160, 255, 0.18);
+    margin-bottom: 12px;
+  }
+
+  .prompt-toggle-text {
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .prompt-toggle-sub {
+    font-size: 11px;
+    color: var(--primary);
+    margin-top: 2px;
+  }
+
+  .prompt-textarea {
+    width: 100%;
+    min-height: 180px;
+    padding: 10px 12px;
+    background: var(--surface-container-high);
+    border: 1px solid var(--outline);
+    border-radius: 8px;
+    color: var(--on-surface);
+    font-family: inherit;
+    font-size: 12px;
+    resize: vertical;
+    outline: none;
+    transition: var(--transition);
+  }
+
+  .prompt-textarea:focus {
+    border-color: var(--primary);
+  }
+
+  .prompt-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+  }
+
+  .prompt-footer .hint {
+    font-size: 12px;
+    color: var(--on-surface-variant);
+    flex: 1;
+  }
+
+  /* ---- IMAGE WORKBENCH ---- */
+  .image-workbench {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .image-preview-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    background: var(--surface-container-high);
+    margin: 14px;
+    border-radius: 12px;
+    border: 1px dashed var(--outline);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .image-preview-area.has-image {
+    border-style: solid;
+    border-color: var(--outline-variant);
+  }
+
+  .image-preview-area img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+  }
+
+  .image-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    color: var(--on-surface-variant);
+  }
+
+  .image-empty .icon { font-size: 36px; opacity: 0.4; }
+  .image-empty .title { font-size: 14px; font-weight: 600; color: var(--on-surface); }
+  .image-empty .desc { font-size: 12px; }
+
+  .image-generating {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--outline);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .image-chips-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    border-bottom: 1px solid var(--outline-variant);
+    flex-wrap: wrap;
+  }
+
+  .chip-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .chip-group .label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--on-surface-variant);
+    margin-right: 4px;
+  }
+
+  .chip {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    border: 1px solid var(--outline);
+    background: var(--surface-container-high);
+    color: var(--on-surface-variant);
+  }
+
+  .chip.active {
+    background: var(--primary-container);
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .chip:hover:not(.active) {
+    border-color: var(--on-surface-variant);
+    color: var(--on-surface);
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--outline-variant);
+  }
+
+  .p-18 { padding: 18px; }
+
+  /* ---- RESPONSIVE NOTE ---- */
+  .responsive-note {
+    margin-top: 32px;
+    padding: 16px 20px;
+    background: var(--surface-container);
+    border: 1px solid var(--outline-variant);
+    border-radius: 10px;
+    font-size: 12px;
+    color: var(--on-surface-variant);
+  }
+
+  .responsive-note strong {
+    color: var(--on-surface);
+  }
+
+  /* ---- SCROLLBAR ---- */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--outline); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--on-surface-variant); }
+
+  /* ---- ANIMATIONS ---- */
+  .fade-in {
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .stagger-1 { animation-delay: 0.05s; animation-fill-mode: both; }
+  .stagger-2 { animation-delay: 0.1s; animation-fill-mode: both; }
+  .stagger-3 { animation-delay: 0.15s; animation-fill-mode: both; }
+</style>
+</head>
+<body>
+
+<!-- NAVIGATION -->
+<nav class="preview-nav">
+  <div class="logo">Provider UI Preview</div>
+  <div class="tabs">
+    <button class="tab active" onclick="switchPage('chat')">Chat Provider</button>
+    <button class="tab" onclick="switchPage('image')">Image Provider</button>
+  </div>
+</nav>
+
+<!-- ==================== CHAT PAGE ==================== -->
+<div id="page-chat" class="page active">
+  <!-- Header -->
+  <div class="page-header fade-in stagger-1">
+    <div class="page-header-left">
+      <div class="eyebrow">Provider</div>
+      <div class="page-title-row">
+        <h1 class="page-title">OpenAI GPT</h1>
+        <span class="status-badge success">
+          <span class="status-dot success"></span>
+          Connected
+        </span>
+      </div>
+      <p class="page-description">
+        <code>https://api.openai.com/v1</code> &middot; gpt-4o &middot; 12 models
+      </p>
+    </div>
+    <div class="page-header-right">
+      <label class="toggle-label">
+        <span>Enabled</span>
+        <label class="toggle-switch">
+          <input type="checkbox" checked>
+          <span class="toggle-track"></span>
+          <span class="toggle-knob"></span>
+        </label>
+      </label>
+      <button class="btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Back
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Layout -->
+  <div class="main-layout fade-in stagger-2">
+    <!-- Workbench -->
+    <div class="workbench panel">
+      <!-- Chat Header -->
+      <div class="chat-header">
+        <div>
+          <div class="chat-header-title">Streaming Chat Test</div>
+          <div class="chat-header-sub">OpenAI GPT &middot; gpt-4o &middot; 12 models</div>
+        </div>
+        <span class="status-badge success" style="font-size:10px; padding: 2px 8px;">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14"/></svg>
+          Idle
+        </span>
+      </div>
+
+      <!-- Inline Controls -->
+      <div class="inline-controls">
+        <div class="control-group">
+          <span class="control-label">Model</span>
+          <select class="control-select">
+            <option>gpt-4o</option>
+            <option>gpt-4o-mini</option>
+            <option>gpt-4-turbo</option>
+          </select>
+        </div>
+        <div class="slider-group">
+          <span class="control-label">Temp</span>
+          <input type="range" min="0" max="200" value="70">
+          <span class="slider-value">0.7</span>
+        </div>
+        <div class="sidebar-toggle" title="Toggle Inspector" onclick="toggleSidebar('chat')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Chat Messages -->
+      <div class="chat-area">
+        <div class="messages">
+          <!-- User message -->
+          <div class="message user">
+            <div class="msg-avatar">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            </div>
+            <div class="msg-bubble">
+              请帮我续写这段网文：夜色如墨，远处的山峦在月光下勾勒出一道银色的轮廓。少女站在崖边，长发随风飘舞...
+            </div>
+          </div>
+
+          <!-- Assistant message -->
+          <div class="message assistant">
+            <div class="msg-avatar">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+            </div>
+            <div class="msg-bubble">
+              她深吸一口气，感受着夜风中夹杂的松木清香。山下的村庄已经沉入梦乡，唯有几点灯火还在闪烁，像是大地睁着的倦怠眼睛。<br><br>"该走了。"她低声自语，指尖轻轻拂过腰间那柄古旧的长剑。剑鞘上的纹路已经被岁月磨得光滑，唯有那颗镶嵌在剑格处的青石依旧莹润如初。<br><br>一声清啸划破夜空——是那只跟她走了三天三夜的白鹤。它落在不远处的枯枝上，歪着头看她，似乎在催促。
+            </div>
+          </div>
+
+          <!-- User message 2 -->
+          <div class="message user">
+            <div class="msg-avatar">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            </div>
+            <div class="msg-bubble">
+              继续，加入一个冲突场景
+            </div>
+          </div>
+
+          <!-- Streaming assistant message -->
+          <div class="message assistant">
+            <div class="msg-avatar">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+            </div>
+            <div class="msg-bubble streaming">
+              就在她即将转身的瞬间，一道黑影从崖壁下方窜出。那是一个蒙面人，手中<span class="cursor"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="chat-input-area">
+          <textarea class="chat-input" placeholder="Enter a test message..."></textarea>
+          <div class="chat-actions">
+            <button class="btn btn-sm">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
+              Clear
+            </button>
+            <button class="btn btn-filled btn-sm">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              Stop
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div id="sidebar-chat" class="sidebar">
+      <div class="panel">
+        <div class="sidebar-header">
+          <div class="sidebar-header-title">Inspector</div>
+          <div class="sidebar-header-sub">Edit prompt, tune params, inspect request.</div>
+        </div>
+        <div class="tab-bar">
+          <button class="tab-item active" onclick="switchTab(this)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+            Prompt
+          </button>
+          <button class="tab-item" onclick="switchTab(this)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/></svg>
+            Params
+          </button>
+          <button class="tab-item" onclick="switchTab(this)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            Request
+          </button>
+        </div>
+        <div class="tab-content">
+          <div class="section-title">Provider Prompt</div>
+          <div class="section-desc">Global system constraint appended to business prompt.</div>
+          <div class="prompt-toggle">
+            <div>
+              <div class="prompt-toggle-text">Provider Prompt Active</div>
+              <div class="prompt-toggle-sub">Appended to business prompt on generation</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" checked>
+              <span class="toggle-track"></span>
+              <span class="toggle-knob"></span>
+            </label>
+          </div>
+          <textarea class="prompt-textarea">You are a web novel continuation assistant. Based on the user's previous text and continuation requirements, directly output the next paragraph. Maintain scene continuity, clear actions, natural dialogue. Do not explain.</textarea>
+          <div class="prompt-footer">
+            <span class="hint">Prompt saved; used in tests and generation.</span>
+            <button class="btn btn-filled btn-sm">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="responsive-note">
+    <strong>Responsive:</strong> Below 980px, sidebar stacks below the workbench. Inline controls always visible.
+  </div>
+</div>
+
+<!-- ==================== IMAGE PAGE ==================== -->
+<div id="page-image" class="page">
+  <!-- Header -->
+  <div class="page-header fade-in stagger-1">
+    <div class="page-header-left">
+      <div class="eyebrow">Image Provider</div>
+      <div class="page-title-row">
+        <h1 class="page-title">DALL-E 3</h1>
+        <span class="status-badge success">
+          <span class="status-dot success"></span>
+          Connected
+        </span>
+      </div>
+      <p class="page-description">
+        <code>https://api.openai.com/v1</code> &middot; dall-e-3 &middot; Bearer auth
+      </p>
+    </div>
+    <div class="page-header-right">
+      <label class="toggle-label">
+        <span>Enabled</span>
+        <label class="toggle-switch">
+          <input type="checkbox" checked>
+          <span class="toggle-track"></span>
+          <span class="toggle-knob"></span>
+        </label>
+      </label>
+      <button class="btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Back
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Layout -->
+  <div class="main-layout fade-in stagger-2">
+    <!-- Workbench -->
+    <div class="workbench panel">
+      <!-- Image Header -->
+      <div class="chat-header">
+        <div>
+          <div class="chat-header-title">Text-to-Image Test</div>
+          <div class="chat-header-sub">dall-e-3 &middot; 1024x1024 &middot; HD</div>
+        </div>
+        <span class="status-badge success" style="font-size:10px; padding: 2px 8px;">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14"/></svg>
+          Idle
+        </span>
+      </div>
+
+      <!-- Inline Controls -->
+      <div class="inline-controls">
+        <div class="control-group">
+          <span class="control-label">Model</span>
+          <select class="control-select">
+            <option>dall-e-3</option>
+            <option>dall-e-2</option>
+          </select>
+        </div>
+        <div class="sidebar-toggle" title="Toggle Inspector" onclick="toggleSidebar('image')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
+        </div>
+      </div>
+
+      <!-- Parameter Chips -->
+      <div class="image-chips-bar">
+        <div class="chip-group">
+          <span class="label">Ratio</span>
+          <button class="chip active">1:1</button>
+          <button class="chip">16:9</button>
+          <button class="chip">9:16</button>
+          <button class="chip">3:2</button>
+        </div>
+        <div class="chip-group">
+          <span class="label">Size</span>
+          <button class="chip">Standard</button>
+          <button class="chip active">HD</button>
+        </div>
+        <div class="chip-group">
+          <span class="label">Quality</span>
+          <button class="chip">Standard</button>
+          <button class="chip active">HD</button>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Image Preview -->
+      <div class="image-preview-area has-image">
+        <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&q=80" alt="Generated landscape">
+      </div>
+
+      <!-- Input Area -->
+      <div class="chat-input-area">
+        <textarea class="chat-input" style="min-height: 56px;">A serene mountain landscape at sunset with golden light reflecting on a crystal clear lake, photorealistic style</textarea>
+        <div class="chat-actions">
+          <button class="btn btn-sm">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
+            Clear
+          </button>
+          <button class="btn btn-filled btn-sm">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            Generate
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div id="sidebar-image" class="sidebar">
+      <div class="panel">
+        <div class="sidebar-header">
+          <div class="sidebar-header-title">Inspector</div>
+          <div class="sidebar-header-sub">Parameters, request & response details.</div>
+        </div>
+        <div class="tab-bar">
+          <button class="tab-item active" onclick="switchTab(this)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/></svg>
+            Params
+          </button>
+          <button class="tab-item" onclick="switchTab(this)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+            Request
+          </button>
+          <button class="tab-item" onclick="switchTab(this)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Response
+          </button>
+        </div>
+        <div class="tab-content">
+          <div class="section-title">Test Parameters</div>
+          <div class="section-desc">Only affects current page test.</div>
+
+          <div style="margin-bottom: 14px;">
+            <div class="control-label" style="margin-bottom: 6px;">Model</div>
+            <select class="control-select" style="width: 100%;">
+              <option>dall-e-3</option>
+              <option>dall-e-2</option>
+            </select>
+          </div>
+          <div style="margin-bottom: 14px;">
+            <div class="control-label" style="margin-bottom: 6px;">Aspect Ratio</div>
+            <select class="control-select" style="width: 100%;">
+              <option>1:1 (Square)</option>
+              <option>16:9 (Landscape)</option>
+              <option>9:16 (Portrait)</option>
+            </select>
+          </div>
+          <div style="margin-bottom: 14px;">
+            <div class="control-label" style="margin-bottom: 6px;">Size Tier</div>
+            <select class="control-select" style="width: 100%;">
+              <option>Standard</option>
+              <option selected>HD</option>
+            </select>
+          </div>
+          <div style="margin-bottom: 14px;">
+            <div class="control-label" style="margin-bottom: 6px;">Quality</div>
+            <select class="control-select" style="width: 100%;">
+              <option>Standard</option>
+              <option selected>HD</option>
+            </select>
+          </div>
+          <div style="margin-bottom: 14px;">
+            <div class="control-label" style="margin-bottom: 6px;">Response Format</div>
+            <select class="control-select" style="width: 100%;">
+              <option>url</option>
+              <option>b64_json</option>
+            </select>
+          </div>
+          <div class="section-desc" style="margin-top: 8px;">n fixed to 1; style and user not sent.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="responsive-note">
+    <strong>Responsive:</strong> Below 980px, sidebar stacks below. Parameter chips stay inline above preview.
+  </div>
+</div>
+
+<script>
+  function switchPage(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.preview-nav .tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('page-' + page).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  function toggleSidebar(page) {
+    const sidebar = document.getElementById('sidebar-' + page);
+    sidebar.classList.toggle('collapsed');
+  }
+
+  function switchTab(el) {
+    const bar = el.parentElement;
+    bar.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  // Chip toggle
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const group = chip.closest('.chip-group');
+      group.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+    });
+  });
+
+  // Slider value display
+  document.querySelectorAll('input[type="range"]').forEach(slider => {
+    const display = slider.parentElement.querySelector('.slider-value');
+    if (display) {
+      slider.addEventListener('input', () => {
+        display.textContent = (slider.value / 100).toFixed(1);
+      });
+    }
+  });
+</script>
+
+</body>
+</html>

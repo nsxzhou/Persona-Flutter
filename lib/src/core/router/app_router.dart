@@ -8,6 +8,7 @@ import '../../features/settings/presentation/provider_detail_page.dart';
 import '../../features/settings/presentation/image_provider_detail_page.dart';
 import '../../features/settings/presentation/settings_page.dart';
 import '../../features/style_lab/presentation/style_lab_page.dart';
+import '../../features/workflow_runs/presentation/workflow_run_detail_page.dart';
 import '../../features/workflow_runs/presentation/workflow_runs_page.dart';
 import '../ui/app_shell.dart';
 import 'app_route.dart';
