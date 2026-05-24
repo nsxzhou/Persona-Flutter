@@ -169,6 +169,17 @@ Stream<List<ChapterGenerationBatch>> chapterGenerationBatches(
       .watchChapterGenerationBatches(projectId);
 }
 
+@Riverpod(keepAlive: true)
+class DismissedChapterGenerationBatches
+    extends _$DismissedChapterGenerationBatches {
+  @override
+  Set<String> build(String projectId) => const {};
+
+  void dismiss(String batchId) {
+    state = {...state, batchId};
+  }
+}
+
 @riverpod
 Stream<List<ChapterGenerationBatchItem>> chapterGenerationBatchItems(
   Ref ref,

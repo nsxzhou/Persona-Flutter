@@ -1055,6 +1055,15 @@ characters:
     expect(find.byTooltip('关闭批量草稿状态'), findsNothing);
     expect(find.widgetWithText(OutlinedButton, '批量草稿'), findsOneWidget);
 
+    await tester.tap(find.byTooltip('返回工作台'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('进入编辑器').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('查看工作流任务'), findsNothing);
+    expect(find.byTooltip('关闭批量草稿状态'), findsNothing);
+    expect(find.widgetWithText(OutlinedButton, '批量草稿'), findsOneWidget);
+
     await fixture.repository.createChapterGenerationBatch(
       ChapterGenerationBatchInput(
         projectId: 'project-1',

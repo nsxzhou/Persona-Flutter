@@ -155,7 +155,6 @@ class _NovelWorkshopPageState extends ConsumerState<NovelWorkshopPage> {
 
 class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
   final _editorController = TextEditingController();
-  final Set<String> _dismissedGenerationBatchIds = {};
   String? _selectedPlanId;
   String? _loadedChapterId;
   String _loadedContent = '';
@@ -170,6 +169,7 @@ class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
 
   ChapterGenerationBatch? _visibleGenerationBatch(
     List<ChapterGenerationBatch> batches,
+    Set<String> dismissedBatchIds,
   ) {
     final runningBatch = batches
         .where(
@@ -182,14 +182,16 @@ class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
       return runningBatch;
     }
     return batches
-        .where((batch) => !_dismissedGenerationBatchIds.contains(batch.id))
+        .where((batch) => !dismissedBatchIds.contains(batch.id))
         .firstOrNull;
   }
 
   void _dismissGenerationBatch(String batchId) {
-    setState(() {
-      _dismissedGenerationBatchIds.add(batchId);
-    });
+    ref
+        .read(
+          dismissedChapterGenerationBatchesProvider(widget.projectId).notifier,
+        )
+        .dismiss(batchId);
   }
 
   @override
@@ -201,6 +203,9 @@ class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
     final runs = ref.watch(chapterGenerationRunsProvider(widget.projectId));
     final generationBatches = ref.watch(
       chapterGenerationBatchesProvider(widget.projectId),
+    );
+    final dismissedGenerationBatchIds = ref.watch(
+      dismissedChapterGenerationBatchesProvider(widget.projectId),
     );
     final memory = ref.watch(projectRuntimeMemoryProvider(widget.projectId));
     final assets = ref.watch(projectPromptAssetsProvider(widget.projectId));
@@ -244,6 +249,7 @@ class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
                     final busy = controller.isLoading || selectedRunning;
                     final visibleBatch = _visibleGenerationBatch(
                       generationBatchItems,
+                      dismissedGenerationBatchIds,
                     );
                     final batchRunning =
                         visibleBatch?.status ==

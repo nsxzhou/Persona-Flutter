@@ -1111,6 +1111,112 @@ final class ChapterGenerationBatchesFamily extends $Family
   String toString() => r'chapterGenerationBatchesProvider';
 }
 
+@ProviderFor(DismissedChapterGenerationBatches)
+final dismissedChapterGenerationBatchesProvider =
+    DismissedChapterGenerationBatchesFamily._();
+
+final class DismissedChapterGenerationBatchesProvider
+    extends $NotifierProvider<DismissedChapterGenerationBatches, Set<String>> {
+  DismissedChapterGenerationBatchesProvider._({
+    required DismissedChapterGenerationBatchesFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'dismissedChapterGenerationBatchesProvider',
+         isAutoDispose: false,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() =>
+      _$dismissedChapterGenerationBatchesHash();
+
+  @override
+  String toString() {
+    return r'dismissedChapterGenerationBatchesProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  DismissedChapterGenerationBatches create() =>
+      DismissedChapterGenerationBatches();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(Set<String> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<Set<String>>(value),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is DismissedChapterGenerationBatchesProvider &&
+        other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$dismissedChapterGenerationBatchesHash() =>
+    r'6ca16b493c03b93edac41ea6345b7ca4f1121fd5';
+
+final class DismissedChapterGenerationBatchesFamily extends $Family
+    with
+        $ClassFamilyOverride<
+          DismissedChapterGenerationBatches,
+          Set<String>,
+          Set<String>,
+          Set<String>,
+          String
+        > {
+  DismissedChapterGenerationBatchesFamily._()
+    : super(
+        retry: null,
+        name: r'dismissedChapterGenerationBatchesProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: false,
+      );
+
+  DismissedChapterGenerationBatchesProvider call(String projectId) =>
+      DismissedChapterGenerationBatchesProvider._(
+        argument: projectId,
+        from: this,
+      );
+
+  @override
+  String toString() => r'dismissedChapterGenerationBatchesProvider';
+}
+
+abstract class _$DismissedChapterGenerationBatches
+    extends $Notifier<Set<String>> {
+  late final _$args = ref.$arg as String;
+  String get projectId => _$args;
+
+  Set<String> build(String projectId);
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<Set<String>, Set<String>>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<Set<String>, Set<String>>,
+              Set<String>,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, () => build(_$args));
+  }
+}
+
 @ProviderFor(chapterGenerationBatchItems)
 final chapterGenerationBatchItemsProvider =
     ChapterGenerationBatchItemsFamily._();
