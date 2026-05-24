@@ -344,7 +344,7 @@ final class ImageProviderConfigControllerProvider
 }
 
 String _$imageProviderConfigControllerHash() =>
-    r'b7df370c0b5b593b399236181a0cbd817fd19ac5';
+    r'd27945fa7502639ab504ab18dc3794a11b368ce3';
 
 abstract class _$ImageProviderConfigController extends $AsyncNotifier<void> {
   FutureOr<void> build();

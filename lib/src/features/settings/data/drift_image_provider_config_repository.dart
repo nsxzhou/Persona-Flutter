@@ -50,6 +50,7 @@ class DriftImageProviderConfigRepository
               baseUrl: Value(input.baseUrl.trim()),
               apiKey: Value(input.apiKey.trim()),
               defaultModel: Value(modelNames.first),
+              providerKind: Value(input.providerKind.storageValue),
               defaultAspectRatio: Value(input.defaultAspectRatio.ratio),
               defaultSize: Value(input.defaultSize.tier),
               defaultQuality: Value(input.defaultQuality.quality),
@@ -170,6 +171,7 @@ class DriftImageProviderConfigRepository
       baseUrl: row.baseUrl,
       apiKey: row.apiKey,
       defaultModel: row.defaultModel,
+      providerKind: ImageProviderKind.fromStorage(row.providerKind),
       modelNames: normalizedModels,
       defaultAspectRatio: ImageAspectRatioPreset.fromRatio(
         row.defaultAspectRatio,

@@ -70,6 +70,7 @@ class ImageProviderConfigRecords extends Table {
   TextColumn get baseUrl => text()();
   TextColumn get apiKey => text()();
   TextColumn get defaultModel => text()();
+  TextColumn get providerKind => text().withDefault(const Constant('gpt'))();
   TextColumn get defaultAspectRatio =>
       text().withDefault(const Constant('1:1'))();
   TextColumn get defaultSize => text().withDefault(const Constant('1K'))();
@@ -646,7 +647,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 26;
+  int get schemaVersion => 27;
 
   @override
   MigrationStrategy get migration {
@@ -1026,6 +1027,22 @@ class AppDatabase extends _$AppDatabase {
             UPDATE image_provider_config_records
             SET default_aspect_ratio = '1:1'
             WHERE default_aspect_ratio = 'auto'
+          ''');
+        }
+        if (from < 27 && await _tableExists('image_provider_config_records')) {
+          if (!await _columnExists(
+            'image_provider_config_records',
+            'provider_kind',
+          )) {
+            await migrator.addColumn(
+              imageProviderConfigRecords,
+              imageProviderConfigRecords.providerKind,
+            );
+          }
+          await customStatement('''
+            UPDATE image_provider_config_records
+            SET provider_kind = 'gpt'
+            WHERE provider_kind IS NULL OR TRIM(provider_kind) = ''
           ''');
         }
       },

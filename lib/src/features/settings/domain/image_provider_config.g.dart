@@ -13,6 +13,12 @@ _ImageProviderConfig _$ImageProviderConfigFromJson(Map<String, dynamic> json) =>
       baseUrl: json['baseUrl'] as String,
       apiKey: json['apiKey'] as String,
       defaultModel: json['defaultModel'] as String,
+      providerKind:
+          $enumDecodeNullable(
+            _$ImageProviderKindEnumMap,
+            json['providerKind'],
+          ) ??
+          ImageProviderKind.gpt,
       modelNames:
           (json['modelNames'] as List<dynamic>?)
               ?.map((e) => e as String)
@@ -57,6 +63,7 @@ Map<String, dynamic> _$ImageProviderConfigToJson(
   'baseUrl': instance.baseUrl,
   'apiKey': instance.apiKey,
   'defaultModel': instance.defaultModel,
+  'providerKind': _$ImageProviderKindEnumMap[instance.providerKind]!,
   'modelNames': instance.modelNames,
   'defaultAspectRatio':
       _$ImageAspectRatioPresetEnumMap[instance.defaultAspectRatio]!,
@@ -70,6 +77,11 @@ Map<String, dynamic> _$ImageProviderConfigToJson(
   'lastTestMessage': instance.lastTestMessage,
   'createdAt': instance.createdAt.toIso8601String(),
   'updatedAt': instance.updatedAt.toIso8601String(),
+};
+
+const _$ImageProviderKindEnumMap = {
+  ImageProviderKind.gpt: 'gpt',
+  ImageProviderKind.grok: 'grok',
 };
 
 const _$ImageAspectRatioPresetEnumMap = {

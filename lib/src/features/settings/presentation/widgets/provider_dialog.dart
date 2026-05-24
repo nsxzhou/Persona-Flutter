@@ -54,6 +54,7 @@ class _ProviderDialogState extends ConsumerState<ProviderDialog> {
   var _isApiKeyVisible = false;
 
   // Image-specific state
+  late ImageProviderKind _providerKind;
   late ImageAspectRatioPreset _defaultAspectRatio;
   late ImageSizePreset _defaultSize;
   late ImageQualityPreset _defaultQuality;
@@ -76,6 +77,7 @@ class _ProviderDialogState extends ConsumerState<ProviderDialog> {
         text: (p?.modelNames ?? const <String>[]).join('\n'),
       );
       _isEnabled = p?.isEnabled ?? true;
+      _providerKind = p?.providerKind ?? ImageProviderKind.gpt;
       _defaultAspectRatio =
           p?.defaultAspectRatio ?? ImageAspectRatioPreset.square;
       _defaultSize = p?.defaultSize ?? ImageSizePreset.oneK;
@@ -87,13 +89,12 @@ class _ProviderDialogState extends ConsumerState<ProviderDialog> {
       _nameController = TextEditingController(text: p?.name ?? '');
       _baseUrlController = TextEditingController(text: p?.baseUrl ?? '');
       _apiKeyController = TextEditingController(text: p?.apiKey ?? '');
-      _modelController = TextEditingController(
-        text: p?.defaultModel ?? '',
-      );
+      _modelController = TextEditingController(text: p?.defaultModel ?? '');
       _modelsController = TextEditingController(
         text: (p?.modelNames ?? const <String>[]).join('\n'),
       );
       _isEnabled = p?.isEnabled ?? true;
+      _providerKind = ImageProviderKind.gpt;
       _defaultAspectRatio = ImageAspectRatioPreset.square;
       _defaultSize = ImageSizePreset.oneK;
       _defaultQuality = ImageQualityPreset.auto;
@@ -212,7 +213,9 @@ class _ProviderDialogState extends ConsumerState<ProviderDialog> {
       controller: _baseUrlController,
       decoration: InputDecoration(
         labelText: 'Base URL',
-        hintText: _isImage ? 'https://example.com' : 'https://api.openai.com/v1',
+        hintText: _isImage
+            ? 'https://example.com'
+            : 'https://api.openai.com/v1',
       ),
       keyboardType: TextInputType.url,
       validator: urlValidator,
@@ -245,6 +248,23 @@ class _ProviderDialogState extends ConsumerState<ProviderDialog> {
       minLines: 3,
       maxLines: 5,
     );
+    final kindField = DropdownButtonFormField<ImageProviderKind>(
+      initialValue: _providerKind,
+      decoration: const InputDecoration(labelText: 'Provider 类型'),
+      items: [
+        for (final kind in ImageProviderKind.values)
+          DropdownMenuItem(value: kind, child: Text(kind.label)),
+      ],
+      onChanged: (value) {
+        if (value == null) return;
+        setState(() {
+          _providerKind = value;
+          if (value == ImageProviderKind.grok) {
+            _defaultResponseFormat = ImageResponseFormat.url;
+          }
+        });
+      },
+    );
 
     if (!_isImage) {
       return _buildLlmFields(
@@ -262,6 +282,7 @@ class _ProviderDialogState extends ConsumerState<ProviderDialog> {
       modelField: modelField,
       baseUrlField: baseUrlField,
       apiKeyField: apiKeyField,
+      kindField: kindField,
       modelsField: modelsField,
     );
   }
@@ -320,6 +341,7 @@ class _ProviderDialogState extends ConsumerState<ProviderDialog> {
     required Widget modelField,
     required Widget baseUrlField,
     required Widget apiKeyField,
+    required Widget kindField,
     required Widget modelsField,
   }) {
     final aspectRatioField = DropdownButtonFormField<ImageAspectRatioPreset>(
@@ -390,17 +412,23 @@ class _ProviderDialogState extends ConsumerState<ProviderDialog> {
             ],
           ),
           const SizedBox(height: 12),
+          Row(children: [Expanded(child: kindField)]),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(child: aspectRatioField),
               const SizedBox(width: 12),
               Expanded(child: sizeField),
-              const SizedBox(width: 12),
-              Expanded(child: qualityField),
+              if (_providerKind != ImageProviderKind.grok) ...[
+                const SizedBox(width: 12),
+                Expanded(child: qualityField),
+              ],
             ],
           ),
-          const SizedBox(height: 12),
-          Row(children: [Expanded(child: formatField)]),
+          if (_providerKind != ImageProviderKind.grok) ...[
+            const SizedBox(height: 12),
+            Row(children: [Expanded(child: formatField)]),
+          ],
           const SizedBox(height: 12),
           modelsField,
         ],
@@ -417,13 +445,17 @@ class _ProviderDialogState extends ConsumerState<ProviderDialog> {
         const SizedBox(height: 12),
         apiKeyField,
         const SizedBox(height: 12),
+        kindField,
+        const SizedBox(height: 12),
         aspectRatioField,
         const SizedBox(height: 12),
         sizeField,
-        const SizedBox(height: 12),
-        qualityField,
-        const SizedBox(height: 12),
-        formatField,
+        if (_providerKind != ImageProviderKind.grok) ...[
+          const SizedBox(height: 12),
+          qualityField,
+          const SizedBox(height: 12),
+          formatField,
+        ],
         const SizedBox(height: 12),
         modelsField,
       ],
@@ -438,15 +470,10 @@ class _ProviderDialogState extends ConsumerState<ProviderDialog> {
         border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: SwitchListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 2,
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
         title: Text(_isImage ? '启用图像 Provider' : '启用 Provider'),
         subtitle: Text(
-          _isImage
-              ? '停用后不参与未来正式生成选择，但详情页仍可测试。'
-              : '停用后不参与正式生成选择，但详情页仍可测试。',
+          _isImage ? '停用后不参与未来正式生成选择，但详情页仍可测试。' : '停用后不参与正式生成选择，但详情页仍可测试。',
         ),
         value: _isEnabled,
         onChanged: (value) => setState(() => _isEnabled = value),
@@ -459,9 +486,7 @@ class _ProviderDialogState extends ConsumerState<ProviderDialog> {
       decoration: BoxDecoration(
         color: colorScheme.primary.withValues(alpha: 0.07),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: colorScheme.primary.withValues(alpha: 0.18),
-        ),
+        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.18)),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -496,11 +521,16 @@ class _ProviderDialogState extends ConsumerState<ProviderDialog> {
               baseUrl: _baseUrlController.text,
               apiKey: _apiKeyController.text,
               defaultModel: _modelController.text,
+              providerKind: _providerKind,
               modelNames: parseModelNames(_modelsController.text),
               defaultAspectRatio: _defaultAspectRatio,
               defaultSize: _defaultSize,
-              defaultQuality: _defaultQuality,
-              defaultResponseFormat: _defaultResponseFormat,
+              defaultQuality: _providerKind == ImageProviderKind.grok
+                  ? ImageQualityPreset.auto
+                  : _defaultQuality,
+              defaultResponseFormat: _providerKind == ImageProviderKind.grok
+                  ? ImageResponseFormat.url
+                  : _defaultResponseFormat,
               isEnabled: _isEnabled,
             ),
           );

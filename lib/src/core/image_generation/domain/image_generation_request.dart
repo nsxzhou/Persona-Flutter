@@ -7,7 +7,6 @@ class ImageGenerationRequest {
     required this.size,
     required this.quality,
     this.responseFormat = ImageResponseFormat.url,
-    this.n = 1,
   });
 
   final String model;
@@ -15,7 +14,6 @@ class ImageGenerationRequest {
   final String size;
   final String quality;
   final ImageResponseFormat responseFormat;
-  final int n;
 }
 
 class ImageEditRequest {
@@ -27,7 +25,6 @@ class ImageEditRequest {
     required this.size,
     required this.quality,
     this.responseFormat = ImageResponseFormat.url,
-    this.n = 1,
     this.maskBytes,
     this.maskFilename,
   });
@@ -39,7 +36,6 @@ class ImageEditRequest {
   final String size;
   final String quality;
   final ImageResponseFormat responseFormat;
-  final int n;
   final List<int>? maskBytes;
   final String? maskFilename;
 }

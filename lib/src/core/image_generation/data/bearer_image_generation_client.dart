@@ -19,7 +19,11 @@ class BearerImageGenerationClient implements ImageGenerationClient {
     required ImageProviderConfig provider,
     required ImageGenerationRequest request,
   }) async {
-    final endpoint = _endpoint(provider.baseUrl, '/images/generations');
+    final isGrok = provider.providerKind == ImageProviderKind.grok;
+    final endpoint = _endpoint(
+      provider.baseUrl,
+      isGrok ? '/chat/completions' : '/images/generations',
+    );
     try {
       final response = await _client
           .post(
@@ -29,17 +33,12 @@ class BearerImageGenerationClient implements ImageGenerationClient {
               'Accept': 'application/json',
               'Authorization': 'Bearer ${provider.apiKey}',
             },
-            body: jsonEncode({
-              'model': request.model,
-              'prompt': request.prompt,
-              'size': request.size,
-              'quality': request.quality,
-              'n': request.n,
-              'response_format': _responseFormatValue(request.responseFormat),
-            }),
+            body: jsonEncode(_generationBody(provider, request)),
           )
           .timeout(const Duration(seconds: 120));
-      return _parseResponse(response, provider);
+      return isGrok
+          ? _parseChatCompletionsResponse(response, provider)
+          : _parseImagesResponse(response, provider);
     } on TimeoutException {
       throw const ImageGenerationClientException('图像生成超时，请检查网络或模型状态。');
     } on ImageGenerationClientException {
@@ -54,6 +53,9 @@ class BearerImageGenerationClient implements ImageGenerationClient {
     required ImageProviderConfig provider,
     required ImageEditRequest request,
   }) async {
+    if (provider.providerKind == ImageProviderKind.grok) {
+      throw const ImageGenerationClientException('Grok 图像 Provider 暂不支持图片编辑。');
+    }
     final endpoint = _endpoint(provider.baseUrl, '/images/edits');
     final multipart = http.MultipartRequest('POST', endpoint)
       ..headers.addAll({
@@ -65,7 +67,6 @@ class BearerImageGenerationClient implements ImageGenerationClient {
         'prompt': request.prompt,
         'size': request.size,
         'quality': request.quality,
-        'n': request.n.toString(),
         'response_format': _responseFormatValue(request.responseFormat),
       })
       ..files.add(
@@ -88,7 +89,7 @@ class BearerImageGenerationClient implements ImageGenerationClient {
           .send(multipart)
           .timeout(const Duration(seconds: 120));
       final response = await http.Response.fromStream(streamed);
-      return _parseResponse(response, provider);
+      return _parseImagesResponse(response, provider);
     } on TimeoutException {
       throw const ImageGenerationClientException('图像编辑超时，请检查网络或模型状态。');
     } on ImageGenerationClientException {
@@ -98,7 +99,7 @@ class BearerImageGenerationClient implements ImageGenerationClient {
     }
   }
 
-  ImageGenerationResult _parseResponse(
+  ImageGenerationResult _parseImagesResponse(
     http.Response response,
     ImageProviderConfig provider,
   ) {
@@ -126,9 +127,52 @@ class BearerImageGenerationClient implements ImageGenerationClient {
           ),
         )
         .where((image) => image.hasImage)
+        .take(1)
         .toList(growable: false);
     if (images.isEmpty) {
       throw const ImageGenerationClientException('响应没有可显示的图像。');
+    }
+    final usage = decoded['usage'];
+    return ImageGenerationResult(
+      created: decoded['created'] is int ? decoded['created'] as int : null,
+      images: images,
+      usage: usage is Map<String, Object?> ? usage : null,
+      rawBody: response.body,
+    );
+  }
+
+  ImageGenerationResult _parseChatCompletionsResponse(
+    http.Response response,
+    ImageProviderConfig provider,
+  ) {
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw ImageGenerationClientException(
+        '请求失败：HTTP ${response.statusCode} ${_sanitizeBody(response.body, provider)}',
+      );
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, Object?>) {
+      throw const ImageGenerationClientException('响应不是有效的聊天生图对象。');
+    }
+    final choices = decoded['choices'];
+    if (choices is! List) {
+      throw const ImageGenerationClientException('响应缺少 choices 列表。');
+    }
+    final images = choices
+        .whereType<Map<String, Object?>>()
+        .map((choice) => choice['message'])
+        .whereType<Map<String, Object?>>()
+        .map((message) => message['content'])
+        .whereType<String>()
+        .map(_markdownImageUrl)
+        .whereType<String>()
+        .map((url) => GeneratedImage(url: url))
+        .where((image) => image.hasImage)
+        .take(1)
+        .toList(growable: false);
+    if (images.isEmpty) {
+      throw const ImageGenerationClientException('聊天生图响应没有可显示的图片链接。');
     }
     final usage = decoded['usage'];
     return ImageGenerationResult(
@@ -148,6 +192,35 @@ class BearerImageGenerationClient implements ImageGenerationClient {
         ? withoutTrailingSlash
         : '$withoutTrailingSlash/v1';
     return Uri.parse('$normalized$path');
+  }
+
+  Map<String, Object?> _generationBody(
+    ImageProviderConfig provider,
+    ImageGenerationRequest request,
+  ) {
+    final body = <String, Object?>{
+      'model': request.model,
+      'prompt': request.prompt,
+      'size': request.size,
+      'response_format': _responseFormatValue(request.responseFormat),
+    };
+    if (provider.providerKind != ImageProviderKind.grok) {
+      body['quality'] = request.quality;
+      return body;
+    }
+    return {
+      'model': request.model,
+      'stream': false,
+      'messages': [
+        {'role': 'user', 'content': request.prompt},
+      ],
+      'image_config': {'size': request.size, 'response_format': 'url'},
+    };
+  }
+
+  String? _markdownImageUrl(String content) {
+    final match = RegExp(r'!\[[^\]]*\]\(([^)]+)\)').firstMatch(content);
+    return match?.group(1)?.trim();
   }
 
   String _responseFormatValue(ImageResponseFormat format) {

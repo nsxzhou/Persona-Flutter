@@ -118,7 +118,7 @@ class _ImageProviderDetailContentState
     _selectedAspectRatio = widget.provider.defaultAspectRatio;
     _selectedSize = widget.provider.defaultSize;
     _selectedQuality = widget.provider.defaultQuality;
-    _selectedResponseFormat = widget.provider.defaultResponseFormat;
+    _selectedResponseFormat = _effectiveResponseFormat(widget.provider);
   }
 
   @override
@@ -130,7 +130,7 @@ class _ImageProviderDetailContentState
       _selectedAspectRatio = widget.provider.defaultAspectRatio;
       _selectedSize = widget.provider.defaultSize;
       _selectedQuality = widget.provider.defaultQuality;
-      _selectedResponseFormat = widget.provider.defaultResponseFormat;
+      _selectedResponseFormat = _effectiveResponseFormat(widget.provider);
       _lastResult = null;
       _lastRequest = null;
       _errorMessage = null;
@@ -313,16 +313,21 @@ class _ImageProviderDetailContentState
       _isGenerating = true;
       _errorMessage = null;
       _lastRequest = _ActualImageRequest(
-        endpoint: _generationEndpoint(widget.provider.baseUrl),
+        endpoint: _generationEndpoint(widget.provider),
         model: modelName,
         prompt: prompt,
         size: resolveImageRequestSize(
           aspectRatio: _selectedAspectRatio,
           size: _selectedSize,
         ),
-        quality: _selectedQuality.quality,
-        responseFormat: _responseFormatValue(_selectedResponseFormat),
-        n: 1,
+        quality: widget.provider.providerKind == ImageProviderKind.grok
+            ? null
+            : _selectedQuality.quality,
+        responseFormat: _responseFormatValue(
+          widget.provider.providerKind == ImageProviderKind.grok
+              ? ImageResponseFormat.url
+              : _selectedResponseFormat,
+        ),
       );
     });
 
@@ -1225,6 +1230,7 @@ class _ImageParameterTab extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
     final modelNames = _normalizedModelNames(provider);
+    final isGrok = provider.providerKind == ImageProviderKind.grok;
 
     return SingleChildScrollView(
       child: Column(
@@ -1338,70 +1344,74 @@ class _ImageParameterTab extends StatelessWidget {
               style: textTheme.bodySmall,
             ),
           ),
-          _ParamField(
-            label: 'Quality',
-            child: DropdownButtonFormField<ImageQualityPreset>(
-              initialValue: selectedQuality,
-              items: [
-                for (final quality in ImageQualityPreset.values)
-                  DropdownMenuItem(
-                    value: quality,
-                    child: Text(quality.label, style: textTheme.bodySmall),
+          if (!isGrok) ...[
+            _ParamField(
+              label: 'Quality',
+              child: DropdownButtonFormField<ImageQualityPreset>(
+                initialValue: selectedQuality,
+                items: [
+                  for (final quality in ImageQualityPreset.values)
+                    DropdownMenuItem(
+                      value: quality,
+                      child: Text(quality.label, style: textTheme.bodySmall),
+                    ),
+                ],
+                onChanged: isGenerating
+                    ? null
+                    : (value) {
+                        if (value != null) onQualityChanged(value);
+                      },
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
-              ],
-              onChanged: isGenerating
-                  ? null
-                  : (value) {
-                      if (value != null) onQualityChanged(value);
-                    },
-              decoration: InputDecoration(
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  isDense: true,
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                isDense: true,
+                style: textTheme.bodySmall,
               ),
-              style: textTheme.bodySmall,
             ),
-          ),
-          _ParamField(
-            label: 'Response Format',
-            child: DropdownButtonFormField<ImageResponseFormat>(
-              initialValue: selectedResponseFormat,
-              items: const [
-                DropdownMenuItem(
-                  value: ImageResponseFormat.url,
-                  child: Text('url'),
+            _ParamField(
+              label: 'Response Format',
+              child: DropdownButtonFormField<ImageResponseFormat>(
+                initialValue: selectedResponseFormat,
+                items: const [
+                  DropdownMenuItem(
+                    value: ImageResponseFormat.url,
+                    child: Text('url'),
+                  ),
+                  DropdownMenuItem(
+                    value: ImageResponseFormat.b64Json,
+                    child: Text('b64_json'),
+                  ),
+                ],
+                onChanged: isGenerating
+                    ? null
+                    : (value) {
+                        if (value != null) onResponseFormatChanged(value);
+                      },
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  isDense: true,
                 ),
-                DropdownMenuItem(
-                  value: ImageResponseFormat.b64Json,
-                  child: Text('b64_json'),
-                ),
-              ],
-              onChanged: isGenerating
-                  ? null
-                  : (value) {
-                      if (value != null) onResponseFormatChanged(value);
-                    },
-              decoration: InputDecoration(
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                isDense: true,
+                style: textTheme.bodySmall,
               ),
-              style: textTheme.bodySmall,
             ),
-          ),
+          ],
           const SizedBox(height: 8),
           Text(
-            'n 固定为 1；style、user 当前不发送。',
+            isGrok
+                ? 'Grok 使用 chat/completions；quality、顶层 n、style、user 当前不发送。'
+                : 'n、style、user 当前不发送。',
             style: textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -1486,9 +1496,9 @@ class _ImageRequestTab extends StatelessWidget {
           _MetaLine(label: 'endpoint', value: request.endpoint),
           _MetaLine(label: 'model', value: request.model),
           _MetaLine(label: 'size', value: request.size),
-          _MetaLine(label: 'quality', value: request.quality),
+          if (request.quality != null)
+            _MetaLine(label: 'quality', value: request.quality!),
           _MetaLine(label: 'response_format', value: request.responseFormat),
-          _MetaLine(label: 'n', value: request.n.toString()),
           const SizedBox(height: 12),
           Text(
             'prompt',
@@ -1548,10 +1558,7 @@ class _ImageResponseTab extends StatelessWidget {
           const SizedBox(height: 12),
           if (result.created != null)
             _MetaLine(label: 'created', value: result.created.toString()),
-          _MetaLine(
-            label: 'images',
-            value: result.images.length.toString(),
-          ),
+          _MetaLine(label: 'images', value: result.images.length.toString()),
           if (image.url != null)
             _MetaLine(label: 'url', value: image.url!, selectable: true),
           if (image.b64Json != null)
@@ -1683,18 +1690,16 @@ class _ActualImageRequest {
     required this.model,
     required this.prompt,
     required this.size,
-    required this.quality,
+    this.quality,
     required this.responseFormat,
-    required this.n,
   });
 
   final String endpoint;
   final String model;
   final String prompt;
   final String size;
-  final String quality;
+  final String? quality;
   final String responseFormat;
-  final int n;
 }
 
 // ---------------------------------------------------------------------------
@@ -1729,7 +1734,14 @@ String _initialModelName(ImageProviderConfig provider) {
   return provider.defaultModel.trim();
 }
 
-String _generationEndpoint(String baseUrl) {
+ImageResponseFormat _effectiveResponseFormat(ImageProviderConfig provider) {
+  return provider.providerKind == ImageProviderKind.grok
+      ? ImageResponseFormat.url
+      : provider.defaultResponseFormat;
+}
+
+String _generationEndpoint(ImageProviderConfig provider) {
+  final baseUrl = provider.baseUrl;
   final trimmed = baseUrl.trim();
   final withoutTrailingSlash = trimmed.endsWith('/')
       ? trimmed.substring(0, trimmed.length - 1)
@@ -1737,7 +1749,10 @@ String _generationEndpoint(String baseUrl) {
   final normalized = withoutTrailingSlash.endsWith('/v1')
       ? withoutTrailingSlash
       : '$withoutTrailingSlash/v1';
-  return '$normalized/images/generations';
+  final path = provider.providerKind == ImageProviderKind.grok
+      ? '/chat/completions'
+      : '/images/generations';
+  return '$normalized$path';
 }
 
 String _responseFormatValue(ImageResponseFormat format) {

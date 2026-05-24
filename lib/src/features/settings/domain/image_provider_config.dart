@@ -7,6 +7,26 @@ part 'image_provider_config.g.dart';
 
 enum ImageResponseFormat { url, b64Json }
 
+enum ImageProviderKind {
+  gpt(label: 'GPT', storageValue: 'gpt'),
+  grok(label: 'Grok', storageValue: 'grok');
+
+  const ImageProviderKind({required this.label, required this.storageValue});
+
+  final String label;
+  final String storageValue;
+
+  static ImageProviderKind fromStorage(String value) {
+    final normalized = value.trim().toLowerCase();
+    for (final kind in values) {
+      if (kind.storageValue == normalized || kind.name == normalized) {
+        return kind;
+      }
+    }
+    return ImageProviderKind.gpt;
+  }
+}
+
 enum ImageAspectRatioPreset {
   square(label: '方形 1:1', ratio: '1:1'),
   portrait(label: '竖版 3:4', ratio: '3:4'),
@@ -112,6 +132,7 @@ abstract class ImageProviderConfig with _$ImageProviderConfig {
     required String baseUrl,
     required String apiKey,
     required String defaultModel,
+    @Default(ImageProviderKind.gpt) ImageProviderKind providerKind,
     @Default(<String>[]) List<String> modelNames,
     @Default(ImageAspectRatioPreset.square)
     ImageAspectRatioPreset defaultAspectRatio,
@@ -136,6 +157,7 @@ class ImageProviderConfigInput {
     required this.baseUrl,
     required this.apiKey,
     required this.defaultModel,
+    this.providerKind = ImageProviderKind.gpt,
     this.modelNames = const <String>[],
     this.defaultAspectRatio = ImageAspectRatioPreset.square,
     this.defaultSize = ImageSizePreset.oneK,
@@ -148,6 +170,7 @@ class ImageProviderConfigInput {
   final String baseUrl;
   final String apiKey;
   final String defaultModel;
+  final ImageProviderKind providerKind;
   final List<String> modelNames;
   final ImageAspectRatioPreset defaultAspectRatio;
   final ImageSizePreset defaultSize;

@@ -134,7 +134,7 @@ Feature code depends on `LlmInvocationService` / `LlmClient`; only `core/llm/dat
 ## Scenario: Image generation provider boundary
 
 ### 1. Scope / Trigger
-- Trigger: Settings manages text-to-image Provider configuration and the app calls a Bearer-auth OpenAI-style image endpoint.
+- Trigger: Settings manages text-to-image Provider configuration and the app calls Bearer-auth GPT/Grok image endpoints.
 - This is a cross-layer contract because Drift persistence, Settings UI, Riverpod wiring, image-generation services, request/response parsing, and secret redaction must agree.
 
 ### 2. Signatures
@@ -143,20 +143,25 @@ Feature code depends on `LlmInvocationService` / `LlmClient`; only `core/llm/dat
   - `ImageProviderModelRecords`
 - Repository contract: `ImageProviderConfigRepository`
 - Domain model: `ImageProviderConfig`
+  - `providerKind: ImageProviderKind.gpt | ImageProviderKind.grok`
 - Core port: `ImageGenerationClient`
 - Service: `ImageGenerationService`
 - Adapter: `BearerImageGenerationClient`
-- Text-to-image endpoint: `POST /v1/images/generations`
+- GPT text-to-image endpoint: `POST /v1/images/generations`
+- Grok text-to-image endpoint: `POST /v1/chat/completions`
 - Image-edit endpoint contract: `POST /v1/images/edits`
 
 ### 3. Contracts
 - Image providers are separate from text `ProviderConfig`; do not add image-only models to project default text model selection.
 - MVP authentication uses only the `Authorization: Bearer <api key>` header. Do not send a custom `token` header for image provider requests.
-- Image provider connectivity tests do not call `/models`. They perform a real sample text-to-image generation through `/v1/images/generations`.
-- Text-to-image requests expose `prompt`, `model`, `size`, `quality`, `response_format`, and fixed `n: 1` in MVP. Omit `style` and `user`.
-- `quality` follows OpenAI/NewAPI values `auto`, `low`, `medium`, and `high`.
+- Image provider connectivity tests do not call `/models`. They perform a real sample text-to-image generation through the provider-kind-specific generation endpoint.
+- GPT image requests expose `prompt`, `model`, `size`, `quality`, and `response_format`. Omit `n`, `style`, and `user`.
+- Grok image requests use `/chat/completions` with `messages` plus `image_config.size` and `image_config.response_format = url`. Do not send top-level `prompt`, `quality`, `response_format`, `n`, `style`, or `user`.
+- `quality` follows OpenAI/NewAPI values `auto`, `low`, `medium`, and `high` and applies only to GPT image providers.
 - UI stores an aspect-ratio preset (`auto`, `1:1`, `3:4`, `9:16`, `4:3`, `16:9`) and a size tier (`1K`, `2K`, `4K`), then resolves them into the final `size` value sent to the API. `auto` aspect ratio sends `size: auto`; sample generation should use `1:1 + 1K` and send `1024x1024` because the current target site returns empty image data for `auto`.
-- Image responses must parse `data[].url` and `data[].b64_json`; preserve `data[].revised_prompt` and `usage` for diagnostics when present.
+- GPT image responses must parse `data[].url` and `data[].b64_json`; preserve `data[].revised_prompt` and `usage` for diagnostics when present.
+- Grok chat-completions image responses must parse the first Markdown image URL from `choices[].message.content`; preserve `usage` for diagnostics when present.
+- Business results expose only the first valid generated image, even if the provider returns multiple images.
 - Generated test images are memory-only. Do not store image bytes or URLs in SQLite or on disk in MVP.
 - API keys may be passed to adapters but must never appear in UI, logs, test messages, request inspectors, or surfaced errors.
 
@@ -165,8 +170,10 @@ Feature code depends on `LlmInvocationService` / `LlmClient`; only `core/llm/dat
 - Invalid URL -> validation error before write.
 - Sample generation HTTP non-2xx -> persist `failed` with a sanitized message.
 - Response body is not JSON object -> image generation client exception.
-- Response lacks `data` list -> image generation client exception.
-- Response contains no image with `url` or `b64_json` -> image generation client exception.
+- GPT response lacks `data` list -> image generation client exception.
+- GPT response contains no image with `url` or `b64_json` -> image generation client exception.
+- Grok response lacks `choices` list or a Markdown image URL -> image generation client exception.
+- Grok image-edit request -> image generation client exception explaining Grok edit is unsupported.
 - Adapter error containing an API key -> replace the key with `[REDACTED]` before surfacing.
 
 ### 5. Good/Base/Bad Cases
@@ -178,15 +185,17 @@ Feature code depends on `LlmInvocationService` / `LlmClient`; only `core/llm/dat
 
 ### 6. Tests Required
 - Repository test for `ImageProviderConfig` round-trip, model normalization, test status update, and delete.
-- Client tests for `/v1/images/generations` URL normalization, Bearer auth header, response parsing, and API key redaction.
-- Client test for `/v1/images/edits` request endpoint contract.
+- Repository test for `providerKind` persistence and legacy migration defaulting to `gpt`.
+- Client tests for GPT `/v1/images/generations` URL normalization, Bearer auth header, response parsing, omitted `n`, and API key redaction.
+- Client tests for Grok `/v1/chat/completions` request shape, Markdown image URL parsing, omitted `quality`/top-level `n`, and unsupported edits.
+- Client test for GPT `/v1/images/edits` request endpoint contract.
 - Widget tests for Settings image Provider panel, dialog controls, detail generation preview, request/response inspector, and secret masking.
 
 ### 7. Wrong vs Correct
 #### Wrong
-Add image models to `ProviderConfig.modelNames` and test them through `GET /models` or `LlmClient.streamChat`.
+Add image models to `ProviderConfig.modelNames`, infer Grok from model names, or test image providers through `GET /models`.
 #### Correct
-Keep image providers in `ImageProviderConfig`, call `ImageGenerationService`, and validate readiness with a real sample `/v1/images/generations` request using Bearer auth.
+Keep image providers in `ImageProviderConfig`, persist explicit `providerKind`, call `ImageGenerationService`, and validate readiness with a real provider-kind-specific sample generation request using Bearer auth.
 
 ## Scenario: LLM artifact document output contract
 

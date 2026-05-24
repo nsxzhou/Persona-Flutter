@@ -2134,6 +2134,18 @@ class $ImageProviderConfigRecordsTable extends ImageProviderConfigRecords
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _providerKindMeta = const VerificationMeta(
+    'providerKind',
+  );
+  @override
+  late final GeneratedColumn<String> providerKind = GeneratedColumn<String>(
+    'provider_kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('gpt'),
+  );
   static const VerificationMeta _defaultAspectRatioMeta =
       const VerificationMeta('defaultAspectRatio');
   @override
@@ -2259,6 +2271,7 @@ class $ImageProviderConfigRecordsTable extends ImageProviderConfigRecords
     baseUrl,
     apiKey,
     defaultModel,
+    providerKind,
     defaultAspectRatio,
     defaultSize,
     defaultQuality,
@@ -2321,6 +2334,15 @@ class $ImageProviderConfigRecordsTable extends ImageProviderConfigRecords
       );
     } else if (isInserting) {
       context.missing(_defaultModelMeta);
+    }
+    if (data.containsKey('provider_kind')) {
+      context.handle(
+        _providerKindMeta,
+        providerKind.isAcceptableOrUnknown(
+          data['provider_kind']!,
+          _providerKindMeta,
+        ),
+      );
     }
     if (data.containsKey('default_aspect_ratio')) {
       context.handle(
@@ -2438,6 +2460,10 @@ class $ImageProviderConfigRecordsTable extends ImageProviderConfigRecords
         DriftSqlType.string,
         data['${effectivePrefix}default_model'],
       )!,
+      providerKind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}provider_kind'],
+      )!,
       defaultAspectRatio: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}default_aspect_ratio'],
@@ -2494,6 +2520,7 @@ class ImageProviderConfigRecord extends DataClass
   final String baseUrl;
   final String apiKey;
   final String defaultModel;
+  final String providerKind;
   final String defaultAspectRatio;
   final String defaultSize;
   final String defaultQuality;
@@ -2510,6 +2537,7 @@ class ImageProviderConfigRecord extends DataClass
     required this.baseUrl,
     required this.apiKey,
     required this.defaultModel,
+    required this.providerKind,
     required this.defaultAspectRatio,
     required this.defaultSize,
     required this.defaultQuality,
@@ -2529,6 +2557,7 @@ class ImageProviderConfigRecord extends DataClass
     map['base_url'] = Variable<String>(baseUrl);
     map['api_key'] = Variable<String>(apiKey);
     map['default_model'] = Variable<String>(defaultModel);
+    map['provider_kind'] = Variable<String>(providerKind);
     map['default_aspect_ratio'] = Variable<String>(defaultAspectRatio);
     map['default_size'] = Variable<String>(defaultSize);
     map['default_quality'] = Variable<String>(defaultQuality);
@@ -2553,6 +2582,7 @@ class ImageProviderConfigRecord extends DataClass
       baseUrl: Value(baseUrl),
       apiKey: Value(apiKey),
       defaultModel: Value(defaultModel),
+      providerKind: Value(providerKind),
       defaultAspectRatio: Value(defaultAspectRatio),
       defaultSize: Value(defaultSize),
       defaultQuality: Value(defaultQuality),
@@ -2581,6 +2611,7 @@ class ImageProviderConfigRecord extends DataClass
       baseUrl: serializer.fromJson<String>(json['baseUrl']),
       apiKey: serializer.fromJson<String>(json['apiKey']),
       defaultModel: serializer.fromJson<String>(json['defaultModel']),
+      providerKind: serializer.fromJson<String>(json['providerKind']),
       defaultAspectRatio: serializer.fromJson<String>(
         json['defaultAspectRatio'],
       ),
@@ -2606,6 +2637,7 @@ class ImageProviderConfigRecord extends DataClass
       'baseUrl': serializer.toJson<String>(baseUrl),
       'apiKey': serializer.toJson<String>(apiKey),
       'defaultModel': serializer.toJson<String>(defaultModel),
+      'providerKind': serializer.toJson<String>(providerKind),
       'defaultAspectRatio': serializer.toJson<String>(defaultAspectRatio),
       'defaultSize': serializer.toJson<String>(defaultSize),
       'defaultQuality': serializer.toJson<String>(defaultQuality),
@@ -2625,6 +2657,7 @@ class ImageProviderConfigRecord extends DataClass
     String? baseUrl,
     String? apiKey,
     String? defaultModel,
+    String? providerKind,
     String? defaultAspectRatio,
     String? defaultSize,
     String? defaultQuality,
@@ -2641,6 +2674,7 @@ class ImageProviderConfigRecord extends DataClass
     baseUrl: baseUrl ?? this.baseUrl,
     apiKey: apiKey ?? this.apiKey,
     defaultModel: defaultModel ?? this.defaultModel,
+    providerKind: providerKind ?? this.providerKind,
     defaultAspectRatio: defaultAspectRatio ?? this.defaultAspectRatio,
     defaultSize: defaultSize ?? this.defaultSize,
     defaultQuality: defaultQuality ?? this.defaultQuality,
@@ -2665,6 +2699,9 @@ class ImageProviderConfigRecord extends DataClass
       defaultModel: data.defaultModel.present
           ? data.defaultModel.value
           : this.defaultModel,
+      providerKind: data.providerKind.present
+          ? data.providerKind.value
+          : this.providerKind,
       defaultAspectRatio: data.defaultAspectRatio.present
           ? data.defaultAspectRatio.value
           : this.defaultAspectRatio,
@@ -2700,6 +2737,7 @@ class ImageProviderConfigRecord extends DataClass
           ..write('baseUrl: $baseUrl, ')
           ..write('apiKey: $apiKey, ')
           ..write('defaultModel: $defaultModel, ')
+          ..write('providerKind: $providerKind, ')
           ..write('defaultAspectRatio: $defaultAspectRatio, ')
           ..write('defaultSize: $defaultSize, ')
           ..write('defaultQuality: $defaultQuality, ')
@@ -2721,6 +2759,7 @@ class ImageProviderConfigRecord extends DataClass
     baseUrl,
     apiKey,
     defaultModel,
+    providerKind,
     defaultAspectRatio,
     defaultSize,
     defaultQuality,
@@ -2741,6 +2780,7 @@ class ImageProviderConfigRecord extends DataClass
           other.baseUrl == this.baseUrl &&
           other.apiKey == this.apiKey &&
           other.defaultModel == this.defaultModel &&
+          other.providerKind == this.providerKind &&
           other.defaultAspectRatio == this.defaultAspectRatio &&
           other.defaultSize == this.defaultSize &&
           other.defaultQuality == this.defaultQuality &&
@@ -2760,6 +2800,7 @@ class ImageProviderConfigRecordsCompanion
   final Value<String> baseUrl;
   final Value<String> apiKey;
   final Value<String> defaultModel;
+  final Value<String> providerKind;
   final Value<String> defaultAspectRatio;
   final Value<String> defaultSize;
   final Value<String> defaultQuality;
@@ -2777,6 +2818,7 @@ class ImageProviderConfigRecordsCompanion
     this.baseUrl = const Value.absent(),
     this.apiKey = const Value.absent(),
     this.defaultModel = const Value.absent(),
+    this.providerKind = const Value.absent(),
     this.defaultAspectRatio = const Value.absent(),
     this.defaultSize = const Value.absent(),
     this.defaultQuality = const Value.absent(),
@@ -2795,6 +2837,7 @@ class ImageProviderConfigRecordsCompanion
     required String baseUrl,
     required String apiKey,
     required String defaultModel,
+    this.providerKind = const Value.absent(),
     this.defaultAspectRatio = const Value.absent(),
     this.defaultSize = const Value.absent(),
     this.defaultQuality = const Value.absent(),
@@ -2820,6 +2863,7 @@ class ImageProviderConfigRecordsCompanion
     Expression<String>? baseUrl,
     Expression<String>? apiKey,
     Expression<String>? defaultModel,
+    Expression<String>? providerKind,
     Expression<String>? defaultAspectRatio,
     Expression<String>? defaultSize,
     Expression<String>? defaultQuality,
@@ -2838,6 +2882,7 @@ class ImageProviderConfigRecordsCompanion
       if (baseUrl != null) 'base_url': baseUrl,
       if (apiKey != null) 'api_key': apiKey,
       if (defaultModel != null) 'default_model': defaultModel,
+      if (providerKind != null) 'provider_kind': providerKind,
       if (defaultAspectRatio != null)
         'default_aspect_ratio': defaultAspectRatio,
       if (defaultSize != null) 'default_size': defaultSize,
@@ -2860,6 +2905,7 @@ class ImageProviderConfigRecordsCompanion
     Value<String>? baseUrl,
     Value<String>? apiKey,
     Value<String>? defaultModel,
+    Value<String>? providerKind,
     Value<String>? defaultAspectRatio,
     Value<String>? defaultSize,
     Value<String>? defaultQuality,
@@ -2878,6 +2924,7 @@ class ImageProviderConfigRecordsCompanion
       baseUrl: baseUrl ?? this.baseUrl,
       apiKey: apiKey ?? this.apiKey,
       defaultModel: defaultModel ?? this.defaultModel,
+      providerKind: providerKind ?? this.providerKind,
       defaultAspectRatio: defaultAspectRatio ?? this.defaultAspectRatio,
       defaultSize: defaultSize ?? this.defaultSize,
       defaultQuality: defaultQuality ?? this.defaultQuality,
@@ -2910,6 +2957,9 @@ class ImageProviderConfigRecordsCompanion
     }
     if (defaultModel.present) {
       map['default_model'] = Variable<String>(defaultModel.value);
+    }
+    if (providerKind.present) {
+      map['provider_kind'] = Variable<String>(providerKind.value);
     }
     if (defaultAspectRatio.present) {
       map['default_aspect_ratio'] = Variable<String>(defaultAspectRatio.value);
@@ -2957,6 +3007,7 @@ class ImageProviderConfigRecordsCompanion
           ..write('baseUrl: $baseUrl, ')
           ..write('apiKey: $apiKey, ')
           ..write('defaultModel: $defaultModel, ')
+          ..write('providerKind: $providerKind, ')
           ..write('defaultAspectRatio: $defaultAspectRatio, ')
           ..write('defaultSize: $defaultSize, ')
           ..write('defaultQuality: $defaultQuality, ')
@@ -24084,6 +24135,7 @@ typedef $$ImageProviderConfigRecordsTableCreateCompanionBuilder =
       required String baseUrl,
       required String apiKey,
       required String defaultModel,
+      Value<String> providerKind,
       Value<String> defaultAspectRatio,
       Value<String> defaultSize,
       Value<String> defaultQuality,
@@ -24103,6 +24155,7 @@ typedef $$ImageProviderConfigRecordsTableUpdateCompanionBuilder =
       Value<String> baseUrl,
       Value<String> apiKey,
       Value<String> defaultModel,
+      Value<String> providerKind,
       Value<String> defaultAspectRatio,
       Value<String> defaultSize,
       Value<String> defaultQuality,
@@ -24189,6 +24242,11 @@ class $$ImageProviderConfigRecordsTableFilterComposer
 
   ColumnFilters<String> get defaultModel => $composableBuilder(
     column: $table.defaultModel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get providerKind => $composableBuilder(
+    column: $table.providerKind,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -24304,6 +24362,11 @@ class $$ImageProviderConfigRecordsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get providerKind => $composableBuilder(
+    column: $table.providerKind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get defaultAspectRatio => $composableBuilder(
     column: $table.defaultAspectRatio,
     builder: (column) => ColumnOrderings(column),
@@ -24378,6 +24441,11 @@ class $$ImageProviderConfigRecordsTableAnnotationComposer
 
   GeneratedColumn<String> get defaultModel => $composableBuilder(
     column: $table.defaultModel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get providerKind => $composableBuilder(
+    column: $table.providerKind,
     builder: (column) => column,
   );
 
@@ -24500,6 +24568,7 @@ class $$ImageProviderConfigRecordsTableTableManager
                 Value<String> baseUrl = const Value.absent(),
                 Value<String> apiKey = const Value.absent(),
                 Value<String> defaultModel = const Value.absent(),
+                Value<String> providerKind = const Value.absent(),
                 Value<String> defaultAspectRatio = const Value.absent(),
                 Value<String> defaultSize = const Value.absent(),
                 Value<String> defaultQuality = const Value.absent(),
@@ -24517,6 +24586,7 @@ class $$ImageProviderConfigRecordsTableTableManager
                 baseUrl: baseUrl,
                 apiKey: apiKey,
                 defaultModel: defaultModel,
+                providerKind: providerKind,
                 defaultAspectRatio: defaultAspectRatio,
                 defaultSize: defaultSize,
                 defaultQuality: defaultQuality,
@@ -24536,6 +24606,7 @@ class $$ImageProviderConfigRecordsTableTableManager
                 required String baseUrl,
                 required String apiKey,
                 required String defaultModel,
+                Value<String> providerKind = const Value.absent(),
                 Value<String> defaultAspectRatio = const Value.absent(),
                 Value<String> defaultSize = const Value.absent(),
                 Value<String> defaultQuality = const Value.absent(),
@@ -24553,6 +24624,7 @@ class $$ImageProviderConfigRecordsTableTableManager
                 baseUrl: baseUrl,
                 apiKey: apiKey,
                 defaultModel: defaultModel,
+                providerKind: providerKind,
                 defaultAspectRatio: defaultAspectRatio,
                 defaultSize: defaultSize,
                 defaultQuality: defaultQuality,

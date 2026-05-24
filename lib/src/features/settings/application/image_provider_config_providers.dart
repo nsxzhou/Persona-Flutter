@@ -103,13 +103,18 @@ class ImageProviderConfigController extends _$ImageProviderConfigController {
                 defaultAspectRatio: ImageAspectRatioPreset.square,
                 defaultSize: ImageSizePreset.oneK,
                 defaultQuality: ImageQualityPreset.auto,
-                defaultResponseFormat: ImageResponseFormat.url,
+                defaultResponseFormat:
+                    provider.providerKind == ImageProviderKind.grok
+                    ? ImageResponseFormat.url
+                    : ImageResponseFormat.url,
               ),
               prompt: imageProviderSamplePrompt,
               aspectRatio: ImageAspectRatioPreset.square,
               size: ImageSizePreset.oneK,
               quality: ImageQualityPreset.auto,
-              responseFormat: ImageResponseFormat.url,
+              responseFormat: provider.providerKind == ImageProviderKind.grok
+                  ? ImageResponseFormat.url
+                  : ImageResponseFormat.url,
             );
         await repository.updateTestResult(
           id: id,

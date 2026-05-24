@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ImageProviderConfig {
 
- String get id; String get name; String get baseUrl; String get apiKey; String get defaultModel; List<String> get modelNames; ImageAspectRatioPreset get defaultAspectRatio; ImageSizePreset get defaultSize; ImageQualityPreset get defaultQuality; ImageResponseFormat get defaultResponseFormat; bool get isEnabled; ProviderTestStatus get testStatus; DateTime? get lastTestedAt; String? get lastTestMessage; DateTime get createdAt; DateTime get updatedAt;
+ String get id; String get name; String get baseUrl; String get apiKey; String get defaultModel; ImageProviderKind get providerKind; List<String> get modelNames; ImageAspectRatioPreset get defaultAspectRatio; ImageSizePreset get defaultSize; ImageQualityPreset get defaultQuality; ImageResponseFormat get defaultResponseFormat; bool get isEnabled; ProviderTestStatus get testStatus; DateTime? get lastTestedAt; String? get lastTestMessage; DateTime get createdAt; DateTime get updatedAt;
 /// Create a copy of ImageProviderConfig
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $ImageProviderConfigCopyWith<ImageProviderConfig> get copyWith => _$ImageProvide
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ImageProviderConfig&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.baseUrl, baseUrl) || other.baseUrl == baseUrl)&&(identical(other.apiKey, apiKey) || other.apiKey == apiKey)&&(identical(other.defaultModel, defaultModel) || other.defaultModel == defaultModel)&&const DeepCollectionEquality().equals(other.modelNames, modelNames)&&(identical(other.defaultAspectRatio, defaultAspectRatio) || other.defaultAspectRatio == defaultAspectRatio)&&(identical(other.defaultSize, defaultSize) || other.defaultSize == defaultSize)&&(identical(other.defaultQuality, defaultQuality) || other.defaultQuality == defaultQuality)&&(identical(other.defaultResponseFormat, defaultResponseFormat) || other.defaultResponseFormat == defaultResponseFormat)&&(identical(other.isEnabled, isEnabled) || other.isEnabled == isEnabled)&&(identical(other.testStatus, testStatus) || other.testStatus == testStatus)&&(identical(other.lastTestedAt, lastTestedAt) || other.lastTestedAt == lastTestedAt)&&(identical(other.lastTestMessage, lastTestMessage) || other.lastTestMessage == lastTestMessage)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ImageProviderConfig&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.baseUrl, baseUrl) || other.baseUrl == baseUrl)&&(identical(other.apiKey, apiKey) || other.apiKey == apiKey)&&(identical(other.defaultModel, defaultModel) || other.defaultModel == defaultModel)&&(identical(other.providerKind, providerKind) || other.providerKind == providerKind)&&const DeepCollectionEquality().equals(other.modelNames, modelNames)&&(identical(other.defaultAspectRatio, defaultAspectRatio) || other.defaultAspectRatio == defaultAspectRatio)&&(identical(other.defaultSize, defaultSize) || other.defaultSize == defaultSize)&&(identical(other.defaultQuality, defaultQuality) || other.defaultQuality == defaultQuality)&&(identical(other.defaultResponseFormat, defaultResponseFormat) || other.defaultResponseFormat == defaultResponseFormat)&&(identical(other.isEnabled, isEnabled) || other.isEnabled == isEnabled)&&(identical(other.testStatus, testStatus) || other.testStatus == testStatus)&&(identical(other.lastTestedAt, lastTestedAt) || other.lastTestedAt == lastTestedAt)&&(identical(other.lastTestMessage, lastTestMessage) || other.lastTestMessage == lastTestMessage)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,baseUrl,apiKey,defaultModel,const DeepCollectionEquality().hash(modelNames),defaultAspectRatio,defaultSize,defaultQuality,defaultResponseFormat,isEnabled,testStatus,lastTestedAt,lastTestMessage,createdAt,updatedAt);
+int get hashCode => Object.hash(runtimeType,id,name,baseUrl,apiKey,defaultModel,providerKind,const DeepCollectionEquality().hash(modelNames),defaultAspectRatio,defaultSize,defaultQuality,defaultResponseFormat,isEnabled,testStatus,lastTestedAt,lastTestMessage,createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'ImageProviderConfig(id: $id, name: $name, baseUrl: $baseUrl, apiKey: $apiKey, defaultModel: $defaultModel, modelNames: $modelNames, defaultAspectRatio: $defaultAspectRatio, defaultSize: $defaultSize, defaultQuality: $defaultQuality, defaultResponseFormat: $defaultResponseFormat, isEnabled: $isEnabled, testStatus: $testStatus, lastTestedAt: $lastTestedAt, lastTestMessage: $lastTestMessage, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'ImageProviderConfig(id: $id, name: $name, baseUrl: $baseUrl, apiKey: $apiKey, defaultModel: $defaultModel, providerKind: $providerKind, modelNames: $modelNames, defaultAspectRatio: $defaultAspectRatio, defaultSize: $defaultSize, defaultQuality: $defaultQuality, defaultResponseFormat: $defaultResponseFormat, isEnabled: $isEnabled, testStatus: $testStatus, lastTestedAt: $lastTestedAt, lastTestMessage: $lastTestMessage, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $ImageProviderConfigCopyWith<$Res>  {
   factory $ImageProviderConfigCopyWith(ImageProviderConfig value, $Res Function(ImageProviderConfig) _then) = _$ImageProviderConfigCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String baseUrl, String apiKey, String defaultModel, List<String> modelNames, ImageAspectRatioPreset defaultAspectRatio, ImageSizePreset defaultSize, ImageQualityPreset defaultQuality, ImageResponseFormat defaultResponseFormat, bool isEnabled, ProviderTestStatus testStatus, DateTime? lastTestedAt, String? lastTestMessage, DateTime createdAt, DateTime updatedAt
+ String id, String name, String baseUrl, String apiKey, String defaultModel, ImageProviderKind providerKind, List<String> modelNames, ImageAspectRatioPreset defaultAspectRatio, ImageSizePreset defaultSize, ImageQualityPreset defaultQuality, ImageResponseFormat defaultResponseFormat, bool isEnabled, ProviderTestStatus testStatus, DateTime? lastTestedAt, String? lastTestMessage, DateTime createdAt, DateTime updatedAt
 });
 
 
@@ -65,14 +65,15 @@ class _$ImageProviderConfigCopyWithImpl<$Res>
 
 /// Create a copy of ImageProviderConfig
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? baseUrl = null,Object? apiKey = null,Object? defaultModel = null,Object? modelNames = null,Object? defaultAspectRatio = null,Object? defaultSize = null,Object? defaultQuality = null,Object? defaultResponseFormat = null,Object? isEnabled = null,Object? testStatus = null,Object? lastTestedAt = freezed,Object? lastTestMessage = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? baseUrl = null,Object? apiKey = null,Object? defaultModel = null,Object? providerKind = null,Object? modelNames = null,Object? defaultAspectRatio = null,Object? defaultSize = null,Object? defaultQuality = null,Object? defaultResponseFormat = null,Object? isEnabled = null,Object? testStatus = null,Object? lastTestedAt = freezed,Object? lastTestMessage = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,baseUrl: null == baseUrl ? _self.baseUrl : baseUrl // ignore: cast_nullable_to_non_nullable
 as String,apiKey: null == apiKey ? _self.apiKey : apiKey // ignore: cast_nullable_to_non_nullable
 as String,defaultModel: null == defaultModel ? _self.defaultModel : defaultModel // ignore: cast_nullable_to_non_nullable
-as String,modelNames: null == modelNames ? _self.modelNames : modelNames // ignore: cast_nullable_to_non_nullable
+as String,providerKind: null == providerKind ? _self.providerKind : providerKind // ignore: cast_nullable_to_non_nullable
+as ImageProviderKind,modelNames: null == modelNames ? _self.modelNames : modelNames // ignore: cast_nullable_to_non_nullable
 as List<String>,defaultAspectRatio: null == defaultAspectRatio ? _self.defaultAspectRatio : defaultAspectRatio // ignore: cast_nullable_to_non_nullable
 as ImageAspectRatioPreset,defaultSize: null == defaultSize ? _self.defaultSize : defaultSize // ignore: cast_nullable_to_non_nullable
 as ImageSizePreset,defaultQuality: null == defaultQuality ? _self.defaultQuality : defaultQuality // ignore: cast_nullable_to_non_nullable
@@ -168,10 +169,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String baseUrl,  String apiKey,  String defaultModel,  List<String> modelNames,  ImageAspectRatioPreset defaultAspectRatio,  ImageSizePreset defaultSize,  ImageQualityPreset defaultQuality,  ImageResponseFormat defaultResponseFormat,  bool isEnabled,  ProviderTestStatus testStatus,  DateTime? lastTestedAt,  String? lastTestMessage,  DateTime createdAt,  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String baseUrl,  String apiKey,  String defaultModel,  ImageProviderKind providerKind,  List<String> modelNames,  ImageAspectRatioPreset defaultAspectRatio,  ImageSizePreset defaultSize,  ImageQualityPreset defaultQuality,  ImageResponseFormat defaultResponseFormat,  bool isEnabled,  ProviderTestStatus testStatus,  DateTime? lastTestedAt,  String? lastTestMessage,  DateTime createdAt,  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ImageProviderConfig() when $default != null:
-return $default(_that.id,_that.name,_that.baseUrl,_that.apiKey,_that.defaultModel,_that.modelNames,_that.defaultAspectRatio,_that.defaultSize,_that.defaultQuality,_that.defaultResponseFormat,_that.isEnabled,_that.testStatus,_that.lastTestedAt,_that.lastTestMessage,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.name,_that.baseUrl,_that.apiKey,_that.defaultModel,_that.providerKind,_that.modelNames,_that.defaultAspectRatio,_that.defaultSize,_that.defaultQuality,_that.defaultResponseFormat,_that.isEnabled,_that.testStatus,_that.lastTestedAt,_that.lastTestMessage,_that.createdAt,_that.updatedAt);case _:
   return orElse();
 
 }
@@ -189,10 +190,10 @@ return $default(_that.id,_that.name,_that.baseUrl,_that.apiKey,_that.defaultMode
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String baseUrl,  String apiKey,  String defaultModel,  List<String> modelNames,  ImageAspectRatioPreset defaultAspectRatio,  ImageSizePreset defaultSize,  ImageQualityPreset defaultQuality,  ImageResponseFormat defaultResponseFormat,  bool isEnabled,  ProviderTestStatus testStatus,  DateTime? lastTestedAt,  String? lastTestMessage,  DateTime createdAt,  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String baseUrl,  String apiKey,  String defaultModel,  ImageProviderKind providerKind,  List<String> modelNames,  ImageAspectRatioPreset defaultAspectRatio,  ImageSizePreset defaultSize,  ImageQualityPreset defaultQuality,  ImageResponseFormat defaultResponseFormat,  bool isEnabled,  ProviderTestStatus testStatus,  DateTime? lastTestedAt,  String? lastTestMessage,  DateTime createdAt,  DateTime updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _ImageProviderConfig():
-return $default(_that.id,_that.name,_that.baseUrl,_that.apiKey,_that.defaultModel,_that.modelNames,_that.defaultAspectRatio,_that.defaultSize,_that.defaultQuality,_that.defaultResponseFormat,_that.isEnabled,_that.testStatus,_that.lastTestedAt,_that.lastTestMessage,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.name,_that.baseUrl,_that.apiKey,_that.defaultModel,_that.providerKind,_that.modelNames,_that.defaultAspectRatio,_that.defaultSize,_that.defaultQuality,_that.defaultResponseFormat,_that.isEnabled,_that.testStatus,_that.lastTestedAt,_that.lastTestMessage,_that.createdAt,_that.updatedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -209,10 +210,10 @@ return $default(_that.id,_that.name,_that.baseUrl,_that.apiKey,_that.defaultMode
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String baseUrl,  String apiKey,  String defaultModel,  List<String> modelNames,  ImageAspectRatioPreset defaultAspectRatio,  ImageSizePreset defaultSize,  ImageQualityPreset defaultQuality,  ImageResponseFormat defaultResponseFormat,  bool isEnabled,  ProviderTestStatus testStatus,  DateTime? lastTestedAt,  String? lastTestMessage,  DateTime createdAt,  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String baseUrl,  String apiKey,  String defaultModel,  ImageProviderKind providerKind,  List<String> modelNames,  ImageAspectRatioPreset defaultAspectRatio,  ImageSizePreset defaultSize,  ImageQualityPreset defaultQuality,  ImageResponseFormat defaultResponseFormat,  bool isEnabled,  ProviderTestStatus testStatus,  DateTime? lastTestedAt,  String? lastTestMessage,  DateTime createdAt,  DateTime updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _ImageProviderConfig() when $default != null:
-return $default(_that.id,_that.name,_that.baseUrl,_that.apiKey,_that.defaultModel,_that.modelNames,_that.defaultAspectRatio,_that.defaultSize,_that.defaultQuality,_that.defaultResponseFormat,_that.isEnabled,_that.testStatus,_that.lastTestedAt,_that.lastTestMessage,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.name,_that.baseUrl,_that.apiKey,_that.defaultModel,_that.providerKind,_that.modelNames,_that.defaultAspectRatio,_that.defaultSize,_that.defaultQuality,_that.defaultResponseFormat,_that.isEnabled,_that.testStatus,_that.lastTestedAt,_that.lastTestMessage,_that.createdAt,_that.updatedAt);case _:
   return null;
 
 }
@@ -224,7 +225,7 @@ return $default(_that.id,_that.name,_that.baseUrl,_that.apiKey,_that.defaultMode
 @JsonSerializable()
 
 class _ImageProviderConfig implements ImageProviderConfig {
-  const _ImageProviderConfig({required this.id, required this.name, required this.baseUrl, required this.apiKey, required this.defaultModel, final  List<String> modelNames = const <String>[], this.defaultAspectRatio = ImageAspectRatioPreset.square, this.defaultSize = ImageSizePreset.oneK, this.defaultQuality = ImageQualityPreset.auto, this.defaultResponseFormat = ImageResponseFormat.url, required this.isEnabled, required this.testStatus, this.lastTestedAt, this.lastTestMessage, required this.createdAt, required this.updatedAt}): _modelNames = modelNames;
+  const _ImageProviderConfig({required this.id, required this.name, required this.baseUrl, required this.apiKey, required this.defaultModel, this.providerKind = ImageProviderKind.gpt, final  List<String> modelNames = const <String>[], this.defaultAspectRatio = ImageAspectRatioPreset.square, this.defaultSize = ImageSizePreset.oneK, this.defaultQuality = ImageQualityPreset.auto, this.defaultResponseFormat = ImageResponseFormat.url, required this.isEnabled, required this.testStatus, this.lastTestedAt, this.lastTestMessage, required this.createdAt, required this.updatedAt}): _modelNames = modelNames;
   factory _ImageProviderConfig.fromJson(Map<String, dynamic> json) => _$ImageProviderConfigFromJson(json);
 
 @override final  String id;
@@ -232,6 +233,7 @@ class _ImageProviderConfig implements ImageProviderConfig {
 @override final  String baseUrl;
 @override final  String apiKey;
 @override final  String defaultModel;
+@override@JsonKey() final  ImageProviderKind providerKind;
  final  List<String> _modelNames;
 @override@JsonKey() List<String> get modelNames {
   if (_modelNames is EqualUnmodifiableListView) return _modelNames;
@@ -263,16 +265,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ImageProviderConfig&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.baseUrl, baseUrl) || other.baseUrl == baseUrl)&&(identical(other.apiKey, apiKey) || other.apiKey == apiKey)&&(identical(other.defaultModel, defaultModel) || other.defaultModel == defaultModel)&&const DeepCollectionEquality().equals(other._modelNames, _modelNames)&&(identical(other.defaultAspectRatio, defaultAspectRatio) || other.defaultAspectRatio == defaultAspectRatio)&&(identical(other.defaultSize, defaultSize) || other.defaultSize == defaultSize)&&(identical(other.defaultQuality, defaultQuality) || other.defaultQuality == defaultQuality)&&(identical(other.defaultResponseFormat, defaultResponseFormat) || other.defaultResponseFormat == defaultResponseFormat)&&(identical(other.isEnabled, isEnabled) || other.isEnabled == isEnabled)&&(identical(other.testStatus, testStatus) || other.testStatus == testStatus)&&(identical(other.lastTestedAt, lastTestedAt) || other.lastTestedAt == lastTestedAt)&&(identical(other.lastTestMessage, lastTestMessage) || other.lastTestMessage == lastTestMessage)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ImageProviderConfig&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.baseUrl, baseUrl) || other.baseUrl == baseUrl)&&(identical(other.apiKey, apiKey) || other.apiKey == apiKey)&&(identical(other.defaultModel, defaultModel) || other.defaultModel == defaultModel)&&(identical(other.providerKind, providerKind) || other.providerKind == providerKind)&&const DeepCollectionEquality().equals(other._modelNames, _modelNames)&&(identical(other.defaultAspectRatio, defaultAspectRatio) || other.defaultAspectRatio == defaultAspectRatio)&&(identical(other.defaultSize, defaultSize) || other.defaultSize == defaultSize)&&(identical(other.defaultQuality, defaultQuality) || other.defaultQuality == defaultQuality)&&(identical(other.defaultResponseFormat, defaultResponseFormat) || other.defaultResponseFormat == defaultResponseFormat)&&(identical(other.isEnabled, isEnabled) || other.isEnabled == isEnabled)&&(identical(other.testStatus, testStatus) || other.testStatus == testStatus)&&(identical(other.lastTestedAt, lastTestedAt) || other.lastTestedAt == lastTestedAt)&&(identical(other.lastTestMessage, lastTestMessage) || other.lastTestMessage == lastTestMessage)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,baseUrl,apiKey,defaultModel,const DeepCollectionEquality().hash(_modelNames),defaultAspectRatio,defaultSize,defaultQuality,defaultResponseFormat,isEnabled,testStatus,lastTestedAt,lastTestMessage,createdAt,updatedAt);
+int get hashCode => Object.hash(runtimeType,id,name,baseUrl,apiKey,defaultModel,providerKind,const DeepCollectionEquality().hash(_modelNames),defaultAspectRatio,defaultSize,defaultQuality,defaultResponseFormat,isEnabled,testStatus,lastTestedAt,lastTestMessage,createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'ImageProviderConfig(id: $id, name: $name, baseUrl: $baseUrl, apiKey: $apiKey, defaultModel: $defaultModel, modelNames: $modelNames, defaultAspectRatio: $defaultAspectRatio, defaultSize: $defaultSize, defaultQuality: $defaultQuality, defaultResponseFormat: $defaultResponseFormat, isEnabled: $isEnabled, testStatus: $testStatus, lastTestedAt: $lastTestedAt, lastTestMessage: $lastTestMessage, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'ImageProviderConfig(id: $id, name: $name, baseUrl: $baseUrl, apiKey: $apiKey, defaultModel: $defaultModel, providerKind: $providerKind, modelNames: $modelNames, defaultAspectRatio: $defaultAspectRatio, defaultSize: $defaultSize, defaultQuality: $defaultQuality, defaultResponseFormat: $defaultResponseFormat, isEnabled: $isEnabled, testStatus: $testStatus, lastTestedAt: $lastTestedAt, lastTestMessage: $lastTestMessage, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -283,7 +285,7 @@ abstract mixin class _$ImageProviderConfigCopyWith<$Res> implements $ImageProvid
   factory _$ImageProviderConfigCopyWith(_ImageProviderConfig value, $Res Function(_ImageProviderConfig) _then) = __$ImageProviderConfigCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String baseUrl, String apiKey, String defaultModel, List<String> modelNames, ImageAspectRatioPreset defaultAspectRatio, ImageSizePreset defaultSize, ImageQualityPreset defaultQuality, ImageResponseFormat defaultResponseFormat, bool isEnabled, ProviderTestStatus testStatus, DateTime? lastTestedAt, String? lastTestMessage, DateTime createdAt, DateTime updatedAt
+ String id, String name, String baseUrl, String apiKey, String defaultModel, ImageProviderKind providerKind, List<String> modelNames, ImageAspectRatioPreset defaultAspectRatio, ImageSizePreset defaultSize, ImageQualityPreset defaultQuality, ImageResponseFormat defaultResponseFormat, bool isEnabled, ProviderTestStatus testStatus, DateTime? lastTestedAt, String? lastTestMessage, DateTime createdAt, DateTime updatedAt
 });
 
 
@@ -300,14 +302,15 @@ class __$ImageProviderConfigCopyWithImpl<$Res>
 
 /// Create a copy of ImageProviderConfig
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? baseUrl = null,Object? apiKey = null,Object? defaultModel = null,Object? modelNames = null,Object? defaultAspectRatio = null,Object? defaultSize = null,Object? defaultQuality = null,Object? defaultResponseFormat = null,Object? isEnabled = null,Object? testStatus = null,Object? lastTestedAt = freezed,Object? lastTestMessage = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? baseUrl = null,Object? apiKey = null,Object? defaultModel = null,Object? providerKind = null,Object? modelNames = null,Object? defaultAspectRatio = null,Object? defaultSize = null,Object? defaultQuality = null,Object? defaultResponseFormat = null,Object? isEnabled = null,Object? testStatus = null,Object? lastTestedAt = freezed,Object? lastTestMessage = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_ImageProviderConfig(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,baseUrl: null == baseUrl ? _self.baseUrl : baseUrl // ignore: cast_nullable_to_non_nullable
 as String,apiKey: null == apiKey ? _self.apiKey : apiKey // ignore: cast_nullable_to_non_nullable
 as String,defaultModel: null == defaultModel ? _self.defaultModel : defaultModel // ignore: cast_nullable_to_non_nullable
-as String,modelNames: null == modelNames ? _self._modelNames : modelNames // ignore: cast_nullable_to_non_nullable
+as String,providerKind: null == providerKind ? _self.providerKind : providerKind // ignore: cast_nullable_to_non_nullable
+as ImageProviderKind,modelNames: null == modelNames ? _self._modelNames : modelNames // ignore: cast_nullable_to_non_nullable
 as List<String>,defaultAspectRatio: null == defaultAspectRatio ? _self.defaultAspectRatio : defaultAspectRatio // ignore: cast_nullable_to_non_nullable
 as ImageAspectRatioPreset,defaultSize: null == defaultSize ? _self.defaultSize : defaultSize // ignore: cast_nullable_to_non_nullable
 as ImageSizePreset,defaultQuality: null == defaultQuality ? _self.defaultQuality : defaultQuality // ignore: cast_nullable_to_non_nullable

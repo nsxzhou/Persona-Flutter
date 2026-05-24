@@ -322,6 +322,7 @@ class _ImageProviderDialogState extends ConsumerState<_ImageProviderDialog> {
   late final TextEditingController _apiKeyController;
   late final TextEditingController _modelController;
   late final TextEditingController _modelsController;
+  late ImageProviderKind _providerKind;
   late ImageAspectRatioPreset _defaultAspectRatio;
   late ImageSizePreset _defaultSize;
   late ImageQualityPreset _defaultQuality;
@@ -342,6 +343,7 @@ class _ImageProviderDialogState extends ConsumerState<_ImageProviderDialog> {
     _modelsController = TextEditingController(
       text: (provider?.modelNames ?? const <String>[]).join('\n'),
     );
+    _providerKind = provider?.providerKind ?? ImageProviderKind.gpt;
     _defaultAspectRatio =
         provider?.defaultAspectRatio ?? ImageAspectRatioPreset.square;
     _defaultSize = provider?.defaultSize ?? ImageSizePreset.oneK;
@@ -446,6 +448,25 @@ class _ImageProviderDialogState extends ConsumerState<_ImageProviderDialog> {
                 minLines: 3,
                 maxLines: 5,
               );
+              final kindField = DropdownButtonFormField<ImageProviderKind>(
+                initialValue: _providerKind,
+                decoration: const InputDecoration(labelText: 'Provider 类型'),
+                items: [
+                  for (final kind in ImageProviderKind.values)
+                    DropdownMenuItem(value: kind, child: Text(kind.label)),
+                ],
+                onChanged: (value) {
+                  if (value == null) {
+                    return;
+                  }
+                  setState(() {
+                    _providerKind = value;
+                    if (value == ImageProviderKind.grok) {
+                      _defaultResponseFormat = ImageResponseFormat.url;
+                    }
+                  });
+                },
+              );
               final aspectRatioField =
                   DropdownButtonFormField<ImageAspectRatioPreset>(
                     initialValue: _defaultAspectRatio,
@@ -532,17 +553,23 @@ class _ImageProviderDialogState extends ConsumerState<_ImageProviderDialog> {
                       ],
                     ),
                     const SizedBox(height: 12),
+                    Row(children: [Expanded(child: kindField)]),
+                    const SizedBox(height: 12),
                     Row(
                       children: [
                         Expanded(child: aspectRatioField),
                         const SizedBox(width: 12),
                         Expanded(child: sizeField),
-                        const SizedBox(width: 12),
-                        Expanded(child: qualityField),
+                        if (_providerKind != ImageProviderKind.grok) ...[
+                          const SizedBox(width: 12),
+                          Expanded(child: qualityField),
+                        ],
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    Row(children: [Expanded(child: formatField)]),
+                    if (_providerKind != ImageProviderKind.grok) ...[
+                      const SizedBox(height: 12),
+                      Row(children: [Expanded(child: formatField)]),
+                    ],
                     const SizedBox(height: 12),
                     modelsField,
                   ] else ...[
@@ -554,13 +581,17 @@ class _ImageProviderDialogState extends ConsumerState<_ImageProviderDialog> {
                     const SizedBox(height: 12),
                     apiKeyField,
                     const SizedBox(height: 12),
+                    kindField,
+                    const SizedBox(height: 12),
                     aspectRatioField,
                     const SizedBox(height: 12),
                     sizeField,
-                    const SizedBox(height: 12),
-                    qualityField,
-                    const SizedBox(height: 12),
-                    formatField,
+                    if (_providerKind != ImageProviderKind.grok) ...[
+                      const SizedBox(height: 12),
+                      qualityField,
+                      const SizedBox(height: 12),
+                      formatField,
+                    ],
                     const SizedBox(height: 12),
                     modelsField,
                   ],
@@ -653,11 +684,16 @@ class _ImageProviderDialogState extends ConsumerState<_ImageProviderDialog> {
             baseUrl: _baseUrlController.text,
             apiKey: _apiKeyController.text,
             defaultModel: _modelController.text,
+            providerKind: _providerKind,
             modelNames: _parseModelNames(_modelsController.text),
             defaultAspectRatio: _defaultAspectRatio,
             defaultSize: _defaultSize,
-            defaultQuality: _defaultQuality,
-            defaultResponseFormat: _defaultResponseFormat,
+            defaultQuality: _providerKind == ImageProviderKind.grok
+                ? ImageQualityPreset.auto
+                : _defaultQuality,
+            defaultResponseFormat: _providerKind == ImageProviderKind.grok
+                ? ImageResponseFormat.url
+                : _defaultResponseFormat,
             isEnabled: _isEnabled,
           ),
         );

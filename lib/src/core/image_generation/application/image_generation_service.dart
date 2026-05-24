@@ -25,8 +25,9 @@ class ImageGenerationService {
         size: size ?? provider.defaultSize,
       ),
       quality: (quality ?? provider.defaultQuality).quality,
-      responseFormat: responseFormat ?? provider.defaultResponseFormat,
-      n: 1,
+      responseFormat: provider.providerKind == ImageProviderKind.grok
+          ? ImageResponseFormat.url
+          : responseFormat ?? provider.defaultResponseFormat,
     );
     return _client.generateImage(provider: provider, request: request);
   }
@@ -55,7 +56,6 @@ class ImageGenerationService {
       ),
       quality: (quality ?? provider.defaultQuality).quality,
       responseFormat: responseFormat ?? provider.defaultResponseFormat,
-      n: 1,
       maskBytes: maskBytes,
       maskFilename: maskFilename,
     );

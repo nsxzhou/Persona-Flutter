@@ -20,6 +20,7 @@ import 'package:persona_flutter/src/features/settings/data/drift_image_provider_
 import 'package:persona_flutter/src/features/settings/data/drift_provider_config_repository.dart';
 import 'package:persona_flutter/src/features/settings/domain/image_provider_config.dart';
 import 'package:persona_flutter/src/features/settings/domain/provider_config.dart';
+import 'package:sqlite3/sqlite3.dart';
 
 void main() {
   test('provider connectivity tester requests the models endpoint', () async {
@@ -127,6 +128,7 @@ void main() {
       baseUrl: 'https://image.example.com',
       apiKey: 'sk-image',
       defaultModel: 'gpt-5-3',
+      providerKind: ImageProviderKind.grok,
       modelNames: ['gpt-5-3', 'gpt-image-1', 'gpt-5-3', ' '],
       defaultAspectRatio: ImageAspectRatioPreset.wide,
       defaultSize: ImageSizePreset.twoK,
@@ -142,6 +144,7 @@ void main() {
     expect(saved.baseUrl, input.baseUrl);
     expect(saved.apiKey, input.apiKey);
     expect(saved.defaultModel, input.defaultModel);
+    expect(saved.providerKind, ImageProviderKind.grok);
     expect(saved.modelNames, ['gpt-5-3', 'gpt-image-1']);
     expect(saved.defaultAspectRatio, ImageAspectRatioPreset.wide);
     expect(saved.defaultSize, ImageSizePreset.twoK);
@@ -161,6 +164,75 @@ void main() {
 
     await repository.deleteProvider(saved.id);
     expect(await repository.findProvider(saved.id), isNull);
+  });
+
+  test('schema 27 migration backfills image provider kind as gpt', () async {
+    final sqlite = sqlite3.openInMemory();
+    addTearDown(sqlite.dispose);
+    sqlite.execute('PRAGMA user_version = 26');
+    sqlite.execute('''
+      CREATE TABLE image_provider_config_records (
+        id TEXT NOT NULL PRIMARY KEY,
+        name TEXT NOT NULL,
+        base_url TEXT NOT NULL,
+        api_key TEXT NOT NULL,
+        default_model TEXT NOT NULL,
+        default_aspect_ratio TEXT NOT NULL DEFAULT '1:1',
+        default_size TEXT NOT NULL DEFAULT '1K',
+        default_quality TEXT NOT NULL DEFAULT 'auto',
+        default_response_format TEXT NOT NULL DEFAULT 'url',
+        is_enabled INTEGER NOT NULL DEFAULT 1,
+        test_status TEXT NOT NULL,
+        last_tested_at INTEGER,
+        last_test_message TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    ''');
+    sqlite.execute('''
+      CREATE TABLE image_provider_model_records (
+        provider_id TEXT NOT NULL,
+        model_name TEXT NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (provider_id, model_name),
+        FOREIGN KEY (provider_id) REFERENCES image_provider_config_records(id)
+      )
+    ''');
+    final now = DateTime.utc(2026, 5, 24).millisecondsSinceEpoch;
+    sqlite.execute(
+      '''
+      INSERT INTO image_provider_config_records (
+        id, name, base_url, api_key, default_model, default_aspect_ratio,
+        default_size, default_quality, default_response_format, is_enabled,
+        test_status, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ''',
+      [
+        'legacy-image',
+        'Legacy Image',
+        'https://image.example.com',
+        'sk-image',
+        'gpt-5-3',
+        '1:1',
+        '1K',
+        'auto',
+        'url',
+        1,
+        ProviderTestStatus.untested.name,
+        now,
+        now,
+      ],
+    );
+
+    final database = AppDatabase(NativeDatabase.opened(sqlite));
+    addTearDown(database.close);
+    final repository = DriftImageProviderConfigRepository(database);
+
+    final provider = await repository.findProvider('legacy-image');
+    expect(provider, isNotNull);
+    expect(provider!.providerKind, ImageProviderKind.gpt);
   });
 
   test(
@@ -200,10 +272,72 @@ void main() {
       expect(capturedRequest.body, contains('"size":"1024x1024"'));
       expect(capturedRequest.body, contains('"quality":"auto"'));
       expect(capturedRequest.body, contains('"response_format":"url"'));
+      expect(capturedRequest.body, isNot(contains('"n"')));
       expect(result.images.single.url, 'https://cdn.example.com/a.png');
       expect(result.images.single.revisedPrompt, 'cat');
     },
   );
+
+  test('bearer image client sends grok chat completions request', () async {
+    late http.Request capturedRequest;
+    final client = MockClient((request) async {
+      capturedRequest = request;
+      return http.Response(
+        '{"created":1,"choices":[{"message":{"content":"![image](https://cdn.example.com/grok.png)"}}],"usage":{"total_tokens":1}}',
+        200,
+      );
+    });
+    final imageClient = BearerImageGenerationClient(client: client);
+
+    final result = await imageClient.generateImage(
+      provider: _imageProvider(
+        defaultModel: 'grok-imagine-image-lite',
+        providerKind: ImageProviderKind.grok,
+      ),
+      request: const ImageGenerationRequest(
+        model: 'grok-imagine-image-lite',
+        prompt: '一只猫',
+        size: '1024x1024',
+        quality: 'auto',
+      ),
+    );
+
+    expect(
+      capturedRequest.url.toString(),
+      'https://image.example.com/v1/chat/completions',
+    );
+    expect(capturedRequest.body, contains('"stream":false'));
+    expect(capturedRequest.body, contains('"messages"'));
+    expect(capturedRequest.body, contains('"image_config"'));
+    expect(capturedRequest.body, contains('"size":"1024x1024"'));
+    expect(capturedRequest.body, contains('"response_format":"url"'));
+    expect(capturedRequest.body, isNot(contains('"quality"')));
+    expect(capturedRequest.body, isNot(contains('"n"')));
+    expect(result.images.single.url, 'https://cdn.example.com/grok.png');
+  });
+
+  test('bearer image client returns only first generated image', () async {
+    final client = MockClient((request) async {
+      return http.Response(
+        '{"created":1,"data":[{"url":"https://cdn.example.com/a.png"},{"url":"https://cdn.example.com/b.png"}]}',
+        200,
+      );
+    });
+    final imageClient = BearerImageGenerationClient(client: client);
+
+    final result = await imageClient.generateImage(
+      provider: _imageProvider(),
+      request: const ImageGenerationRequest(
+        model: 'gpt-5-3',
+        prompt: '一只猫',
+        size: '1024x1024',
+        quality: 'auto',
+      ),
+    );
+
+    expect(result.images, hasLength(1));
+    expect(result.images.single.url, 'https://cdn.example.com/a.png');
+  });
 
   test('bearer image client supports edit endpoint contract', () async {
     late http.BaseRequest capturedRequest;
@@ -238,6 +372,35 @@ void main() {
       'high',
     );
     expect(result.images.single.b64Json, 'aW1hZ2U=');
+  });
+
+  test('bearer image client rejects grok edit requests', () async {
+    final imageClient = BearerImageGenerationClient(
+      client: MockClient((_) {
+        throw StateError('network should not be called');
+      }),
+    );
+
+    await expectLater(
+      imageClient.editImage(
+        provider: _imageProvider(providerKind: ImageProviderKind.grok),
+        request: const ImageEditRequest(
+          model: 'grok-imagine-image-lite',
+          prompt: '改成夜景',
+          imageBytes: [1, 2, 3],
+          imageFilename: 'source.png',
+          size: '1024x1024',
+          quality: 'auto',
+        ),
+      ),
+      throwsA(
+        isA<ImageGenerationClientException>().having(
+          (error) => error.message,
+          'message',
+          contains('暂不支持图片编辑'),
+        ),
+      ),
+    );
   });
 
   test('bearer image client sanitizes api key in errors', () async {
@@ -436,14 +599,17 @@ void main() {
 
 ImageProviderConfig _imageProvider({
   String baseUrl = 'https://image.example.com',
+  ImageProviderKind providerKind = ImageProviderKind.gpt,
+  String defaultModel = 'gpt-5-3',
 }) {
   return ImageProviderConfig(
     id: 'image-provider-1',
     name: 'NewAPI Image',
     baseUrl: baseUrl,
     apiKey: 'sk-image-secret',
-    defaultModel: 'gpt-5-3',
-    modelNames: const ['gpt-5-3'],
+    defaultModel: defaultModel,
+    providerKind: providerKind,
+    modelNames: [defaultModel],
     isEnabled: true,
     testStatus: ProviderTestStatus.untested,
     createdAt: DateTime.utc(2026),
