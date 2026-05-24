@@ -116,6 +116,7 @@ class _WorkspaceOverview extends StatelessWidget {
     final isActive = selectedStatus == ProjectStatus.active;
 
     return PersonaPanel(
+      hoverable: true,
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
       child: LayoutBuilder(
         builder: (context, constraints) {

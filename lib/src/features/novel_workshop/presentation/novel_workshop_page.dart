@@ -1140,80 +1140,90 @@ class _ProjectOverviewTab extends StatelessWidget {
           ),
           const SizedBox(height: 20),
 
-          // --- Section 1: metric cards ---
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 180,
-                  child: _TappableMetric(
-                    label: '设定集完成度',
-                    value: bibleEmpty ? '未配置' : _bibleCompletenessLabel(bible),
-                    detail: '世界观 · 角色 · 总纲',
-                    onTap: () => onSwitchTab(1),
-                  ),
+          // --- Section 1: metric cards grid ---
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final metrics = [
+                _TappableMetric(
+                  label: '设定集完成度',
+                  value: bibleEmpty ? '未配置' : _bibleCompletenessLabel(bible),
+                  detail: '世界观 · 角色 · 总纲',
+                  onTap: () => onSwitchTab(1),
                 ),
-                const SizedBox(width: 14),
-                SizedBox(
-                  width: 160,
-                  child: _TappableMetric(
-                    label: '分卷',
-                    value: '${volumes.length}',
-                    detail: '${volumes.length} 卷已创建',
-                    onTap: () => onSwitchTab(4),
-                  ),
+                _TappableMetric(
+                  label: '分卷',
+                  value: '${volumes.length}',
+                  detail: '${volumes.length} 卷已创建',
+                  onTap: () => onSwitchTab(4),
                 ),
-                const SizedBox(width: 14),
-                SizedBox(
-                  width: 160,
-                  child: _TappableMetric(
-                    label: '章节细纲',
-                    value: '${plans.length}',
-                    detail: '${plans.length} 个章节计划',
-                    onTap: () => onSwitchTab(4),
-                  ),
+                _TappableMetric(
+                  label: '章节细纲',
+                  value: '${plans.length}',
+                  detail: '${plans.length} 个章节计划',
+                  onTap: () => onSwitchTab(4),
                 ),
-                const SizedBox(width: 14),
-                SizedBox(
-                  width: 160,
-                  child: _TappableMetric(
-                    label: '正文',
-                    value: '$completed/${plans.length}',
-                    detail: completed > 0 ? '$completed 个已完成' : '开始写作以生成正文',
-                    onTap: () => onSwitchTab(4),
-                  ),
+                _TappableMetric(
+                  label: '正文',
+                  value: '$completed/${plans.length}',
+                  detail: completed > 0 ? '$completed 个已完成' : '开始写作以生成正文',
+                  onTap: () => onSwitchTab(4),
                 ),
-                const SizedBox(width: 14),
-                SizedBox(
-                  width: 160,
-                  child: _TappableMetric(
-                    label: '生成任务',
-                    value: '${runs.length}',
-                    detail: '$succeededRuns 个成功',
-                    onTap: () => onSwitchTab(7),
-                  ),
+                _TappableMetric(
+                  label: '生成任务',
+                  value: '${runs.length}',
+                  detail: '$succeededRuns 个成功',
+                  onTap: () => onSwitchTab(7),
                 ),
-              ],
-            ),
+              ];
+              final crossAxisCount = constraints.maxWidth > 800 ? 3 : 2;
+              final totalSpacing = 14.0 * (crossAxisCount - 1);
+              final itemWidth =
+                  (constraints.maxWidth - totalSpacing) / crossAxisCount;
+
+              return Wrap(
+                spacing: 14,
+                runSpacing: 14,
+                children: [
+                  for (final metric in metrics)
+                    SizedBox(width: itemWidth, child: metric),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 20),
 
-          // --- Section 2: Prompt assets panel ---
-          PersonaPanel(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // --- Section 2: Voice Profile & Story Engine panels ---
+          assets.when(
+            data: (item) => Column(
               children: [
-                const PersonaSectionHeader(
-                  title: 'Prompt 资产',
-                  description: 'Voice Profile & Story Engine 接入状态',
+                _OverviewAssetPanel(
+                  title: 'Voice Profile',
+                  description: '风格上下文，控制叙事语气与措辞',
+                  icon: Icons.record_voice_over_outlined,
+                  ready: item.voiceProfileMarkdown.trim().isNotEmpty,
+                  onTap: () => onSwitchTab(5),
                 ),
-                const SizedBox(height: 12),
-                assets.when(
-                  data: (item) => _PromptAssetStatusStrip(assets: item),
-                  error: (error, stackTrace) => Text('无法加载 Prompt 资产：$error'),
-                  loading: () => const SkeletonBox(width: 260, height: 16),
+                const SizedBox(height: 14),
+                _OverviewAssetPanel(
+                  title: 'Story Engine',
+                  description: '情节引擎，驱动章节结构与节奏',
+                  icon: Icons.engineering_outlined,
+                  ready: item.storyEngineMarkdown.trim().isNotEmpty,
+                  onTap: () => onSwitchTab(6),
                 ),
+              ],
+            ),
+            error: (error, stackTrace) => PersonaPanel(
+              child: Text(
+                '无法加载 Prompt 资产：$error',
+                style: TextStyle(color: colorScheme.error),
+              ),
+            ),
+            loading: () => Column(
+              children: [
+                _OverviewAssetPanelSkeleton(),
+                const SizedBox(height: 14),
+                _OverviewAssetPanelSkeleton(),
               ],
             ),
           ),
@@ -1221,6 +1231,7 @@ class _ProjectOverviewTab extends StatelessWidget {
 
           // --- Section 3: Runtime memory panel ---
           PersonaPanel(
+            hoverable: true,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1241,13 +1252,149 @@ class _ProjectOverviewTab extends StatelessWidget {
                           onOpen: () => onSwitchTab(7),
                         ),
                   error: (error, stackTrace) => Text('无法加载运行时记忆：$error'),
-                  loading: () => const SkeletonBox(width: 220, height: 16),
+                  loading: () => _RuntimeMemorySkeleton(),
                 ),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _OverviewAssetPanel extends StatelessWidget {
+  const _OverviewAssetPanel({
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.ready,
+    required this.onTap,
+  });
+
+  final String title;
+  final String description;
+  final IconData icon;
+  final bool ready;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return PersonaPanel(
+      hoverable: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(kPanelRadius),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            children: [
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(kButtonRadius),
+                  border: Border.all(
+                    color: colorScheme.primary.withValues(alpha: 0.18),
+                  ),
+                ),
+                child: SizedBox(
+                  width: 38,
+                  height: 38,
+                  child: Icon(icon, color: colorScheme.primary, size: 20),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(description, style: textTheme.bodyMedium),
+                  ],
+                ),
+              ),
+              PersonaStatusPill(
+                label: ready ? '已接入' : '待完善',
+                icon: ready
+                    ? Icons.check_circle_outline
+                    : Icons.radio_button_unchecked,
+                color: ready ? null : colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 4),
+              Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OverviewAssetPanelSkeleton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return PersonaPanel(
+      child: Row(
+        children: [
+          const SkeletonBox(width: 38, height: 38, borderRadius: 10),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                SkeletonBox(width: 120, height: 14),
+                SizedBox(height: 6),
+                SkeletonBox(width: 200, height: 12),
+              ],
+            ),
+          ),
+          const SkeletonBox(width: 72, height: 28, borderRadius: 999),
+        ],
+      ),
+    );
+  }
+}
+
+class _RuntimeMemorySkeleton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: const [
+            SkeletonBox(width: 18, height: 18, borderRadius: 4),
+            SizedBox(width: 8),
+            SkeletonBox(width: 120, height: 14),
+          ],
+        ),
+        SizedBox(height: 10),
+        SkeletonBox(width: double.infinity, height: 12),
+        SizedBox(height: 6),
+        SkeletonBox(width: 260, height: 12),
+        SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (var i = 0; i < 4; i++)
+              SkeletonBox(width: 80, height: 28, borderRadius: 999),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -1313,56 +1460,54 @@ class _ImportedProjectOverviewTab extends StatelessWidget {
             ),
           ),
 
-          // -- Metric cards --
+          // -- Metric cards grid --
           const SizedBox(height: 20),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 150,
-                  child: PersonaMetric(
-                    label: '导入分卷',
-                    value: '${volumes.length}',
-                    detail: '固定导入正文卷',
-                  ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final metrics = [
+                PersonaMetric(
+                  label: '导入分卷',
+                  value: '${volumes.length}',
+                  detail: '固定导入正文卷',
                 ),
-                const SizedBox(width: 12),
-                SizedBox(
-                  width: 150,
-                  child: PersonaMetric(
-                    label: '章节',
-                    value: '${plans.length}',
-                    detail: '${chapters.length} 章有正文',
-                  ),
+                PersonaMetric(
+                  label: '章节',
+                  value: '${plans.length}',
+                  detail: '${chapters.length} 章有正文',
                 ),
-                const SizedBox(width: 12),
-                SizedBox(
-                  width: 170,
-                  child: PersonaMetric(
-                    label: '总字数',
-                    value: '$totalChars',
-                    detail: '按当前正文统计',
-                  ),
+                PersonaMetric(
+                  label: '总字数',
+                  value: '$totalChars',
+                  detail: '按当前正文统计',
                 ),
-                const SizedBox(width: 12),
-                SizedBox(
-                  width: 170,
-                  child: PersonaMetric(
-                    label: '加料批次',
-                    value: '${enrichmentBatches.length}',
-                    detail: latestBatch == null
-                        ? '暂无批次'
-                        : _enrichmentBatchStatusLabel(latestBatch.status),
-                  ),
+                PersonaMetric(
+                  label: '加料批次',
+                  value: '${enrichmentBatches.length}',
+                  detail: latestBatch == null
+                      ? '暂无批次'
+                      : _enrichmentBatchStatusLabel(latestBatch.status),
                 ),
-              ],
-            ),
+              ];
+              final crossAxisCount = constraints.maxWidth > 700 ? 4 : 2;
+              final totalSpacing = 14.0 * (crossAxisCount - 1);
+              final itemWidth =
+                  (constraints.maxWidth - totalSpacing) / crossAxisCount;
+
+              return Wrap(
+                spacing: 14,
+                runSpacing: 14,
+                children: [
+                  for (final metric in metrics)
+                    SizedBox(width: itemWidth, child: metric),
+                ],
+              );
+            },
           ),
 
           // -- Enrichment batch panel --
           const SizedBox(height: 20),
           PersonaPanel(
+            hoverable: true,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1397,26 +1542,21 @@ class _ImportedProjectOverviewTab extends StatelessWidget {
 
           // -- Voice Profile panel --
           const SizedBox(height: 16),
-          PersonaPanel(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const PersonaSectionHeader(
-                  title: 'Voice Profile',
-                  description: '导入项目加料只使用 Voice Profile 作为风格上下文。',
-                ),
-                const SizedBox(height: 12),
-                assets.when(
-                  data: (item) => _AssetStatus(
-                    label: 'Voice Profile',
-                    ready: item.voiceProfileMarkdown.trim().isNotEmpty,
-                  ),
-                  error: (error, stackTrace) =>
-                      InlineError(message: '无法加载 Voice Profile：$error'),
-                  loading: () => const SkeletonBox(width: 220, height: 16),
-                ),
-              ],
+          assets.when(
+            data: (item) => _OverviewAssetPanel(
+              title: 'Voice Profile',
+              description: '导入项目加料只使用 Voice Profile 作为风格上下文。',
+              icon: Icons.record_voice_over_outlined,
+              ready: item.voiceProfileMarkdown.trim().isNotEmpty,
+              onTap: () => context.go('/projects/${project.id}/workshop/editor'),
             ),
+            error: (error, stackTrace) => PersonaPanel(
+              child: Text(
+                '无法加载 Voice Profile：$error',
+                style: TextStyle(color: colorScheme.error),
+              ),
+            ),
+            loading: () => _OverviewAssetPanelSkeleton(),
           ),
 
           // -- Entry button (if no batch yet) --
@@ -4574,45 +4714,6 @@ class _AssetDetailTile extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _PromptAssetStatusStrip extends StatelessWidget {
-  const _PromptAssetStatusStrip({required this.assets});
-
-  final ProjectPromptAssets assets;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: [
-        PersonaStatusPill(
-          label: assets.voiceProfileMarkdown.trim().isEmpty
-              ? 'Voice Profile 可选'
-              : 'Voice Profile 已接入',
-          icon: assets.voiceProfileMarkdown.trim().isEmpty
-              ? Icons.radio_button_unchecked
-              : Icons.check_circle_outline,
-          color: assets.voiceProfileMarkdown.trim().isEmpty
-              ? colorScheme.onSurfaceVariant
-              : null,
-        ),
-        PersonaStatusPill(
-          label: assets.storyEngineMarkdown.trim().isEmpty
-              ? 'Story Engine 可选'
-              : 'Story Engine 已接入',
-          icon: assets.storyEngineMarkdown.trim().isEmpty
-              ? Icons.radio_button_unchecked
-              : Icons.check_circle_outline,
-          color: assets.storyEngineMarkdown.trim().isEmpty
-              ? colorScheme.onSurfaceVariant
-              : null,
-        ),
-      ],
     );
   }
 }

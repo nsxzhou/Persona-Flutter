@@ -724,8 +724,9 @@ characters:
     await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
     await tester.pumpAndSettle();
 
-    expect(find.text('Voice Profile 可选'), findsOneWidget);
-    expect(find.text('Story Engine 可选'), findsOneWidget);
+    expect(find.text('风格上下文，控制叙事语气与措辞'), findsOneWidget);
+    expect(find.text('情节引擎，驱动章节结构与节奏'), findsOneWidget);
+    expect(find.text('待完善'), findsNWidgets(2));
 
     await tester.ensureVisible(find.text('Prompt 栈').last);
     await tester.tap(find.text('Prompt 栈').last);
