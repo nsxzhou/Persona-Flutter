@@ -4,12 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:persona_flutter/src/core/database/local_backup_service.dart';
+import 'package:persona_flutter/src/core/image_generation/domain/image_generation_client.dart';
+import 'package:persona_flutter/src/core/image_generation/domain/image_generation_request.dart';
 import 'package:persona_flutter/src/core/llm/domain/llm_client.dart';
 import 'package:persona_flutter/src/core/llm/domain/llm_request.dart';
 import 'package:persona_flutter/src/core/llm/domain/llm_stream_event.dart';
+import 'package:persona_flutter/src/features/settings/application/image_provider_config_providers.dart';
 import 'package:persona_flutter/src/features/settings/application/local_backup_providers.dart';
 import 'package:persona_flutter/src/features/settings/application/provider_config_providers.dart';
+import 'package:persona_flutter/src/features/settings/domain/image_provider_config.dart';
 import 'package:persona_flutter/src/features/settings/domain/provider_config.dart';
+import 'package:persona_flutter/src/features/settings/presentation/image_provider_detail_page.dart';
 import 'package:persona_flutter/src/features/settings/presentation/provider_detail_page.dart';
 import 'package:persona_flutter/src/features/settings/presentation/settings_page.dart';
 
@@ -22,6 +27,9 @@ void main() {
         overrides: [
           providerConfigsProvider.overrideWith(
             (ref) => Stream<List<ProviderConfig>>.value(const []),
+          ),
+          imageProviderConfigsProvider.overrideWith(
+            (ref) => Stream<List<ImageProviderConfig>>.value(const []),
           ),
           localBackupControllerProvider.overrideWith(
             _ReadyBackupController.new,
@@ -58,6 +66,9 @@ void main() {
         overrides: [
           providerConfigsProvider.overrideWith(
             (ref) => Stream<List<ProviderConfig>>.value(const []),
+          ),
+          imageProviderConfigsProvider.overrideWith(
+            (ref) => Stream<List<ImageProviderConfig>>.value(const []),
           ),
           localBackupControllerProvider.overrideWith(() => controller),
         ],
@@ -96,6 +107,9 @@ void main() {
         overrides: [
           providerConfigsProvider.overrideWith(
             (ref) => Stream<List<ProviderConfig>>.value(const []),
+          ),
+          imageProviderConfigsProvider.overrideWith(
+            (ref) => Stream<List<ImageProviderConfig>>.value(const []),
           ),
           localBackupControllerProvider.overrideWithBuild(
             (ref, notifier) => Completer<LocalBackupState>().future,
@@ -145,6 +159,9 @@ void main() {
             providerConfigsProvider.overrideWith(
               (ref) => Stream<List<ProviderConfig>>.value(providers),
             ),
+            imageProviderConfigsProvider.overrideWith(
+              (ref) => Stream<List<ImageProviderConfig>>.value(const []),
+            ),
             localBackupControllerProvider.overrideWith(
               _ReadyBackupController.new,
             ),
@@ -187,6 +204,9 @@ void main() {
           providerConfigsProvider.overrideWith(
             (ref) => Stream<List<ProviderConfig>>.value([provider]),
           ),
+          imageProviderConfigsProvider.overrideWith(
+            (ref) => Stream<List<ImageProviderConfig>>.value(const []),
+          ),
           localBackupControllerProvider.overrideWith(
             _ReadyBackupController.new,
           ),
@@ -196,11 +216,22 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('新增'));
+    await tester.tap(find.widgetWithText(FilledButton, '新增').first);
     await tester.pumpAndSettle();
 
     expect(find.text('新增 Provider'), findsOneWidget);
     expect(find.textContaining('API Key 只保存在本地 SQLite'), findsOneWidget);
+    expect(find.byTooltip('显示 API Key'), findsOneWidget);
+    expect(find.byTooltip('隐藏 API Key'), findsNothing);
+
+    await tester.tap(find.byTooltip('显示 API Key'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('隐藏 API Key'), findsOneWidget);
+    expect(find.byTooltip('显示 API Key'), findsNothing);
+
+    await tester.tap(find.byTooltip('隐藏 API Key'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('显示 API Key'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     await tester.tap(find.text('取消').last);
@@ -211,6 +242,97 @@ void main() {
 
     expect(find.text('删除 Provider'), findsWidgets);
     expect(find.textContaining('API Key 会从 SQLite 中删除'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('settings page renders image provider panel and rows', (
+    tester,
+  ) async {
+    final imageProvider = _imageProvider(
+      id: 'newapi-image',
+      name: 'NewAPI Image',
+      apiKey: 'sk-image-secret',
+      testStatus: ProviderTestStatus.succeeded,
+      lastTestMessage: '样例生图成功，返回 1 张图片。',
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          providerConfigsProvider.overrideWith(
+            (ref) => Stream<List<ProviderConfig>>.value(const []),
+          ),
+          imageProviderConfigsProvider.overrideWith(
+            (ref) => Stream<List<ImageProviderConfig>>.value([imageProvider]),
+          ),
+          localBackupControllerProvider.overrideWith(
+            _ReadyBackupController.new,
+          ),
+        ],
+        child: const MaterialApp(home: SettingsPage()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Provider 控制台'), findsOneWidget);
+    expect(find.text('图像 Provider'), findsOneWidget);
+    expect(find.text('NewAPI Image'), findsOneWidget);
+    expect(find.textContaining('方形 1:1 · 1K'), findsOneWidget);
+    expect(find.byIcon(Icons.auto_awesome_outlined), findsOneWidget);
+    expect(find.text('sk-image-secret'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('image provider dialog exposes api key and image controls', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1440, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          providerConfigsProvider.overrideWith(
+            (ref) => Stream<List<ProviderConfig>>.value(const []),
+          ),
+          imageProviderConfigsProvider.overrideWith(
+            (ref) => Stream<List<ImageProviderConfig>>.value(const []),
+          ),
+          localBackupControllerProvider.overrideWith(
+            _ReadyBackupController.new,
+          ),
+        ],
+        child: const MaterialApp(home: SettingsPage()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.widgetWithText(FilledButton, '新增').last);
+    await tester.tap(find.widgetWithText(FilledButton, '新增').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('新增图像 Provider'), findsWidgets);
+    expect(find.text('API Key'), findsOneWidget);
+    expect(find.byTooltip('显示 API Key'), findsOneWidget);
+    expect(find.byTooltip('隐藏 API Key'), findsNothing);
+    expect(find.text('默认画幅'), findsOneWidget);
+    expect(find.text('默认尺寸档位'), findsOneWidget);
+    expect(find.text('默认质量'), findsOneWidget);
+    expect(find.textContaining('API Key 不会在界面中展示'), findsOneWidget);
+    expect(find.text('方形 1:1'), findsOneWidget);
+    expect(find.text('1K'), findsOneWidget);
+    expect(find.text('auto'), findsWidgets);
+
+    await tester.tap(find.byTooltip('显示 API Key'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('隐藏 API Key'), findsOneWidget);
+    expect(find.byTooltip('显示 API Key'), findsNothing);
+
+    await tester.tap(find.byTooltip('隐藏 API Key'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('显示 API Key'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -363,6 +485,66 @@ void main() {
     expect(find.text('sk-secret'), findsNothing);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('image provider detail page generates memory-only preview', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final provider = _imageProvider(
+      id: 'newapi-image',
+      name: 'NewAPI Image',
+      apiKey: 'sk-image-secret',
+      modelNames: const ['gpt-5-3', 'gpt-image-1'],
+    );
+    final client = _RecordingImageGenerationClient();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          imageProviderConfigProvider.overrideWith(
+            (ref, id) => Stream<ImageProviderConfig?>.value(provider),
+          ),
+          imageGenerationClientProvider.overrideWithValue(client),
+        ],
+        child: const MaterialApp(
+          home: ImageProviderDetailPage(providerId: 'newapi-image'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('文生图测试'), findsOneWidget);
+    expect(find.text('Actual Request'), findsNothing);
+    expect(find.text('sk-image-secret'), findsNothing);
+
+    await tester.ensureVisible(find.text('生成测试'));
+    await tester.tap(find.text('生成测试'));
+    await tester.pumpAndSettle();
+
+    expect(client.lastRequest?.model, 'gpt-5-3');
+    expect(client.lastRequest?.size, '1024x1024');
+    expect(client.lastRequest?.quality, 'auto');
+    expect(client.lastRequest?.responseFormat, ImageResponseFormat.url);
+    expect(find.textContaining('预览仅保存在当前页面内存中'), findsNothing);
+    expect(find.text('sk-image-secret'), findsNothing);
+
+    await tester.tap(find.text('请求'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Actual Request'), findsOneWidget);
+    expect(find.textContaining('/v1/images/generations'), findsOneWidget);
+    expect(find.text('sk-image-secret'), findsNothing);
+
+    await tester.tap(find.text('响应'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('revised_prompt'), findsOneWidget);
+    expect(find.text('usage'), findsOneWidget);
+  });
 }
 
 ProviderConfig _provider({
@@ -394,6 +576,41 @@ ProviderConfig _provider({
   );
 }
 
+ImageProviderConfig _imageProvider({
+  required String id,
+  required String name,
+  required String apiKey,
+  String baseUrl = 'https://image.example.com',
+  String defaultModel = 'gpt-5-3',
+  List<String> modelNames = const <String>[],
+  ImageAspectRatioPreset defaultAspectRatio = ImageAspectRatioPreset.square,
+  ImageSizePreset defaultSize = ImageSizePreset.oneK,
+  ImageQualityPreset defaultQuality = ImageQualityPreset.auto,
+  ImageResponseFormat defaultResponseFormat = ImageResponseFormat.url,
+  bool isEnabled = true,
+  ProviderTestStatus testStatus = ProviderTestStatus.untested,
+  String? lastTestMessage,
+}) {
+  return ImageProviderConfig(
+    id: id,
+    name: name,
+    baseUrl: baseUrl,
+    apiKey: apiKey,
+    defaultModel: defaultModel,
+    modelNames: modelNames,
+    defaultAspectRatio: defaultAspectRatio,
+    defaultSize: defaultSize,
+    defaultQuality: defaultQuality,
+    defaultResponseFormat: defaultResponseFormat,
+    isEnabled: isEnabled,
+    testStatus: testStatus,
+    lastTestedAt: DateTime(2026, 5, 24),
+    lastTestMessage: lastTestMessage,
+    createdAt: DateTime(2026, 5, 24),
+    updatedAt: DateTime(2026, 5, 24),
+  );
+}
+
 class _FakeLlmClient implements LlmClient {
   @override
   Stream<LlmStreamEvent> streamChat({
@@ -417,6 +634,38 @@ class _RecordingLlmClient implements LlmClient {
     lastRequest = request;
     yield const LlmStreamDelta('模型回复');
     yield const LlmStreamDone();
+  }
+}
+
+class _RecordingImageGenerationClient implements ImageGenerationClient {
+  ImageGenerationRequest? lastRequest;
+
+  @override
+  Future<ImageGenerationResult> generateImage({
+    required ImageProviderConfig provider,
+    required ImageGenerationRequest request,
+  }) async {
+    lastRequest = request;
+    return const ImageGenerationResult(
+      created: 1,
+      images: [
+        GeneratedImage(
+          b64Json:
+              'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ'
+              'AAAADUlEQVR42mP8z8BQDwAFgwJ/lW4PPwAAAABJRU5ErkJggg==',
+          revisedPrompt: '一只读小说的白猫',
+        ),
+      ],
+      usage: {'total_tokens': 12},
+    );
+  }
+
+  @override
+  Future<ImageGenerationResult> editImage({
+    required ImageProviderConfig provider,
+    required ImageEditRequest request,
+  }) {
+    throw UnimplementedError();
   }
 }
 

@@ -7,6 +7,8 @@ import 'package:langchain_core/language_models.dart';
 import 'package:langchain_core/prompts.dart';
 import 'package:langchain_core/tools.dart';
 import 'package:persona_flutter/src/core/database/app_database.dart';
+import 'package:persona_flutter/src/core/image_generation/data/bearer_image_generation_client.dart';
+import 'package:persona_flutter/src/core/image_generation/domain/image_generation_request.dart';
 import 'package:persona_flutter/src/core/llm/application/llm_invocation_service.dart';
 import 'package:persona_flutter/src/core/llm/data/langchain_llm_client.dart';
 import 'package:persona_flutter/src/core/llm/domain/llm_client.dart';
@@ -14,7 +16,9 @@ import 'package:persona_flutter/src/core/llm/domain/llm_message.dart';
 import 'package:persona_flutter/src/core/llm/domain/llm_request.dart';
 import 'package:persona_flutter/src/core/llm/domain/llm_stream_event.dart';
 import 'package:persona_flutter/src/features/settings/application/provider_connectivity_tester.dart';
+import 'package:persona_flutter/src/features/settings/data/drift_image_provider_config_repository.dart';
 import 'package:persona_flutter/src/features/settings/data/drift_provider_config_repository.dart';
+import 'package:persona_flutter/src/features/settings/domain/image_provider_config.dart';
 import 'package:persona_flutter/src/features/settings/domain/provider_config.dart';
 
 void main() {
@@ -111,6 +115,155 @@ void main() {
 
     await repository.deleteProvider(saved.id);
     expect(await repository.findProvider(saved.id), isNull);
+  });
+
+  test('image provider repository round-trips records in sqlite', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+
+    final repository = DriftImageProviderConfigRepository(database);
+    const input = ImageProviderConfigInput(
+      name: 'NewAPI Image',
+      baseUrl: 'https://image.example.com',
+      apiKey: 'sk-image',
+      defaultModel: 'gpt-5-3',
+      modelNames: ['gpt-5-3', 'gpt-image-1', 'gpt-5-3', ' '],
+      defaultAspectRatio: ImageAspectRatioPreset.wide,
+      defaultSize: ImageSizePreset.twoK,
+      defaultQuality: ImageQualityPreset.high,
+      defaultResponseFormat: ImageResponseFormat.b64Json,
+      isEnabled: true,
+    );
+
+    await repository.saveProvider(input: input);
+
+    final saved = (await repository.watchProviders().first).single;
+    expect(saved.name, input.name);
+    expect(saved.baseUrl, input.baseUrl);
+    expect(saved.apiKey, input.apiKey);
+    expect(saved.defaultModel, input.defaultModel);
+    expect(saved.modelNames, ['gpt-5-3', 'gpt-image-1']);
+    expect(saved.defaultAspectRatio, ImageAspectRatioPreset.wide);
+    expect(saved.defaultSize, ImageSizePreset.twoK);
+    expect(saved.defaultQuality, ImageQualityPreset.high);
+    expect(saved.defaultResponseFormat, ImageResponseFormat.b64Json);
+    expect(saved.testStatus, ProviderTestStatus.untested);
+
+    await repository.updateTestResult(
+      id: saved.id,
+      status: ProviderTestStatus.succeeded,
+      testedAt: DateTime.utc(2026, 5, 24, 12, 0),
+      message: 'sample ok',
+    );
+    final tested = await repository.findProvider(saved.id);
+    expect(tested!.testStatus, ProviderTestStatus.succeeded);
+    expect(tested.lastTestMessage, 'sample ok');
+
+    await repository.deleteProvider(saved.id);
+    expect(await repository.findProvider(saved.id), isNull);
+  });
+
+  test(
+    'bearer image client sends generations request with bearer auth',
+    () async {
+      late http.Request capturedRequest;
+      final client = MockClient((request) async {
+        capturedRequest = request;
+        return http.Response(
+          '{"created":1,"data":[{"url":"https://cdn.example.com/a.png","revised_prompt":"cat"}]}',
+          200,
+        );
+      });
+      final imageClient = BearerImageGenerationClient(client: client);
+      final provider = _imageProvider();
+
+      final result = await imageClient.generateImage(
+        provider: provider,
+        request: const ImageGenerationRequest(
+          model: 'gpt-5-3',
+          prompt: '一只猫',
+          size: '1024x1024',
+          quality: 'auto',
+        ),
+      );
+
+      expect(
+        capturedRequest.url.toString(),
+        'https://image.example.com/v1/images/generations',
+      );
+      expect(
+        capturedRequest.headers['Authorization'],
+        'Bearer sk-image-secret',
+      );
+      expect(capturedRequest.headers['token'], isNull);
+      expect(capturedRequest.body, contains('"model":"gpt-5-3"'));
+      expect(capturedRequest.body, contains('"size":"1024x1024"'));
+      expect(capturedRequest.body, contains('"quality":"auto"'));
+      expect(capturedRequest.body, contains('"response_format":"url"'));
+      expect(result.images.single.url, 'https://cdn.example.com/a.png');
+      expect(result.images.single.revisedPrompt, 'cat');
+    },
+  );
+
+  test('bearer image client supports edit endpoint contract', () async {
+    late http.BaseRequest capturedRequest;
+    final client = _BaseRequestClient((request) async {
+      capturedRequest = request;
+      return http.Response(
+        '{"created":1,"data":[{"b64_json":"aW1hZ2U="}]}',
+        200,
+      );
+    });
+    final imageClient = BearerImageGenerationClient(client: client);
+
+    final result = await imageClient.editImage(
+      provider: _imageProvider(baseUrl: 'https://image.example.com/v1'),
+      request: const ImageEditRequest(
+        model: 'gpt-5-3',
+        prompt: '改成夜景',
+        imageBytes: [1, 2, 3],
+        imageFilename: 'source.png',
+        size: '1024x1024',
+        quality: 'high',
+      ),
+    );
+
+    expect(
+      capturedRequest.url.toString(),
+      'https://image.example.com/v1/images/edits',
+    );
+    expect(capturedRequest.headers['Authorization'], 'Bearer sk-image-secret');
+    expect(
+      (capturedRequest as http.MultipartRequest).fields['quality'],
+      'high',
+    );
+    expect(result.images.single.b64Json, 'aW1hZ2U=');
+  });
+
+  test('bearer image client sanitizes api key in errors', () async {
+    final client = MockClient((request) async {
+      return http.Response('rejected sk-image-secret', 401);
+    });
+    final imageClient = BearerImageGenerationClient(client: client);
+
+    await expectLater(
+      imageClient.generateImage(
+        provider: _imageProvider(),
+        request: const ImageGenerationRequest(
+          model: 'gpt-5-3',
+          prompt: '一只猫',
+          size: '1024x1024',
+          quality: 'auto',
+        ),
+      ),
+      throwsA(
+        isA<ImageGenerationClientException>().having(
+          (error) => error.message,
+          'message',
+          allOf(contains('[REDACTED]'), isNot(contains('sk-image-secret'))),
+        ),
+      ),
+    );
   });
 
   test('llm invocation service sends composed system prompt first', () async {
@@ -281,6 +434,23 @@ void main() {
   });
 }
 
+ImageProviderConfig _imageProvider({
+  String baseUrl = 'https://image.example.com',
+}) {
+  return ImageProviderConfig(
+    id: 'image-provider-1',
+    name: 'NewAPI Image',
+    baseUrl: baseUrl,
+    apiKey: 'sk-image-secret',
+    defaultModel: 'gpt-5-3',
+    modelNames: const ['gpt-5-3'],
+    isEnabled: true,
+    testStatus: ProviderTestStatus.untested,
+    createdAt: DateTime.utc(2026),
+    updatedAt: DateTime.utc(2026),
+  );
+}
+
 class _CapturingLlmClient implements LlmClient {
   LlmRequest? capturedRequest;
 
@@ -371,5 +541,23 @@ class _TestChatModelOptions extends ChatModelOptions {
     int? concurrencyLimit,
   }) {
     return _TestChatModelOptions(model: model ?? this.model);
+  }
+}
+
+class _BaseRequestClient extends http.BaseClient {
+  _BaseRequestClient(this.handler);
+
+  final Future<http.Response> Function(http.BaseRequest request) handler;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    final response = await handler(request);
+    return http.StreamedResponse(
+      Stream<List<int>>.value(response.bodyBytes),
+      response.statusCode,
+      headers: response.headers,
+      request: request,
+      reasonPhrase: response.reasonPhrase,
+    );
   }
 }

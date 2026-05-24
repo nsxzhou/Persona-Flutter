@@ -2078,6 +2078,1279 @@ class ProviderModelRecordsCompanion
   }
 }
 
+class $ImageProviderConfigRecordsTable extends ImageProviderConfigRecords
+    with
+        TableInfo<$ImageProviderConfigRecordsTable, ImageProviderConfigRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ImageProviderConfigRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _baseUrlMeta = const VerificationMeta(
+    'baseUrl',
+  );
+  @override
+  late final GeneratedColumn<String> baseUrl = GeneratedColumn<String>(
+    'base_url',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _apiKeyMeta = const VerificationMeta('apiKey');
+  @override
+  late final GeneratedColumn<String> apiKey = GeneratedColumn<String>(
+    'api_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _defaultModelMeta = const VerificationMeta(
+    'defaultModel',
+  );
+  @override
+  late final GeneratedColumn<String> defaultModel = GeneratedColumn<String>(
+    'default_model',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _defaultAspectRatioMeta =
+      const VerificationMeta('defaultAspectRatio');
+  @override
+  late final GeneratedColumn<String> defaultAspectRatio =
+      GeneratedColumn<String>(
+        'default_aspect_ratio',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('1:1'),
+      );
+  static const VerificationMeta _defaultSizeMeta = const VerificationMeta(
+    'defaultSize',
+  );
+  @override
+  late final GeneratedColumn<String> defaultSize = GeneratedColumn<String>(
+    'default_size',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('1K'),
+  );
+  static const VerificationMeta _defaultQualityMeta = const VerificationMeta(
+    'defaultQuality',
+  );
+  @override
+  late final GeneratedColumn<String> defaultQuality = GeneratedColumn<String>(
+    'default_quality',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('auto'),
+  );
+  static const VerificationMeta _defaultResponseFormatMeta =
+      const VerificationMeta('defaultResponseFormat');
+  @override
+  late final GeneratedColumn<String> defaultResponseFormat =
+      GeneratedColumn<String>(
+        'default_response_format',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('url'),
+      );
+  static const VerificationMeta _isEnabledMeta = const VerificationMeta(
+    'isEnabled',
+  );
+  @override
+  late final GeneratedColumn<bool> isEnabled = GeneratedColumn<bool>(
+    'is_enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_enabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _testStatusMeta = const VerificationMeta(
+    'testStatus',
+  );
+  @override
+  late final GeneratedColumn<String> testStatus = GeneratedColumn<String>(
+    'test_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lastTestedAtMeta = const VerificationMeta(
+    'lastTestedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastTestedAt = GeneratedColumn<DateTime>(
+    'last_tested_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastTestMessageMeta = const VerificationMeta(
+    'lastTestMessage',
+  );
+  @override
+  late final GeneratedColumn<String> lastTestMessage = GeneratedColumn<String>(
+    'last_test_message',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    baseUrl,
+    apiKey,
+    defaultModel,
+    defaultAspectRatio,
+    defaultSize,
+    defaultQuality,
+    defaultResponseFormat,
+    isEnabled,
+    testStatus,
+    lastTestedAt,
+    lastTestMessage,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'image_provider_config_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ImageProviderConfigRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('base_url')) {
+      context.handle(
+        _baseUrlMeta,
+        baseUrl.isAcceptableOrUnknown(data['base_url']!, _baseUrlMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_baseUrlMeta);
+    }
+    if (data.containsKey('api_key')) {
+      context.handle(
+        _apiKeyMeta,
+        apiKey.isAcceptableOrUnknown(data['api_key']!, _apiKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_apiKeyMeta);
+    }
+    if (data.containsKey('default_model')) {
+      context.handle(
+        _defaultModelMeta,
+        defaultModel.isAcceptableOrUnknown(
+          data['default_model']!,
+          _defaultModelMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_defaultModelMeta);
+    }
+    if (data.containsKey('default_aspect_ratio')) {
+      context.handle(
+        _defaultAspectRatioMeta,
+        defaultAspectRatio.isAcceptableOrUnknown(
+          data['default_aspect_ratio']!,
+          _defaultAspectRatioMeta,
+        ),
+      );
+    }
+    if (data.containsKey('default_size')) {
+      context.handle(
+        _defaultSizeMeta,
+        defaultSize.isAcceptableOrUnknown(
+          data['default_size']!,
+          _defaultSizeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('default_quality')) {
+      context.handle(
+        _defaultQualityMeta,
+        defaultQuality.isAcceptableOrUnknown(
+          data['default_quality']!,
+          _defaultQualityMeta,
+        ),
+      );
+    }
+    if (data.containsKey('default_response_format')) {
+      context.handle(
+        _defaultResponseFormatMeta,
+        defaultResponseFormat.isAcceptableOrUnknown(
+          data['default_response_format']!,
+          _defaultResponseFormatMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_enabled')) {
+      context.handle(
+        _isEnabledMeta,
+        isEnabled.isAcceptableOrUnknown(data['is_enabled']!, _isEnabledMeta),
+      );
+    }
+    if (data.containsKey('test_status')) {
+      context.handle(
+        _testStatusMeta,
+        testStatus.isAcceptableOrUnknown(data['test_status']!, _testStatusMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_testStatusMeta);
+    }
+    if (data.containsKey('last_tested_at')) {
+      context.handle(
+        _lastTestedAtMeta,
+        lastTestedAt.isAcceptableOrUnknown(
+          data['last_tested_at']!,
+          _lastTestedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_test_message')) {
+      context.handle(
+        _lastTestMessageMeta,
+        lastTestMessage.isAcceptableOrUnknown(
+          data['last_test_message']!,
+          _lastTestMessageMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ImageProviderConfigRecord map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ImageProviderConfigRecord(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      baseUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}base_url'],
+      )!,
+      apiKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}api_key'],
+      )!,
+      defaultModel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}default_model'],
+      )!,
+      defaultAspectRatio: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}default_aspect_ratio'],
+      )!,
+      defaultSize: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}default_size'],
+      )!,
+      defaultQuality: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}default_quality'],
+      )!,
+      defaultResponseFormat: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}default_response_format'],
+      )!,
+      isEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_enabled'],
+      )!,
+      testStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}test_status'],
+      )!,
+      lastTestedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_tested_at'],
+      ),
+      lastTestMessage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_test_message'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ImageProviderConfigRecordsTable createAlias(String alias) {
+    return $ImageProviderConfigRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class ImageProviderConfigRecord extends DataClass
+    implements Insertable<ImageProviderConfigRecord> {
+  final String id;
+  final String name;
+  final String baseUrl;
+  final String apiKey;
+  final String defaultModel;
+  final String defaultAspectRatio;
+  final String defaultSize;
+  final String defaultQuality;
+  final String defaultResponseFormat;
+  final bool isEnabled;
+  final String testStatus;
+  final DateTime? lastTestedAt;
+  final String? lastTestMessage;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const ImageProviderConfigRecord({
+    required this.id,
+    required this.name,
+    required this.baseUrl,
+    required this.apiKey,
+    required this.defaultModel,
+    required this.defaultAspectRatio,
+    required this.defaultSize,
+    required this.defaultQuality,
+    required this.defaultResponseFormat,
+    required this.isEnabled,
+    required this.testStatus,
+    this.lastTestedAt,
+    this.lastTestMessage,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['base_url'] = Variable<String>(baseUrl);
+    map['api_key'] = Variable<String>(apiKey);
+    map['default_model'] = Variable<String>(defaultModel);
+    map['default_aspect_ratio'] = Variable<String>(defaultAspectRatio);
+    map['default_size'] = Variable<String>(defaultSize);
+    map['default_quality'] = Variable<String>(defaultQuality);
+    map['default_response_format'] = Variable<String>(defaultResponseFormat);
+    map['is_enabled'] = Variable<bool>(isEnabled);
+    map['test_status'] = Variable<String>(testStatus);
+    if (!nullToAbsent || lastTestedAt != null) {
+      map['last_tested_at'] = Variable<DateTime>(lastTestedAt);
+    }
+    if (!nullToAbsent || lastTestMessage != null) {
+      map['last_test_message'] = Variable<String>(lastTestMessage);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  ImageProviderConfigRecordsCompanion toCompanion(bool nullToAbsent) {
+    return ImageProviderConfigRecordsCompanion(
+      id: Value(id),
+      name: Value(name),
+      baseUrl: Value(baseUrl),
+      apiKey: Value(apiKey),
+      defaultModel: Value(defaultModel),
+      defaultAspectRatio: Value(defaultAspectRatio),
+      defaultSize: Value(defaultSize),
+      defaultQuality: Value(defaultQuality),
+      defaultResponseFormat: Value(defaultResponseFormat),
+      isEnabled: Value(isEnabled),
+      testStatus: Value(testStatus),
+      lastTestedAt: lastTestedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastTestedAt),
+      lastTestMessage: lastTestMessage == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastTestMessage),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory ImageProviderConfigRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ImageProviderConfigRecord(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      baseUrl: serializer.fromJson<String>(json['baseUrl']),
+      apiKey: serializer.fromJson<String>(json['apiKey']),
+      defaultModel: serializer.fromJson<String>(json['defaultModel']),
+      defaultAspectRatio: serializer.fromJson<String>(
+        json['defaultAspectRatio'],
+      ),
+      defaultSize: serializer.fromJson<String>(json['defaultSize']),
+      defaultQuality: serializer.fromJson<String>(json['defaultQuality']),
+      defaultResponseFormat: serializer.fromJson<String>(
+        json['defaultResponseFormat'],
+      ),
+      isEnabled: serializer.fromJson<bool>(json['isEnabled']),
+      testStatus: serializer.fromJson<String>(json['testStatus']),
+      lastTestedAt: serializer.fromJson<DateTime?>(json['lastTestedAt']),
+      lastTestMessage: serializer.fromJson<String?>(json['lastTestMessage']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'baseUrl': serializer.toJson<String>(baseUrl),
+      'apiKey': serializer.toJson<String>(apiKey),
+      'defaultModel': serializer.toJson<String>(defaultModel),
+      'defaultAspectRatio': serializer.toJson<String>(defaultAspectRatio),
+      'defaultSize': serializer.toJson<String>(defaultSize),
+      'defaultQuality': serializer.toJson<String>(defaultQuality),
+      'defaultResponseFormat': serializer.toJson<String>(defaultResponseFormat),
+      'isEnabled': serializer.toJson<bool>(isEnabled),
+      'testStatus': serializer.toJson<String>(testStatus),
+      'lastTestedAt': serializer.toJson<DateTime?>(lastTestedAt),
+      'lastTestMessage': serializer.toJson<String?>(lastTestMessage),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  ImageProviderConfigRecord copyWith({
+    String? id,
+    String? name,
+    String? baseUrl,
+    String? apiKey,
+    String? defaultModel,
+    String? defaultAspectRatio,
+    String? defaultSize,
+    String? defaultQuality,
+    String? defaultResponseFormat,
+    bool? isEnabled,
+    String? testStatus,
+    Value<DateTime?> lastTestedAt = const Value.absent(),
+    Value<String?> lastTestMessage = const Value.absent(),
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => ImageProviderConfigRecord(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    baseUrl: baseUrl ?? this.baseUrl,
+    apiKey: apiKey ?? this.apiKey,
+    defaultModel: defaultModel ?? this.defaultModel,
+    defaultAspectRatio: defaultAspectRatio ?? this.defaultAspectRatio,
+    defaultSize: defaultSize ?? this.defaultSize,
+    defaultQuality: defaultQuality ?? this.defaultQuality,
+    defaultResponseFormat: defaultResponseFormat ?? this.defaultResponseFormat,
+    isEnabled: isEnabled ?? this.isEnabled,
+    testStatus: testStatus ?? this.testStatus,
+    lastTestedAt: lastTestedAt.present ? lastTestedAt.value : this.lastTestedAt,
+    lastTestMessage: lastTestMessage.present
+        ? lastTestMessage.value
+        : this.lastTestMessage,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  ImageProviderConfigRecord copyWithCompanion(
+    ImageProviderConfigRecordsCompanion data,
+  ) {
+    return ImageProviderConfigRecord(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      baseUrl: data.baseUrl.present ? data.baseUrl.value : this.baseUrl,
+      apiKey: data.apiKey.present ? data.apiKey.value : this.apiKey,
+      defaultModel: data.defaultModel.present
+          ? data.defaultModel.value
+          : this.defaultModel,
+      defaultAspectRatio: data.defaultAspectRatio.present
+          ? data.defaultAspectRatio.value
+          : this.defaultAspectRatio,
+      defaultSize: data.defaultSize.present
+          ? data.defaultSize.value
+          : this.defaultSize,
+      defaultQuality: data.defaultQuality.present
+          ? data.defaultQuality.value
+          : this.defaultQuality,
+      defaultResponseFormat: data.defaultResponseFormat.present
+          ? data.defaultResponseFormat.value
+          : this.defaultResponseFormat,
+      isEnabled: data.isEnabled.present ? data.isEnabled.value : this.isEnabled,
+      testStatus: data.testStatus.present
+          ? data.testStatus.value
+          : this.testStatus,
+      lastTestedAt: data.lastTestedAt.present
+          ? data.lastTestedAt.value
+          : this.lastTestedAt,
+      lastTestMessage: data.lastTestMessage.present
+          ? data.lastTestMessage.value
+          : this.lastTestMessage,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ImageProviderConfigRecord(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('baseUrl: $baseUrl, ')
+          ..write('apiKey: $apiKey, ')
+          ..write('defaultModel: $defaultModel, ')
+          ..write('defaultAspectRatio: $defaultAspectRatio, ')
+          ..write('defaultSize: $defaultSize, ')
+          ..write('defaultQuality: $defaultQuality, ')
+          ..write('defaultResponseFormat: $defaultResponseFormat, ')
+          ..write('isEnabled: $isEnabled, ')
+          ..write('testStatus: $testStatus, ')
+          ..write('lastTestedAt: $lastTestedAt, ')
+          ..write('lastTestMessage: $lastTestMessage, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    name,
+    baseUrl,
+    apiKey,
+    defaultModel,
+    defaultAspectRatio,
+    defaultSize,
+    defaultQuality,
+    defaultResponseFormat,
+    isEnabled,
+    testStatus,
+    lastTestedAt,
+    lastTestMessage,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ImageProviderConfigRecord &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.baseUrl == this.baseUrl &&
+          other.apiKey == this.apiKey &&
+          other.defaultModel == this.defaultModel &&
+          other.defaultAspectRatio == this.defaultAspectRatio &&
+          other.defaultSize == this.defaultSize &&
+          other.defaultQuality == this.defaultQuality &&
+          other.defaultResponseFormat == this.defaultResponseFormat &&
+          other.isEnabled == this.isEnabled &&
+          other.testStatus == this.testStatus &&
+          other.lastTestedAt == this.lastTestedAt &&
+          other.lastTestMessage == this.lastTestMessage &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class ImageProviderConfigRecordsCompanion
+    extends UpdateCompanion<ImageProviderConfigRecord> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String> baseUrl;
+  final Value<String> apiKey;
+  final Value<String> defaultModel;
+  final Value<String> defaultAspectRatio;
+  final Value<String> defaultSize;
+  final Value<String> defaultQuality;
+  final Value<String> defaultResponseFormat;
+  final Value<bool> isEnabled;
+  final Value<String> testStatus;
+  final Value<DateTime?> lastTestedAt;
+  final Value<String?> lastTestMessage;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const ImageProviderConfigRecordsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.baseUrl = const Value.absent(),
+    this.apiKey = const Value.absent(),
+    this.defaultModel = const Value.absent(),
+    this.defaultAspectRatio = const Value.absent(),
+    this.defaultSize = const Value.absent(),
+    this.defaultQuality = const Value.absent(),
+    this.defaultResponseFormat = const Value.absent(),
+    this.isEnabled = const Value.absent(),
+    this.testStatus = const Value.absent(),
+    this.lastTestedAt = const Value.absent(),
+    this.lastTestMessage = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ImageProviderConfigRecordsCompanion.insert({
+    required String id,
+    required String name,
+    required String baseUrl,
+    required String apiKey,
+    required String defaultModel,
+    this.defaultAspectRatio = const Value.absent(),
+    this.defaultSize = const Value.absent(),
+    this.defaultQuality = const Value.absent(),
+    this.defaultResponseFormat = const Value.absent(),
+    this.isEnabled = const Value.absent(),
+    required String testStatus,
+    this.lastTestedAt = const Value.absent(),
+    this.lastTestMessage = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name),
+       baseUrl = Value(baseUrl),
+       apiKey = Value(apiKey),
+       defaultModel = Value(defaultModel),
+       testStatus = Value(testStatus),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<ImageProviderConfigRecord> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? baseUrl,
+    Expression<String>? apiKey,
+    Expression<String>? defaultModel,
+    Expression<String>? defaultAspectRatio,
+    Expression<String>? defaultSize,
+    Expression<String>? defaultQuality,
+    Expression<String>? defaultResponseFormat,
+    Expression<bool>? isEnabled,
+    Expression<String>? testStatus,
+    Expression<DateTime>? lastTestedAt,
+    Expression<String>? lastTestMessage,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (baseUrl != null) 'base_url': baseUrl,
+      if (apiKey != null) 'api_key': apiKey,
+      if (defaultModel != null) 'default_model': defaultModel,
+      if (defaultAspectRatio != null)
+        'default_aspect_ratio': defaultAspectRatio,
+      if (defaultSize != null) 'default_size': defaultSize,
+      if (defaultQuality != null) 'default_quality': defaultQuality,
+      if (defaultResponseFormat != null)
+        'default_response_format': defaultResponseFormat,
+      if (isEnabled != null) 'is_enabled': isEnabled,
+      if (testStatus != null) 'test_status': testStatus,
+      if (lastTestedAt != null) 'last_tested_at': lastTestedAt,
+      if (lastTestMessage != null) 'last_test_message': lastTestMessage,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ImageProviderConfigRecordsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String>? baseUrl,
+    Value<String>? apiKey,
+    Value<String>? defaultModel,
+    Value<String>? defaultAspectRatio,
+    Value<String>? defaultSize,
+    Value<String>? defaultQuality,
+    Value<String>? defaultResponseFormat,
+    Value<bool>? isEnabled,
+    Value<String>? testStatus,
+    Value<DateTime?>? lastTestedAt,
+    Value<String?>? lastTestMessage,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return ImageProviderConfigRecordsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      baseUrl: baseUrl ?? this.baseUrl,
+      apiKey: apiKey ?? this.apiKey,
+      defaultModel: defaultModel ?? this.defaultModel,
+      defaultAspectRatio: defaultAspectRatio ?? this.defaultAspectRatio,
+      defaultSize: defaultSize ?? this.defaultSize,
+      defaultQuality: defaultQuality ?? this.defaultQuality,
+      defaultResponseFormat:
+          defaultResponseFormat ?? this.defaultResponseFormat,
+      isEnabled: isEnabled ?? this.isEnabled,
+      testStatus: testStatus ?? this.testStatus,
+      lastTestedAt: lastTestedAt ?? this.lastTestedAt,
+      lastTestMessage: lastTestMessage ?? this.lastTestMessage,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (baseUrl.present) {
+      map['base_url'] = Variable<String>(baseUrl.value);
+    }
+    if (apiKey.present) {
+      map['api_key'] = Variable<String>(apiKey.value);
+    }
+    if (defaultModel.present) {
+      map['default_model'] = Variable<String>(defaultModel.value);
+    }
+    if (defaultAspectRatio.present) {
+      map['default_aspect_ratio'] = Variable<String>(defaultAspectRatio.value);
+    }
+    if (defaultSize.present) {
+      map['default_size'] = Variable<String>(defaultSize.value);
+    }
+    if (defaultQuality.present) {
+      map['default_quality'] = Variable<String>(defaultQuality.value);
+    }
+    if (defaultResponseFormat.present) {
+      map['default_response_format'] = Variable<String>(
+        defaultResponseFormat.value,
+      );
+    }
+    if (isEnabled.present) {
+      map['is_enabled'] = Variable<bool>(isEnabled.value);
+    }
+    if (testStatus.present) {
+      map['test_status'] = Variable<String>(testStatus.value);
+    }
+    if (lastTestedAt.present) {
+      map['last_tested_at'] = Variable<DateTime>(lastTestedAt.value);
+    }
+    if (lastTestMessage.present) {
+      map['last_test_message'] = Variable<String>(lastTestMessage.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ImageProviderConfigRecordsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('baseUrl: $baseUrl, ')
+          ..write('apiKey: $apiKey, ')
+          ..write('defaultModel: $defaultModel, ')
+          ..write('defaultAspectRatio: $defaultAspectRatio, ')
+          ..write('defaultSize: $defaultSize, ')
+          ..write('defaultQuality: $defaultQuality, ')
+          ..write('defaultResponseFormat: $defaultResponseFormat, ')
+          ..write('isEnabled: $isEnabled, ')
+          ..write('testStatus: $testStatus, ')
+          ..write('lastTestedAt: $lastTestedAt, ')
+          ..write('lastTestMessage: $lastTestMessage, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ImageProviderModelRecordsTable extends ImageProviderModelRecords
+    with TableInfo<$ImageProviderModelRecordsTable, ImageProviderModelRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ImageProviderModelRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _providerIdMeta = const VerificationMeta(
+    'providerId',
+  );
+  @override
+  late final GeneratedColumn<String> providerId = GeneratedColumn<String>(
+    'provider_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES image_provider_config_records (id)',
+    ),
+  );
+  static const VerificationMeta _modelNameMeta = const VerificationMeta(
+    'modelName',
+  );
+  @override
+  late final GeneratedColumn<String> modelName = GeneratedColumn<String>(
+    'model_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    providerId,
+    modelName,
+    sortOrder,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'image_provider_model_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ImageProviderModelRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('provider_id')) {
+      context.handle(
+        _providerIdMeta,
+        providerId.isAcceptableOrUnknown(data['provider_id']!, _providerIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_providerIdMeta);
+    }
+    if (data.containsKey('model_name')) {
+      context.handle(
+        _modelNameMeta,
+        modelName.isAcceptableOrUnknown(data['model_name']!, _modelNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_modelNameMeta);
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {providerId, modelName};
+  @override
+  ImageProviderModelRecord map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ImageProviderModelRecord(
+      providerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}provider_id'],
+      )!,
+      modelName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model_name'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ImageProviderModelRecordsTable createAlias(String alias) {
+    return $ImageProviderModelRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class ImageProviderModelRecord extends DataClass
+    implements Insertable<ImageProviderModelRecord> {
+  final String providerId;
+  final String modelName;
+  final int sortOrder;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const ImageProviderModelRecord({
+    required this.providerId,
+    required this.modelName,
+    required this.sortOrder,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['provider_id'] = Variable<String>(providerId);
+    map['model_name'] = Variable<String>(modelName);
+    map['sort_order'] = Variable<int>(sortOrder);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  ImageProviderModelRecordsCompanion toCompanion(bool nullToAbsent) {
+    return ImageProviderModelRecordsCompanion(
+      providerId: Value(providerId),
+      modelName: Value(modelName),
+      sortOrder: Value(sortOrder),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory ImageProviderModelRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ImageProviderModelRecord(
+      providerId: serializer.fromJson<String>(json['providerId']),
+      modelName: serializer.fromJson<String>(json['modelName']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'providerId': serializer.toJson<String>(providerId),
+      'modelName': serializer.toJson<String>(modelName),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  ImageProviderModelRecord copyWith({
+    String? providerId,
+    String? modelName,
+    int? sortOrder,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => ImageProviderModelRecord(
+    providerId: providerId ?? this.providerId,
+    modelName: modelName ?? this.modelName,
+    sortOrder: sortOrder ?? this.sortOrder,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  ImageProviderModelRecord copyWithCompanion(
+    ImageProviderModelRecordsCompanion data,
+  ) {
+    return ImageProviderModelRecord(
+      providerId: data.providerId.present
+          ? data.providerId.value
+          : this.providerId,
+      modelName: data.modelName.present ? data.modelName.value : this.modelName,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ImageProviderModelRecord(')
+          ..write('providerId: $providerId, ')
+          ..write('modelName: $modelName, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(providerId, modelName, sortOrder, createdAt, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ImageProviderModelRecord &&
+          other.providerId == this.providerId &&
+          other.modelName == this.modelName &&
+          other.sortOrder == this.sortOrder &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class ImageProviderModelRecordsCompanion
+    extends UpdateCompanion<ImageProviderModelRecord> {
+  final Value<String> providerId;
+  final Value<String> modelName;
+  final Value<int> sortOrder;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const ImageProviderModelRecordsCompanion({
+    this.providerId = const Value.absent(),
+    this.modelName = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ImageProviderModelRecordsCompanion.insert({
+    required String providerId,
+    required String modelName,
+    this.sortOrder = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : providerId = Value(providerId),
+       modelName = Value(modelName),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<ImageProviderModelRecord> custom({
+    Expression<String>? providerId,
+    Expression<String>? modelName,
+    Expression<int>? sortOrder,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (providerId != null) 'provider_id': providerId,
+      if (modelName != null) 'model_name': modelName,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ImageProviderModelRecordsCompanion copyWith({
+    Value<String>? providerId,
+    Value<String>? modelName,
+    Value<int>? sortOrder,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return ImageProviderModelRecordsCompanion(
+      providerId: providerId ?? this.providerId,
+      modelName: modelName ?? this.modelName,
+      sortOrder: sortOrder ?? this.sortOrder,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (providerId.present) {
+      map['provider_id'] = Variable<String>(providerId.value);
+    }
+    if (modelName.present) {
+      map['model_name'] = Variable<String>(modelName.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ImageProviderModelRecordsCompanion(')
+          ..write('providerId: $providerId, ')
+          ..write('modelName: $modelName, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $ProjectRecordsTable extends ProjectRecords
     with TableInfo<$ProjectRecordsTable, ProjectRecord> {
   @override
@@ -20042,6 +21315,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $ProviderConfigRecordsTable(this);
   late final $ProviderModelRecordsTable providerModelRecords =
       $ProviderModelRecordsTable(this);
+  late final $ImageProviderConfigRecordsTable imageProviderConfigRecords =
+      $ImageProviderConfigRecordsTable(this);
+  late final $ImageProviderModelRecordsTable imageProviderModelRecords =
+      $ImageProviderModelRecordsTable(this);
   late final $ProjectRecordsTable projectRecords = $ProjectRecordsTable(this);
   late final $StyleSampleRecordsTable styleSampleRecords =
       $StyleSampleRecordsTable(this);
@@ -20092,6 +21369,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     workflowPromptTraceRecords,
     providerConfigRecords,
     providerModelRecords,
+    imageProviderConfigRecords,
+    imageProviderModelRecords,
     projectRecords,
     styleSampleRecords,
     styleAnalysisRunRecords,
@@ -22796,6 +24075,903 @@ typedef $$ProviderModelRecordsTableProcessedTableManager =
       $$ProviderModelRecordsTableUpdateCompanionBuilder,
       (ProviderModelRecord, $$ProviderModelRecordsTableReferences),
       ProviderModelRecord,
+      PrefetchHooks Function({bool providerId})
+    >;
+typedef $$ImageProviderConfigRecordsTableCreateCompanionBuilder =
+    ImageProviderConfigRecordsCompanion Function({
+      required String id,
+      required String name,
+      required String baseUrl,
+      required String apiKey,
+      required String defaultModel,
+      Value<String> defaultAspectRatio,
+      Value<String> defaultSize,
+      Value<String> defaultQuality,
+      Value<String> defaultResponseFormat,
+      Value<bool> isEnabled,
+      required String testStatus,
+      Value<DateTime?> lastTestedAt,
+      Value<String?> lastTestMessage,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$ImageProviderConfigRecordsTableUpdateCompanionBuilder =
+    ImageProviderConfigRecordsCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<String> baseUrl,
+      Value<String> apiKey,
+      Value<String> defaultModel,
+      Value<String> defaultAspectRatio,
+      Value<String> defaultSize,
+      Value<String> defaultQuality,
+      Value<String> defaultResponseFormat,
+      Value<bool> isEnabled,
+      Value<String> testStatus,
+      Value<DateTime?> lastTestedAt,
+      Value<String?> lastTestMessage,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+final class $$ImageProviderConfigRecordsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $ImageProviderConfigRecordsTable,
+          ImageProviderConfigRecord
+        > {
+  $$ImageProviderConfigRecordsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static MultiTypedResultKey<
+    $ImageProviderModelRecordsTable,
+    List<ImageProviderModelRecord>
+  >
+  _imageProviderModelRecordsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.imageProviderModelRecords,
+        aliasName: $_aliasNameGenerator(
+          db.imageProviderConfigRecords.id,
+          db.imageProviderModelRecords.providerId,
+        ),
+      );
+
+  $$ImageProviderModelRecordsTableProcessedTableManager
+  get imageProviderModelRecordsRefs {
+    final manager = $$ImageProviderModelRecordsTableTableManager(
+      $_db,
+      $_db.imageProviderModelRecords,
+    ).filter((f) => f.providerId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _imageProviderModelRecordsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$ImageProviderConfigRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $ImageProviderConfigRecordsTable> {
+  $$ImageProviderConfigRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get baseUrl => $composableBuilder(
+    column: $table.baseUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get apiKey => $composableBuilder(
+    column: $table.apiKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get defaultModel => $composableBuilder(
+    column: $table.defaultModel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get defaultAspectRatio => $composableBuilder(
+    column: $table.defaultAspectRatio,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get defaultSize => $composableBuilder(
+    column: $table.defaultSize,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get defaultQuality => $composableBuilder(
+    column: $table.defaultQuality,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get defaultResponseFormat => $composableBuilder(
+    column: $table.defaultResponseFormat,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isEnabled => $composableBuilder(
+    column: $table.isEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get testStatus => $composableBuilder(
+    column: $table.testStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastTestedAt => $composableBuilder(
+    column: $table.lastTestedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastTestMessage => $composableBuilder(
+    column: $table.lastTestMessage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> imageProviderModelRecordsRefs(
+    Expression<bool> Function($$ImageProviderModelRecordsTableFilterComposer f)
+    f,
+  ) {
+    final $$ImageProviderModelRecordsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.imageProviderModelRecords,
+          getReferencedColumn: (t) => t.providerId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ImageProviderModelRecordsTableFilterComposer(
+                $db: $db,
+                $table: $db.imageProviderModelRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+}
+
+class $$ImageProviderConfigRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ImageProviderConfigRecordsTable> {
+  $$ImageProviderConfigRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get baseUrl => $composableBuilder(
+    column: $table.baseUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get apiKey => $composableBuilder(
+    column: $table.apiKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get defaultModel => $composableBuilder(
+    column: $table.defaultModel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get defaultAspectRatio => $composableBuilder(
+    column: $table.defaultAspectRatio,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get defaultSize => $composableBuilder(
+    column: $table.defaultSize,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get defaultQuality => $composableBuilder(
+    column: $table.defaultQuality,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get defaultResponseFormat => $composableBuilder(
+    column: $table.defaultResponseFormat,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isEnabled => $composableBuilder(
+    column: $table.isEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get testStatus => $composableBuilder(
+    column: $table.testStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastTestedAt => $composableBuilder(
+    column: $table.lastTestedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastTestMessage => $composableBuilder(
+    column: $table.lastTestMessage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ImageProviderConfigRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ImageProviderConfigRecordsTable> {
+  $$ImageProviderConfigRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get baseUrl =>
+      $composableBuilder(column: $table.baseUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get apiKey =>
+      $composableBuilder(column: $table.apiKey, builder: (column) => column);
+
+  GeneratedColumn<String> get defaultModel => $composableBuilder(
+    column: $table.defaultModel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get defaultAspectRatio => $composableBuilder(
+    column: $table.defaultAspectRatio,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get defaultSize => $composableBuilder(
+    column: $table.defaultSize,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get defaultQuality => $composableBuilder(
+    column: $table.defaultQuality,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get defaultResponseFormat => $composableBuilder(
+    column: $table.defaultResponseFormat,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isEnabled =>
+      $composableBuilder(column: $table.isEnabled, builder: (column) => column);
+
+  GeneratedColumn<String> get testStatus => $composableBuilder(
+    column: $table.testStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lastTestedAt => $composableBuilder(
+    column: $table.lastTestedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lastTestMessage => $composableBuilder(
+    column: $table.lastTestMessage,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  Expression<T> imageProviderModelRecordsRefs<T extends Object>(
+    Expression<T> Function($$ImageProviderModelRecordsTableAnnotationComposer a)
+    f,
+  ) {
+    final $$ImageProviderModelRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.imageProviderModelRecords,
+          getReferencedColumn: (t) => t.providerId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ImageProviderModelRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.imageProviderModelRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+}
+
+class $$ImageProviderConfigRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ImageProviderConfigRecordsTable,
+          ImageProviderConfigRecord,
+          $$ImageProviderConfigRecordsTableFilterComposer,
+          $$ImageProviderConfigRecordsTableOrderingComposer,
+          $$ImageProviderConfigRecordsTableAnnotationComposer,
+          $$ImageProviderConfigRecordsTableCreateCompanionBuilder,
+          $$ImageProviderConfigRecordsTableUpdateCompanionBuilder,
+          (
+            ImageProviderConfigRecord,
+            $$ImageProviderConfigRecordsTableReferences,
+          ),
+          ImageProviderConfigRecord,
+          PrefetchHooks Function({bool imageProviderModelRecordsRefs})
+        > {
+  $$ImageProviderConfigRecordsTableTableManager(
+    _$AppDatabase db,
+    $ImageProviderConfigRecordsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ImageProviderConfigRecordsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$ImageProviderConfigRecordsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$ImageProviderConfigRecordsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> baseUrl = const Value.absent(),
+                Value<String> apiKey = const Value.absent(),
+                Value<String> defaultModel = const Value.absent(),
+                Value<String> defaultAspectRatio = const Value.absent(),
+                Value<String> defaultSize = const Value.absent(),
+                Value<String> defaultQuality = const Value.absent(),
+                Value<String> defaultResponseFormat = const Value.absent(),
+                Value<bool> isEnabled = const Value.absent(),
+                Value<String> testStatus = const Value.absent(),
+                Value<DateTime?> lastTestedAt = const Value.absent(),
+                Value<String?> lastTestMessage = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ImageProviderConfigRecordsCompanion(
+                id: id,
+                name: name,
+                baseUrl: baseUrl,
+                apiKey: apiKey,
+                defaultModel: defaultModel,
+                defaultAspectRatio: defaultAspectRatio,
+                defaultSize: defaultSize,
+                defaultQuality: defaultQuality,
+                defaultResponseFormat: defaultResponseFormat,
+                isEnabled: isEnabled,
+                testStatus: testStatus,
+                lastTestedAt: lastTestedAt,
+                lastTestMessage: lastTestMessage,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                required String baseUrl,
+                required String apiKey,
+                required String defaultModel,
+                Value<String> defaultAspectRatio = const Value.absent(),
+                Value<String> defaultSize = const Value.absent(),
+                Value<String> defaultQuality = const Value.absent(),
+                Value<String> defaultResponseFormat = const Value.absent(),
+                Value<bool> isEnabled = const Value.absent(),
+                required String testStatus,
+                Value<DateTime?> lastTestedAt = const Value.absent(),
+                Value<String?> lastTestMessage = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => ImageProviderConfigRecordsCompanion.insert(
+                id: id,
+                name: name,
+                baseUrl: baseUrl,
+                apiKey: apiKey,
+                defaultModel: defaultModel,
+                defaultAspectRatio: defaultAspectRatio,
+                defaultSize: defaultSize,
+                defaultQuality: defaultQuality,
+                defaultResponseFormat: defaultResponseFormat,
+                isEnabled: isEnabled,
+                testStatus: testStatus,
+                lastTestedAt: lastTestedAt,
+                lastTestMessage: lastTestMessage,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ImageProviderConfigRecordsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({imageProviderModelRecordsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (imageProviderModelRecordsRefs) db.imageProviderModelRecords,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (imageProviderModelRecordsRefs)
+                    await $_getPrefetchedData<
+                      ImageProviderConfigRecord,
+                      $ImageProviderConfigRecordsTable,
+                      ImageProviderModelRecord
+                    >(
+                      currentTable: table,
+                      referencedTable:
+                          $$ImageProviderConfigRecordsTableReferences
+                              ._imageProviderModelRecordsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$ImageProviderConfigRecordsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).imageProviderModelRecordsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.providerId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$ImageProviderConfigRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ImageProviderConfigRecordsTable,
+      ImageProviderConfigRecord,
+      $$ImageProviderConfigRecordsTableFilterComposer,
+      $$ImageProviderConfigRecordsTableOrderingComposer,
+      $$ImageProviderConfigRecordsTableAnnotationComposer,
+      $$ImageProviderConfigRecordsTableCreateCompanionBuilder,
+      $$ImageProviderConfigRecordsTableUpdateCompanionBuilder,
+      (ImageProviderConfigRecord, $$ImageProviderConfigRecordsTableReferences),
+      ImageProviderConfigRecord,
+      PrefetchHooks Function({bool imageProviderModelRecordsRefs})
+    >;
+typedef $$ImageProviderModelRecordsTableCreateCompanionBuilder =
+    ImageProviderModelRecordsCompanion Function({
+      required String providerId,
+      required String modelName,
+      Value<int> sortOrder,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$ImageProviderModelRecordsTableUpdateCompanionBuilder =
+    ImageProviderModelRecordsCompanion Function({
+      Value<String> providerId,
+      Value<String> modelName,
+      Value<int> sortOrder,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+final class $$ImageProviderModelRecordsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $ImageProviderModelRecordsTable,
+          ImageProviderModelRecord
+        > {
+  $$ImageProviderModelRecordsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $ImageProviderConfigRecordsTable _providerIdTable(_$AppDatabase db) =>
+      db.imageProviderConfigRecords.createAlias(
+        $_aliasNameGenerator(
+          db.imageProviderModelRecords.providerId,
+          db.imageProviderConfigRecords.id,
+        ),
+      );
+
+  $$ImageProviderConfigRecordsTableProcessedTableManager get providerId {
+    final $_column = $_itemColumn<String>('provider_id')!;
+
+    final manager = $$ImageProviderConfigRecordsTableTableManager(
+      $_db,
+      $_db.imageProviderConfigRecords,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_providerIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$ImageProviderModelRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $ImageProviderModelRecordsTable> {
+  $$ImageProviderModelRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get modelName => $composableBuilder(
+    column: $table.modelName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ImageProviderConfigRecordsTableFilterComposer get providerId {
+    final $$ImageProviderConfigRecordsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.providerId,
+          referencedTable: $db.imageProviderConfigRecords,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ImageProviderConfigRecordsTableFilterComposer(
+                $db: $db,
+                $table: $db.imageProviderConfigRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$ImageProviderModelRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ImageProviderModelRecordsTable> {
+  $$ImageProviderModelRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get modelName => $composableBuilder(
+    column: $table.modelName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ImageProviderConfigRecordsTableOrderingComposer get providerId {
+    final $$ImageProviderConfigRecordsTableOrderingComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.providerId,
+          referencedTable: $db.imageProviderConfigRecords,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ImageProviderConfigRecordsTableOrderingComposer(
+                $db: $db,
+                $table: $db.imageProviderConfigRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$ImageProviderModelRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ImageProviderModelRecordsTable> {
+  $$ImageProviderModelRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get modelName =>
+      $composableBuilder(column: $table.modelName, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$ImageProviderConfigRecordsTableAnnotationComposer get providerId {
+    final $$ImageProviderConfigRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.providerId,
+          referencedTable: $db.imageProviderConfigRecords,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ImageProviderConfigRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.imageProviderConfigRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$ImageProviderModelRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ImageProviderModelRecordsTable,
+          ImageProviderModelRecord,
+          $$ImageProviderModelRecordsTableFilterComposer,
+          $$ImageProviderModelRecordsTableOrderingComposer,
+          $$ImageProviderModelRecordsTableAnnotationComposer,
+          $$ImageProviderModelRecordsTableCreateCompanionBuilder,
+          $$ImageProviderModelRecordsTableUpdateCompanionBuilder,
+          (
+            ImageProviderModelRecord,
+            $$ImageProviderModelRecordsTableReferences,
+          ),
+          ImageProviderModelRecord,
+          PrefetchHooks Function({bool providerId})
+        > {
+  $$ImageProviderModelRecordsTableTableManager(
+    _$AppDatabase db,
+    $ImageProviderModelRecordsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ImageProviderModelRecordsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$ImageProviderModelRecordsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$ImageProviderModelRecordsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> providerId = const Value.absent(),
+                Value<String> modelName = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ImageProviderModelRecordsCompanion(
+                providerId: providerId,
+                modelName: modelName,
+                sortOrder: sortOrder,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String providerId,
+                required String modelName,
+                Value<int> sortOrder = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => ImageProviderModelRecordsCompanion.insert(
+                providerId: providerId,
+                modelName: modelName,
+                sortOrder: sortOrder,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ImageProviderModelRecordsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({providerId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (providerId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.providerId,
+                                referencedTable:
+                                    $$ImageProviderModelRecordsTableReferences
+                                        ._providerIdTable(db),
+                                referencedColumn:
+                                    $$ImageProviderModelRecordsTableReferences
+                                        ._providerIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$ImageProviderModelRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ImageProviderModelRecordsTable,
+      ImageProviderModelRecord,
+      $$ImageProviderModelRecordsTableFilterComposer,
+      $$ImageProviderModelRecordsTableOrderingComposer,
+      $$ImageProviderModelRecordsTableAnnotationComposer,
+      $$ImageProviderModelRecordsTableCreateCompanionBuilder,
+      $$ImageProviderModelRecordsTableUpdateCompanionBuilder,
+      (ImageProviderModelRecord, $$ImageProviderModelRecordsTableReferences),
+      ImageProviderModelRecord,
       PrefetchHooks Function({bool providerId})
     >;
 typedef $$ProjectRecordsTableCreateCompanionBuilder =
@@ -40027,6 +42203,17 @@ class $AppDatabaseManager {
       $$ProviderConfigRecordsTableTableManager(_db, _db.providerConfigRecords);
   $$ProviderModelRecordsTableTableManager get providerModelRecords =>
       $$ProviderModelRecordsTableTableManager(_db, _db.providerModelRecords);
+  $$ImageProviderConfigRecordsTableTableManager
+  get imageProviderConfigRecords =>
+      $$ImageProviderConfigRecordsTableTableManager(
+        _db,
+        _db.imageProviderConfigRecords,
+      );
+  $$ImageProviderModelRecordsTableTableManager get imageProviderModelRecords =>
+      $$ImageProviderModelRecordsTableTableManager(
+        _db,
+        _db.imageProviderModelRecords,
+      );
   $$ProjectRecordsTableTableManager get projectRecords =>
       $$ProjectRecordsTableTableManager(_db, _db.projectRecords);
   $$StyleSampleRecordsTableTableManager get styleSampleRecords =>

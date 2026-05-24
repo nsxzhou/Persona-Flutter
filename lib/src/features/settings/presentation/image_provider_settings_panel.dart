@@ -2,63 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/theme/app_theme.dart';
-import '../../../core/database/local_backup_service.dart';
 import '../../../core/ui/glass_container.dart';
 import '../../../core/ui/hoverable_widget.dart';
 import '../../../core/ui/persona_page.dart';
-import '../../../core/ui/skeleton_loader.dart';
-import '../application/local_backup_providers.dart';
 import '../application/image_provider_config_providers.dart';
-import '../application/provider_config_providers.dart';
+import '../domain/image_provider_config.dart';
 import '../domain/provider_config.dart';
-import 'image_provider_settings_panel.dart';
 
-class SettingsPage extends ConsumerWidget {
-  const SettingsPage({super.key});
+class ImageProviderSettingsPanel extends StatelessWidget {
+  const ImageProviderSettingsPanel({required this.items, super.key});
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final providers = ref.watch(providerConfigsProvider);
-    final imageProviders = ref.watch(imageProviderConfigsProvider);
-
-    return PersonaPage(
-      eyebrow: '本地控制',
-      title: '设置',
-      description: '配置 OpenAI-compatible Provider、本地数据边界、导入导出和备份行为。',
-      children: [
-        providers.when(
-          data: (items) => _ProviderSettings(items: items),
-          error: (error, stackTrace) => PersonaPanel(
-            child: Text(
-              '无法加载 Provider：$error',
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          ),
-          loading: () => _buildSkeletonLoading(),
-        ),
-        const SizedBox(height: 18),
-        imageProviders.when(
-          data: (items) => ImageProviderSettingsPanel(items: items),
-          error: (error, stackTrace) => PersonaPanel(
-            child: Text(
-              '无法加载图像 Provider：$error',
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          ),
-          loading: () => _buildSkeletonLoading(),
-        ),
-        const SizedBox(height: 18),
-        const _LocalBackupPanel(),
-      ],
-    );
-  }
-}
-
-class _ProviderSettings extends StatelessWidget {
-  const _ProviderSettings({required this.items});
-
-  final List<ProviderConfig> items;
+  final List<ImageProviderConfig> items;
 
   @override
   Widget build(BuildContext context) {
@@ -70,18 +24,18 @@ class _ProviderSettings extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 16, 0),
             child: PersonaSectionHeader(
-              title: 'Provider 控制台',
-              description: '管理 OpenAI-compatible 连接，测试可用性与配置详情。',
+              title: '图像 Provider',
+              description: '管理 Bearer 生图连接，用样例生成测试真实可用性。',
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   PersonaStatusPill(
                     label: '${items.length} 个配置',
-                    icon: Icons.key_outlined,
+                    icon: Icons.image_outlined,
                   ),
                   const SizedBox(width: 10),
                   FilledButton.icon(
-                    onPressed: () => _showProviderDialog(context),
+                    onPressed: () => _showImageProviderDialog(context),
                     icon: const Icon(Icons.add, size: 18),
                     label: const Text('新增'),
                   ),
@@ -92,12 +46,21 @@ class _ProviderSettings extends StatelessWidget {
           if (items.isEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-              child: const _EmptyProviderState(),
+              child: PersonaEmptyStateCard(
+                icon: Icons.image_outlined,
+                title: '尚未配置图像 Provider',
+                description: '添加 Base URL、API Key 和默认模型后，可以运行样例文生图测试。',
+                action: OutlinedButton.icon(
+                  onPressed: () => _showImageProviderDialog(context),
+                  icon: const Icon(Icons.add),
+                  label: const Text('新增图像 Provider'),
+                ),
+              ),
             )
           else
             Padding(
               padding: const EdgeInsets.only(top: 14),
-              child: _ProviderList(items: items),
+              child: _ImageProviderList(items: items),
             ),
         ],
       ),
@@ -105,28 +68,10 @@ class _ProviderSettings extends StatelessWidget {
   }
 }
 
-class _EmptyProviderState extends StatelessWidget {
-  const _EmptyProviderState();
+class _ImageProviderList extends StatelessWidget {
+  const _ImageProviderList({required this.items});
 
-  @override
-  Widget build(BuildContext context) {
-    return PersonaEmptyStateCard(
-      icon: Icons.key_outlined,
-      title: '尚未配置 Provider',
-      description: '添加 Base URL、API Key 和默认模型后，可以运行真实连接测试。',
-      action: OutlinedButton.icon(
-        onPressed: () => _showProviderDialog(context),
-        icon: const Icon(Icons.add),
-        label: const Text('新增 Provider'),
-      ),
-    );
-  }
-}
-
-class _ProviderList extends StatelessWidget {
-  const _ProviderList({required this.items});
-
-  final List<ProviderConfig> items;
+  final List<ImageProviderConfig> items;
 
   @override
   Widget build(BuildContext context) {
@@ -136,7 +81,7 @@ class _ProviderList extends StatelessWidget {
     return Column(
       children: [
         for (var i = 0; i < items.length; i++) ...[
-          _ProviderRow(provider: items[i]),
+          _ImageProviderRow(provider: items[i]),
           if (i < items.length - 1)
             Divider(height: 1, thickness: 1, color: dividerColor),
         ],
@@ -145,17 +90,17 @@ class _ProviderList extends StatelessWidget {
   }
 }
 
-class _ProviderRow extends ConsumerWidget {
-  const _ProviderRow({required this.provider});
+class _ImageProviderRow extends ConsumerWidget {
+  const _ImageProviderRow({required this.provider});
 
-  final ProviderConfig provider;
+  final ImageProviderConfig provider;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final statusColor = _statusColor(colorScheme, provider.testStatus);
-    final isBusy = ref.watch(providerConfigControllerProvider).isLoading;
+    final isBusy = ref.watch(imageProviderConfigControllerProvider).isLoading;
     final host = _extractHost(provider.baseUrl);
 
     return HoverableWidget(
@@ -166,13 +111,13 @@ class _ProviderRow extends ConsumerWidget {
               ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.18)
               : Colors.transparent,
           child: InkWell(
-            onTap: () => context.go('/settings/providers/${provider.id}'),
+            onTap: () => context.go('/settings/image-providers/${provider.id}'),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final isNarrow = constraints.maxWidth < 700;
-                  final info = _buildInfo(context, host, statusColor);
+                  final isNarrow = constraints.maxWidth < 740;
+                  final info = _buildInfo(context, host);
                   final actions = _buildActions(
                     context,
                     ref,
@@ -191,11 +136,11 @@ class _ProviderRow extends ConsumerWidget {
                             Expanded(
                               child: Text(
                                 provider.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: textTheme.titleSmall?.copyWith(
                                   fontWeight: FontWeight.w700,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             actions,
@@ -232,11 +177,11 @@ class _ProviderRow extends ConsumerWidget {
                         width: 150,
                         child: Text(
                           provider.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w700,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -270,7 +215,7 @@ class _ProviderRow extends ConsumerWidget {
     );
   }
 
-  Widget _buildInfo(BuildContext context, String host, Color statusColor) {
+  Widget _buildInfo(BuildContext context, String host) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
@@ -288,24 +233,12 @@ class _ProviderRow extends ConsumerWidget {
           ),
         ),
         const SizedBox(width: 10),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-            child: Text(
-              provider.defaultModel,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: textTheme.labelSmall?.copyWith(
-                fontFamily: 'monospace',
-                fontFamilyFallback: ['Menlo', 'Courier'],
-                color: colorScheme.onSurface,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+        _MonoPill(label: provider.defaultModel),
+        const SizedBox(width: 8),
+        Text(
+          '${provider.defaultAspectRatio.label} · ${provider.defaultSize.label}',
+          style: textTheme.labelSmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
           ),
         ),
         if (provider.modelNames.length > 1) ...[
@@ -341,14 +274,14 @@ class _ProviderRow extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
-          icon: Icon(Icons.network_check, size: 18, color: statusColor),
-          tooltip: '测试连接',
+          icon: Icon(Icons.auto_awesome_outlined, size: 18, color: statusColor),
+          tooltip: '样例生成测试',
           iconSize: 18,
           visualDensity: VisualDensity.compact,
           onPressed: isBusy
               ? null
               : () => ref
-                    .read(providerConfigControllerProvider.notifier)
+                    .read(imageProviderConfigControllerProvider.notifier)
                     .test(provider.id),
         ),
         IconButton(
@@ -356,10 +289,11 @@ class _ProviderRow extends ConsumerWidget {
           tooltip: '编辑',
           iconSize: 18,
           visualDensity: VisualDensity.compact,
-          onPressed: () => _showProviderDialog(context, provider: provider),
+          onPressed: () =>
+              _showImageProviderDialog(context, provider: provider),
         ),
         IconButton(
-          icon: Icon(Icons.delete_outline, size: 18),
+          icon: const Icon(Icons.delete_outline, size: 18),
           tooltip: '删除',
           iconSize: 18,
           visualDensity: VisualDensity.compact,
@@ -371,264 +305,27 @@ class _ProviderRow extends ConsumerWidget {
   }
 }
 
-class _StatusDot extends StatelessWidget {
-  const _StatusDot({required this.color});
+class _ImageProviderDialog extends ConsumerStatefulWidget {
+  const _ImageProviderDialog({this.provider});
 
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 8,
-      height: 8,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-    );
-  }
-}
-
-String _extractHost(String url) {
-  final uri = Uri.tryParse(url.trim());
-  if (uri != null && uri.host.isNotEmpty) {
-    return uri.host + (uri.port != 80 && uri.port != 443 ? ':${uri.port}' : '');
-  }
-  return url;
-}
-
-class _LocalBackupPanel extends ConsumerWidget {
-  const _LocalBackupPanel();
+  final ImageProviderConfig? provider;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final backupState = ref.watch(localBackupControllerProvider);
-    final isBusy = backupState.isLoading;
-    final value = backupState.value;
-    final result = value?.result;
-
-    return PersonaPanel(
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          PersonaSectionHeader(
-            title: '本地备份',
-            description: '导出或恢复完整本地 SQLite 数据库快照。',
-            trailing: PersonaStatusPill(
-              label: result == null ? '明文快照' : _operationLabel(result),
-              icon: result?.operation == LocalBackupOperation.restore
-                  ? Icons.restore_outlined
-                  : Icons.save_alt_outlined,
-              color: result == null ? colorScheme.error : colorScheme.primary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isNarrow = constraints.maxWidth < 720;
-              final actions = [
-                FilledButton.icon(
-                  onPressed: isBusy
-                      ? null
-                      : () => ref
-                            .read(localBackupControllerProvider.notifier)
-                            .exportBackup(),
-                  icon: isBusy
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.save_alt_outlined, size: 18),
-                  label: const Text('导出备份'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: isBusy
-                      ? null
-                      : () => _confirmRestore(context, ref),
-                  icon: const Icon(Icons.restore_outlined, size: 18),
-                  label: const Text('恢复备份'),
-                ),
-              ];
-
-              return Flex(
-                direction: isNarrow ? Axis.vertical : Axis.horizontal,
-                crossAxisAlignment: isNarrow
-                    ? CrossAxisAlignment.stretch
-                    : CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    flex: isNarrow ? 0 : 1,
-                    child: _BackupWarningCard(
-                      result: result,
-                      error: backupState.error,
-                    ),
-                  ),
-                  SizedBox(width: isNarrow ? 0 : 16, height: isNarrow ? 14 : 0),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    alignment: isNarrow
-                        ? WrapAlignment.start
-                        : WrapAlignment.end,
-                    children: actions,
-                  ),
-                ],
-              );
-            },
-          ),
-          if (result?.rollbackPath != null) ...[
-            const SizedBox(height: 12),
-            Text(
-              '恢复前回滚副本：${result!.rollbackPath}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-                fontFamily: 'monospace',
-                fontFamilyFallback: const ['Menlo', 'Courier'],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Future<void> _confirmRestore(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('恢复本地备份'),
-          content: const Text(
-            '恢复会用所选备份覆盖当前全部本地数据，包括项目、章节、分析结果、Provider 配置和 API Key。操作前会自动保留当前数据库回滚副本。',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('取消'),
-            ),
-            FilledButton.icon(
-              onPressed: () => Navigator.of(context).pop(true),
-              icon: const Icon(Icons.restore_outlined, size: 18),
-              label: const Text('选择备份并恢复'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirmed != true) return;
-    await ref.read(localBackupControllerProvider.notifier).restoreBackup();
-  }
+  ConsumerState<_ImageProviderDialog> createState() =>
+      _ImageProviderDialogState();
 }
 
-class _BackupWarningCard extends StatelessWidget {
-  const _BackupWarningCard({required this.result, required this.error});
-
-  final LocalBackupResult? result;
-  final Object? error;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final hasError = error != null;
-    final icon = hasError
-        ? Icons.error_outline
-        : result == null
-        ? Icons.key_outlined
-        : Icons.check_circle_outline;
-    final color = hasError
-        ? colorScheme.error
-        : result == null
-        ? colorScheme.error
-        : colorScheme.primary;
-    final title = hasError
-        ? '操作失败'
-        : result == null
-        ? '备份包含敏感信息'
-        : result!.message;
-    final description = hasError
-        ? '$error'
-        : result == null
-        ? '备份文件是明文 SQLite 快照，会包含本机保存的 Provider API Key，请只保存到可信位置。'
-        : '${_formatTime(result!.completedAt)} · ${result!.targetPath}';
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(kPanelRadius),
-        border: Border.all(
-          color: hasError
-              ? colorScheme.error.withValues(alpha: 0.55)
-              : colorScheme.outlineVariant,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, size: 18, color: color),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: textTheme.titleSmall),
-                  const SizedBox(height: 3),
-                  Text(
-                    description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: textTheme.bodySmall?.copyWith(
-                      color: hasError
-                          ? colorScheme.error
-                          : colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-String _operationLabel(LocalBackupResult result) {
-  return switch (result.operation) {
-    LocalBackupOperation.export => '已导出',
-    LocalBackupOperation.restore => '已恢复',
-  };
-}
-
-String _formatTime(DateTime value) {
-  final local = value.toLocal();
-  String two(int input) => input.toString().padLeft(2, '0');
-  return '${local.year}-${two(local.month)}-${two(local.day)} '
-      '${two(local.hour)}:${two(local.minute)}';
-}
-
-class _ProviderDialog extends ConsumerStatefulWidget {
-  const _ProviderDialog({this.provider});
-
-  final ProviderConfig? provider;
-
-  @override
-  ConsumerState<_ProviderDialog> createState() => _ProviderDialogState();
-}
-
-class _ProviderDialogState extends ConsumerState<_ProviderDialog> {
+class _ImageProviderDialogState extends ConsumerState<_ImageProviderDialog> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   late final TextEditingController _baseUrlController;
   late final TextEditingController _apiKeyController;
   late final TextEditingController _modelController;
   late final TextEditingController _modelsController;
+  late ImageAspectRatioPreset _defaultAspectRatio;
+  late ImageSizePreset _defaultSize;
+  late ImageQualityPreset _defaultQuality;
+  late ImageResponseFormat _defaultResponseFormat;
   late bool _isEnabled;
   var _isApiKeyVisible = false;
 
@@ -640,11 +337,17 @@ class _ProviderDialogState extends ConsumerState<_ProviderDialog> {
     _baseUrlController = TextEditingController(text: provider?.baseUrl ?? '');
     _apiKeyController = TextEditingController(text: provider?.apiKey ?? '');
     _modelController = TextEditingController(
-      text: provider?.defaultModel ?? '',
+      text: provider?.defaultModel ?? 'gpt-5-3',
     );
     _modelsController = TextEditingController(
       text: (provider?.modelNames ?? const <String>[]).join('\n'),
     );
+    _defaultAspectRatio =
+        provider?.defaultAspectRatio ?? ImageAspectRatioPreset.square;
+    _defaultSize = provider?.defaultSize ?? ImageSizePreset.oneK;
+    _defaultQuality = provider?.defaultQuality ?? ImageQualityPreset.auto;
+    _defaultResponseFormat =
+        provider?.defaultResponseFormat ?? ImageResponseFormat.url;
     _isEnabled = provider?.isEnabled ?? true;
   }
 
@@ -660,11 +363,11 @@ class _ProviderDialogState extends ConsumerState<_ProviderDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(providerConfigControllerProvider);
+    final state = ref.watch(imageProviderConfigControllerProvider);
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
-    ref.listen(providerConfigControllerProvider, (previous, next) {
+    ref.listen(imageProviderConfigControllerProvider, (previous, next) {
       if (next.hasError) {
         ScaffoldMessenger.of(
           context,
@@ -677,12 +380,12 @@ class _ProviderDialogState extends ConsumerState<_ProviderDialog> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          widget.provider == null ? '新增 Provider' : '编辑 Provider',
+          widget.provider == null ? '新增图像 Provider' : '编辑图像 Provider',
           style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 6),
         Text(
-          '配置 OpenAI-compatible 连接。API Key 只保存在本地 SQLite 中。',
+          '配置 Bearer 生图连接。API Key 只保存在本地 SQLite 中。',
           style: textTheme.bodyMedium?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
@@ -702,7 +405,7 @@ class _ProviderDialogState extends ConsumerState<_ProviderDialog> {
                 controller: _modelController,
                 decoration: const InputDecoration(
                   labelText: '默认模型',
-                  hintText: 'gpt-4.1-mini',
+                  hintText: 'gpt-5-3',
                 ),
                 validator: _requiredValidator,
               );
@@ -710,7 +413,7 @@ class _ProviderDialogState extends ConsumerState<_ProviderDialog> {
                 controller: _baseUrlController,
                 decoration: const InputDecoration(
                   labelText: 'Base URL',
-                  hintText: 'https://api.openai.com/v1',
+                  hintText: 'https://example.com',
                 ),
                 keyboardType: TextInputType.url,
                 validator: _urlValidator,
@@ -743,8 +446,71 @@ class _ProviderDialogState extends ConsumerState<_ProviderDialog> {
                 minLines: 3,
                 maxLines: 5,
               );
-
-              final fields = [nameField, modelField, baseUrlField, apiKeyField];
+              final aspectRatioField =
+                  DropdownButtonFormField<ImageAspectRatioPreset>(
+                    initialValue: _defaultAspectRatio,
+                    decoration: const InputDecoration(labelText: '默认画幅'),
+                    items: [
+                      for (final aspectRatio in ImageAspectRatioPreset.values)
+                        DropdownMenuItem(
+                          value: aspectRatio,
+                          child: Text(aspectRatio.label),
+                        ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => _defaultAspectRatio = value);
+                      }
+                    },
+                  );
+              final sizeField = DropdownButtonFormField<ImageSizePreset>(
+                initialValue: _defaultSize,
+                decoration: const InputDecoration(labelText: '默认尺寸档位'),
+                items: [
+                  for (final size in ImageSizePreset.values)
+                    DropdownMenuItem(value: size, child: Text(size.label)),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _defaultSize = value);
+                  }
+                },
+              );
+              final qualityField = DropdownButtonFormField<ImageQualityPreset>(
+                initialValue: _defaultQuality,
+                decoration: const InputDecoration(labelText: '默认质量'),
+                items: [
+                  for (final quality in ImageQualityPreset.values)
+                    DropdownMenuItem(
+                      value: quality,
+                      child: Text(quality.label),
+                    ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _defaultQuality = value);
+                  }
+                },
+              );
+              final formatField = DropdownButtonFormField<ImageResponseFormat>(
+                initialValue: _defaultResponseFormat,
+                decoration: const InputDecoration(labelText: '响应格式'),
+                items: const [
+                  DropdownMenuItem(
+                    value: ImageResponseFormat.url,
+                    child: Text('url'),
+                  ),
+                  DropdownMenuItem(
+                    value: ImageResponseFormat.b64Json,
+                    child: Text('b64_json'),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _defaultResponseFormat = value);
+                  }
+                },
+              );
 
               return Column(
                 mainAxisSize: MainAxisSize.min,
@@ -766,12 +532,38 @@ class _ProviderDialogState extends ConsumerState<_ProviderDialog> {
                       ],
                     ),
                     const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(child: aspectRatioField),
+                        const SizedBox(width: 12),
+                        Expanded(child: sizeField),
+                        const SizedBox(width: 12),
+                        Expanded(child: qualityField),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(children: [Expanded(child: formatField)]),
+                    const SizedBox(height: 12),
                     modelsField,
-                  ] else
-                    for (final field in [...fields, modelsField]) ...[
-                      field,
-                      if (field != modelsField) const SizedBox(height: 12),
-                    ],
+                  ] else ...[
+                    nameField,
+                    const SizedBox(height: 12),
+                    modelField,
+                    const SizedBox(height: 12),
+                    baseUrlField,
+                    const SizedBox(height: 12),
+                    apiKeyField,
+                    const SizedBox(height: 12),
+                    aspectRatioField,
+                    const SizedBox(height: 12),
+                    sizeField,
+                    const SizedBox(height: 12),
+                    qualityField,
+                    const SizedBox(height: 12),
+                    formatField,
+                    const SizedBox(height: 12),
+                    modelsField,
+                  ],
                   const SizedBox(height: 14),
                   DecoratedBox(
                     decoration: BoxDecoration(
@@ -786,8 +578,8 @@ class _ProviderDialogState extends ConsumerState<_ProviderDialog> {
                         horizontal: 12,
                         vertical: 2,
                       ),
-                      title: const Text('启用 Provider'),
-                      subtitle: const Text('停用后不参与正式生成选择，但详情页仍可测试。'),
+                      title: const Text('启用图像 Provider'),
+                      subtitle: const Text('停用后不参与未来正式生成选择，但详情页仍可测试。'),
                       value: _isEnabled,
                       onChanged: (value) => setState(() => _isEnabled = value),
                     ),
@@ -818,7 +610,7 @@ class _ProviderDialogState extends ConsumerState<_ProviderDialog> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    '保存后连接测试状态会按现有规则重置，完整密钥不会在界面中展示。',
+                    '连接测试会消耗一次样例生图额度；样例固定使用 1:1 + 1K；完整 API Key 不会在界面中展示。',
                     style: textTheme.bodySmall,
                   ),
                 ),
@@ -853,40 +645,44 @@ class _ProviderDialogState extends ConsumerState<_ProviderDialog> {
     }
 
     await ref
-        .read(providerConfigControllerProvider.notifier)
+        .read(imageProviderConfigControllerProvider.notifier)
         .save(
           id: widget.provider?.id,
-          input: ProviderConfigInput(
+          input: ImageProviderConfigInput(
             name: _nameController.text,
             baseUrl: _baseUrlController.text,
             apiKey: _apiKeyController.text,
             defaultModel: _modelController.text,
             modelNames: _parseModelNames(_modelsController.text),
-            systemPrompt: widget.provider?.systemPrompt ?? '',
-            isSystemPromptEnabled:
-                widget.provider?.isSystemPromptEnabled ?? true,
+            defaultAspectRatio: _defaultAspectRatio,
+            defaultSize: _defaultSize,
+            defaultQuality: _defaultQuality,
+            defaultResponseFormat: _defaultResponseFormat,
             isEnabled: _isEnabled,
           ),
         );
 
-    if (mounted && !ref.read(providerConfigControllerProvider).hasError) {
+    if (mounted && !ref.read(imageProviderConfigControllerProvider).hasError) {
       Navigator.of(context).pop();
     }
   }
 }
 
-void _showProviderDialog(BuildContext context, {ProviderConfig? provider}) {
+void _showImageProviderDialog(
+  BuildContext context, {
+  ImageProviderConfig? provider,
+}) {
   showGlassDialog<void>(
     context: context,
     maxWidth: 720,
-    builder: (context) => _ProviderDialog(provider: provider),
+    builder: (context) => _ImageProviderDialog(provider: provider),
   );
 }
 
 Future<void> _confirmDelete(
   BuildContext context,
   WidgetRef ref,
-  ProviderConfig provider,
+  ImageProviderConfig provider,
 ) async {
   final confirmed = await showGlassDialog<bool>(
     context: context,
@@ -902,12 +698,15 @@ Future<void> _confirmDelete(
               color: Theme.of(context).colorScheme.error,
             ),
             const SizedBox(width: 10),
-            Text('删除 Provider', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              '删除图像 Provider',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
           ],
         ),
         const SizedBox(height: 12),
         Text('确定删除「${provider.name}」吗？API Key 会从 SQLite 中删除。'),
-        const SizedBox(height: 20),
+        const SizedBox(height: 18),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
@@ -916,13 +715,10 @@ Future<void> _confirmDelete(
               child: const Text('取消'),
             ),
             const SizedBox(width: 8),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.error,
-                foregroundColor: Theme.of(context).colorScheme.onError,
-              ),
+            FilledButton.icon(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('删除'),
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('删除'),
             ),
           ],
         ),
@@ -932,8 +728,55 @@ Future<void> _confirmDelete(
 
   if (confirmed ?? false) {
     await ref
-        .read(providerConfigControllerProvider.notifier)
+        .read(imageProviderConfigControllerProvider.notifier)
         .delete(provider.id);
+  }
+}
+
+class _StatusDot extends StatelessWidget {
+  const _StatusDot({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 8,
+      height: 8,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+    );
+  }
+}
+
+class _MonoPill extends StatelessWidget {
+  const _MonoPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: textTheme.labelSmall?.copyWith(
+            fontFamily: 'monospace',
+            fontFamilyFallback: const ['Menlo', 'Courier'],
+            color: colorScheme.onSurface,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -964,53 +807,12 @@ List<String> _parseModelNames(String value) {
       .toList(growable: false);
 }
 
-Widget _buildSkeletonLoading() {
-  return PersonaPanel(
-    padding: EdgeInsets.zero,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 14),
-          child: Row(
-            children: const [
-              SkeletonBox(width: 120, height: 16),
-              Spacer(),
-              SkeletonBox(width: 70, height: 32),
-            ],
-          ),
-        ),
-        for (var i = 0; i < 3; i++) ...[
-          const _ProviderRowSkeleton(),
-          if (i < 2) const Divider(height: 1),
-        ],
-      ],
-    ),
-  );
-}
-
-class _ProviderRowSkeleton extends StatelessWidget {
-  const _ProviderRowSkeleton();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Row(
-        children: const [
-          SkeletonBox(width: 8, height: 8),
-          SizedBox(width: 10),
-          SkeletonBox(width: 120, height: 14),
-          SizedBox(width: 16),
-          Expanded(child: SkeletonBox(width: 160, height: 12)),
-          SizedBox(width: 10),
-          SkeletonBox(width: 80, height: 20),
-          SizedBox(width: 16),
-          SkeletonBox(width: 80, height: 28),
-        ],
-      ),
-    );
+String _extractHost(String url) {
+  final uri = Uri.tryParse(url.trim());
+  if (uri != null && uri.host.isNotEmpty) {
+    return uri.host + (uri.port != 80 && uri.port != 443 ? ':${uri.port}' : '');
   }
+  return url;
 }
 
 Color _statusColor(ColorScheme colorScheme, ProviderTestStatus status) {

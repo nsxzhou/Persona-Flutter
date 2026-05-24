@@ -131,6 +131,63 @@ Import `ChatOpenAI` in a feature page and stream directly into widget state.
 #### Correct
 Feature code depends on `LlmInvocationService` / `LlmClient`; only `core/llm/data` imports LangChain.dart.
 
+## Scenario: Image generation provider boundary
+
+### 1. Scope / Trigger
+- Trigger: Settings manages text-to-image Provider configuration and the app calls a Bearer-auth OpenAI-style image endpoint.
+- This is a cross-layer contract because Drift persistence, Settings UI, Riverpod wiring, image-generation services, request/response parsing, and secret redaction must agree.
+
+### 2. Signatures
+- Drift tables:
+  - `ImageProviderConfigRecords`
+  - `ImageProviderModelRecords`
+- Repository contract: `ImageProviderConfigRepository`
+- Domain model: `ImageProviderConfig`
+- Core port: `ImageGenerationClient`
+- Service: `ImageGenerationService`
+- Adapter: `BearerImageGenerationClient`
+- Text-to-image endpoint: `POST /v1/images/generations`
+- Image-edit endpoint contract: `POST /v1/images/edits`
+
+### 3. Contracts
+- Image providers are separate from text `ProviderConfig`; do not add image-only models to project default text model selection.
+- MVP authentication uses only the `Authorization: Bearer <api key>` header. Do not send a custom `token` header for image provider requests.
+- Image provider connectivity tests do not call `/models`. They perform a real sample text-to-image generation through `/v1/images/generations`.
+- Text-to-image requests expose `prompt`, `model`, `size`, `quality`, `response_format`, and fixed `n: 1` in MVP. Omit `style` and `user`.
+- `quality` follows OpenAI/NewAPI values `auto`, `low`, `medium`, and `high`.
+- UI stores an aspect-ratio preset (`auto`, `1:1`, `3:4`, `9:16`, `4:3`, `16:9`) and a size tier (`1K`, `2K`, `4K`), then resolves them into the final `size` value sent to the API. `auto` aspect ratio sends `size: auto`; sample generation should use `1:1 + 1K` and send `1024x1024` because the current target site returns empty image data for `auto`.
+- Image responses must parse `data[].url` and `data[].b64_json`; preserve `data[].revised_prompt` and `usage` for diagnostics when present.
+- Generated test images are memory-only. Do not store image bytes or URLs in SQLite or on disk in MVP.
+- API keys may be passed to adapters but must never appear in UI, logs, test messages, request inspectors, or surfaced errors.
+
+### 4. Validation & Error Matrix
+- Missing name/baseUrl/apiKey/defaultModel -> validation error before write.
+- Invalid URL -> validation error before write.
+- Sample generation HTTP non-2xx -> persist `failed` with a sanitized message.
+- Response body is not JSON object -> image generation client exception.
+- Response lacks `data` list -> image generation client exception.
+- Response contains no image with `url` or `b64_json` -> image generation client exception.
+- Adapter error containing an API key -> replace the key with `[REDACTED]` before surfacing.
+
+### 5. Good/Base/Bad Cases
+- Good: create an image Provider, test it with one `1:1`/`1K` sample generation, render the returned image in memory, and show request/response inspectors without secrets.
+- Base: image-edit request primitives exist for `/v1/images/edits`, but the first UI only exposes text-to-image testing.
+- Bad: reuse `LlmClient.streamChat` for image generation.
+- Bad: use `/models` discovery as the image Provider readiness check.
+- Bad: store sample image output in SQLite backup data during MVP.
+
+### 6. Tests Required
+- Repository test for `ImageProviderConfig` round-trip, model normalization, test status update, and delete.
+- Client tests for `/v1/images/generations` URL normalization, Bearer auth header, response parsing, and API key redaction.
+- Client test for `/v1/images/edits` request endpoint contract.
+- Widget tests for Settings image Provider panel, dialog controls, detail generation preview, request/response inspector, and secret masking.
+
+### 7. Wrong vs Correct
+#### Wrong
+Add image models to `ProviderConfig.modelNames` and test them through `GET /models` or `LlmClient.streamChat`.
+#### Correct
+Keep image providers in `ImageProviderConfig`, call `ImageGenerationService`, and validate readiness with a real sample `/v1/images/generations` request using Bearer auth.
+
 ## Scenario: LLM artifact document output contract
 
 ### 1. Scope / Trigger

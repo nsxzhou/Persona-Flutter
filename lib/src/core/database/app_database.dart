@@ -64,6 +64,41 @@ class ProviderModelRecords extends Table {
   Set<Column<Object>> get primaryKey => {providerId, modelName};
 }
 
+class ImageProviderConfigRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get baseUrl => text()();
+  TextColumn get apiKey => text()();
+  TextColumn get defaultModel => text()();
+  TextColumn get defaultAspectRatio =>
+      text().withDefault(const Constant('1:1'))();
+  TextColumn get defaultSize => text().withDefault(const Constant('1K'))();
+  TextColumn get defaultQuality => text().withDefault(const Constant('auto'))();
+  TextColumn get defaultResponseFormat =>
+      text().withDefault(const Constant('url'))();
+  BoolColumn get isEnabled => boolean().withDefault(const Constant(true))();
+  TextColumn get testStatus => text()();
+  DateTimeColumn get lastTestedAt => dateTime().nullable()();
+  TextColumn get lastTestMessage => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+class ImageProviderModelRecords extends Table {
+  TextColumn get providerId =>
+      text().references(ImageProviderConfigRecords, #id)();
+  TextColumn get modelName => text()();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {providerId, modelName};
+}
+
 class ProjectRecords extends Table {
   TextColumn get id => text()();
   TextColumn get title => text()();
@@ -574,6 +609,8 @@ class AssetGenerationRunRecords extends Table {
     WorkflowPromptTraceRecords,
     ProviderConfigRecords,
     ProviderModelRecords,
+    ImageProviderConfigRecords,
+    ImageProviderModelRecords,
     ProjectRecords,
     StyleSampleRecords,
     StyleAnalysisRunRecords,
@@ -609,7 +646,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 23;
+  int get schemaVersion => 26;
 
   @override
   MigrationStrategy get migration {
@@ -936,6 +973,60 @@ class AppDatabase extends _$AppDatabase {
               workflowTaskRecords.previewDismissedAt,
             );
           }
+        }
+        if (from < 24) {
+          if (!await _tableExists('image_provider_config_records')) {
+            await migrator.createTable(imageProviderConfigRecords);
+          }
+          if (!await _tableExists('image_provider_model_records')) {
+            await migrator.createTable(imageProviderModelRecords);
+          }
+        }
+        if (from < 25 && await _tableExists('image_provider_config_records')) {
+          if (!await _columnExists(
+            'image_provider_config_records',
+            'default_aspect_ratio',
+          )) {
+            await migrator.addColumn(
+              imageProviderConfigRecords,
+              imageProviderConfigRecords.defaultAspectRatio,
+            );
+          }
+          if (!await _columnExists(
+            'image_provider_config_records',
+            'default_quality',
+          )) {
+            await migrator.addColumn(
+              imageProviderConfigRecords,
+              imageProviderConfigRecords.defaultQuality,
+            );
+          }
+          await customStatement('''
+            UPDATE image_provider_config_records
+            SET
+              default_quality = CASE default_quality
+                WHEN 'low' THEN 'low'
+                WHEN 'medium' THEN 'medium'
+                WHEN 'high' THEN 'high'
+                ELSE 'auto'
+              END,
+              default_size = CASE default_size
+                WHEN '2048x2048' THEN '2K'
+                WHEN '4096x4096' THEN '4K'
+                WHEN '2k' THEN '2K'
+                WHEN '2K' THEN '2K'
+                WHEN '4k' THEN '4K'
+                WHEN '4K' THEN '4K'
+                ELSE '1K'
+              END
+          ''');
+        }
+        if (from < 26 && await _tableExists('image_provider_config_records')) {
+          await customStatement('''
+            UPDATE image_provider_config_records
+            SET default_aspect_ratio = '1:1'
+            WHERE default_aspect_ratio = 'auto'
+          ''');
         }
       },
     );

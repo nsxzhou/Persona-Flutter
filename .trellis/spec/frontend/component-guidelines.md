@@ -96,6 +96,40 @@ Hard-code Provider cards in `core/ui/` or bypass the repository layer from the w
 #### Correct
 Keep Provider management widgets in `features/settings/presentation/` and bind them through Riverpod providers.
 
+## Scenario: Settings Image Provider management surface
+
+### 1. Scope / Trigger
+- Trigger: The Settings page renders text-to-image Provider management next to the existing text Provider console.
+- This is a feature-specific presentation surface that binds to Riverpod providers and must stay under `features/settings/presentation/`.
+
+### 2. Contracts
+- Keep the existing text `Provider 控制台` panel unchanged. Add a separate `图像 Provider` panel below it and above `本地备份`; do not convert Settings to tabs without a separate task.
+- Image Provider rows use a sample-generation test action, not a `/models` connectivity action.
+- Detail UI exposes `prompt`, `model`, aspect ratio, size tier, `quality`, and `response_format` for text-to-image tests. `n` is fixed to 1; `style` and `user` are not shown in MVP.
+- Supported visible aspect ratio presets are `自动`, `方形 1:1`, `竖版 3:4`, `故事版 9:16`, `横版 4:3`, and `宽屏 16:9`. Supported size tiers are `1K`, `2K`, and `4K`; quality options are `auto`, `low`, `medium`, and `high`.
+- Generated images are memory-only previews. User-facing copy should not imply that the app saved or cached the image.
+- Request and response inspectors must not show the full API Key.
+- Keep file upload, mask controls, and image-to-image preview UI out of MVP even though the service layer has `/v1/images/edits` primitives.
+
+### 3. Validation & Error Matrix
+- Empty form fields -> block submission in the dialog.
+- Invalid URL -> block submission before save.
+- Sample generation failure -> show sanitized error state and persisted failed test message.
+- Narrow viewport -> stack workbench and inspector vertically without layout overflow.
+
+### 4. Good/Base/Bad Cases
+- Good: Settings shows text Provider, image Provider, and local backup as separate local-control panels.
+- Good: Image Provider detail renders a tool-like workbench with preview, prompt input, controls, and request/response inspector.
+- Base: generated image is visible until leaving the page.
+- Bad: present image Provider rows as normal text Providers or mix image-only models into project text model dropdowns.
+- Bad: add upload/mask UI before a product workflow needs image-to-image editing.
+
+### 5. Wrong vs Correct
+#### Wrong
+Add an `Image` tab inside the existing text Provider detail page and reuse the chat prompt/system prompt controls.
+#### Correct
+Route image Providers to their own detail page and use image-specific controls and inspectors.
+
 ## Scenario: Projects writing dossier surface
 
 ### 1. Scope / Trigger
