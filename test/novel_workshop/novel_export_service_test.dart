@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:epubx/epubx.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:persona_flutter/src/features/novel_workshop/application/novel_export_service.dart';
 import 'package:persona_flutter/src/features/novel_workshop/domain/novel_workshop.dart';
@@ -57,6 +60,60 @@ meta: value
       '标题\n\n重点和旁白\n暗号',
     );
   });
+
+  test(
+    'buildNovelEpub includes accepted illustrations and excludes drafts',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'novel-epub-test',
+      );
+      addTearDown(() => directory.delete(recursive: true));
+      final acceptedFile = File('${directory.path}/accepted.png');
+      await acceptedFile.writeAsBytes(<int>[137, 80, 78, 71]);
+      final draftFile = File('${directory.path}/draft.png');
+      await draftFile.writeAsBytes(<int>[0, 1, 2, 3]);
+
+      final bytes = await buildNovelEpub(
+        project: _project(),
+        volumes: [_volume()],
+        plans: [_plan(id: 'plan-1', index: 1, title: '雨夜&门诊')],
+        chapters: [
+          _chapter(
+            planId: 'plan-1',
+            index: 1,
+            content: '庄子昂走进门诊。\n\n警报在走廊尽头响起。',
+          ),
+        ],
+        illustrations: [
+          _illustration(
+            id: 'accepted',
+            localPath: acceptedFile.path,
+            status: ChapterIllustrationStatus.accepted,
+            selectedText: '警报 "亮起" & 转红',
+            paragraphIndex: 1,
+          ),
+          _illustration(
+            id: 'draft',
+            localPath: draftFile.path,
+            status: ChapterIllustrationStatus.draft,
+            selectedText: '未采用草稿',
+            paragraphIndex: 0,
+          ),
+        ],
+      );
+      final book = await EpubReader.readBook(bytes);
+      final chapterXhtml =
+          book.Content!.Html!['chapters/chapter-1.xhtml']!.Content!;
+
+      expect(bytes, isNotEmpty);
+      expect(book.Content!.AllFiles, contains('images/accepted.png'));
+      expect(book.Content!.AllFiles, isNot(contains('images/draft.png')));
+      expect(chapterXhtml, contains('../images/accepted.png'));
+      expect(chapterXhtml, isNot(contains('images/draft.png')));
+      expect(chapterXhtml, contains('警报 &quot;亮起&quot; &amp; 转红'));
+      expect(book.Content!.AllFiles!['toc.ncx'], isNotNull);
+    },
+  );
 }
 
 WritingProject _project() {
@@ -128,5 +185,34 @@ ProjectChapter _chapter({
     memorySyncProposedStorySummary: '',
     createdAt: DateTime(2026, 5, 24),
     updatedAt: DateTime(2026, 5, 24),
+  );
+}
+
+ChapterIllustration _illustration({
+  required String id,
+  required String localPath,
+  required ChapterIllustrationStatus status,
+  required String selectedText,
+  required int paragraphIndex,
+}) {
+  return ChapterIllustration(
+    id: id,
+    projectId: 'project-1',
+    chapterId: 'chapter-1',
+    chapterPlanId: 'plan-1',
+    paragraphIndex: paragraphIndex,
+    anchorTextHash: 'hash-$id',
+    selectedText: selectedText,
+    prompt: selectedText,
+    providerId: 'provider-1',
+    modelName: 'image-model',
+    localPath: localPath,
+    mimeType: 'image/png',
+    status: status,
+    createdAt: DateTime(2026, 5, 24),
+    updatedAt: DateTime(2026, 5, 24),
+    acceptedAt: status == ChapterIllustrationStatus.accepted
+        ? DateTime(2026, 5, 24)
+        : null,
   );
 }

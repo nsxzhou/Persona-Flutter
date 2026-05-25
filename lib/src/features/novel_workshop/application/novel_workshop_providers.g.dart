@@ -543,7 +543,7 @@ final projectBibleProvider = ProjectBibleFamily._();
 final class ProjectBibleProvider
     extends
         $FunctionalProvider<
-          AsyncValue<ProjectBible>,
+          flutter_riverpod.AsyncValue<ProjectBible>,
           ProjectBible,
           Stream<ProjectBible>
         >
@@ -618,7 +618,7 @@ final chapterVolumesProvider = ChapterVolumesFamily._();
 final class ChapterVolumesProvider
     extends
         $FunctionalProvider<
-          AsyncValue<List<ChapterVolume>>,
+          flutter_riverpod.AsyncValue<List<ChapterVolume>>,
           List<ChapterVolume>,
           Stream<List<ChapterVolume>>
         >
@@ -695,7 +695,7 @@ final chapterPlansProvider = ChapterPlansFamily._();
 final class ChapterPlansProvider
     extends
         $FunctionalProvider<
-          AsyncValue<List<ChapterPlan>>,
+          flutter_riverpod.AsyncValue<List<ChapterPlan>>,
           List<ChapterPlan>,
           Stream<List<ChapterPlan>>
         >
@@ -772,7 +772,7 @@ final projectChaptersProvider = ProjectChaptersFamily._();
 final class ProjectChaptersProvider
     extends
         $FunctionalProvider<
-          AsyncValue<List<ProjectChapter>>,
+          flutter_riverpod.AsyncValue<List<ProjectChapter>>,
           List<ProjectChapter>,
           Stream<List<ProjectChapter>>
         >
@@ -849,7 +849,7 @@ final novelCharactersProvider = NovelCharactersFamily._();
 final class NovelCharactersProvider
     extends
         $FunctionalProvider<
-          AsyncValue<List<NovelCharacter>>,
+          flutter_riverpod.AsyncValue<List<NovelCharacter>>,
           List<NovelCharacter>,
           Stream<List<NovelCharacter>>
         >
@@ -926,7 +926,7 @@ final novelRelationshipsProvider = NovelRelationshipsFamily._();
 final class NovelRelationshipsProvider
     extends
         $FunctionalProvider<
-          AsyncValue<List<NovelRelationship>>,
+          flutter_riverpod.AsyncValue<List<NovelRelationship>>,
           List<NovelRelationship>,
           Stream<List<NovelRelationship>>
         >
@@ -1004,7 +1004,7 @@ final chapterGenerationRunsProvider = ChapterGenerationRunsFamily._();
 final class ChapterGenerationRunsProvider
     extends
         $FunctionalProvider<
-          AsyncValue<List<ChapterGenerationRun>>,
+          flutter_riverpod.AsyncValue<List<ChapterGenerationRun>>,
           List<ChapterGenerationRun>,
           Stream<List<ChapterGenerationRun>>
         >
@@ -1082,7 +1082,7 @@ final chapterGenerationBatchesProvider = ChapterGenerationBatchesFamily._();
 final class ChapterGenerationBatchesProvider
     extends
         $FunctionalProvider<
-          AsyncValue<List<ChapterGenerationBatch>>,
+          flutter_riverpod.AsyncValue<List<ChapterGenerationBatch>>,
           List<ChapterGenerationBatch>,
           Stream<List<ChapterGenerationBatch>>
         >
@@ -1272,7 +1272,7 @@ final chapterGenerationBatchItemsProvider =
 final class ChapterGenerationBatchItemsProvider
     extends
         $FunctionalProvider<
-          AsyncValue<List<ChapterGenerationBatchItem>>,
+          flutter_riverpod.AsyncValue<List<ChapterGenerationBatchItem>>,
           List<ChapterGenerationBatchItem>,
           Stream<List<ChapterGenerationBatchItem>>
         >
@@ -1355,7 +1355,7 @@ final assetGenerationRunsProvider = AssetGenerationRunsFamily._();
 final class AssetGenerationRunsProvider
     extends
         $FunctionalProvider<
-          AsyncValue<List<AssetGenerationRun>>,
+          flutter_riverpod.AsyncValue<List<AssetGenerationRun>>,
           List<AssetGenerationRun>,
           Stream<List<AssetGenerationRun>>
         >
@@ -1433,7 +1433,7 @@ final chapterEnrichmentBatchesProvider = ChapterEnrichmentBatchesFamily._();
 final class ChapterEnrichmentBatchesProvider
     extends
         $FunctionalProvider<
-          AsyncValue<List<ChapterEnrichmentBatch>>,
+          flutter_riverpod.AsyncValue<List<ChapterEnrichmentBatch>>,
           List<ChapterEnrichmentBatch>,
           Stream<List<ChapterEnrichmentBatch>>
         >
@@ -1516,7 +1516,7 @@ final chapterEnrichmentItemsProvider = ChapterEnrichmentItemsFamily._();
 final class ChapterEnrichmentItemsProvider
     extends
         $FunctionalProvider<
-          AsyncValue<List<ChapterEnrichmentItem>>,
+          flutter_riverpod.AsyncValue<List<ChapterEnrichmentItem>>,
           List<ChapterEnrichmentItem>,
           Stream<List<ChapterEnrichmentItem>>
         >
@@ -1597,7 +1597,7 @@ final chapterGenerationRunByWorkflowTaskProvider =
 final class ChapterGenerationRunByWorkflowTaskProvider
     extends
         $FunctionalProvider<
-          AsyncValue<ChapterGenerationRun?>,
+          flutter_riverpod.AsyncValue<ChapterGenerationRun?>,
           ChapterGenerationRun?,
           Stream<ChapterGenerationRun?>
         >
@@ -1681,7 +1681,7 @@ final chapterGenerationBatchByWorkflowTaskProvider =
 final class ChapterGenerationBatchByWorkflowTaskProvider
     extends
         $FunctionalProvider<
-          AsyncValue<ChapterGenerationBatch?>,
+          flutter_riverpod.AsyncValue<ChapterGenerationBatch?>,
           ChapterGenerationBatch?,
           Stream<ChapterGenerationBatch?>
         >
@@ -1765,7 +1765,7 @@ final assetGenerationRunByWorkflowTaskProvider =
 final class AssetGenerationRunByWorkflowTaskProvider
     extends
         $FunctionalProvider<
-          AsyncValue<AssetGenerationRun?>,
+          flutter_riverpod.AsyncValue<AssetGenerationRun?>,
           AssetGenerationRun?,
           Stream<AssetGenerationRun?>
         >
@@ -1848,7 +1848,7 @@ final chapterEnrichmentBatchByWorkflowTaskProvider =
 final class ChapterEnrichmentBatchByWorkflowTaskProvider
     extends
         $FunctionalProvider<
-          AsyncValue<ChapterEnrichmentBatch?>,
+          flutter_riverpod.AsyncValue<ChapterEnrichmentBatch?>,
           ChapterEnrichmentBatch?,
           Stream<ChapterEnrichmentBatch?>
         >
@@ -1931,7 +1931,7 @@ final projectRuntimeMemoryProvider = ProjectRuntimeMemoryFamily._();
 final class ProjectRuntimeMemoryProvider
     extends
         $FunctionalProvider<
-          AsyncValue<ProjectRuntimeMemory>,
+          flutter_riverpod.AsyncValue<ProjectRuntimeMemory>,
           ProjectRuntimeMemory,
           FutureOr<ProjectRuntimeMemory>
         >
@@ -2009,7 +2009,7 @@ final projectPromptAssetsProvider = ProjectPromptAssetsFamily._();
 final class ProjectPromptAssetsProvider
     extends
         $FunctionalProvider<
-          AsyncValue<ProjectPromptAssets>,
+          flutter_riverpod.AsyncValue<ProjectPromptAssets>,
           ProjectPromptAssets,
           FutureOr<ProjectPromptAssets>
         >
@@ -2106,19 +2106,19 @@ final class NovelWorkshopControllerProvider
 }
 
 String _$novelWorkshopControllerHash() =>
-    r'7aa7b3ac96f0a18909c64aef89fb324a5e050d84';
+    r'0f78761befa9928567717459df00eefcb0974b7c';
 
 abstract class _$NovelWorkshopController extends $AsyncNotifier<void> {
   FutureOr<void> build();
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref = this.ref as $Ref<AsyncValue<void>, void>;
+    final ref = this.ref as $Ref<flutter_riverpod.AsyncValue<void>, void>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<AsyncValue<void>, void>,
-              AsyncValue<void>,
+              AnyNotifier<flutter_riverpod.AsyncValue<void>, void>,
+              flutter_riverpod.AsyncValue<void>,
               Object?,
               Object?
             >;

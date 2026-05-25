@@ -76,6 +76,8 @@ enum ChapterEnrichmentItemStatus {
   abandoned,
 }
 
+enum ChapterIllustrationStatus { draft, accepted }
+
 const chapterGenerationWorkflowTaskKind = 'novel_chapter_generation';
 const chapterGenerationBatchWorkflowTaskKind = 'novel_chapter_generation_batch';
 const assetGenerationWorkflowTaskKind = 'novel_asset_generation';
@@ -295,6 +297,72 @@ class ProjectChapterInput {
   final String contentMarkdown;
   final ContinuityVerdict continuityVerdict;
   final String continuityReportMarkdown;
+}
+
+class ChapterIllustration {
+  const ChapterIllustration({
+    required this.id,
+    required this.projectId,
+    required this.chapterId,
+    required this.chapterPlanId,
+    required this.paragraphIndex,
+    required this.anchorTextHash,
+    required this.selectedText,
+    required this.prompt,
+    required this.providerId,
+    required this.modelName,
+    required this.localPath,
+    required this.mimeType,
+    required this.status,
+    required this.createdAt,
+    required this.updatedAt,
+    this.acceptedAt,
+  });
+
+  final String id;
+  final String projectId;
+  final String chapterId;
+  final String chapterPlanId;
+  final int paragraphIndex;
+  final String anchorTextHash;
+  final String selectedText;
+  final String prompt;
+  final String providerId;
+  final String modelName;
+  final String localPath;
+  final String mimeType;
+  final ChapterIllustrationStatus status;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? acceptedAt;
+}
+
+class ChapterIllustrationInput {
+  const ChapterIllustrationInput({
+    required this.projectId,
+    required this.chapterId,
+    required this.chapterPlanId,
+    required this.paragraphIndex,
+    required this.anchorTextHash,
+    required this.selectedText,
+    required this.prompt,
+    required this.providerId,
+    required this.modelName,
+    required this.localPath,
+    this.mimeType = 'image/png',
+  });
+
+  final String projectId;
+  final String chapterId;
+  final String chapterPlanId;
+  final int paragraphIndex;
+  final String anchorTextHash;
+  final String selectedText;
+  final String prompt;
+  final String providerId;
+  final String modelName;
+  final String localPath;
+  final String mimeType;
 }
 
 class MemorySyncProposalInput {

@@ -18,7 +18,10 @@ import 'package:persona_flutter/src/features/plot_lab/domain/plot_profile.dart';
 import 'package:persona_flutter/src/features/projects/application/project_providers.dart';
 import 'package:persona_flutter/src/features/projects/domain/project_repository.dart';
 import 'package:persona_flutter/src/features/projects/domain/writing_project.dart';
+import 'package:persona_flutter/src/features/settings/application/image_provider_config_providers.dart';
 import 'package:persona_flutter/src/features/settings/application/provider_config_providers.dart';
+import 'package:persona_flutter/src/features/settings/domain/image_provider_config.dart';
+import 'package:persona_flutter/src/features/settings/domain/image_provider_config_repository.dart';
 import 'package:persona_flutter/src/features/settings/domain/provider_config.dart';
 import 'package:persona_flutter/src/features/settings/domain/provider_config_repository.dart';
 import 'package:persona_flutter/src/features/style_lab/application/style_lab_providers.dart';
@@ -27,6 +30,7 @@ import 'package:persona_flutter/src/features/style_lab/domain/style_profile.dart
 
 const _workshopLocation = '/projects/project-1/workshop';
 const _editorLocation = '/projects/project-1/workshop/editor';
+const _readerLocation = '/projects/project-1/workshop/reader';
 final _testCreatedAt = DateTime(2026, 5, 18, 9);
 final _testUpdatedAt = DateTime(2026, 5, 18, 10);
 
@@ -53,6 +57,7 @@ void main() {
     expect(find.text('设置'), findsWidgets);
     expect(find.text('骨架大纲'), findsNothing);
     expect(find.text('导出 TXT'), findsOneWidget);
+    expect(find.text('阅读模式'), findsOneWidget);
     expect(find.text('进入编辑器'), findsOneWidget);
     expect(find.byKey(const ValueKey('novel-workshop-editor')), findsNothing);
   });
@@ -877,6 +882,235 @@ characters:
     expect(find.text('项目工作台'), findsOneWidget);
   });
 
+  testWidgets('reader defaults to immersive reading without review panel', (
+    tester,
+  ) async {
+    final fixture = _WorkshopFixture(
+      plans: [
+        _plan(id: 'plan-1', index: 1, title: '第一章', objective: '主角进入雾港。'),
+      ],
+      chapters: [
+        _chapter(
+          planId: 'plan-1',
+          index: 1,
+          content: '林岚穿过潮湿的码头。\n\n海雾把旧灯塔吞没，只剩蓝白色的光在水面晃动。',
+        ),
+      ],
+    );
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(
+      _WorkshopTestApp(fixture: fixture, initialLocation: _readerLocation),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('雾港纪事'), findsOneWidget);
+    expect(find.text('林岚穿过潮湿的码头。'), findsOneWidget);
+    expect(find.text('海雾把旧灯塔吞没，只剩蓝白色的光在水面晃动。'), findsOneWidget);
+    expect(find.text('插图审阅'), findsNothing);
+    expect(find.text('插图库'), findsNothing);
+    expect(find.text('生成插图'), findsNothing);
+    expect(find.byType(SelectableText), findsNWidgets(2));
+  });
+
+  testWidgets('reader opens chapter drawer and switches chapters', (
+    tester,
+  ) async {
+    final fixture = _WorkshopFixture(
+      plans: [
+        _plan(id: 'plan-1', index: 1, title: '第一章', objective: '主角进入雾港。'),
+        _plan(id: 'plan-2', index: 2, title: '第二章', objective: '主角追查线索。'),
+      ],
+      chapters: [
+        _chapter(
+          id: 'chapter-1',
+          planId: 'plan-1',
+          index: 1,
+          title: '第一章',
+          content: '第一章正文。',
+        ),
+        _chapter(
+          id: 'chapter-2',
+          planId: 'plan-2',
+          index: 2,
+          title: '第二章',
+          content: '第二章正文。',
+        ),
+      ],
+    );
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(
+      _WorkshopTestApp(fixture: fixture, initialLocation: _readerLocation),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('第一章正文。'), findsOneWidget);
+    expect(find.text('目录'), findsNothing);
+
+    await tester.tap(find.byTooltip('目录'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('目录'), findsOneWidget);
+    await tester.tap(find.textContaining('第二章').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('第二章正文。'), findsOneWidget);
+    expect(find.text('第一章正文。'), findsNothing);
+  });
+
+  testWidgets('reader keeps draft illustrations in hidden library drawer', (
+    tester,
+  ) async {
+    final fixture = _WorkshopFixture(
+      plans: [
+        _plan(id: 'plan-1', index: 1, title: '第一章', objective: '主角进入雾港。'),
+      ],
+      chapters: [
+        _chapter(
+          id: 'chapter-1',
+          planId: 'plan-1',
+          index: 1,
+          content: '林岚站在旧灯塔前。',
+        ),
+      ],
+    );
+    fixture.repository.illustrations.add(
+      _illustration(
+        id: 'draft-1',
+        chapterId: 'chapter-1',
+        paragraphIndex: 0,
+        selectedText: '旧灯塔前',
+        prompt: '旧灯塔与海雾。',
+        status: ChapterIllustrationStatus.draft,
+      ),
+    );
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(
+      _WorkshopTestApp(fixture: fixture, initialLocation: _readerLocation),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('旧灯塔与海雾。'), findsNothing);
+    expect(find.text('待确认 1 张'), findsNothing);
+
+    await tester.tap(find.byTooltip('插图库'));
+    await tester.pumpAndSettle();
+
+    final libraryDrawer = tester.widget<Drawer>(
+      find.byWidgetPredicate((widget) {
+        return widget is Drawer && widget.width == 400;
+      }),
+    );
+    expect(
+      libraryDrawer.shape,
+      const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+    );
+    expect(find.text('插图库'), findsOneWidget);
+    expect(find.text('已接受 0 张，待确认 1 张。'), findsOneWidget);
+    expect(find.text('旧灯塔与海雾。'), findsOneWidget);
+  });
+
+  testWidgets(
+    'reader renders accepted illustrations after anchored paragraph',
+    (tester) async {
+      final fixture = _WorkshopFixture(
+        plans: [
+          _plan(id: 'plan-1', index: 1, title: '第一章', objective: '主角进入雾港。'),
+        ],
+        chapters: [
+          _chapter(
+            id: 'chapter-1',
+            planId: 'plan-1',
+            index: 1,
+            content: '林岚站在旧灯塔前。',
+          ),
+        ],
+      );
+      fixture.repository.illustrations.add(
+        _illustration(
+          id: 'accepted-1',
+          chapterId: 'chapter-1',
+          paragraphIndex: 0,
+          selectedText: '被接受的旧灯塔插图锚点',
+          prompt: '正文内插图。',
+          status: ChapterIllustrationStatus.accepted,
+        ),
+      );
+      addTearDown(fixture.dispose);
+
+      await tester.pumpWidget(
+        _WorkshopTestApp(fixture: fixture, initialLocation: _readerLocation),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('被接受的旧灯塔插图锚点'), findsOneWidget);
+      expect(find.text('正文内插图。'), findsNothing);
+    },
+  );
+
+  testWidgets('reader selection toolbar offers illustration generation', (
+    tester,
+  ) async {
+    final fixture = _WorkshopFixture(
+      plans: [
+        _plan(id: 'plan-1', index: 1, title: '第一章', objective: '主角进入雾港。'),
+      ],
+      chapters: [_chapter(planId: 'plan-1', index: 1, content: '旧灯塔')],
+    );
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(
+      _WorkshopTestApp(fixture: fixture, initialLocation: _readerLocation),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('生成插图'), findsNothing);
+
+    await tester.longPress(find.text('旧灯塔'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('生成插图'), findsOneWidget);
+
+    await tester.tap(find.text('生成插图'));
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(AlertDialog, '生成插图'), findsOneWidget);
+    expect(find.widgetWithText(TextField, '提示词'), findsOneWidget);
+  });
+
+  testWidgets('reader selection generation explains missing image provider', (
+    tester,
+  ) async {
+    final fixture = _WorkshopFixture(
+      plans: [
+        _plan(id: 'plan-1', index: 1, title: '第一章', objective: '主角进入雾港。'),
+      ],
+      chapters: [_chapter(planId: 'plan-1', index: 1, content: '旧灯塔')],
+    );
+    fixture.imageProviderRepository.setEnabled(false);
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(
+      _WorkshopTestApp(fixture: fixture, initialLocation: _readerLocation),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('生成插图'), findsNothing);
+
+    await tester.longPress(find.text('旧灯塔'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('生成插图'), findsOneWidget);
+
+    await tester.tap(find.text('生成插图'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('请先在设置中启用图像 Provider。'), findsOneWidget);
+    expect(find.widgetWithText(AlertDialog, '生成插图'), findsNothing);
+  });
+
   testWidgets('editing chapter plan keeps chapter index readonly', (
     tester,
   ) async {
@@ -1420,6 +1654,9 @@ class _WorkshopTestApp extends StatelessWidget {
         providerConfigRepositoryProvider.overrideWithValue(
           fixture.providerRepository,
         ),
+        imageProviderConfigRepositoryProvider.overrideWithValue(
+          fixture.imageProviderRepository,
+        ),
         novelWorkshopRepositoryProvider.overrideWithValue(fixture.repository),
         novelExportServiceProvider.overrideWithValue(fixture.exportService),
         assetGenerationPipelineProvider.overrideWithValue(
@@ -1445,6 +1682,14 @@ class _WorkshopTestApp extends StatelessWidget {
                   path: 'editor',
                   builder: (context, state) => Scaffold(
                     body: NovelEditorPage(
+                      projectId: state.pathParameters['projectId']!,
+                    ),
+                  ),
+                ),
+                GoRoute(
+                  path: 'reader',
+                  builder: (context, state) => Scaffold(
+                    body: NovelReaderPage(
                       projectId: state.pathParameters['projectId']!,
                     ),
                   ),
@@ -1513,6 +1758,8 @@ class _WorkshopFixture {
   final _FakeProjectRepository projectRepository;
   final _FakeProviderConfigRepository providerRepository =
       _FakeProviderConfigRepository();
+  final _FakeImageProviderConfigRepository imageProviderRepository =
+      _FakeImageProviderConfigRepository();
   final _FakeNovelWorkshopRepository repository;
   final _FakeNovelExportService exportService = _FakeNovelExportService();
   final _FakeStyleLabRepository styleRepository;
@@ -1523,6 +1770,7 @@ class _WorkshopFixture {
   void dispose() {
     projectRepository.dispose();
     providerRepository.dispose();
+    imageProviderRepository.dispose();
     repository.dispose();
   }
 }
@@ -1924,6 +2172,112 @@ class _FakeProviderConfigRepository implements ProviderConfigRepository {
   }
 }
 
+class _FakeImageProviderConfigRepository
+    implements ImageProviderConfigRepository {
+  _FakeImageProviderConfigRepository() {
+    _providers = [
+      ImageProviderConfig(
+        id: 'image-provider-1',
+        name: 'OpenAI Images',
+        baseUrl: 'https://api.example.com/v1',
+        apiKey: 'sk-image-test',
+        defaultModel: 'gpt-image-1',
+        modelNames: const ['gpt-image-1'],
+        isEnabled: true,
+        testStatus: ProviderTestStatus.untested,
+        createdAt: DateTime(2026, 5, 18, 9),
+        updatedAt: DateTime(2026, 5, 18, 10),
+      ),
+    ];
+  }
+
+  final _changes = StreamController<void>.broadcast();
+  late final List<ImageProviderConfig> _providers;
+
+  void setEnabled(bool value) {
+    _providers[0] = _providers[0].copyWith(isEnabled: value);
+    _changes.add(null);
+  }
+
+  void dispose() {
+    _changes.close();
+  }
+
+  @override
+  Future<void> deleteProvider(String id) async {
+    _providers.removeWhere((provider) => provider.id == id);
+    _changes.add(null);
+  }
+
+  @override
+  Future<ImageProviderConfig?> findProvider(String id) async {
+    return _providers.where((provider) => provider.id == id).firstOrNull;
+  }
+
+  @override
+  Future<void> saveProvider({
+    String? id,
+    required ImageProviderConfigInput input,
+  }) async {
+    final now = DateTime(2026, 5, 18, 12);
+    final saved = ImageProviderConfig(
+      id: id ?? 'image-provider-${_providers.length + 1}',
+      name: input.name,
+      baseUrl: input.baseUrl,
+      apiKey: input.apiKey,
+      defaultModel: input.defaultModel,
+      providerKind: input.providerKind,
+      modelNames: input.modelNames,
+      defaultAspectRatio: input.defaultAspectRatio,
+      defaultSize: input.defaultSize,
+      defaultQuality: input.defaultQuality,
+      defaultResponseFormat: input.defaultResponseFormat,
+      isEnabled: input.isEnabled,
+      testStatus: ProviderTestStatus.untested,
+      createdAt: now,
+      updatedAt: now,
+    );
+    final index = _providers.indexWhere((provider) => provider.id == saved.id);
+    if (index < 0) {
+      _providers.add(saved);
+    } else {
+      _providers[index] = saved;
+    }
+    _changes.add(null);
+  }
+
+  @override
+  Future<void> updateTestResult({
+    required String id,
+    required ProviderTestStatus status,
+    required DateTime testedAt,
+    String? message,
+  }) async {
+    final index = _providers.indexWhere((provider) => provider.id == id);
+    if (index < 0) return;
+    _providers[index] = _providers[index].copyWith(
+      testStatus: status,
+      lastTestedAt: testedAt,
+      lastTestMessage: message,
+    );
+    _changes.add(null);
+  }
+
+  @override
+  Stream<ImageProviderConfig?> watchProvider(String id) async* {
+    ImageProviderConfig? snapshot() =>
+        _providers.where((provider) => provider.id == id).firstOrNull;
+    yield snapshot();
+    yield* _changes.stream.map((_) => snapshot());
+  }
+
+  @override
+  Stream<List<ImageProviderConfig>> watchProviders() async* {
+    yield [..._providers];
+    yield* _changes.stream.map((_) => [..._providers]);
+  }
+}
+
 class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   _FakeNovelWorkshopRepository({
     required List<ChapterPlan> plans,
@@ -1978,6 +2332,7 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
 
   final List<ChapterPlan> plans;
   final List<ProjectChapter> chapters;
+  final List<ChapterIllustration> illustrations = [];
   final List<ChapterGenerationRun> runs;
   final List<ChapterGenerationBatch> generationBatches;
   final List<ChapterGenerationBatchItem> generationBatchItems;
@@ -2199,6 +2554,13 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   }
 
   @override
+  Future<ChapterIllustration?> findChapterIllustration(String id) async {
+    return illustrations
+        .where((illustration) => illustration.id == id)
+        .firstOrNull;
+  }
+
+  @override
   Future<ProjectChapter?> findChapterByPlan(String chapterPlanId) async {
     return chapters
         .where((chapter) => chapter.chapterPlanId == chapterPlanId)
@@ -2327,6 +2689,72 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
     }
     emit();
     return saved;
+  }
+
+  @override
+  Future<ChapterIllustration> createChapterIllustration(
+    ChapterIllustrationInput input,
+  ) async {
+    final now = DateTime.now();
+    final saved = ChapterIllustration(
+      id: 'illustration-${illustrations.length + 1}',
+      projectId: input.projectId,
+      chapterId: input.chapterId,
+      chapterPlanId: input.chapterPlanId,
+      paragraphIndex: input.paragraphIndex,
+      anchorTextHash: input.anchorTextHash,
+      selectedText: input.selectedText,
+      prompt: input.prompt,
+      providerId: input.providerId,
+      modelName: input.modelName,
+      localPath: input.localPath,
+      mimeType: input.mimeType,
+      status: ChapterIllustrationStatus.draft,
+      createdAt: now,
+      updatedAt: now,
+    );
+    illustrations.add(saved);
+    emit();
+    return saved;
+  }
+
+  @override
+  Future<ChapterIllustration> acceptChapterIllustration(String id) async {
+    final index = illustrations.indexWhere((illustration) {
+      return illustration.id == id;
+    });
+    if (index < 0) {
+      throw StateError('Chapter illustration does not exist: $id');
+    }
+    final current = illustrations[index];
+    final now = DateTime.now();
+    final saved = ChapterIllustration(
+      id: current.id,
+      projectId: current.projectId,
+      chapterId: current.chapterId,
+      chapterPlanId: current.chapterPlanId,
+      paragraphIndex: current.paragraphIndex,
+      anchorTextHash: current.anchorTextHash,
+      selectedText: current.selectedText,
+      prompt: current.prompt,
+      providerId: current.providerId,
+      modelName: current.modelName,
+      localPath: current.localPath,
+      mimeType: current.mimeType,
+      status: ChapterIllustrationStatus.accepted,
+      createdAt: current.createdAt,
+      updatedAt: now,
+      acceptedAt: now,
+    );
+    illustrations[index] = saved;
+    emit();
+    return saved;
+  }
+
+  @override
+  Future<void> deleteChapterIllustration(String id) async {
+    illustrations.removeWhere((illustration) => illustration.id == id);
+    emit();
   }
 
   @override
@@ -3130,6 +3558,17 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
     yield snapshot();
     yield* _changes.stream.map((_) => snapshot());
   }
+
+  @override
+  Stream<List<ChapterIllustration>> watchChapterIllustrations(
+    String projectId,
+  ) async* {
+    List<ChapterIllustration> snapshot() => illustrations
+        .where((illustration) => illustration.projectId == projectId)
+        .toList(growable: false);
+    yield snapshot();
+    yield* _changes.stream.map((_) => snapshot());
+  }
 }
 
 class _FakeStyleLabRepository implements StyleLabRepository {
@@ -3242,6 +3681,36 @@ ProjectChapter _chapter({
     memorySyncPatchYaml: memorySyncPatchYaml,
     createdAt: DateTime(2026, 5, 18, 9),
     updatedAt: DateTime(2026, 5, 18, 10),
+  );
+}
+
+ChapterIllustration _illustration({
+  required String id,
+  required String chapterId,
+  required int paragraphIndex,
+  required String selectedText,
+  required String prompt,
+  required ChapterIllustrationStatus status,
+}) {
+  return ChapterIllustration(
+    id: id,
+    projectId: 'project-1',
+    chapterId: chapterId,
+    chapterPlanId: 'plan-1',
+    paragraphIndex: paragraphIndex,
+    anchorTextHash: selectedText.hashCode.toString(),
+    selectedText: selectedText,
+    prompt: prompt,
+    providerId: 'image-provider-1',
+    modelName: 'gpt-image-1',
+    localPath: '/tmp/nonexistent-$id.png',
+    mimeType: 'image/png',
+    status: status,
+    createdAt: _testCreatedAt,
+    updatedAt: _testUpdatedAt,
+    acceptedAt: status == ChapterIllustrationStatus.accepted
+        ? _testUpdatedAt
+        : null,
   );
 }
 

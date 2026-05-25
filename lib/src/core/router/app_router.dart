@@ -40,6 +40,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                           projectId: state.pathParameters['projectId']!,
                         ),
                       ),
+                      GoRoute(
+                        path: 'reader',
+                        builder: (context, state) => NovelReaderPage(
+                          projectId: state.pathParameters['projectId']!,
+                        ),
+                      ),
                     ],
                   ),
                 ],

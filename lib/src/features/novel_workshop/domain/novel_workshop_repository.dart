@@ -10,6 +10,8 @@ abstract interface class NovelWorkshopRepository {
 
   Stream<List<ProjectChapter>> watchChapters(String projectId);
 
+  Stream<List<ChapterIllustration>> watchChapterIllustrations(String projectId);
+
   Stream<List<NovelCharacter>> watchCharacters(String projectId);
 
   Stream<List<NovelRelationship>> watchRelationships(String projectId);
@@ -65,6 +67,8 @@ abstract interface class NovelWorkshopRepository {
   Future<ProjectChapter?> findChapter(String id);
 
   Future<ProjectChapter?> findChapterByPlan(String chapterPlanId);
+
+  Future<ChapterIllustration?> findChapterIllustration(String id);
 
   Future<NovelCharacter?> findCharacter(String id);
 
@@ -141,6 +145,14 @@ abstract interface class NovelWorkshopRepository {
     String? id,
     required ProjectChapterInput input,
   });
+
+  Future<ChapterIllustration> createChapterIllustration(
+    ChapterIllustrationInput input,
+  );
+
+  Future<ChapterIllustration> acceptChapterIllustration(String id);
+
+  Future<void> deleteChapterIllustration(String id);
 
   Future<ProjectChapter> saveMemorySyncProposal(MemorySyncProposalInput input);
 

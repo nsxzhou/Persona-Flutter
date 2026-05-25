@@ -389,6 +389,28 @@ class ProjectChapterRecords extends Table {
   ];
 }
 
+class ChapterIllustrationRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get projectId => text().references(ProjectRecords, #id)();
+  TextColumn get chapterId => text().references(ProjectChapterRecords, #id)();
+  TextColumn get chapterPlanId => text().references(ChapterPlanRecords, #id)();
+  IntColumn get paragraphIndex => integer()();
+  TextColumn get anchorTextHash => text().withDefault(const Constant(''))();
+  TextColumn get selectedText => text().withDefault(const Constant(''))();
+  TextColumn get prompt => text().withDefault(const Constant(''))();
+  TextColumn get providerId => text().withDefault(const Constant(''))();
+  TextColumn get modelName => text().withDefault(const Constant(''))();
+  TextColumn get localPath => text().withDefault(const Constant(''))();
+  TextColumn get mimeType => text().withDefault(const Constant('image/png'))();
+  TextColumn get status => text().withDefault(const Constant('draft'))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  DateTimeColumn get acceptedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 class ChapterEnrichmentBatchRecords extends Table {
   TextColumn get id => text()();
   TextColumn get workflowTaskId =>
@@ -624,6 +646,7 @@ class AssetGenerationRunRecords extends Table {
     ChapterVolumeRecords,
     ChapterPlanRecords,
     ProjectChapterRecords,
+    ChapterIllustrationRecords,
     ChapterEnrichmentBatchRecords,
     ChapterEnrichmentItemRecords,
     ChapterGenerationBatchRecords,
@@ -647,7 +670,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 27;
+  int get schemaVersion => 28;
 
   @override
   MigrationStrategy get migration {
@@ -1044,6 +1067,11 @@ class AppDatabase extends _$AppDatabase {
             SET provider_kind = 'gpt'
             WHERE provider_kind IS NULL OR TRIM(provider_kind) = ''
           ''');
+        }
+        if (from < 28) {
+          if (!await _tableExists('chapter_illustration_records')) {
+            await migrator.createTable(chapterIllustrationRecords);
+          }
         }
       },
     );

@@ -65,6 +65,22 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
   }
 
   @override
+  Stream<List<ChapterIllustration>> watchChapterIllustrations(
+    String projectId,
+  ) {
+    final query = _database.select(_database.chapterIllustrationRecords)
+      ..where((illustration) => illustration.projectId.equals(projectId))
+      ..orderBy([
+        (illustration) => OrderingTerm.asc(illustration.chapterPlanId),
+        (illustration) => OrderingTerm.asc(illustration.paragraphIndex),
+        (illustration) => OrderingTerm.asc(illustration.createdAt),
+      ]);
+    return query.watch().map(
+      (rows) => rows.map(_mapIllustration).toList(growable: false),
+    );
+  }
+
+  @override
   Stream<List<NovelCharacter>> watchCharacters(String projectId) {
     final query = _database.select(_database.novelCharacterRecords)
       ..where((character) => character.projectId.equals(projectId))
@@ -242,6 +258,15 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       ..limit(1);
     final row = await query.getSingleOrNull();
     return row == null ? null : _mapChapter(row);
+  }
+
+  @override
+  Future<ChapterIllustration?> findChapterIllustration(String id) async {
+    final query = _database.select(_database.chapterIllustrationRecords)
+      ..where((row) => row.id.equals(id))
+      ..limit(1);
+    final row = await query.getSingleOrNull();
+    return row == null ? null : _mapIllustration(row);
   }
 
   @override
@@ -1188,6 +1213,72 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       throw StateError('Project chapter was not saved.');
     }
     return saved;
+  }
+
+  @override
+  Future<ChapterIllustration> createChapterIllustration(
+    ChapterIllustrationInput input,
+  ) async {
+    await _validateIllustrationInput(input);
+    final now = DateTime.now();
+    final id = _uuid.v4();
+    await _database
+        .into(_database.chapterIllustrationRecords)
+        .insert(
+          ChapterIllustrationRecordsCompanion.insert(
+            id: id,
+            projectId: input.projectId,
+            chapterId: input.chapterId,
+            chapterPlanId: input.chapterPlanId,
+            paragraphIndex: input.paragraphIndex,
+            anchorTextHash: Value(input.anchorTextHash.trim()),
+            selectedText: Value(input.selectedText.trim()),
+            prompt: Value(input.prompt.trim()),
+            providerId: Value(input.providerId.trim()),
+            modelName: Value(input.modelName.trim()),
+            localPath: Value(input.localPath.trim()),
+            mimeType: Value(_normalizeMimeType(input.mimeType)),
+            status: Value(ChapterIllustrationStatus.draft.name),
+            createdAt: now,
+            updatedAt: now,
+            acceptedAt: const Value(null),
+          ),
+        );
+    final saved = await findChapterIllustration(id);
+    if (saved == null) {
+      throw StateError('Chapter illustration was not saved.');
+    }
+    return saved;
+  }
+
+  @override
+  Future<ChapterIllustration> acceptChapterIllustration(String id) async {
+    final illustration = await findChapterIllustration(id);
+    if (illustration == null) {
+      throw StateError('Chapter illustration does not exist: $id');
+    }
+    final now = DateTime.now();
+    await (_database.update(
+      _database.chapterIllustrationRecords,
+    )..where((row) => row.id.equals(id))).write(
+      ChapterIllustrationRecordsCompanion(
+        status: Value(ChapterIllustrationStatus.accepted.name),
+        acceptedAt: Value(now),
+        updatedAt: Value(now),
+      ),
+    );
+    final saved = await findChapterIllustration(id);
+    if (saved == null) {
+      throw StateError('Chapter illustration was not updated.');
+    }
+    return saved;
+  }
+
+  @override
+  Future<void> deleteChapterIllustration(String id) async {
+    await (_database.delete(
+      _database.chapterIllustrationRecords,
+    )..where((row) => row.id.equals(id))).go();
   }
 
   @override
@@ -2444,6 +2535,39 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     }
   }
 
+  Future<void> _validateIllustrationInput(
+    ChapterIllustrationInput input,
+  ) async {
+    await _requireProject(input.projectId);
+    final chapter = await findChapter(input.chapterId);
+    if (chapter == null || chapter.projectId != input.projectId) {
+      throw StateError('插图章节不存在。');
+    }
+    if (chapter.chapterPlanId != input.chapterPlanId) {
+      throw StateError('插图章节计划不匹配。');
+    }
+    if (input.paragraphIndex < 0) {
+      throw StateError('插图段落位置不能小于 0。');
+    }
+    if (input.selectedText.trim().isEmpty) {
+      throw StateError('插图需要选中文本。');
+    }
+    if (input.prompt.trim().isEmpty) {
+      throw StateError('插图提示词不能为空。');
+    }
+    if (input.providerId.trim().isEmpty || input.modelName.trim().isEmpty) {
+      throw StateError('插图需要图像 Provider 和模型。');
+    }
+    if (input.localPath.trim().isEmpty) {
+      throw StateError('插图文件路径不能为空。');
+    }
+  }
+
+  String _normalizeMimeType(String value) {
+    final normalized = value.trim().toLowerCase();
+    return normalized.isEmpty ? 'image/png' : normalized;
+  }
+
   Future<void> _requireProject(String id) async {
     await _requireProjectRecord(id);
   }
@@ -2611,6 +2735,27 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       memorySyncPatchYaml: row.memorySyncPatchYaml,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
+    );
+  }
+
+  ChapterIllustration _mapIllustration(ChapterIllustrationRecord row) {
+    return ChapterIllustration(
+      id: row.id,
+      projectId: row.projectId,
+      chapterId: row.chapterId,
+      chapterPlanId: row.chapterPlanId,
+      paragraphIndex: row.paragraphIndex,
+      anchorTextHash: row.anchorTextHash,
+      selectedText: row.selectedText,
+      prompt: row.prompt,
+      providerId: row.providerId,
+      modelName: row.modelName,
+      localPath: row.localPath,
+      mimeType: row.mimeType,
+      status: ChapterIllustrationStatus.values.byName(row.status),
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      acceptedAt: row.acceptedAt,
     );
   }
 

@@ -558,6 +558,53 @@ relationships:
     expect(chapters.single.id, chapter.id);
   });
 
+  test('chapter illustration drafts can be accepted and deleted', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final fixture = await _saveChapterFixture(database);
+
+    final draft = await fixture.repository.createChapterIllustration(
+      ChapterIllustrationInput(
+        projectId: fixture.project.id,
+        chapterId: fixture.chapter.id,
+        chapterPlanId: fixture.plan.id,
+        paragraphIndex: 1,
+        anchorTextHash: 'anchor-hash',
+        selectedText: '走廊灯光忽明忽暗。',
+        prompt: '昏暗门诊走廊。',
+        providerId: 'image-provider',
+        modelName: 'gpt-image-1',
+        localPath: '/tmp/illustration.png',
+      ),
+    );
+
+    expect(draft.status, ChapterIllustrationStatus.draft);
+    expect(draft.acceptedAt, isNull);
+    expect(
+      (await fixture.repository
+              .watchChapterIllustrations(fixture.project.id)
+              .first)
+          .single
+          .id,
+      draft.id,
+    );
+
+    final accepted = await fixture.repository.acceptChapterIllustration(
+      draft.id,
+    );
+    expect(accepted.status, ChapterIllustrationStatus.accepted);
+    expect(accepted.acceptedAt, isNotNull);
+
+    await fixture.repository.deleteChapterIllustration(draft.id);
+    expect(await fixture.repository.findChapterIllustration(draft.id), isNull);
+    expect(
+      await fixture.repository
+          .watchChapterIllustrations(fixture.project.id)
+          .first,
+      isEmpty,
+    );
+  });
+
   test(
     'chapter enrichment batch persists preview and applies generated item',
     () async {
@@ -1428,6 +1475,7 @@ runtimeMemory:
     );
     expect(await _tableExists(sqlite, 'chapter_plan_records'), isTrue);
     expect(await _tableExists(sqlite, 'project_chapter_records'), isTrue);
+    expect(await _tableExists(sqlite, 'chapter_illustration_records'), isTrue);
     expect(
       await _tableExists(sqlite, 'chapter_generation_run_records'),
       isTrue,

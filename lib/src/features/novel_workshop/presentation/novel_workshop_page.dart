@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,7 +16,9 @@ import '../../plot_lab/application/story_engine_normalizer.dart';
 import '../../plot_lab/domain/plot_profile.dart';
 import '../../projects/application/project_providers.dart';
 import '../../projects/domain/writing_project.dart';
+import '../../settings/application/image_provider_config_providers.dart';
 import '../../settings/application/provider_config_providers.dart';
+import '../../settings/domain/image_provider_config.dart';
 import '../../settings/domain/provider_config.dart';
 import '../../style_lab/application/style_lab_providers.dart';
 import '../../style_lab/application/voice_profile_front_matter.dart';
@@ -22,6 +26,7 @@ import '../../style_lab/domain/style_profile.dart';
 import '../application/character_graph_parser.dart';
 import '../application/memory_patch_document.dart';
 import '../application/memory_patch_yaml.dart';
+import '../application/novel_export_service.dart';
 import '../application/novel_workshop_providers.dart';
 import '../application/outline_detail_parser.dart';
 import '../domain/novel_workshop.dart';
@@ -45,6 +50,15 @@ class NovelEditorPage extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<NovelEditorPage> createState() => _NovelEditorPageState();
+}
+
+class NovelReaderPage extends ConsumerStatefulWidget {
+  const NovelReaderPage({required this.projectId, super.key});
+
+  final String projectId;
+
+  @override
+  ConsumerState<NovelReaderPage> createState() => _NovelReaderPageState();
 }
 
 class _NovelWorkshopPageState extends ConsumerState<NovelWorkshopPage> {
@@ -179,6 +193,109 @@ class _NovelWorkshopPageState extends ConsumerState<NovelWorkshopPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('已导出 TXT：$path')));
+    } on Object catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('导出失败：$error')));
+    }
+  }
+}
+
+class _NovelReaderPageState extends ConsumerState<NovelReaderPage> {
+  String? _selectedPlanId;
+
+  @override
+  Widget build(BuildContext context) {
+    final project = ref.watch(writingProjectProvider(widget.projectId));
+    final volumes = ref.watch(chapterVolumesProvider(widget.projectId));
+    final plans = ref.watch(chapterPlansProvider(widget.projectId));
+    final chapters = ref.watch(projectChaptersProvider(widget.projectId));
+    final illustrations = ref.watch(
+      chapterIllustrationsProvider(widget.projectId),
+    );
+    final imageProviders = ref.watch(imageProviderConfigsProvider);
+
+    return project.when(
+      data: (item) {
+        if (item == null) {
+          return _MissingProjectPage(projectId: widget.projectId);
+        }
+        return volumes.when(
+          data: (volumeItems) => plans.when(
+            data: (planItems) => chapters.when(
+              data: (chapterItems) => illustrations.when(
+                data: (illustrationItems) => imageProviders.when(
+                  data: (providerItems) => _ReaderWorkbench(
+                    project: item,
+                    volumes: volumeItems,
+                    plans: planItems,
+                    chapters: chapterItems,
+                    illustrations: illustrationItems,
+                    imageProviders: providerItems,
+                    selectedPlanId: _selectedPlanId,
+                    onSelectPlan: (planId) {
+                      setState(() {
+                        _selectedPlanId = planId;
+                      });
+                    },
+                    onExportEpub: () => _exportEpub(
+                      project: item,
+                      volumes: volumeItems,
+                      plans: planItems,
+                      chapters: chapterItems,
+                      illustrations: illustrationItems,
+                    ),
+                  ),
+                  error: (error, stackTrace) =>
+                      _WorkshopError(message: '无法加载图像 Provider：$error'),
+                  loading: () => const _WorkshopLoading(),
+                ),
+                error: (error, stackTrace) =>
+                    _WorkshopError(message: '无法加载章节插图：$error'),
+                loading: () => const _WorkshopLoading(),
+              ),
+              error: (error, stackTrace) =>
+                  _WorkshopError(message: '无法加载章节正文：$error'),
+              loading: () => const _WorkshopLoading(),
+            ),
+            error: (error, stackTrace) =>
+                _WorkshopError(message: '无法加载章节计划：$error'),
+            loading: () => const _WorkshopLoading(),
+          ),
+          error: (error, stackTrace) =>
+              _WorkshopError(message: '无法加载分卷：$error'),
+          loading: () => const _WorkshopLoading(),
+        );
+      },
+      error: (error, stackTrace) => _WorkshopError(message: '无法加载项目：$error'),
+      loading: () => const _WorkshopLoading(),
+    );
+  }
+
+  Future<void> _exportEpub({
+    required WritingProject project,
+    required List<ChapterVolume> volumes,
+    required List<ChapterPlan> plans,
+    required List<ProjectChapter> chapters,
+    required List<ChapterIllustration> illustrations,
+  }) async {
+    try {
+      final path = await ref
+          .read(novelWorkshopControllerProvider.notifier)
+          .exportEpub(
+            project: project,
+            volumes: volumes,
+            plans: plans,
+            chapters: chapters,
+            illustrations: illustrations,
+          );
+      if (!mounted || path == null) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('已导出 EPUB：$path')));
     } on Object catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -766,6 +883,12 @@ class _AssetWorkbenchPage extends StatelessWidget {
           icon: const Icon(Icons.download_outlined),
           label: const Text('导出 TXT'),
         ),
+        FilledButton.tonalIcon(
+          onPressed: () =>
+              context.go('/projects/${project.id}/workshop/reader'),
+          icon: const Icon(Icons.menu_book_outlined),
+          label: const Text('阅读模式'),
+        ),
         FilledButton.icon(
           onPressed: () =>
               context.go('/projects/${project.id}/workshop/editor'),
@@ -792,6 +915,834 @@ class _AssetWorkbenchPage extends StatelessWidget {
           onEditVolume: onEditVolume,
           onEditPlan: onEditPlan,
         ),
+      ],
+    );
+  }
+}
+
+class _ReaderWorkbench extends ConsumerStatefulWidget {
+  const _ReaderWorkbench({
+    required this.project,
+    required this.volumes,
+    required this.plans,
+    required this.chapters,
+    required this.illustrations,
+    required this.imageProviders,
+    required this.selectedPlanId,
+    required this.onSelectPlan,
+    required this.onExportEpub,
+  });
+
+  final WritingProject project;
+  final List<ChapterVolume> volumes;
+  final List<ChapterPlan> plans;
+  final List<ProjectChapter> chapters;
+  final List<ChapterIllustration> illustrations;
+  final List<ImageProviderConfig> imageProviders;
+  final String? selectedPlanId;
+  final ValueChanged<String> onSelectPlan;
+  final VoidCallback onExportEpub;
+
+  @override
+  ConsumerState<_ReaderWorkbench> createState() => _ReaderWorkbenchState();
+}
+
+class _ReaderWorkbenchState extends ConsumerState<_ReaderWorkbench> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
+  _ReaderSettings _settings = const _ReaderSettings();
+
+  @override
+  Widget build(BuildContext context) {
+    final orderedPlans = _orderedChapterPlans(
+      volumes: widget.volumes,
+      plans: widget.plans,
+    );
+    final selectedPlan = orderedPlans.firstWhere(
+      (plan) => plan.id == widget.selectedPlanId,
+      orElse: () => orderedPlans.isEmpty
+          ? _emptyReaderPlan(widget.project.id)
+          : orderedPlans.first,
+    );
+    final chapter = widget.chapters.firstWhere(
+      (item) => item.chapterPlanId == selectedPlan.id,
+      orElse: () => _emptyReaderChapter(widget.project.id, selectedPlan),
+    );
+    final chapterIllustrations =
+        widget.illustrations
+            .where((item) => item.chapterId == chapter.id)
+            .toList(growable: false)
+          ..sort((a, b) {
+            final paragraph = a.paragraphIndex.compareTo(b.paragraphIndex);
+            if (paragraph != 0) return paragraph;
+            return a.createdAt.compareTo(b.createdAt);
+          });
+    final acceptedByParagraph = <int, List<ChapterIllustration>>{};
+    final drafts = <ChapterIllustration>[];
+    for (final item in chapterIllustrations) {
+      if (item.status == ChapterIllustrationStatus.accepted) {
+        acceptedByParagraph
+            .putIfAbsent(item.paragraphIndex, () => <ChapterIllustration>[])
+            .add(item);
+      } else {
+        drafts.add(item);
+      }
+    }
+    final paragraphs = readerParagraphsFromMarkdown(chapter.contentMarkdown);
+    final enabledProviders = widget.imageProviders
+        .where((provider) => provider.isEnabled)
+        .toList(growable: false);
+    final colorScheme = Theme.of(context).colorScheme;
+    final backgroundColor = _settings.backgroundColor(colorScheme);
+    final foregroundColor = _settings.foregroundColor(colorScheme);
+
+    return Scaffold(
+      key: _scaffoldKey,
+      backgroundColor: backgroundColor,
+      drawer: Drawer(
+        width: 360,
+        backgroundColor: backgroundColor,
+        child: SafeArea(
+          child: _ReaderChapterDrawer(
+            plans: orderedPlans,
+            selectedPlanId: selectedPlan.id,
+            onSelectPlan: (planId) {
+              Navigator.of(context).pop();
+              widget.onSelectPlan(planId);
+            },
+          ),
+        ),
+      ),
+      endDrawer: Drawer(
+        width: 400,
+        backgroundColor: colorScheme.surface,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        child: SafeArea(
+          child: _ReaderIllustrationReview(
+            drafts: drafts,
+            acceptedCount: acceptedByParagraph.values.fold<int>(
+              0,
+              (sum, items) => sum + items.length,
+            ),
+            enabledProviders: enabledProviders,
+            chapter: chapter,
+          ),
+        ),
+      ),
+      body: Column(
+        children: [
+          _ReaderTopBar(
+            project: widget.project,
+            chapterTitle: _chapterTitle(selectedPlan),
+            draftCount: drafts.length,
+            foregroundColor: foregroundColor,
+            onBack: () => context.go('/projects/${widget.project.id}/workshop'),
+            onOpenToc: () => _scaffoldKey.currentState?.openDrawer(),
+            onOpenLibrary: () => _scaffoldKey.currentState?.openEndDrawer(),
+            onExportEpub: widget.onExportEpub,
+            onOpenSettings: () async {
+              final next = await showDialog<_ReaderSettings>(
+                context: context,
+                builder: (context) =>
+                    _ReaderSettingsDialog(initialSettings: _settings),
+              );
+              if (next != null) {
+                setState(() => _settings = next);
+              }
+            },
+          ),
+          Expanded(
+            child: _ReaderPaper(
+              title: _chapterTitle(selectedPlan),
+              paragraphs: paragraphs,
+              acceptedByParagraph: acceptedByParagraph,
+              enabledProviders: enabledProviders,
+              chapter: chapter,
+              settings: _settings,
+              backgroundColor: backgroundColor,
+              foregroundColor: foregroundColor,
+              onIllustrationCreated: () {
+                _scaffoldKey.currentState?.openEndDrawer();
+              },
+            ),
+          ),
+          if (orderedPlans.isEmpty)
+            ColoredBox(
+              color: backgroundColor,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  '还没有章节计划，先回工作台创建章节。',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: foregroundColor.withValues(alpha: 0.7),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReaderSettings {
+  const _ReaderSettings({
+    this.fontSize = 19,
+    this.lineHeight = 1.9,
+    this.columnWidth = 720,
+    this.dark = false,
+  });
+
+  final double fontSize;
+  final double lineHeight;
+  final double columnWidth;
+  final bool dark;
+
+  _ReaderSettings copyWith({
+    double? fontSize,
+    double? lineHeight,
+    double? columnWidth,
+    bool? dark,
+  }) {
+    return _ReaderSettings(
+      fontSize: fontSize ?? this.fontSize,
+      lineHeight: lineHeight ?? this.lineHeight,
+      columnWidth: columnWidth ?? this.columnWidth,
+      dark: dark ?? this.dark,
+    );
+  }
+
+  Color backgroundColor(ColorScheme colorScheme) {
+    return dark ? const Color(0xFF171A1F) : const Color(0xFFF6F7FA);
+  }
+
+  Color foregroundColor(ColorScheme colorScheme) {
+    return dark ? const Color(0xFFE7E9EF) : const Color(0xFF20242C);
+  }
+
+  Color sheetColor(ColorScheme colorScheme) {
+    return dark ? const Color(0xFF20242B) : colorScheme.surface;
+  }
+}
+
+class _ReaderTopBar extends StatelessWidget {
+  const _ReaderTopBar({
+    required this.project,
+    required this.chapterTitle,
+    required this.draftCount,
+    required this.foregroundColor,
+    required this.onBack,
+    required this.onOpenToc,
+    required this.onOpenLibrary,
+    required this.onOpenSettings,
+    required this.onExportEpub,
+  });
+
+  final WritingProject project;
+  final String chapterTitle;
+  final int draftCount;
+  final Color foregroundColor;
+  final VoidCallback onBack;
+  final VoidCallback onOpenToc;
+  final VoidCallback onOpenLibrary;
+  final VoidCallback onOpenSettings;
+  final VoidCallback onExportEpub;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Material(
+      color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.92),
+      elevation: 0,
+      child: SafeArea(
+        bottom: false,
+        child: Container(
+          height: 64,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: colorScheme.outlineVariant.withValues(alpha: 0.65),
+              ),
+            ),
+          ),
+          child: Row(
+            children: [
+              Tooltip(
+                message: '目录',
+                child: IconButton(
+                  onPressed: onOpenToc,
+                  icon: const Icon(Icons.menu_book_outlined),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      project.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: foregroundColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      chapterTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: foregroundColor.withValues(alpha: 0.58),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton.icon(
+                onPressed: onBack,
+                icon: const Icon(Icons.arrow_back_outlined, size: 18),
+                label: const Text('工作台'),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                onPressed: onExportEpub,
+                icon: const Icon(Icons.ios_share_outlined, size: 18),
+                label: const Text('EPUB'),
+              ),
+              const SizedBox(width: 8),
+              Badge(
+                isLabelVisible: draftCount > 0,
+                label: Text('$draftCount'),
+                child: IconButton(
+                  onPressed: onOpenLibrary,
+                  icon: const Icon(Icons.photo_library_outlined),
+                  tooltip: '插图库',
+                ),
+              ),
+              IconButton(
+                onPressed: onOpenSettings,
+                icon: const Icon(Icons.tune_outlined),
+                tooltip: '阅读设置',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReaderSettingsDialog extends StatefulWidget {
+  const _ReaderSettingsDialog({required this.initialSettings});
+
+  final _ReaderSettings initialSettings;
+
+  @override
+  State<_ReaderSettingsDialog> createState() => _ReaderSettingsDialogState();
+}
+
+class _ReaderSettingsDialogState extends State<_ReaderSettingsDialog> {
+  late _ReaderSettings _settings;
+
+  @override
+  void initState() {
+    super.initState();
+    _settings = widget.initialSettings;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('阅读设置'),
+      content: SizedBox(
+        width: 420,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SwitchListTile(
+              value: _settings.dark,
+              onChanged: (value) {
+                setState(() => _settings = _settings.copyWith(dark: value));
+              },
+              title: const Text('深色阅读'),
+              contentPadding: EdgeInsets.zero,
+            ),
+            _ReaderSettingSlider(
+              label: '字号',
+              value: _settings.fontSize,
+              min: 16,
+              max: 24,
+              divisions: 8,
+              displayValue: _settings.fontSize.toStringAsFixed(0),
+              onChanged: (value) {
+                setState(() => _settings = _settings.copyWith(fontSize: value));
+              },
+            ),
+            _ReaderSettingSlider(
+              label: '行距',
+              value: _settings.lineHeight,
+              min: 1.55,
+              max: 2.25,
+              divisions: 7,
+              displayValue: _settings.lineHeight.toStringAsFixed(2),
+              onChanged: (value) {
+                setState(
+                  () => _settings = _settings.copyWith(lineHeight: value),
+                );
+              },
+            ),
+            _ReaderSettingSlider(
+              label: '栏宽',
+              value: _settings.columnWidth,
+              min: 640,
+              max: 820,
+              divisions: 6,
+              displayValue: _settings.columnWidth.toStringAsFixed(0),
+              onChanged: (value) {
+                setState(
+                  () => _settings = _settings.copyWith(columnWidth: value),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_settings),
+          child: const Text('应用'),
+        ),
+      ],
+    );
+  }
+}
+
+class _ReaderSettingSlider extends StatelessWidget {
+  const _ReaderSettingSlider({
+    required this.label,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.divisions,
+    required this.displayValue,
+    required this.onChanged,
+  });
+
+  final String label;
+  final double value;
+  final double min;
+  final double max;
+  final int divisions;
+  final String displayValue;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text(label)),
+              Text(displayValue),
+            ],
+          ),
+          Slider(
+            value: value,
+            min: min,
+            max: max,
+            divisions: divisions,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReaderChapterDrawer extends StatelessWidget {
+  const _ReaderChapterDrawer({
+    required this.plans,
+    required this.selectedPlanId,
+    required this.onSelectPlan,
+  });
+
+  final List<ChapterPlan> plans;
+  final String selectedPlanId;
+  final ValueChanged<String> onSelectPlan;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
+      children: [
+        Text('目录', style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 4),
+        Text(
+          '选择章节继续阅读。',
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+        ),
+        const SizedBox(height: 18),
+        for (final plan in plans)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Material(
+              color: plan.id == selectedPlanId
+                  ? colorScheme.primaryContainer
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+              child: ListTile(
+                dense: true,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                title: Text(
+                  _chapterTitle(plan),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text('第 ${plan.chapterIndex} 章'),
+                onTap: () => onSelectPlan(plan.id),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _ReaderPaper extends StatelessWidget {
+  const _ReaderPaper({
+    required this.title,
+    required this.paragraphs,
+    required this.acceptedByParagraph,
+    required this.enabledProviders,
+    required this.chapter,
+    required this.settings,
+    required this.backgroundColor,
+    required this.foregroundColor,
+    required this.onIllustrationCreated,
+  });
+
+  final String title;
+  final List<String> paragraphs;
+  final Map<int, List<ChapterIllustration>> acceptedByParagraph;
+  final List<ImageProviderConfig> enabledProviders;
+  final ProjectChapter chapter;
+  final _ReaderSettings settings;
+  final Color backgroundColor;
+  final Color foregroundColor;
+  final VoidCallback onIllustrationCreated;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: backgroundColor,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(24, 56, 24, 96),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: settings.columnWidth),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: settings.sheetColor(Theme.of(context).colorScheme),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant
+                      .withValues(alpha: settings.dark ? 0.18 : 0.55),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(56, 54, 56, 68),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            color: foregroundColor,
+                            fontWeight: FontWeight.w700,
+                            height: 1.35,
+                          ),
+                    ),
+                    const SizedBox(height: 36),
+                    if (paragraphs.isEmpty)
+                      Text(
+                        '本章还没有正文。',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: foregroundColor.withValues(alpha: 0.68),
+                        ),
+                      ),
+                    for (var index = 0; index < paragraphs.length; index += 1)
+                      _ReaderParagraph(
+                        paragraphIndex: index,
+                        text: paragraphs[index],
+                        accepted:
+                            acceptedByParagraph[index] ??
+                            const <ChapterIllustration>[],
+                        enabledProviders: enabledProviders,
+                        chapter: chapter,
+                        settings: settings,
+                        foregroundColor: foregroundColor,
+                        onIllustrationCreated: onIllustrationCreated,
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReaderParagraph extends StatelessWidget {
+  const _ReaderParagraph({
+    required this.paragraphIndex,
+    required this.text,
+    required this.accepted,
+    required this.enabledProviders,
+    required this.chapter,
+    required this.settings,
+    required this.foregroundColor,
+    required this.onIllustrationCreated,
+  });
+
+  final int paragraphIndex;
+  final String text;
+  final List<ChapterIllustration> accepted;
+  final List<ImageProviderConfig> enabledProviders;
+  final ProjectChapter chapter;
+  final _ReaderSettings settings;
+  final Color foregroundColor;
+  final VoidCallback onIllustrationCreated;
+
+  @override
+  Widget build(BuildContext context) {
+    final paragraphContext = context;
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SelectableText(
+            text,
+            contextMenuBuilder: (context, editableTextState) {
+              final selection = editableTextState.textEditingValue.selection;
+              final selectedText = selection.isValid && !selection.isCollapsed
+                  ? selection
+                        .textInside(editableTextState.textEditingValue.text)
+                        .trim()
+                  : '';
+              final buttonItems = [...editableTextState.contextMenuButtonItems];
+              if (selectedText.isNotEmpty) {
+                buttonItems.insert(
+                  0,
+                  ContextMenuButtonItem(
+                    label: '生成插图',
+                    onPressed: () async {
+                      ContextMenuController.removeAny();
+                      if (enabledProviders.isEmpty) {
+                        ScaffoldMessenger.of(paragraphContext).showSnackBar(
+                          const SnackBar(content: Text('请先在设置中启用图像 Provider。')),
+                        );
+                        return;
+                      }
+                      if (chapter.id.isEmpty) {
+                        ScaffoldMessenger.of(paragraphContext).showSnackBar(
+                          const SnackBar(content: Text('当前章节还没有可绑定的正文记录。')),
+                        );
+                        return;
+                      }
+                      final created = await _showIllustrationDialog(
+                        paragraphContext,
+                        chapter: chapter,
+                        paragraphIndex: paragraphIndex,
+                        selectedText: selectedText,
+                        providers: enabledProviders,
+                      );
+                      if (created && paragraphContext.mounted) {
+                        onIllustrationCreated();
+                      }
+                    },
+                  ),
+                );
+              }
+              return AdaptiveTextSelectionToolbar.buttonItems(
+                anchors: editableTextState.contextMenuAnchors,
+                buttonItems: buttonItems,
+              );
+            },
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: foregroundColor,
+              fontSize: settings.fontSize,
+              height: settings.lineHeight,
+              letterSpacing: 0,
+            ),
+          ),
+          for (final illustration in accepted)
+            Padding(
+              padding: const EdgeInsets.only(top: 18, bottom: 8),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Image.file(
+                      File(illustration.localPath),
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        padding: const EdgeInsets.all(18),
+                        color: colorScheme.surfaceContainerHighest,
+                        child: Text('插图文件不可用：${illustration.localPath}'),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        illustration.selectedText,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: foregroundColor.withValues(alpha: 0.56),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReaderIllustrationReview extends ConsumerWidget {
+  const _ReaderIllustrationReview({
+    required this.drafts,
+    required this.acceptedCount,
+    required this.enabledProviders,
+    required this.chapter,
+  });
+
+  final List<ChapterIllustration> drafts;
+  final int acceptedCount;
+  final List<ImageProviderConfig> enabledProviders;
+  final ProjectChapter chapter;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
+      children: [
+        Text('插图库', style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 4),
+        Text(
+          '已接受 $acceptedCount 张，待确认 ${drafts.length} 张。',
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+        ),
+        const SizedBox(height: 18),
+        if (drafts.isEmpty)
+          Text(
+            '没有待确认插图。',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        for (final draft in drafts)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border.all(color: colorScheme.outlineVariant),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.file(
+                        File(draft.localPath),
+                        height: 150,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            Text('插图文件不可用：${draft.localPath}'),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      draft.prompt,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        FilledButton.tonalIcon(
+                          onPressed: () async {
+                            await ref
+                                .read(novelWorkshopControllerProvider.notifier)
+                                .acceptChapterIllustration(draft.id);
+                          },
+                          icon: const Icon(Icons.check_outlined, size: 18),
+                          label: const Text('接受'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            await _showIllustrationDialog(
+                              context,
+                              chapter: chapter,
+                              paragraphIndex: draft.paragraphIndex,
+                              selectedText: draft.selectedText,
+                              providers: enabledProviders,
+                              initialPrompt: draft.prompt,
+                            );
+                          },
+                          icon: const Icon(Icons.refresh_outlined, size: 18),
+                          label: const Text('重试'),
+                        ),
+                        IconButton(
+                          onPressed: () async {
+                            await ref
+                                .read(novelWorkshopControllerProvider.notifier)
+                                .deleteChapterIllustration(
+                                  id: draft.id,
+                                  projectId: draft.projectId,
+                                );
+                          },
+                          icon: const Icon(Icons.delete_outline),
+                          tooltip: '删除',
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -1548,7 +2499,8 @@ class _ImportedProjectOverviewTab extends StatelessWidget {
               description: '导入项目加料只使用 Voice Profile 作为风格上下文。',
               icon: Icons.record_voice_over_outlined,
               ready: item.voiceProfileMarkdown.trim().isNotEmpty,
-              onTap: () => context.go('/projects/${project.id}/workshop/editor'),
+              onTap: () =>
+                  context.go('/projects/${project.id}/workshop/editor'),
             ),
             error: (error, stackTrace) => PersonaPanel(
               child: Text(
@@ -10412,6 +11364,262 @@ String _metadataValue(Object? value) {
     return value.map((item) => item.toString()).join(', ');
   }
   return value.toString();
+}
+
+List<ChapterPlan> _orderedChapterPlans({
+  required List<ChapterVolume> volumes,
+  required List<ChapterPlan> plans,
+}) {
+  final sortedVolumes = [...volumes]
+    ..sort((a, b) => a.volumeIndex.compareTo(b.volumeIndex));
+  final sortedPlans = [...plans]
+    ..sort((a, b) {
+      final volumeCompare = a.volumeIndex.compareTo(b.volumeIndex);
+      if (volumeCompare != 0) {
+        return volumeCompare;
+      }
+      return a.chapterIndex.compareTo(b.chapterIndex);
+    });
+  final ordered = <ChapterPlan>[];
+  final knownPlanIds = <String>{};
+  for (final volume in sortedVolumes) {
+    final volumePlans = sortedPlans
+        .where((plan) => plan.volumeId == volume.id)
+        .toList(growable: false);
+    ordered.addAll(volumePlans);
+    knownPlanIds.addAll(volumePlans.map((plan) => plan.id));
+  }
+  ordered.addAll(sortedPlans.where((plan) => !knownPlanIds.contains(plan.id)));
+  return ordered;
+}
+
+ChapterPlan _emptyReaderPlan(String projectId) {
+  final now = DateTime.now();
+  return ChapterPlan(
+    id: '',
+    projectId: projectId,
+    volumeId: '',
+    volumeIndex: 0,
+    volumeTitle: '',
+    chapterLocalIndex: 0,
+    chapterIndex: 0,
+    objectiveCard: const ChapterObjectiveCard(),
+    coreEvent: '',
+    emotionArc: '',
+    chapterHook: '',
+    outlineMarkdown: '',
+    createdAt: now,
+    updatedAt: now,
+  );
+}
+
+ProjectChapter _emptyReaderChapter(String projectId, ChapterPlan plan) {
+  final now = DateTime.now();
+  return ProjectChapter(
+    id: '',
+    projectId: projectId,
+    chapterPlanId: plan.id,
+    chapterIndex: plan.chapterIndex,
+    title: _chapterTitle(plan),
+    contentMarkdown: '',
+    contentHash: '',
+    continuityVerdict: ContinuityVerdict.pass,
+    continuityReportMarkdown: '',
+    memorySyncStatus: MemorySyncStatus.idle,
+    memorySyncContentHash: '',
+    memorySyncProposedRuntimeState: '',
+    memorySyncProposedRuntimeThreads: '',
+    memorySyncProposedStorySummary: '',
+    createdAt: now,
+    updatedAt: now,
+  );
+}
+
+Future<bool> _showIllustrationDialog(
+  BuildContext context, {
+  required ProjectChapter chapter,
+  required int paragraphIndex,
+  required String selectedText,
+  required List<ImageProviderConfig> providers,
+  String? initialPrompt,
+}) {
+  return showGlassDialog<bool>(
+    context: context,
+    maxWidth: 620,
+    builder: (context) => _GenerateIllustrationDialog(
+      chapter: chapter,
+      paragraphIndex: paragraphIndex,
+      selectedText: selectedText,
+      providers: providers,
+      initialPrompt: initialPrompt,
+    ),
+  ).then((value) => value ?? false);
+}
+
+class _GenerateIllustrationDialog extends ConsumerStatefulWidget {
+  const _GenerateIllustrationDialog({
+    required this.chapter,
+    required this.paragraphIndex,
+    required this.selectedText,
+    required this.providers,
+    this.initialPrompt,
+  });
+
+  final ProjectChapter chapter;
+  final int paragraphIndex;
+  final String selectedText;
+  final List<ImageProviderConfig> providers;
+  final String? initialPrompt;
+
+  @override
+  ConsumerState<_GenerateIllustrationDialog> createState() =>
+      _GenerateIllustrationDialogState();
+}
+
+class _GenerateIllustrationDialogState
+    extends ConsumerState<_GenerateIllustrationDialog> {
+  late final TextEditingController _promptController;
+  ImageProviderConfig? _provider;
+  String? _modelName;
+
+  @override
+  void initState() {
+    super.initState();
+    _provider = widget.providers.firstOrNull;
+    _modelName = _provider?.defaultModel;
+    _promptController = TextEditingController(
+      text: widget.initialPrompt ?? widget.selectedText,
+    );
+  }
+
+  @override
+  void dispose() {
+    _promptController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controllerState = ref.watch(novelWorkshopControllerProvider);
+    final textTheme = Theme.of(context).textTheme;
+    final provider = _provider;
+    final modelNames = provider == null
+        ? const <String>[]
+        : {
+            provider.defaultModel,
+            ...provider.modelNames,
+          }.where((model) => model.trim().isNotEmpty).toList(growable: false);
+    return AlertDialog(
+      title: const Text('生成插图'),
+      content: SizedBox(
+        width: 560,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                widget.selectedText,
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 16),
+              if (widget.providers.isEmpty)
+                const Text('没有已启用的图像 Provider。')
+              else ...[
+                DropdownButtonFormField<ImageProviderConfig>(
+                  initialValue: provider,
+                  decoration: const InputDecoration(labelText: '图像 Provider'),
+                  items: [
+                    for (final item in widget.providers)
+                      DropdownMenuItem(value: item, child: Text(item.name)),
+                  ],
+                  onChanged: controllerState.isLoading
+                      ? null
+                      : (value) {
+                          setState(() {
+                            _provider = value;
+                            _modelName = value?.defaultModel;
+                          });
+                        },
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: modelNames.contains(_modelName)
+                      ? _modelName
+                      : modelNames.firstOrNull,
+                  decoration: const InputDecoration(labelText: '模型'),
+                  items: [
+                    for (final model in modelNames)
+                      DropdownMenuItem(value: model, child: Text(model)),
+                  ],
+                  onChanged: controllerState.isLoading
+                      ? null
+                      : (value) => setState(() => _modelName = value),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _promptController,
+                  minLines: 4,
+                  maxLines: 8,
+                  decoration: const InputDecoration(
+                    labelText: '提示词',
+                    alignLabelWithHint: true,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: controllerState.isLoading
+              ? null
+              : () => Navigator.of(context).pop(),
+          child: const Text('取消'),
+        ),
+        FilledButton.icon(
+          onPressed: provider == null || controllerState.isLoading
+              ? null
+              : () async {
+                  try {
+                    await ref
+                        .read(novelWorkshopControllerProvider.notifier)
+                        .generateChapterIllustration(
+                          chapter: widget.chapter,
+                          paragraphIndex: widget.paragraphIndex,
+                          selectedText: widget.selectedText,
+                          prompt: _promptController.text,
+                          provider: provider,
+                          modelName: _modelName ?? provider.defaultModel,
+                        );
+                    if (context.mounted) {
+                      Navigator.of(context).pop(true);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('插图已生成，等待确认。')),
+                      );
+                    }
+                  } on Object catch (error) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('生成失败：$error')));
+                  }
+                },
+          icon: controllerState.isLoading
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.auto_awesome_outlined),
+          label: const Text('生成'),
+        ),
+      ],
+    );
+  }
 }
 
 _ParsedPromptDocument _parsePromptDocument(

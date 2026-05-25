@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart' as flutter_riverpod;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/database/database_providers.dart';
@@ -8,7 +9,9 @@ import '../../../core/tasks/application/workflow_task_providers.dart';
 import '../../plot_lab/application/plot_lab_providers.dart';
 import '../../projects/application/project_providers.dart';
 import '../../projects/domain/writing_project.dart';
+import '../../settings/application/image_provider_config_providers.dart';
 import '../../settings/application/provider_config_providers.dart';
+import '../../settings/domain/image_provider_config.dart';
 import '../../style_lab/application/style_lab_providers.dart';
 import '../data/drift_novel_workshop_repository.dart';
 import '../domain/novel_workshop.dart';
@@ -17,6 +20,7 @@ import '../domain/writing_context.dart';
 import 'asset_generation_pipeline.dart';
 import 'chapter_enrichment_pipeline.dart';
 import 'chapter_generation_pipeline.dart';
+import 'chapter_illustration_service.dart';
 import 'novel_export_service.dart';
 import 'novel_import_parser.dart';
 import 'novel_import_service.dart';
@@ -118,6 +122,15 @@ NovelExportService novelExportService(Ref ref) {
   return const NovelExportService();
 }
 
+final chapterIllustrationServiceProvider =
+    flutter_riverpod.Provider<ChapterIllustrationService>((ref) {
+      return ChapterIllustrationService(
+        repository: ref.watch(novelWorkshopRepositoryProvider),
+        imageGenerationService: ref.watch(imageGenerationServiceProvider),
+        httpClient: ref.watch(imageProviderHttpClientProvider),
+      );
+    });
+
 @riverpod
 Stream<ProjectBible> projectBible(Ref ref, String projectId) {
   return ref
@@ -143,6 +156,16 @@ Stream<List<ChapterPlan>> chapterPlans(Ref ref, String projectId) {
 Stream<List<ProjectChapter>> projectChapters(Ref ref, String projectId) {
   return ref.watch(novelWorkshopRepositoryProvider).watchChapters(projectId);
 }
+
+final chapterIllustrationsProvider =
+    flutter_riverpod.StreamProvider.family<List<ChapterIllustration>, String>((
+      ref,
+      projectId,
+    ) {
+      return ref
+          .watch(novelWorkshopRepositoryProvider)
+          .watchChapterIllustrations(projectId);
+    });
 
 @riverpod
 Stream<List<NovelCharacter>> novelCharacters(Ref ref, String projectId) {
@@ -391,6 +414,92 @@ class NovelWorkshopController extends _$NovelWorkshopController {
       Error.throwWithStackTrace(state.error!, state.stackTrace!);
     }
     return path;
+  }
+
+  Future<String?> exportEpub({
+    required WritingProject project,
+    required List<ChapterVolume> volumes,
+    required List<ChapterPlan> plans,
+    required List<ProjectChapter> chapters,
+    required List<ChapterIllustration> illustrations,
+  }) async {
+    state = const AsyncLoading();
+    String? path;
+    state = await AsyncValue.guard(() async {
+      path = await ref
+          .read(novelExportServiceProvider)
+          .exportEpub(
+            project: project,
+            volumes: volumes,
+            plans: plans,
+            chapters: chapters,
+            illustrations: illustrations,
+          );
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
+    return path;
+  }
+
+  Future<ChapterIllustration> generateChapterIllustration({
+    required ProjectChapter chapter,
+    required int paragraphIndex,
+    required String selectedText,
+    required String prompt,
+    required ImageProviderConfig provider,
+    required String modelName,
+  }) async {
+    state = const AsyncLoading();
+    late ChapterIllustration saved;
+    state = await AsyncValue.guard(() async {
+      saved = await ref
+          .read(chapterIllustrationServiceProvider)
+          .generateIllustration(
+            chapter: chapter,
+            paragraphIndex: paragraphIndex,
+            selectedText: selectedText,
+            prompt: prompt,
+            provider: provider,
+            modelName: modelName,
+          );
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
+    ref.invalidate(chapterIllustrationsProvider(chapter.projectId));
+    return saved;
+  }
+
+  Future<ChapterIllustration> acceptChapterIllustration(String id) async {
+    state = const AsyncLoading();
+    late ChapterIllustration saved;
+    state = await AsyncValue.guard(() async {
+      saved = await ref
+          .read(novelWorkshopRepositoryProvider)
+          .acceptChapterIllustration(id);
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
+    ref.invalidate(chapterIllustrationsProvider(saved.projectId));
+    return saved;
+  }
+
+  Future<void> deleteChapterIllustration({
+    required String id,
+    required String projectId,
+  }) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref
+          .read(novelWorkshopRepositoryProvider)
+          .deleteChapterIllustration(id);
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
+    ref.invalidate(chapterIllustrationsProvider(projectId));
   }
 
   Future<ProjectChapter> proposeMemoryPatchForChapter({
