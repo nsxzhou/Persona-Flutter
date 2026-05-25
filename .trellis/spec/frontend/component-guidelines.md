@@ -176,3 +176,29 @@ Use a restrained writing-dossier layout: text-first list rows, compact status co
 
 ### 3. Tests Required
 - Widget tests should assert the visible preview sections, the collapsed raw payload behavior, and the absence of partial-selection controls.
+
+## Scenario: Novel Reader text selection and illustration entry
+
+### 1. Scope / Trigger
+- Trigger: The Novel Reader lets users select manuscript text and create a chapter illustration draft from that exact selection.
+- This is a feature-specific presentation contract under `features/novel_workshop/presentation/`.
+
+### 2. Contracts
+- Reader body text must be selectable through one reading-area `SelectionArea`, not separate paragraph-owned `SelectableText` menus. Separate selectable widgets prevent cross-paragraph selections from producing one selected text payload.
+- Add the `生成插图` action through `SelectionArea.contextMenuBuilder` and read the selected text from `SelectionArea.onSelectionChanged`.
+- Do not render a permanent per-paragraph `生成插图` button in the reading flow.
+- When the selected text spans multiple paragraphs, the generated illustration draft anchors to the last selected paragraph.
+- Accepted illustrations may render inline after their anchor paragraph; draft illustrations remain in the hidden illustration library drawer.
+- Exclude inline illustration previews/captions from manuscript text selection with `SelectionContainer.disabled` when they appear inside the selectable reader body.
+
+### 3. Validation & Error Matrix
+- Empty selection -> do not add `生成插图` to the selection menu.
+- No enabled image Provider -> keep the menu action visible for a non-empty selection, then show a lightweight snackbar when clicked.
+- Missing chapter id -> show a lightweight snackbar and do not open the generation dialog.
+- Cross-paragraph selection -> pass the full selected text to the dialog and use the last selected paragraph index.
+
+### 4. Tests Required
+- Widget test that the default reader shows manuscript text without a permanent `生成插图` button.
+- Widget test that selecting text opens a context menu containing `生成插图`.
+- Widget test that missing image Provider still shows the menu action and explains the missing Provider on click.
+- Widget test that dragging a selection across paragraphs opens the dialog with the selected text and creates a draft anchored to the last selected paragraph.

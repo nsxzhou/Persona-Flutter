@@ -1421,7 +1421,7 @@ class _ReaderChapterDrawer extends StatelessWidget {
   }
 }
 
-class _ReaderPaper extends StatelessWidget {
+class _ReaderPaper extends StatefulWidget {
   const _ReaderPaper({
     required this.title,
     required this.paragraphs,
@@ -1445,21 +1445,38 @@ class _ReaderPaper extends StatelessWidget {
   final VoidCallback onIllustrationCreated;
 
   @override
+  State<_ReaderPaper> createState() => _ReaderPaperState();
+}
+
+class _ReaderPaperState extends State<_ReaderPaper> {
+  String _selectedText = '';
+
+  @override
+  void didUpdateWidget(covariant _ReaderPaper oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.chapter.id != widget.chapter.id) {
+      _selectedText = '';
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: backgroundColor,
+      color: widget.backgroundColor,
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(24, 56, 24, 96),
         child: Center(
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: settings.columnWidth),
+            constraints: BoxConstraints(maxWidth: widget.settings.columnWidth),
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: settings.sheetColor(Theme.of(context).colorScheme),
+                color: widget.settings.sheetColor(
+                  Theme.of(context).colorScheme,
+                ),
                 borderRadius: BorderRadius.circular(4),
                 border: Border.all(
                   color: Theme.of(context).colorScheme.outlineVariant
-                      .withValues(alpha: settings.dark ? 0.18 : 0.55),
+                      .withValues(alpha: widget.settings.dark ? 0.18 : 0.55),
                 ),
               ),
               child: Padding(
@@ -1468,35 +1485,47 @@ class _ReaderPaper extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      title,
+                      widget.title,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.headlineSmall
                           ?.copyWith(
-                            color: foregroundColor,
+                            color: widget.foregroundColor,
                             fontWeight: FontWeight.w700,
                             height: 1.35,
                           ),
                     ),
                     const SizedBox(height: 36),
-                    if (paragraphs.isEmpty)
+                    if (widget.paragraphs.isEmpty)
                       Text(
                         '本章还没有正文。',
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: foregroundColor.withValues(alpha: 0.68),
+                          color: widget.foregroundColor.withValues(alpha: 0.68),
                         ),
-                      ),
-                    for (var index = 0; index < paragraphs.length; index += 1)
-                      _ReaderParagraph(
-                        paragraphIndex: index,
-                        text: paragraphs[index],
-                        accepted:
-                            acceptedByParagraph[index] ??
-                            const <ChapterIllustration>[],
-                        enabledProviders: enabledProviders,
-                        chapter: chapter,
-                        settings: settings,
-                        foregroundColor: foregroundColor,
-                        onIllustrationCreated: onIllustrationCreated,
+                      )
+                    else
+                      SelectionArea(
+                        onSelectionChanged: (content) {
+                          _selectedText = content?.plainText.trim() ?? '';
+                        },
+                        contextMenuBuilder: _buildSelectionMenu,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            for (
+                              var index = 0;
+                              index < widget.paragraphs.length;
+                              index += 1
+                            )
+                              _ReaderParagraph(
+                                text: widget.paragraphs[index],
+                                accepted:
+                                    widget.acceptedByParagraph[index] ??
+                                    const <ChapterIllustration>[],
+                                settings: widget.settings,
+                                foregroundColor: widget.foregroundColor,
+                              ),
+                          ],
+                        ),
                       ),
                   ],
                 ),
@@ -1507,86 +1536,144 @@ class _ReaderPaper extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildSelectionMenu(
+    BuildContext context,
+    SelectableRegionState selectableRegionState,
+  ) {
+    final selectedText = _selectedText.trim();
+    final buttonItems = [...selectableRegionState.contextMenuButtonItems];
+    if (selectedText.isNotEmpty) {
+      buttonItems.insert(
+        0,
+        ContextMenuButtonItem(
+          label: '生成插图',
+          onPressed: () async {
+            ContextMenuController.removeAny();
+            if (widget.enabledProviders.isEmpty) {
+              ScaffoldMessenger.of(this.context).showSnackBar(
+                const SnackBar(content: Text('请先在设置中启用图像 Provider。')),
+              );
+              return;
+            }
+            if (widget.chapter.id.isEmpty) {
+              ScaffoldMessenger.of(
+                this.context,
+              ).showSnackBar(const SnackBar(content: Text('当前章节还没有可绑定的正文记录。')));
+              return;
+            }
+            final created = await _showIllustrationDialog(
+              this.context,
+              chapter: widget.chapter,
+              paragraphIndex: _resolveSelectedParagraphIndex(selectedText),
+              selectedText: selectedText,
+              providers: widget.enabledProviders,
+            );
+            if (created && mounted) {
+              widget.onIllustrationCreated();
+            }
+          },
+        ),
+      );
+    }
+    return AdaptiveTextSelectionToolbar.buttonItems(
+      anchors: selectableRegionState.contextMenuAnchors,
+      buttonItems: buttonItems,
+    );
+  }
+
+  int _resolveSelectedParagraphIndex(String selectedText) {
+    if (widget.paragraphs.isEmpty) {
+      return 0;
+    }
+
+    final trimmedSelection = selectedText.trim();
+    if (trimmedSelection.isEmpty) {
+      return 0;
+    }
+
+    final exactMatch = _paragraphIndexForExactSelection(
+      trimmedSelection,
+      delimiter: '\n',
+    );
+    if (exactMatch != null) {
+      return exactMatch;
+    }
+    final markdownMatch = _paragraphIndexForExactSelection(
+      trimmedSelection,
+      delimiter: '\n\n',
+    );
+    if (markdownMatch != null) {
+      return markdownMatch;
+    }
+
+    final selectedFragments = trimmedSelection
+        .split(RegExp(r'\n+'))
+        .map((fragment) => fragment.trim())
+        .where((fragment) => fragment.isNotEmpty)
+        .toList(growable: false);
+    var bestIndex = -1;
+    for (final fragment in selectedFragments) {
+      final normalizedFragment = _normalizeSelectionText(fragment);
+      for (var index = 0; index < widget.paragraphs.length; index += 1) {
+        final paragraph = widget.paragraphs[index].trim();
+        final normalizedParagraph = _normalizeSelectionText(paragraph);
+        if (paragraph.contains(fragment) ||
+            normalizedParagraph.contains(normalizedFragment) ||
+            normalizedFragment.contains(normalizedParagraph) ||
+            _hasSelectionOverlap(normalizedFragment, normalizedParagraph)) {
+          bestIndex = index > bestIndex ? index : bestIndex;
+        }
+      }
+    }
+    return bestIndex >= 0 ? bestIndex : widget.paragraphs.length - 1;
+  }
+
+  int? _paragraphIndexForExactSelection(
+    String selectedText, {
+    required String delimiter,
+  }) {
+    final document = widget.paragraphs.join(delimiter);
+    final selectionStart = document.indexOf(selectedText);
+    if (selectionStart < 0) {
+      return null;
+    }
+    final selectionEnd = selectionStart + selectedText.length - 1;
+    var cursor = 0;
+    for (var index = 0; index < widget.paragraphs.length; index += 1) {
+      final paragraphEnd = cursor + widget.paragraphs[index].length;
+      if (selectionEnd <= paragraphEnd) {
+        return index;
+      }
+      cursor = paragraphEnd + delimiter.length;
+    }
+    return widget.paragraphs.length - 1;
+  }
 }
 
 class _ReaderParagraph extends StatelessWidget {
   const _ReaderParagraph({
-    required this.paragraphIndex,
     required this.text,
     required this.accepted,
-    required this.enabledProviders,
-    required this.chapter,
     required this.settings,
     required this.foregroundColor,
-    required this.onIllustrationCreated,
   });
 
-  final int paragraphIndex;
   final String text;
   final List<ChapterIllustration> accepted;
-  final List<ImageProviderConfig> enabledProviders;
-  final ProjectChapter chapter;
   final _ReaderSettings settings;
   final Color foregroundColor;
-  final VoidCallback onIllustrationCreated;
 
   @override
   Widget build(BuildContext context) {
-    final paragraphContext = context;
     final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SelectableText(
+          Text(
             text,
-            contextMenuBuilder: (context, editableTextState) {
-              final selection = editableTextState.textEditingValue.selection;
-              final selectedText = selection.isValid && !selection.isCollapsed
-                  ? selection
-                        .textInside(editableTextState.textEditingValue.text)
-                        .trim()
-                  : '';
-              final buttonItems = [...editableTextState.contextMenuButtonItems];
-              if (selectedText.isNotEmpty) {
-                buttonItems.insert(
-                  0,
-                  ContextMenuButtonItem(
-                    label: '生成插图',
-                    onPressed: () async {
-                      ContextMenuController.removeAny();
-                      if (enabledProviders.isEmpty) {
-                        ScaffoldMessenger.of(paragraphContext).showSnackBar(
-                          const SnackBar(content: Text('请先在设置中启用图像 Provider。')),
-                        );
-                        return;
-                      }
-                      if (chapter.id.isEmpty) {
-                        ScaffoldMessenger.of(paragraphContext).showSnackBar(
-                          const SnackBar(content: Text('当前章节还没有可绑定的正文记录。')),
-                        );
-                        return;
-                      }
-                      final created = await _showIllustrationDialog(
-                        paragraphContext,
-                        chapter: chapter,
-                        paragraphIndex: paragraphIndex,
-                        selectedText: selectedText,
-                        providers: enabledProviders,
-                      );
-                      if (created && paragraphContext.mounted) {
-                        onIllustrationCreated();
-                      }
-                    },
-                  ),
-                );
-              }
-              return AdaptiveTextSelectionToolbar.buttonItems(
-                anchors: editableTextState.contextMenuAnchors,
-                buttonItems: buttonItems,
-              );
-            },
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
               color: foregroundColor,
               fontSize: settings.fontSize,
@@ -1595,34 +1682,37 @@ class _ReaderParagraph extends StatelessWidget {
             ),
           ),
           for (final illustration in accepted)
-            Padding(
-              padding: const EdgeInsets.only(top: 18, bottom: 8),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Image.file(
-                      File(illustration.localPath),
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        padding: const EdgeInsets.all(18),
-                        color: colorScheme.surfaceContainerHighest,
-                        child: Text('插图文件不可用：${illustration.localPath}'),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        illustration.selectedText,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: foregroundColor.withValues(alpha: 0.56),
+            SelectionContainer.disabled(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 18, bottom: 8),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Image.file(
+                        File(illustration.localPath),
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          padding: const EdgeInsets.all(18),
+                          color: colorScheme.surfaceContainerHighest,
+                          child: Text('插图文件不可用：${illustration.localPath}'),
                         ),
                       ),
-                    ),
-                  ],
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          illustration.selectedText,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: foregroundColor.withValues(alpha: 0.56),
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -1630,6 +1720,29 @@ class _ReaderParagraph extends StatelessWidget {
       ),
     );
   }
+}
+
+String _normalizeSelectionText(String value) {
+  return value.replaceAll(RegExp(r'\s+'), '');
+}
+
+bool _hasSelectionOverlap(String selection, String paragraph) {
+  if (selection.isEmpty || paragraph.isEmpty) {
+    return false;
+  }
+  final selectionIsShorter = selection.length < paragraph.length;
+  final shorter = selectionIsShorter ? selection : paragraph;
+  final longer = selectionIsShorter ? paragraph : selection;
+  final windowLength = shorter.length < 12 ? shorter.length : 12;
+  if (windowLength < 4) {
+    return longer.contains(shorter);
+  }
+  for (var start = 0; start <= shorter.length - windowLength; start += 1) {
+    if (longer.contains(shorter.substring(start, start + windowLength))) {
+      return true;
+    }
+  }
+  return false;
 }
 
 class _ReaderIllustrationReview extends ConsumerWidget {

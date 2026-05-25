@@ -1,11 +1,17 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:persona_flutter/src/core/image_generation/application/image_generation_service.dart';
+import 'package:persona_flutter/src/core/image_generation/domain/image_generation_client.dart';
+import 'package:persona_flutter/src/core/image_generation/domain/image_generation_request.dart';
 import 'package:persona_flutter/src/features/novel_workshop/application/asset_generation_pipeline.dart';
 import 'package:persona_flutter/src/features/novel_workshop/application/chapter_generation_pipeline.dart';
+import 'package:persona_flutter/src/features/novel_workshop/application/chapter_illustration_service.dart';
 import 'package:persona_flutter/src/features/novel_workshop/application/novel_export_service.dart';
 import 'package:persona_flutter/src/features/novel_workshop/application/novel_workshop_providers.dart';
 import 'package:persona_flutter/src/features/novel_workshop/domain/novel_workshop.dart';
@@ -33,6 +39,20 @@ const _editorLocation = '/projects/project-1/workshop/editor';
 const _readerLocation = '/projects/project-1/workshop/reader';
 final _testCreatedAt = DateTime(2026, 5, 18, 9);
 final _testUpdatedAt = DateTime(2026, 5, 18, 10);
+
+Offset _textOffsetToPosition(RenderParagraph paragraph, int offset) {
+  const caret = Rect.fromLTWH(0, 0, 2, 20);
+  final localOffset =
+      paragraph.getOffsetForCaret(TextPosition(offset: offset), caret) +
+      Offset(0, paragraph.preferredLineHeight);
+  return paragraph.localToGlobal(localOffset) + const Offset(0, -2);
+}
+
+RenderParagraph _renderParagraph(WidgetTester tester, String text) {
+  return tester.renderObject<RenderParagraph>(
+    find.descendant(of: find.text(text), matching: find.byType(RichText)).first,
+  );
+}
 
 void main() {
   testWidgets('workshop shows tabbed workbench with asset tabs', (
@@ -910,7 +930,7 @@ characters:
     expect(find.text('插图审阅'), findsNothing);
     expect(find.text('插图库'), findsNothing);
     expect(find.text('生成插图'), findsNothing);
-    expect(find.byType(SelectableText), findsNWidgets(2));
+    expect(find.byType(SelectionArea), findsOneWidget);
   });
 
   testWidgets('reader opens chapter drawer and switches chapters', (
@@ -1110,6 +1130,68 @@ characters:
     expect(find.text('请先在设置中启用图像 Provider。'), findsOneWidget);
     expect(find.widgetWithText(AlertDialog, '生成插图'), findsNothing);
   });
+
+  testWidgets(
+    'reader can generate illustration from multi-paragraph selection',
+    (tester) async {
+      const firstParagraph = '第一段有海雾与灯塔。';
+      const secondParagraph = '第二段写少女走进蓝门。';
+      final fixture = _WorkshopFixture(
+        plans: [
+          _plan(id: 'plan-1', index: 1, title: '第一章', objective: '主角进入雾港。'),
+        ],
+        chapters: [
+          _chapter(
+            id: 'chapter-1',
+            planId: 'plan-1',
+            index: 1,
+            content: '$firstParagraph\n\n$secondParagraph\n\n第三段没有选择。',
+          ),
+        ],
+      );
+      addTearDown(fixture.dispose);
+
+      await tester.pumpWidget(
+        _WorkshopTestApp(fixture: fixture, initialLocation: _readerLocation),
+      );
+      await tester.pumpAndSettle();
+
+      final firstRenderParagraph = _renderParagraph(tester, firstParagraph);
+      final secondRenderParagraph = _renderParagraph(tester, secondParagraph);
+      final gesture = await tester.startGesture(
+        _textOffsetToPosition(firstRenderParagraph, 3),
+        kind: PointerDeviceKind.touch,
+      );
+      addTearDown(gesture.removePointer);
+      await tester.pump(const Duration(milliseconds: 500));
+      await gesture.moveTo(_textOffsetToPosition(secondRenderParagraph, 8));
+      await tester.pumpAndSettle();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(find.text('生成插图'), findsOneWidget);
+
+      await tester.tap(find.text('生成插图'));
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(AlertDialog, '生成插图'), findsOneWidget);
+      expect(find.textContaining('第二段写少'), findsWidgets);
+
+      await tester.tap(find.widgetWithText(FilledButton, '生成'));
+      await tester.pump();
+      await tester.runAsync(() async {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      });
+      await tester.pump();
+
+      expect(fixture.repository.illustrations, hasLength(1));
+      expect(fixture.repository.illustrations.single.paragraphIndex, 1);
+      expect(
+        fixture.repository.illustrations.single.selectedText,
+        allOf(contains('海雾与灯塔'), contains('第二段写少')),
+      );
+    },
+  );
 
   testWidgets('editing chapter plan keeps chapter index readonly', (
     tester,
@@ -1659,6 +1741,9 @@ class _WorkshopTestApp extends StatelessWidget {
         ),
         novelWorkshopRepositoryProvider.overrideWithValue(fixture.repository),
         novelExportServiceProvider.overrideWithValue(fixture.exportService),
+        chapterIllustrationServiceProvider.overrideWithValue(
+          _FakeChapterIllustrationService(fixture.repository),
+        ),
         assetGenerationPipelineProvider.overrideWithValue(
           fixture.assetPipeline,
         ),
@@ -1823,6 +1908,64 @@ class _FakeAssetGenerationPipeline implements AssetGenerationPipeline {
     _pausedGeneration?.complete();
     _pausedGeneration = null;
     pauseGeneration = false;
+  }
+}
+
+class _FakeChapterIllustrationService extends ChapterIllustrationService {
+  _FakeChapterIllustrationService(this.repository)
+    : super(
+        repository: repository,
+        imageGenerationService: const ImageGenerationService(
+          client: _UnusedImageGenerationClient(),
+        ),
+      );
+
+  final _FakeNovelWorkshopRepository repository;
+
+  @override
+  Future<ChapterIllustration> generateIllustration({
+    required ProjectChapter chapter,
+    required int paragraphIndex,
+    required String selectedText,
+    required String prompt,
+    required ImageProviderConfig provider,
+    required String modelName,
+  }) {
+    return repository.createChapterIllustration(
+      ChapterIllustrationInput(
+        projectId: chapter.projectId,
+        chapterId: chapter.id,
+        chapterPlanId: chapter.chapterPlanId,
+        paragraphIndex: paragraphIndex,
+        anchorTextHash: anchorTextHash(selectedText),
+        selectedText: selectedText,
+        prompt: prompt,
+        providerId: provider.id,
+        modelName: modelName,
+        localPath: '/tmp/generated-reader-illustration.png',
+        mimeType: 'image/png',
+      ),
+    );
+  }
+}
+
+class _UnusedImageGenerationClient implements ImageGenerationClient {
+  const _UnusedImageGenerationClient();
+
+  @override
+  Future<ImageGenerationResult> generateImage({
+    required ImageProviderConfig provider,
+    required ImageGenerationRequest request,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<ImageGenerationResult> editImage({
+    required ImageProviderConfig provider,
+    required ImageEditRequest request,
+  }) async {
+    throw UnimplementedError();
   }
 }
 
