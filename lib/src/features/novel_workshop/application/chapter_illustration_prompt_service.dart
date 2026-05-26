@@ -68,7 +68,8 @@ Convert the selected Chinese novel text into an English text-to-image prompt.
 First analyze the scene from the selected text and the provided previous/current/next chapter context, then write the final image prompt.
 
 Rules:
-- You may infer era, environment, facial expression, body language, weather, and lighting from adjacent chapter context when the evidence supports it.
+- You may infer cultural context, era, environment, facial expression, body language, weather, and lighting from adjacent chapter context when the evidence supports it.
+- Distinguish Eastern, Western, hybrid, or unspecified cultural context using textual evidence such as names, places, architecture, clothing, titles, objects, customs, and institutions; do not infer culture from the source language alone.
 - If a detail is not supported, write "not specified" in Scene Analysis and omit that detail from Positive Prompt.
 - If the selected text is abstract, dialogue-only, or mostly internal thought, use the nearest concrete visible scene from the context while preserving the selected text's emotion.
 - Do not create symbolic or metaphor-only imagery unless the text itself describes it.
@@ -77,6 +78,7 @@ Rules:
 
 Output exactly these three sections, with no preface and no code fence:
 Scene Analysis:
+- Cultural Context: <Eastern, Western, hybrid, or "not specified", with evidence>
 - Era/Time Period: <supported era or "not specified">
 - Location/Environment: <supported location and environment or "not specified">
 - Characters: <visible characters and supported identity/role details or "not specified">

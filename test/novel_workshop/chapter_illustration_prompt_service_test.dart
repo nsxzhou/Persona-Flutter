@@ -14,13 +14,14 @@ void main() {
     () async {
       final client = _RecordingLlmClient('''
 Scene Analysis:
+- Cultural Context: not specified
 - Era/Time Period: not specified
 - Location/Environment: sea fog around an old lighthouse
 - Characters: a girl
 - Facial Expression/Body Language: tense, stepping through a doorway
 - Action: entering a blue door
 - Lighting/Weather: lighthouse glow in fog
-- Visual Evidence: selected text and nearby chapter context
+- Visual Evidence: selected text and adjacent chapter context
 - Uncertain/Missing: exact clothing
 
 Positive Prompt:
@@ -90,6 +91,14 @@ Focus on the threshold and the foggy light.
       expect(
         client.request!.messages.last.content,
         contains('Scene Analysis:'),
+      );
+      expect(
+        client.request!.messages.last.content,
+        contains('Cultural Context'),
+      );
+      expect(
+        client.request!.messages.last.content,
+        contains('Eastern, Western, hybrid'),
       );
       expect(
         client.request!.messages.last.content,

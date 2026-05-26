@@ -86,6 +86,41 @@ void main() {
     expect(find.byKey(const ValueKey('novel-workshop-editor')), findsNothing);
   });
 
+  testWidgets('workshop can rebuild tab controller when tab count changes', (
+    tester,
+  ) async {
+    final fixture = _WorkshopFixture();
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(_WorkshopTestApp(fixture: fixture));
+    await tester.pumpAndSettle();
+
+    expect(find.text('世界观设定'), findsWidgets);
+
+    final project = fixture.projectRepository.project;
+    await fixture.projectRepository.saveProject(
+      input: WritingProjectInput(
+        title: project.title,
+        description: project.description,
+        status: project.status,
+        defaultProviderId: project.defaultProviderId ?? '',
+        defaultModelName: project.defaultModelName ?? '',
+        styleProfileId: project.styleProfileId,
+        plotProfileId: project.plotProfileId,
+        origin: ProjectOrigin.importedEnrichment,
+        language: project.language,
+        targetLength: project.targetLength,
+        totalTargetLength: project.totalTargetLength,
+        narrativePerspective: project.narrativePerspective,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Voice Profile'), findsWidgets);
+    expect(find.text('世界观设定'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('workshop exports saved novel txt from header action', (
     tester,
   ) async {

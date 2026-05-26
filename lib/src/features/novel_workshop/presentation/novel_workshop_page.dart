@@ -4329,7 +4329,7 @@ class _WorkbenchTabs extends StatefulWidget {
 }
 
 class _WorkbenchTabsState extends State<_WorkbenchTabs>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late TabController _tabController;
 
   int get _tabLength =>

@@ -66,6 +66,7 @@ Keep navigation labels visible in expanded desktop navigation. If the shell supp
 * Do not use large anonymous widget trees when a named widget improves readability.
 * Do not copy the `PersonaPage` header/panel layout into individual feature pages; extend the shared primitives instead.
 * Do not keep dead placeholder pages or placeholder route scaffolding after a real screen exists.
+* Do not use `SingleTickerProviderStateMixin` when a `State` may recreate a `TabController` or `AnimationController` after `didUpdateWidget`. Use `TickerProviderStateMixin` for state objects that can create more than one ticker over their lifetime, even if only one controller is active at a time.
 
 ---
 
