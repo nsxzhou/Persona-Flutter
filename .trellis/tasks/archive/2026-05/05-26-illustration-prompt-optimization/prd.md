@@ -13,19 +13,25 @@ Improve the reader illustration workflow so selected novel text can first be tra
 
 ## Requirements
 
-* Add an explicit "optimize prompt" action in the illustration dialog; do not auto-call the LLM when the dialog opens.
+* Automatically optimize the selected text into an image prompt before opening the illustration dialog.
+* Keep a "re-optimize prompt" action in the illustration dialog so the user can refresh the generated prompt.
 * Generate the image prompt with the project default text provider/model.
 * Send a feature-specific business system prompt that frames the LLM as a literary illustration prompt director.
-* Use selected text, chapter title, paragraph index, and nearby chapter paragraphs as LLM context.
+* Use selected text, chapter title, paragraph index, and adjacent chapter bodies as LLM context.
+* Include the current chapter plus the previous and next chapter by `chapterIndex`; skip missing or empty adjacent chapters.
+* Ask the LLM to produce an internal scene analysis before the final prompt, covering era/time period, location/environment, characters, facial expression/body language, action, lighting/weather, visual evidence, and uncertain/missing details.
+* Allow visual inference from adjacent chapter context when evidence supports it, but omit unsupported details from the final image prompt.
+* If selected text is abstract, dialogue-only, or mostly internal thought, use the nearest concrete visible scene from context while preserving the selected text's emotion.
 * Generate an English-first prompt that faithfully visualizes the text without imposing a fixed style.
-* Use a ComfyUI-inspired structure internally: positive prompt, negative constraints, and visual notes.
-* Merge the useful negative constraints into the final prompt text because the existing image provider contract has no separate negative-prompt field.
+* Use a simple structured output internally: scene analysis, positive prompt, and visual notes.
+* Do not request, display, store, or send `Avoid:` / negative-constraint sections in the final prompt.
 * Write only the final confirmed prompt to the existing `prompt` field; do not add database fields or migrations.
 * If LLM prompt optimization fails, show an error and allow the user to keep editing or create a task manually.
 
 ## Acceptance Criteria
 
-* [ ] User can click an optimize button in the illustration dialog and see the generated prompt fill the existing prompt field.
+* [ ] User can click the reader illustration action and see prompt optimization run before the dialog opens.
+* [ ] User can click the dialog re-optimize button and see the generated prompt fill the existing prompt field.
 * [ ] Existing manual prompt submission still works without using the optimize button.
 * [ ] Prompt generation does not create an image run or illustration record.
 * [ ] Prompt generation uses project default text provider/model and reports a clear error if unavailable.
