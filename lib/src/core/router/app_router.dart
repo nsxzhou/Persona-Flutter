@@ -46,6 +46,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                           projectId: state.pathParameters['projectId']!,
                         ),
                       ),
+                      GoRoute(
+                        path: 'illustrations',
+                        builder: (context, state) =>
+                            NovelIllustrationLibraryPage(
+                              projectId: state.pathParameters['projectId']!,
+                              initialPlanId: state.uri.queryParameters['plan'],
+                            ),
+                      ),
                     ],
                   ),
                 ],

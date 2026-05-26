@@ -69,7 +69,7 @@ void main() {
       final service = ChapterIllustrationService(
         repository: repository,
         imageGenerationService: ImageGenerationService(
-          client: const _StaticImageClient(
+          client: _StaticImageClient(
             GeneratedImage(url: 'https://images.example.test/generated.jpg'),
           ),
         ),
@@ -99,18 +99,55 @@ void main() {
       expect(await File(illustration.localPath).readAsBytes(), <int>[9, 8, 7]);
     },
   );
+
+  test('generateIllustration forwards image generation parameters', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'illustration-params',
+    );
+    addTearDown(() => directory.delete(recursive: true));
+    final client = _StaticImageClient(
+      GeneratedImage(b64Json: base64Encode(<int>[5, 6, 7])),
+    );
+    final service = ChapterIllustrationService(
+      repository: _RecordingRepository(),
+      imageGenerationService: ImageGenerationService(client: client),
+      supportDirectory: () async => directory,
+    );
+
+    await service.generateIllustration(
+      chapter: _chapter(),
+      paragraphIndex: 1,
+      selectedText: 'blue door',
+      prompt: '  blue door at dusk  ',
+      provider: _provider(),
+      modelName: 'custom-image-model',
+      aspectRatio: ImageAspectRatioPreset.wide,
+      size: ImageSizePreset.twoK,
+      quality: ImageQualityPreset.high,
+      responseFormat: ImageResponseFormat.b64Json,
+    );
+
+    expect(client.lastRequest, isNotNull);
+    expect(client.lastRequest!.model, 'custom-image-model');
+    expect(client.lastRequest!.prompt, 'blue door at dusk');
+    expect(client.lastRequest!.size, '2736x1536');
+    expect(client.lastRequest!.quality, 'high');
+    expect(client.lastRequest!.responseFormat, ImageResponseFormat.b64Json);
+  });
 }
 
 class _StaticImageClient implements ImageGenerationClient {
-  const _StaticImageClient(this.image);
+  _StaticImageClient(this.image);
 
   final GeneratedImage image;
+  ImageGenerationRequest? lastRequest;
 
   @override
   Future<ImageGenerationResult> generateImage({
     required ImageProviderConfig provider,
     required ImageGenerationRequest request,
   }) async {
+    lastRequest = request;
     return ImageGenerationResult(created: 1, images: <GeneratedImage>[image]);
   }
 

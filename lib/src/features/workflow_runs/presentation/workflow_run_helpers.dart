@@ -44,6 +44,7 @@ String kindLabel(String kind) {
     chapterGenerationWorkflowTaskKind => '章节生成',
     chapterGenerationBatchWorkflowTaskKind => '批量草稿',
     chapterEnrichmentWorkflowTaskKind => '章节加料',
+    chapterIllustrationGenerationWorkflowTaskKind => '插图生成',
     _ => kind,
   };
 }
@@ -56,7 +57,8 @@ bool canAbandon(WorkflowTask task) {
 bool hasWorkflowPreview(String kind) {
   return kind == assetGenerationWorkflowTaskKind ||
       kind == chapterGenerationWorkflowTaskKind ||
-      kind == chapterEnrichmentWorkflowTaskKind;
+      kind == chapterEnrichmentWorkflowTaskKind ||
+      kind == chapterIllustrationGenerationWorkflowTaskKind;
 }
 
 bool canApplyPreview(

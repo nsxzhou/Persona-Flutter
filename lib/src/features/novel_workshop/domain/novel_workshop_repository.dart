@@ -12,6 +12,9 @@ abstract interface class NovelWorkshopRepository {
 
   Stream<List<ChapterIllustration>> watchChapterIllustrations(String projectId);
 
+  Stream<List<ChapterIllustrationGenerationRun>>
+  watchChapterIllustrationGenerationRuns(String projectId);
+
   Stream<List<NovelCharacter>> watchCharacters(String projectId);
 
   Stream<List<NovelRelationship>> watchRelationships(String projectId);
@@ -50,6 +53,9 @@ abstract interface class NovelWorkshopRepository {
     String workflowTaskId,
   );
 
+  Stream<ChapterIllustrationGenerationRun?>
+  watchChapterIllustrationGenerationRunByWorkflowTask(String workflowTaskId);
+
   Stream<ChapterEnrichmentBatch?> watchChapterEnrichmentBatchByWorkflowTask(
     String workflowTaskId,
   );
@@ -69,6 +75,9 @@ abstract interface class NovelWorkshopRepository {
   Future<ProjectChapter?> findChapterByPlan(String chapterPlanId);
 
   Future<ChapterIllustration?> findChapterIllustration(String id);
+
+  Future<ChapterIllustrationGenerationRun?>
+  findChapterIllustrationGenerationRun(String id);
 
   Future<NovelCharacter?> findCharacter(String id);
 
@@ -150,9 +159,35 @@ abstract interface class NovelWorkshopRepository {
     ChapterIllustrationInput input,
   );
 
-  Future<ChapterIllustration> acceptChapterIllustration(String id);
+  Future<ChapterIllustration> insertChapterIllustration(String id);
+
+  Future<ChapterIllustration> removeChapterIllustrationFromText(String id);
 
   Future<void> deleteChapterIllustration(String id);
+
+  Future<ChapterIllustrationGenerationRun>
+  createChapterIllustrationGenerationRun(
+    ChapterIllustrationGenerationRunInput input,
+  );
+
+  Future<ChapterIllustrationGenerationRun>
+  createChapterIllustrationGenerationRunFromExisting(String id);
+
+  Future<ChapterIllustrationGenerationRun>
+  updateChapterIllustrationGenerationRunState({
+    required String id,
+    required ChapterIllustrationGenerationStatus status,
+    ChapterIllustrationGenerationStage? stage,
+    String? errorMessage,
+    String? logs,
+    String? illustrationId,
+    DateTime? startedAt,
+    DateTime? completedAt,
+  });
+
+  Future<int> markInterruptedChapterIllustrationGenerationRunsFailed();
+
+  Future<void> deleteChapterIllustrationGenerationRun(String id);
 
   Future<ProjectChapter> saveMemorySyncProposal(MemorySyncProposalInput input);
 

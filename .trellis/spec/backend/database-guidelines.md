@@ -525,6 +525,55 @@ Run enrichment through the normal chapter generation pipeline and let it inject 
 #### Correct
 Use `ChapterEnrichmentPipeline`, which reads the selected imported chapter body, applies the user instruction and Voice Profile only, then stores a generated preview item until the user applies it.
 
+## Scenario: Novel reader illustration lifecycle
+
+### 1. Scope / Trigger
+- Trigger: Reader Mode stores generated chapter illustrations and decides whether they appear in the reading flow and EPUB.
+- This is a cross-layer persistence contract because Drift status strings, domain models, repository commands, Reader UI, and EPUB export must agree on the same lifecycle.
+
+### 2. Signatures
+- Domain enum: `ChapterIllustrationStatus`
+  - `draft`: generated and waiting for review.
+  - `inserted`: appears after the anchored paragraph and is included in EPUB export.
+  - `unused`: kept in the illustration library but excluded from reading flow and EPUB.
+- Repository commands:
+  - `insertChapterIllustration(String id)`
+  - `removeChapterIllustrationFromText(String id)`
+  - `deleteChapterIllustration(String id)`
+- Drift table: `ChapterIllustrationRecords.status` stores the enum name.
+
+### 3. Contracts
+- Newly generated illustrations start as `draft`.
+- Inserting an illustration changes status to `inserted` and sets `acceptedAt` if it was not already set.
+- Removing an illustration from text changes status to `unused`; it must not delete the file or generation history.
+- Permanent deletion removes the database row and best-effort deletes the local image file.
+- EPUB export includes only `inserted` illustrations. TXT export remains text-only.
+- Legacy persisted `accepted` status must migrate or map to `inserted`.
+
+### 4. Validation & Error Matrix
+- Unknown illustration id for insert/remove -> repository throws `StateError`.
+- Missing local file while rendering -> UI shows a file-unavailable placeholder.
+- Local file delete failure during permanent delete -> database deletion remains successful.
+- Legacy `accepted` status in older databases -> migration rewrites to `inserted`.
+
+### 5. Good/Base/Bad Cases
+- Good: a generated draft is visible in the library, can be inserted, removed back to `unused`, reinserted, or permanently deleted.
+- Base: an inserted illustration appears after its paragraph and exports to EPUB.
+- Bad: hide inserted images from the illustration library.
+- Bad: treat "remove from text" as permanent deletion.
+
+### 6. Tests Required
+- Repository test for draft -> inserted -> unused -> deleted lifecycle.
+- Widget test that the library shows draft, inserted, and unused illustrations.
+- Widget test that Reader inline controls can remove an inserted image without deleting it from the library.
+- EPUB test that includes only `inserted` illustrations and excludes `draft` / `unused`.
+
+### 7. Wrong vs Correct
+#### Wrong
+Use one `accepted` state to mean both "reviewed" and "currently inserted", then filter it out of the library.
+#### Correct
+Use `inserted` for images currently in the manuscript and `unused` for reviewed or removed images that remain manageable in the library.
+
 ## Scenario: Novel Workshop Project Bible and outline persistence
 
 ### 1. Scope / Trigger

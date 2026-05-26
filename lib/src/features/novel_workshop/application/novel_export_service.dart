@@ -96,9 +96,9 @@ Future<List<int>> buildNovelEpub({
   final chapterByPlanId = {
     for (final chapter in chapters) chapter.chapterPlanId: chapter,
   };
-  final acceptedIllustrations =
+  final insertedIllustrations =
       illustrations
-          .where((item) => item.status == ChapterIllustrationStatus.accepted)
+          .where((item) => item.status == ChapterIllustrationStatus.inserted)
           .toList(growable: false)
         ..sort((a, b) {
           final paragraph = a.paragraphIndex.compareTo(b.paragraphIndex);
@@ -106,7 +106,7 @@ Future<List<int>> buildNovelEpub({
           return a.createdAt.compareTo(b.createdAt);
         });
   final illustrationsByChapterId = <String, List<ChapterIllustration>>{};
-  for (final illustration in acceptedIllustrations) {
+  for (final illustration in insertedIllustrations) {
     illustrationsByChapterId
         .putIfAbsent(illustration.chapterId, () => <ChapterIllustration>[])
         .add(illustration);

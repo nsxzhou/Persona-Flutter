@@ -77,6 +77,7 @@ void main() {
     expect(find.text('设置'), findsWidgets);
     expect(find.text('骨架大纲'), findsNothing);
     expect(find.text('导出 TXT'), findsOneWidget);
+    expect(find.byTooltip('插图库'), findsOneWidget);
     expect(find.text('阅读模式'), findsOneWidget);
     expect(find.text('进入编辑器'), findsOneWidget);
     expect(find.byKey(const ValueKey('novel-workshop-editor')), findsNothing);
@@ -313,7 +314,10 @@ void main() {
       await tester.tap(find.text('取消'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip('生成本卷细纲'));
+      final generateVolumeDetailButton = find.byTooltip('生成本卷细纲');
+      await tester.ensureVisible(generateVolumeDetailButton);
+      await tester.pumpAndSettle();
+      await tester.tap(generateVolumeDetailButton);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
       await tester.pump();
@@ -928,7 +932,7 @@ characters:
     expect(find.text('林岚穿过潮湿的码头。'), findsOneWidget);
     expect(find.text('海雾把旧灯塔吞没，只剩蓝白色的光在水面晃动。'), findsOneWidget);
     expect(find.text('插图审阅'), findsNothing);
-    expect(find.text('插图库'), findsNothing);
+    expect(find.text('当前章轻审核'), findsOneWidget);
     expect(find.text('生成插图'), findsNothing);
     expect(find.byType(SelectionArea), findsOneWidget);
   });
@@ -979,7 +983,7 @@ characters:
     expect(find.text('第一章正文。'), findsNothing);
   });
 
-  testWidgets('reader keeps draft illustrations in hidden library drawer', (
+  testWidgets('reader shows current chapter draft illustration review rail', (
     tester,
   ) async {
     final fixture = _WorkshopFixture(
@@ -1012,28 +1016,53 @@ characters:
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('旧灯塔与海雾。'), findsNothing);
-    expect(find.text('待确认 1 张'), findsNothing);
+    expect(find.text('当前章轻审核'), findsOneWidget);
+    expect(find.text('待确认 1'), findsOneWidget);
+    expect(find.text('旧灯塔与海雾。'), findsOneWidget);
+    expect(find.text('插入正文'), findsOneWidget);
+  });
 
-    await tester.tap(find.byTooltip('插图库'));
+  testWidgets('reader can hide and restore chapter illustration review rail', (
+    tester,
+  ) async {
+    final fixture = _WorkshopFixture(
+      plans: [
+        _plan(id: 'plan-1', index: 1, title: '第一章', objective: '主角进入雾港。'),
+      ],
+      chapters: [
+        _chapter(
+          id: 'chapter-1',
+          planId: 'plan-1',
+          index: 1,
+          content: '林岚站在旧灯塔前。',
+        ),
+      ],
+    );
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(
+      _WorkshopTestApp(fixture: fixture, initialLocation: _readerLocation),
+    );
     await tester.pumpAndSettle();
 
-    final libraryDrawer = tester.widget<Drawer>(
-      find.byWidgetPredicate((widget) {
-        return widget is Drawer && widget.width == 400;
-      }),
-    );
-    expect(
-      libraryDrawer.shape,
-      const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-    );
-    expect(find.text('插图库'), findsOneWidget);
-    expect(find.text('已接受 0 张，待确认 1 张。'), findsOneWidget);
-    expect(find.text('旧灯塔与海雾。'), findsOneWidget);
+    expect(find.text('当前章轻审核'), findsOneWidget);
+    expect(find.text('林岚站在旧灯塔前。'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('收起插图审核'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('当前章轻审核'), findsNothing);
+    expect(find.text('林岚站在旧灯塔前。'), findsOneWidget);
+    expect(find.byTooltip('展开插图审核'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('展开插图审核'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('当前章轻审核'), findsOneWidget);
   });
 
   testWidgets(
-    'reader renders accepted illustrations after anchored paragraph',
+    'reader renders inserted illustrations and can remove them from text',
     (tester) async {
       final fixture = _WorkshopFixture(
         plans: [
@@ -1053,9 +1082,9 @@ characters:
           id: 'accepted-1',
           chapterId: 'chapter-1',
           paragraphIndex: 0,
-          selectedText: '被接受的旧灯塔插图锚点',
+          selectedText: '已插入的旧灯塔插图锚点',
           prompt: '正文内插图。',
-          status: ChapterIllustrationStatus.accepted,
+          status: ChapterIllustrationStatus.inserted,
         ),
       );
       addTearDown(fixture.dispose);
@@ -1065,10 +1094,209 @@ characters:
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('被接受的旧灯塔插图锚点'), findsOneWidget);
-      expect(find.text('正文内插图。'), findsNothing);
+      expect(find.text('已插入的旧灯塔插图锚点'), findsWidgets);
+      expect(find.text('正文内插图。'), findsOneWidget);
+      expect(find.text('移出正文'), findsWidgets);
+
+      await tester.tap(find.text('移出正文').first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('已插入的旧灯塔插图锚点'), findsNothing);
+      expect(
+        fixture.repository.illustrations.single.status,
+        ChapterIllustrationStatus.unused,
+      );
     },
   );
+
+  testWidgets('illustration library filters and manages chapter items', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1440, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final fixture = _WorkshopFixture(
+      plans: [
+        _plan(id: 'plan-1', index: 1, title: '第一章', objective: '主角进入雾港。'),
+        _plan(id: 'plan-2', index: 2, title: '第二章', objective: '调查港务处。'),
+      ],
+      chapters: [
+        _chapter(
+          id: 'chapter-1',
+          planId: 'plan-1',
+          index: 1,
+          content: '林岚站在旧灯塔前。',
+        ),
+        _chapter(
+          id: 'chapter-2',
+          planId: 'plan-2',
+          index: 2,
+          content: '她翻看港务处卷宗。',
+        ),
+      ],
+      illustrations: [
+        _illustration(
+          id: 'draft-1',
+          chapterId: 'chapter-1',
+          paragraphIndex: 0,
+          selectedText: '旧灯塔前',
+          prompt: '海雾里的旧灯塔。',
+          status: ChapterIllustrationStatus.draft,
+        ),
+        _illustration(
+          id: 'inserted-1',
+          chapterId: 'chapter-1',
+          paragraphIndex: 0,
+          selectedText: '林岚站在旧灯塔前',
+          prompt: '已经插入正文的灯塔图。',
+          status: ChapterIllustrationStatus.inserted,
+        ),
+        _illustration(
+          id: 'unused-1',
+          chapterId: 'chapter-2',
+          paragraphIndex: 0,
+          selectedText: '港务处卷宗',
+          prompt: '港务处档案室。',
+          status: ChapterIllustrationStatus.unused,
+          planId: 'plan-2',
+        ),
+      ],
+      illustrationRuns: [
+        _illustrationRun(
+          id: 'failed-run-1',
+          chapterId: 'chapter-1',
+          planId: 'plan-1',
+          prompt: '失败的海雾远景。',
+          selectedText: '海雾',
+          status: ChapterIllustrationGenerationStatus.failed,
+          errorMessage: '模型返回空图。',
+        ),
+        _illustrationRun(
+          id: 'running-run-1',
+          chapterId: 'chapter-2',
+          planId: 'plan-2',
+          prompt: '运行中的卷宗图。',
+          selectedText: '卷宗',
+          status: ChapterIllustrationGenerationStatus.running,
+        ),
+      ],
+    );
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(
+      _WorkshopTestApp(
+        fixture: fixture,
+        initialLocation:
+            '/projects/project-1/workshop/illustrations?plan=plan-1',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('项目插图库'), findsOneWidget);
+    expect(find.text('第一章 审核队列'), findsOneWidget);
+    expect(find.text('海雾里的旧灯塔。'), findsWidgets);
+    expect(find.text('港务处档案室。'), findsNothing);
+    expect(find.text('失败的海雾远景。'), findsOneWidget);
+
+    await tester.tap(
+      find.ancestor(of: find.text('失败'), matching: find.byType(InkWell)).first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('失败的海雾远景。'), findsOneWidget);
+    expect(find.text('海雾里的旧灯塔。'), findsNothing);
+    expect(find.text('重试'), findsOneWidget);
+    expect(find.byTooltip('删除失败任务'), findsOneWidget);
+
+    await tester.tap(
+      find.ancestor(of: find.text('已插入'), matching: find.byType(InkWell)).first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('已经插入正文的灯塔图。'), findsWidgets);
+    expect(find.text('移出正文'), findsOneWidget);
+
+    await tester.tap(
+      find
+          .ancestor(of: find.text('全部章节'), matching: find.byType(InkWell))
+          .first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.ancestor(of: find.text('未插入'), matching: find.byType(InkWell)).first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('港务处档案室。'), findsWidgets);
+    expect(find.text('插入正文'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField).first, '档案室');
+    await tester.pumpAndSettle();
+
+    expect(find.text('港务处档案室。'), findsWidgets);
+    expect(find.text('海雾里的旧灯塔。'), findsNothing);
+
+    await tester.tap(find.text('插入正文').first);
+    await tester.pumpAndSettle();
+
+    expect(
+      fixture.repository.illustrations
+          .singleWhere((illustration) => illustration.id == 'unused-1')
+          .status,
+      ChapterIllustrationStatus.inserted,
+    );
+  });
+
+  testWidgets('illustration library compact layout avoids overflow', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(900, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final fixture = _WorkshopFixture(
+      plans: [
+        _plan(id: 'plan-1', index: 1, title: '第一章', objective: '主角进入雾港。'),
+      ],
+      chapters: [
+        _chapter(
+          id: 'chapter-1',
+          planId: 'plan-1',
+          index: 1,
+          content: '林岚站在旧灯塔前。',
+        ),
+      ],
+      illustrations: [
+        _illustration(
+          id: 'draft-compact',
+          chapterId: 'chapter-1',
+          paragraphIndex: 0,
+          selectedText: '旧灯塔前',
+          prompt: '海雾里的旧灯塔。',
+          status: ChapterIllustrationStatus.draft,
+        ),
+      ],
+    );
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(
+      _WorkshopTestApp(
+        fixture: fixture,
+        initialLocation:
+            '/projects/project-1/workshop/illustrations?plan=plan-1',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('项目插图库'), findsOneWidget);
+    expect(find.text('章节与状态'), findsOneWidget);
+    expect(find.text('第一章 审核队列'), findsOneWidget);
+    expect(find.text('详情检查器'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('reader selection toolbar offers illustration generation', (
     tester,
@@ -1096,7 +1324,7 @@ characters:
     await tester.tap(find.text('生成插图'));
     await tester.pumpAndSettle();
 
-    expect(find.widgetWithText(AlertDialog, '生成插图'), findsOneWidget);
+    expect(find.text('生成章节插图'), findsOneWidget);
     expect(find.widgetWithText(TextField, '提示词'), findsOneWidget);
   });
 
@@ -1174,20 +1402,23 @@ characters:
       await tester.tap(find.text('生成插图'));
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(AlertDialog, '生成插图'), findsOneWidget);
+      expect(find.text('生成章节插图'), findsOneWidget);
       expect(find.textContaining('第二段写少'), findsWidgets);
 
-      await tester.tap(find.widgetWithText(FilledButton, '生成'));
+      final createTaskButton = find.widgetWithText(FilledButton, '创建后台任务');
+      await tester.ensureVisible(createTaskButton);
+      await tester.pumpAndSettle();
+      await tester.tap(createTaskButton);
       await tester.pump();
       await tester.runAsync(() async {
         await Future<void>.delayed(const Duration(milliseconds: 100));
       });
       await tester.pump();
 
-      expect(fixture.repository.illustrations, hasLength(1));
-      expect(fixture.repository.illustrations.single.paragraphIndex, 1);
+      expect(fixture.repository.illustrationRuns, hasLength(1));
+      expect(fixture.repository.illustrationRuns.single.paragraphIndex, 1);
       expect(
-        fixture.repository.illustrations.single.selectedText,
+        fixture.repository.illustrationRuns.single.selectedText,
         allOf(contains('海雾与灯塔'), contains('第二段写少')),
       );
     },
@@ -1779,6 +2010,15 @@ class _WorkshopTestApp extends StatelessWidget {
                     ),
                   ),
                 ),
+                GoRoute(
+                  path: 'illustrations',
+                  builder: (context, state) => Scaffold(
+                    body: NovelIllustrationLibraryPage(
+                      projectId: state.pathParameters['projectId']!,
+                      initialPlanId: state.uri.queryParameters['plan'],
+                    ),
+                  ),
+                ),
               ],
             ),
             GoRoute(
@@ -1815,6 +2055,8 @@ class _WorkshopFixture {
     List<ChapterEnrichmentItem> enrichmentItems = const [],
     List<ChapterGenerationBatch> generationBatches = const [],
     List<ChapterGenerationBatchItem> generationBatchItems = const [],
+    List<ChapterIllustration> illustrations = const [],
+    List<ChapterIllustrationGenerationRun> illustrationRuns = const [],
   }) : projectRepository = _FakeProjectRepository(
          status: projectStatus,
          origin: projectOrigin,
@@ -1833,6 +2075,8 @@ class _WorkshopFixture {
          enrichmentItems: enrichmentItems,
          generationBatches: generationBatches,
          generationBatchItems: generationBatchItems,
+         illustrations: illustrations,
+         illustrationRuns: illustrationRuns,
        ),
        styleRepository = _FakeStyleLabRepository(),
        plotRepository = _FakePlotLabRepository() {
@@ -1930,6 +2174,10 @@ class _FakeChapterIllustrationService extends ChapterIllustrationService {
     required String prompt,
     required ImageProviderConfig provider,
     required String modelName,
+    ImageAspectRatioPreset? aspectRatio,
+    ImageSizePreset? size,
+    ImageQualityPreset? quality,
+    ImageResponseFormat? responseFormat,
   }) {
     return repository.createChapterIllustration(
       ChapterIllustrationInput(
@@ -2435,8 +2683,12 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
     required List<ChapterEnrichmentItem> enrichmentItems,
     required List<ChapterGenerationBatch> generationBatches,
     required List<ChapterGenerationBatchItem> generationBatchItems,
+    required List<ChapterIllustration> illustrations,
+    required List<ChapterIllustrationGenerationRun> illustrationRuns,
   }) : plans = [...plans],
        chapters = [...chapters],
+       illustrations = [...illustrations],
+       illustrationRuns = [...illustrationRuns],
        runs = [...runs],
        generationBatches = [...generationBatches],
        generationBatchItems = [...generationBatchItems],
@@ -2475,7 +2727,8 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
 
   final List<ChapterPlan> plans;
   final List<ProjectChapter> chapters;
-  final List<ChapterIllustration> illustrations = [];
+  final List<ChapterIllustration> illustrations;
+  final List<ChapterIllustrationGenerationRun> illustrationRuns;
   final List<ChapterGenerationRun> runs;
   final List<ChapterGenerationBatch> generationBatches;
   final List<ChapterGenerationBatchItem> generationBatchItems;
@@ -2704,6 +2957,12 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   }
 
   @override
+  Future<ChapterIllustrationGenerationRun?>
+  findChapterIllustrationGenerationRun(String id) async {
+    return illustrationRuns.where((run) => run.id == id).firstOrNull;
+  }
+
+  @override
   Future<ProjectChapter?> findChapterByPlan(String chapterPlanId) async {
     return chapters
         .where((chapter) => chapter.chapterPlanId == chapterPlanId)
@@ -2862,7 +3121,7 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   }
 
   @override
-  Future<ChapterIllustration> acceptChapterIllustration(String id) async {
+  Future<ChapterIllustration> insertChapterIllustration(String id) async {
     final index = illustrations.indexWhere((illustration) {
       return illustration.id == id;
     });
@@ -2884,10 +3143,45 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
       modelName: current.modelName,
       localPath: current.localPath,
       mimeType: current.mimeType,
-      status: ChapterIllustrationStatus.accepted,
+      status: ChapterIllustrationStatus.inserted,
       createdAt: current.createdAt,
       updatedAt: now,
-      acceptedAt: now,
+      acceptedAt: current.acceptedAt ?? now,
+    );
+    illustrations[index] = saved;
+    emit();
+    return saved;
+  }
+
+  @override
+  Future<ChapterIllustration> removeChapterIllustrationFromText(
+    String id,
+  ) async {
+    final index = illustrations.indexWhere((illustration) {
+      return illustration.id == id;
+    });
+    if (index < 0) {
+      throw StateError('Chapter illustration does not exist: $id');
+    }
+    final current = illustrations[index];
+    final now = DateTime.now();
+    final saved = ChapterIllustration(
+      id: current.id,
+      projectId: current.projectId,
+      chapterId: current.chapterId,
+      chapterPlanId: current.chapterPlanId,
+      paragraphIndex: current.paragraphIndex,
+      anchorTextHash: current.anchorTextHash,
+      selectedText: current.selectedText,
+      prompt: current.prompt,
+      providerId: current.providerId,
+      modelName: current.modelName,
+      localPath: current.localPath,
+      mimeType: current.mimeType,
+      status: ChapterIllustrationStatus.unused,
+      createdAt: current.createdAt,
+      updatedAt: now,
+      acceptedAt: current.acceptedAt,
     );
     illustrations[index] = saved;
     emit();
@@ -2897,6 +3191,132 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   @override
   Future<void> deleteChapterIllustration(String id) async {
     illustrations.removeWhere((illustration) => illustration.id == id);
+    emit();
+  }
+
+  @override
+  Future<ChapterIllustrationGenerationRun>
+  createChapterIllustrationGenerationRun(
+    ChapterIllustrationGenerationRunInput input,
+  ) async {
+    final now = DateTime.now();
+    final saved = ChapterIllustrationGenerationRun(
+      id: 'illustration-run-${illustrationRuns.length + 1}',
+      workflowTaskId: 'task-illustration-${illustrationRuns.length + 1}',
+      projectId: input.projectId,
+      chapterId: input.chapterId,
+      chapterPlanId: input.chapterPlanId,
+      paragraphIndex: input.paragraphIndex,
+      anchorTextHash: input.anchorTextHash,
+      selectedText: input.selectedText,
+      prompt: input.prompt,
+      providerId: input.providerId,
+      modelName: input.modelName,
+      aspectRatio: input.aspectRatio,
+      size: input.size,
+      quality: input.quality,
+      responseFormat: input.responseFormat,
+      status: ChapterIllustrationGenerationStatus.pending,
+      stage: null,
+      errorMessage: null,
+      logs: '',
+      illustrationId: null,
+      createdAt: now,
+      updatedAt: now,
+      startedAt: null,
+      completedAt: null,
+    );
+    illustrationRuns.add(saved);
+    emit();
+    return saved;
+  }
+
+  @override
+  Future<ChapterIllustrationGenerationRun>
+  createChapterIllustrationGenerationRunFromExisting(String id) async {
+    final existing = await findChapterIllustrationGenerationRun(id);
+    if (existing == null) {
+      throw StateError(
+        'Chapter illustration generation run does not exist: $id',
+      );
+    }
+    return createChapterIllustrationGenerationRun(
+      ChapterIllustrationGenerationRunInput(
+        projectId: existing.projectId,
+        chapterId: existing.chapterId,
+        chapterPlanId: existing.chapterPlanId,
+        paragraphIndex: existing.paragraphIndex,
+        anchorTextHash: existing.anchorTextHash,
+        selectedText: existing.selectedText,
+        prompt: existing.prompt,
+        providerId: existing.providerId,
+        modelName: existing.modelName,
+        aspectRatio: existing.aspectRatio,
+        size: existing.size,
+        quality: existing.quality,
+        responseFormat: existing.responseFormat,
+      ),
+    );
+  }
+
+  @override
+  Future<ChapterIllustrationGenerationRun>
+  updateChapterIllustrationGenerationRunState({
+    required String id,
+    required ChapterIllustrationGenerationStatus status,
+    ChapterIllustrationGenerationStage? stage,
+    String? errorMessage,
+    String? logs,
+    String? illustrationId,
+    DateTime? startedAt,
+    DateTime? completedAt,
+  }) async {
+    final index = illustrationRuns.indexWhere((run) => run.id == id);
+    if (index < 0) {
+      throw StateError(
+        'Chapter illustration generation run does not exist: $id',
+      );
+    }
+    final current = illustrationRuns[index];
+    final saved = ChapterIllustrationGenerationRun(
+      id: current.id,
+      workflowTaskId: current.workflowTaskId,
+      projectId: current.projectId,
+      chapterId: current.chapterId,
+      chapterPlanId: current.chapterPlanId,
+      paragraphIndex: current.paragraphIndex,
+      anchorTextHash: current.anchorTextHash,
+      selectedText: current.selectedText,
+      prompt: current.prompt,
+      providerId: current.providerId,
+      modelName: current.modelName,
+      aspectRatio: current.aspectRatio,
+      size: current.size,
+      quality: current.quality,
+      responseFormat: current.responseFormat,
+      status: status,
+      stage: stage,
+      errorMessage: errorMessage,
+      logs: logs ?? current.logs,
+      illustrationId: illustrationId ?? current.illustrationId,
+      createdAt: current.createdAt,
+      updatedAt: DateTime.now(),
+      startedAt: startedAt ?? current.startedAt,
+      completedAt: completedAt ?? current.completedAt,
+    );
+    illustrationRuns[index] = saved;
+    emit();
+    return saved;
+  }
+
+  @override
+  Future<int> markInterruptedChapterIllustrationGenerationRunsFailed() async {
+    return 0;
+  }
+
+  @override
+  Future<void> deleteChapterIllustrationGenerationRun(String id) async {
+    illustrationRuns.removeWhere((run) => run.id == id);
     emit();
   }
 
@@ -3636,6 +4056,21 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   }
 
   @override
+  Stream<ChapterIllustrationGenerationRun?>
+  watchChapterIllustrationGenerationRunByWorkflowTask(
+    String workflowTaskId,
+  ) async* {
+    yield illustrationRuns
+        .where((run) => run.workflowTaskId == workflowTaskId)
+        .firstOrNull;
+    yield* _changes.stream.map(
+      (_) => illustrationRuns
+          .where((run) => run.workflowTaskId == workflowTaskId)
+          .firstOrNull,
+    );
+  }
+
+  @override
   Future<void> abandonWorkflowTask(String workflowTaskId) async {}
 
   @override
@@ -3708,6 +4143,16 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
   ) async* {
     List<ChapterIllustration> snapshot() => illustrations
         .where((illustration) => illustration.projectId == projectId)
+        .toList(growable: false);
+    yield snapshot();
+    yield* _changes.stream.map((_) => snapshot());
+  }
+
+  @override
+  Stream<List<ChapterIllustrationGenerationRun>>
+  watchChapterIllustrationGenerationRuns(String projectId) async* {
+    List<ChapterIllustrationGenerationRun> snapshot() => illustrationRuns
+        .where((run) => run.projectId == projectId)
         .toList(growable: false);
     yield snapshot();
     yield* _changes.stream.map((_) => snapshot());
@@ -3834,12 +4279,13 @@ ChapterIllustration _illustration({
   required String selectedText,
   required String prompt,
   required ChapterIllustrationStatus status,
+  String planId = 'plan-1',
 }) {
   return ChapterIllustration(
     id: id,
     projectId: 'project-1',
     chapterId: chapterId,
-    chapterPlanId: 'plan-1',
+    chapterPlanId: planId,
     paragraphIndex: paragraphIndex,
     anchorTextHash: selectedText.hashCode.toString(),
     selectedText: selectedText,
@@ -3851,7 +4297,48 @@ ChapterIllustration _illustration({
     status: status,
     createdAt: _testCreatedAt,
     updatedAt: _testUpdatedAt,
-    acceptedAt: status == ChapterIllustrationStatus.accepted
+    acceptedAt: status == ChapterIllustrationStatus.inserted
+        ? _testUpdatedAt
+        : null,
+  );
+}
+
+ChapterIllustrationGenerationRun _illustrationRun({
+  required String id,
+  required String chapterId,
+  required String planId,
+  required String prompt,
+  required String selectedText,
+  required ChapterIllustrationGenerationStatus status,
+  String? errorMessage,
+}) {
+  return ChapterIllustrationGenerationRun(
+    id: id,
+    workflowTaskId: 'task-$id',
+    projectId: 'project-1',
+    chapterId: chapterId,
+    chapterPlanId: planId,
+    paragraphIndex: 0,
+    anchorTextHash: selectedText.hashCode.toString(),
+    selectedText: selectedText,
+    prompt: prompt,
+    providerId: 'image-provider-1',
+    modelName: 'gpt-image-1',
+    aspectRatio: ImageAspectRatioPreset.square.ratio,
+    size: ImageSizePreset.oneK.tier,
+    quality: ImageQualityPreset.auto.quality,
+    responseFormat: ImageResponseFormat.url.name,
+    status: status,
+    stage: null,
+    errorMessage: errorMessage,
+    logs: '',
+    illustrationId: null,
+    createdAt: _testCreatedAt,
+    updatedAt: _testUpdatedAt,
+    startedAt: status == ChapterIllustrationGenerationStatus.running
+        ? _testCreatedAt
+        : null,
+    completedAt: status == ChapterIllustrationGenerationStatus.failed
         ? _testUpdatedAt
         : null,
   );

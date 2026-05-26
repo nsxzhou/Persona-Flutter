@@ -24,10 +24,18 @@ class AppShell extends ConsumerStatefulWidget {
 
 class _AppShellState extends ConsumerState<AppShell> {
   bool _isExpanded = true;
+  String? _lastRoutePath;
 
   @override
   Widget build(BuildContext context) {
     final selectedIndex = widget.navigationShell.currentIndex;
+    final routePath = GoRouterState.of(context).uri.path;
+    if (_lastRoutePath != routePath) {
+      _lastRoutePath = routePath;
+      if (_isImmersiveWorkshopRoute(routePath)) {
+        _isExpanded = false;
+      }
+    }
     final colorScheme = Theme.of(context).colorScheme;
     final scaffoldBackgroundColor = Theme.of(context).scaffoldBackgroundColor;
 
@@ -87,6 +95,11 @@ class _AppShellState extends ConsumerState<AppShell> {
       },
     );
   }
+}
+
+bool _isImmersiveWorkshopRoute(String path) {
+  return path.endsWith('/workshop/reader') ||
+      path.endsWith('/workshop/illustrations');
 }
 
 class _PersonaSidebar extends StatelessWidget {

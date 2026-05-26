@@ -12,6 +12,7 @@ import 'package:persona_flutter/src/features/novel_workshop/domain/writing_conte
 import 'package:persona_flutter/src/features/projects/data/drift_project_repository.dart';
 import 'package:persona_flutter/src/features/projects/domain/writing_project.dart';
 import 'package:persona_flutter/src/features/settings/data/drift_provider_config_repository.dart';
+import 'package:persona_flutter/src/features/settings/domain/image_provider_config.dart';
 import 'package:persona_flutter/src/features/settings/domain/provider_config.dart';
 import 'package:sqlite3/sqlite3.dart';
 
@@ -558,7 +559,7 @@ relationships:
     expect(chapters.single.id, chapter.id);
   });
 
-  test('chapter illustration drafts can be accepted and deleted', () async {
+  test('chapter illustrations can be inserted, removed, and deleted', () async {
     final database = AppDatabase(NativeDatabase.memory());
     addTearDown(database.close);
     final fixture = await _saveChapterFixture(database);
@@ -589,11 +590,17 @@ relationships:
       draft.id,
     );
 
-    final accepted = await fixture.repository.acceptChapterIllustration(
+    final inserted = await fixture.repository.insertChapterIllustration(
       draft.id,
     );
-    expect(accepted.status, ChapterIllustrationStatus.accepted);
-    expect(accepted.acceptedAt, isNotNull);
+    expect(inserted.status, ChapterIllustrationStatus.inserted);
+    expect(inserted.acceptedAt, isNotNull);
+
+    final unused = await fixture.repository.removeChapterIllustrationFromText(
+      draft.id,
+    );
+    expect(unused.status, ChapterIllustrationStatus.unused);
+    expect(unused.acceptedAt, inserted.acceptedAt);
 
     await fixture.repository.deleteChapterIllustration(draft.id);
     expect(await fixture.repository.findChapterIllustration(draft.id), isNull);
@@ -1342,6 +1349,162 @@ runtimeMemory:
       isFalse,
     );
   });
+
+  test(
+    'chapter illustration generation run syncs workflow task lifecycle',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final fixture = await _saveChapterFixture(database);
+      final workflowRepository = DriftWorkflowTaskRepository(database);
+
+      final run = await fixture.repository
+          .createChapterIllustrationGenerationRun(
+            ChapterIllustrationGenerationRunInput(
+              projectId: fixture.project.id,
+              chapterId: fixture.chapter.id,
+              chapterPlanId: fixture.plan.id,
+              paragraphIndex: 1,
+              anchorTextHash: 'selected-hash',
+              selectedText: '旧灯塔映着海雾。',
+              prompt: '旧灯塔，海雾，冷色调。',
+              providerId: 'image-provider-1',
+              modelName: 'gpt-image-1',
+              aspectRatio: ImageAspectRatioPreset.wide.ratio,
+              size: ImageSizePreset.twoK.tier,
+              quality: ImageQualityPreset.high.quality,
+              responseFormat: ImageResponseFormat.b64Json.name,
+            ),
+          );
+
+      expect(run.status, ChapterIllustrationGenerationStatus.pending);
+      expect(run.workflowTaskId, isNotEmpty);
+      expect(
+        await fixture.repository
+            .watchChapterIllustrationGenerationRunByWorkflowTask(
+              run.workflowTaskId,
+            )
+            .first,
+        isNotNull,
+      );
+      final task = await workflowRepository.findTask(run.workflowTaskId);
+      expect(task!.kind, chapterIllustrationGenerationWorkflowTaskKind);
+      expect(task.status, WorkflowTaskStatus.pending);
+
+      final running = await fixture.repository
+          .updateChapterIllustrationGenerationRunState(
+            id: run.id,
+            status: ChapterIllustrationGenerationStatus.running,
+            stage: ChapterIllustrationGenerationStage.generatingImage,
+            logs: '开始生成。',
+            startedAt: DateTime.now(),
+          );
+      final runningTask = await workflowRepository.findTask(run.workflowTaskId);
+      expect(running.stage, ChapterIllustrationGenerationStage.generatingImage);
+      expect(running.logs, '开始生成。');
+      expect(runningTask!.status, WorkflowTaskStatus.running);
+      expect(
+        runningTask.stage,
+        ChapterIllustrationGenerationStage.generatingImage.name,
+      );
+
+      final failed = await fixture.repository
+          .updateChapterIllustrationGenerationRunState(
+            id: run.id,
+            status: ChapterIllustrationGenerationStatus.failed,
+            errorMessage: '图片服务失败。',
+            completedAt: DateTime.now(),
+          );
+      final failedTask = await workflowRepository.findTask(run.workflowTaskId);
+      expect(failed.status, ChapterIllustrationGenerationStatus.failed);
+      expect(failed.errorMessage, '图片服务失败。');
+      expect(failedTask!.status, WorkflowTaskStatus.failed);
+      expect(failedTask.errorMessage, '图片服务失败。');
+    },
+  );
+
+  test(
+    'chapter illustration generation retry and interrupted recovery preserve history',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final fixture = await _saveChapterFixture(database);
+      final workflowRepository = DriftWorkflowTaskRepository(database);
+
+      final failed = await fixture.repository
+          .createChapterIllustrationGenerationRun(
+            ChapterIllustrationGenerationRunInput(
+              projectId: fixture.project.id,
+              chapterId: fixture.chapter.id,
+              chapterPlanId: fixture.plan.id,
+              paragraphIndex: 0,
+              anchorTextHash: 'hash',
+              selectedText: '旧灯塔。',
+              prompt: '旧灯塔。',
+              providerId: 'image-provider-1',
+              modelName: 'gpt-image-1',
+              aspectRatio: ImageAspectRatioPreset.square.ratio,
+              size: ImageSizePreset.oneK.tier,
+              quality: ImageQualityPreset.auto.quality,
+              responseFormat: ImageResponseFormat.url.name,
+            ),
+          );
+      await fixture.repository.updateChapterIllustrationGenerationRunState(
+        id: failed.id,
+        status: ChapterIllustrationGenerationStatus.failed,
+        errorMessage: '第一次失败。',
+        completedAt: DateTime.now(),
+      );
+
+      final retry = await fixture.repository
+          .createChapterIllustrationGenerationRunFromExisting(failed.id);
+
+      expect(retry.id, isNot(failed.id));
+      expect(retry.workflowTaskId, isNot(failed.workflowTaskId));
+      expect(retry.selectedText, failed.selectedText);
+      expect(retry.prompt, failed.prompt);
+      expect(
+        (await fixture.repository
+            .watchChapterIllustrationGenerationRuns(fixture.project.id)
+            .first),
+        hasLength(2),
+      );
+
+      final interruptedCount = await fixture.repository
+          .markInterruptedChapterIllustrationGenerationRunsFailed();
+      final interruptedRetry = await fixture.repository
+          .findChapterIllustrationGenerationRun(retry.id);
+      final interruptedTask = await workflowRepository.findTask(
+        retry.workflowTaskId,
+      );
+
+      expect(interruptedCount, 1);
+      expect(
+        interruptedRetry!.status,
+        ChapterIllustrationGenerationStatus.failed,
+      );
+      expect(interruptedRetry.errorMessage, contains('应用重启'));
+      expect(interruptedTask!.status, WorkflowTaskStatus.failed);
+      expect(interruptedTask.errorMessage, contains('应用重启'));
+
+      await fixture.repository.deleteChapterIllustrationGenerationRun(
+        interruptedRetry.id,
+      );
+      expect(
+        await fixture.repository.findChapterIllustrationGenerationRun(
+          interruptedRetry.id,
+        ),
+        isNull,
+      );
+      expect(await workflowRepository.findTask(retry.workflowTaskId), isNull);
+      expect(
+        await fixture.repository.findChapterIllustrationGenerationRun(
+          failed.id,
+        ),
+        isNotNull,
+      );
+    },
+  );
 
   test(
     'chapter generation batch persists items and syncs workflow task',

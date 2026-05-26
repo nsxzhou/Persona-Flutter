@@ -76,12 +76,24 @@ enum ChapterEnrichmentItemStatus {
   abandoned,
 }
 
-enum ChapterIllustrationStatus { draft, accepted }
+enum ChapterIllustrationStatus { draft, inserted, unused }
+
+enum ChapterIllustrationGenerationStatus {
+  pending,
+  running,
+  succeeded,
+  failed,
+  abandoned,
+}
+
+enum ChapterIllustrationGenerationStage { generatingImage, persistingDraft }
 
 const chapterGenerationWorkflowTaskKind = 'novel_chapter_generation';
 const chapterGenerationBatchWorkflowTaskKind = 'novel_chapter_generation_batch';
 const assetGenerationWorkflowTaskKind = 'novel_asset_generation';
 const chapterEnrichmentWorkflowTaskKind = 'novel_chapter_enrichment';
+const chapterIllustrationGenerationWorkflowTaskKind =
+    'novel_chapter_illustration_generation';
 
 class ProjectBible {
   const ProjectBible({
@@ -363,6 +375,104 @@ class ChapterIllustrationInput {
   final String modelName;
   final String localPath;
   final String mimeType;
+}
+
+class ChapterIllustrationGenerationRun {
+  const ChapterIllustrationGenerationRun({
+    required this.id,
+    required this.workflowTaskId,
+    required this.projectId,
+    required this.chapterId,
+    required this.chapterPlanId,
+    required this.paragraphIndex,
+    required this.anchorTextHash,
+    required this.selectedText,
+    required this.prompt,
+    required this.providerId,
+    required this.modelName,
+    required this.aspectRatio,
+    required this.size,
+    required this.quality,
+    required this.responseFormat,
+    required this.status,
+    required this.stage,
+    required this.errorMessage,
+    required this.logs,
+    required this.illustrationId,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.startedAt,
+    required this.completedAt,
+  });
+
+  final String id;
+  final String workflowTaskId;
+  final String projectId;
+  final String chapterId;
+  final String chapterPlanId;
+  final int paragraphIndex;
+  final String anchorTextHash;
+  final String selectedText;
+  final String prompt;
+  final String providerId;
+  final String modelName;
+  final String aspectRatio;
+  final String size;
+  final String quality;
+  final String responseFormat;
+  final ChapterIllustrationGenerationStatus status;
+  final ChapterIllustrationGenerationStage? stage;
+  final String? errorMessage;
+  final String logs;
+  final String? illustrationId;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? startedAt;
+  final DateTime? completedAt;
+}
+
+class ChapterIllustrationGenerationRunInput {
+  const ChapterIllustrationGenerationRunInput({
+    required this.projectId,
+    required this.chapterId,
+    required this.chapterPlanId,
+    required this.paragraphIndex,
+    required this.anchorTextHash,
+    required this.selectedText,
+    required this.prompt,
+    required this.providerId,
+    required this.modelName,
+    required this.aspectRatio,
+    required this.size,
+    required this.quality,
+    required this.responseFormat,
+  });
+
+  final String projectId;
+  final String chapterId;
+  final String chapterPlanId;
+  final int paragraphIndex;
+  final String anchorTextHash;
+  final String selectedText;
+  final String prompt;
+  final String providerId;
+  final String modelName;
+  final String aspectRatio;
+  final String size;
+  final String quality;
+  final String responseFormat;
+}
+
+class ChapterIllustrationGenerationResult {
+  const ChapterIllustrationGenerationResult({
+    required this.run,
+    required this.workflowTaskId,
+    this.illustration,
+  });
+
+  final ChapterIllustrationGenerationRun run;
+  final String workflowTaskId;
+  final ChapterIllustration? illustration;
 }
 
 class MemorySyncProposalInput {

@@ -843,6 +843,96 @@ final class ProjectChaptersFamily extends $Family
   String toString() => r'projectChaptersProvider';
 }
 
+@ProviderFor(chapterIllustrationGenerationRunByWorkflowTask)
+final chapterIllustrationGenerationRunByWorkflowTaskProvider =
+    ChapterIllustrationGenerationRunByWorkflowTaskFamily._();
+
+final class ChapterIllustrationGenerationRunByWorkflowTaskProvider
+    extends
+        $FunctionalProvider<
+          flutter_riverpod.AsyncValue<ChapterIllustrationGenerationRun?>,
+          ChapterIllustrationGenerationRun?,
+          Stream<ChapterIllustrationGenerationRun?>
+        >
+    with
+        $FutureModifier<ChapterIllustrationGenerationRun?>,
+        $StreamProvider<ChapterIllustrationGenerationRun?> {
+  ChapterIllustrationGenerationRunByWorkflowTaskProvider._({
+    required ChapterIllustrationGenerationRunByWorkflowTaskFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'chapterIllustrationGenerationRunByWorkflowTaskProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() =>
+      _$chapterIllustrationGenerationRunByWorkflowTaskHash();
+
+  @override
+  String toString() {
+    return r'chapterIllustrationGenerationRunByWorkflowTaskProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<ChapterIllustrationGenerationRun?> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<ChapterIllustrationGenerationRun?> create(Ref ref) {
+    final argument = this.argument as String;
+    return chapterIllustrationGenerationRunByWorkflowTask(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ChapterIllustrationGenerationRunByWorkflowTaskProvider &&
+        other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$chapterIllustrationGenerationRunByWorkflowTaskHash() =>
+    r'615af784596bf2b653350f483a1ae055252a2c2c';
+
+final class ChapterIllustrationGenerationRunByWorkflowTaskFamily extends $Family
+    with
+        $FunctionalFamilyOverride<
+          Stream<ChapterIllustrationGenerationRun?>,
+          String
+        > {
+  ChapterIllustrationGenerationRunByWorkflowTaskFamily._()
+    : super(
+        retry: null,
+        name: r'chapterIllustrationGenerationRunByWorkflowTaskProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  ChapterIllustrationGenerationRunByWorkflowTaskProvider call(
+    String workflowTaskId,
+  ) => ChapterIllustrationGenerationRunByWorkflowTaskProvider._(
+    argument: workflowTaskId,
+    from: this,
+  );
+
+  @override
+  String toString() =>
+      r'chapterIllustrationGenerationRunByWorkflowTaskProvider';
+}
+
 @ProviderFor(novelCharacters)
 final novelCharactersProvider = NovelCharactersFamily._();
 
@@ -2106,7 +2196,7 @@ final class NovelWorkshopControllerProvider
 }
 
 String _$novelWorkshopControllerHash() =>
-    r'0f78761befa9928567717459df00eefcb0974b7c';
+    r'd426d055836643976e60200e18d957fc5d233afa';
 
 abstract class _$NovelWorkshopController extends $AsyncNotifier<void> {
   FutureOr<void> build();

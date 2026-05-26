@@ -411,6 +411,38 @@ class ChapterIllustrationRecords extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+class ChapterIllustrationGenerationRunRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get workflowTaskId =>
+      text().references(WorkflowTaskRecords, #id)();
+  TextColumn get projectId => text().references(ProjectRecords, #id)();
+  TextColumn get chapterId => text().references(ProjectChapterRecords, #id)();
+  TextColumn get chapterPlanId => text().references(ChapterPlanRecords, #id)();
+  IntColumn get paragraphIndex => integer()();
+  TextColumn get anchorTextHash => text().withDefault(const Constant(''))();
+  TextColumn get selectedText => text().withDefault(const Constant(''))();
+  TextColumn get prompt => text().withDefault(const Constant(''))();
+  TextColumn get providerId => text().withDefault(const Constant(''))();
+  TextColumn get modelName => text().withDefault(const Constant(''))();
+  TextColumn get aspectRatio => text().withDefault(const Constant('1:1'))();
+  TextColumn get size => text().withDefault(const Constant('1K'))();
+  TextColumn get quality => text().withDefault(const Constant('auto'))();
+  TextColumn get responseFormat => text().withDefault(const Constant('url'))();
+  TextColumn get status => text()();
+  TextColumn get stage => text().nullable()();
+  TextColumn get errorMessage => text().nullable()();
+  TextColumn get logs => text().withDefault(const Constant(''))();
+  TextColumn get illustrationId =>
+      text().nullable().references(ChapterIllustrationRecords, #id)();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  DateTimeColumn get startedAt => dateTime().nullable()();
+  DateTimeColumn get completedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 class ChapterEnrichmentBatchRecords extends Table {
   TextColumn get id => text()();
   TextColumn get workflowTaskId =>
@@ -647,6 +679,7 @@ class AssetGenerationRunRecords extends Table {
     ChapterPlanRecords,
     ProjectChapterRecords,
     ChapterIllustrationRecords,
+    ChapterIllustrationGenerationRunRecords,
     ChapterEnrichmentBatchRecords,
     ChapterEnrichmentItemRecords,
     ChapterGenerationBatchRecords,
@@ -670,7 +703,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 28;
+  int get schemaVersion => 30;
 
   @override
   MigrationStrategy get migration {
@@ -1072,6 +1105,20 @@ class AppDatabase extends _$AppDatabase {
           if (!await _tableExists('chapter_illustration_records')) {
             await migrator.createTable(chapterIllustrationRecords);
           }
+        }
+        if (from < 29) {
+          if (!await _tableExists(
+            'chapter_illustration_generation_run_records',
+          )) {
+            await migrator.createTable(chapterIllustrationGenerationRunRecords);
+          }
+        }
+        if (from < 30 && await _tableExists('chapter_illustration_records')) {
+          await customStatement('''
+            UPDATE chapter_illustration_records
+            SET status = 'inserted'
+            WHERE status = 'accepted'
+          ''');
         }
       },
     );

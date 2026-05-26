@@ -62,7 +62,7 @@ meta: value
   });
 
   test(
-    'buildNovelEpub includes accepted illustrations and excludes drafts',
+    'buildNovelEpub includes inserted illustrations and excludes inactive illustrations',
     () async {
       final directory = await Directory.systemTemp.createTemp(
         'novel-epub-test',
@@ -86,9 +86,9 @@ meta: value
         ],
         illustrations: [
           _illustration(
-            id: 'accepted',
+            id: 'inserted',
             localPath: acceptedFile.path,
-            status: ChapterIllustrationStatus.accepted,
+            status: ChapterIllustrationStatus.inserted,
             selectedText: '警报 "亮起" & 转红',
             paragraphIndex: 1,
           ),
@@ -99,6 +99,13 @@ meta: value
             selectedText: '未采用草稿',
             paragraphIndex: 0,
           ),
+          _illustration(
+            id: 'unused',
+            localPath: draftFile.path,
+            status: ChapterIllustrationStatus.unused,
+            selectedText: '已移出正文',
+            paragraphIndex: 0,
+          ),
         ],
       );
       final book = await EpubReader.readBook(bytes);
@@ -106,10 +113,12 @@ meta: value
           book.Content!.Html!['chapters/chapter-1.xhtml']!.Content!;
 
       expect(bytes, isNotEmpty);
-      expect(book.Content!.AllFiles, contains('images/accepted.png'));
+      expect(book.Content!.AllFiles, contains('images/inserted.png'));
       expect(book.Content!.AllFiles, isNot(contains('images/draft.png')));
-      expect(chapterXhtml, contains('../images/accepted.png'));
+      expect(book.Content!.AllFiles, isNot(contains('images/unused.png')));
+      expect(chapterXhtml, contains('../images/inserted.png'));
       expect(chapterXhtml, isNot(contains('images/draft.png')));
+      expect(chapterXhtml, isNot(contains('images/unused.png')));
       expect(chapterXhtml, contains('警报 &quot;亮起&quot; &amp; 转红'));
       expect(book.Content!.AllFiles!['toc.ncx'], isNotNull);
     },
@@ -211,7 +220,7 @@ ChapterIllustration _illustration({
     status: status,
     createdAt: DateTime(2026, 5, 24),
     updatedAt: DateTime(2026, 5, 24),
-    acceptedAt: status == ChapterIllustrationStatus.accepted
+    acceptedAt: status == ChapterIllustrationStatus.inserted
         ? DateTime(2026, 5, 24)
         : null,
   );

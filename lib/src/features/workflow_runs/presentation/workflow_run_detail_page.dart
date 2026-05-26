@@ -153,16 +153,20 @@ class _WorkflowRunDetailScaffoldState
     final enrichmentBatch = task.kind == chapterEnrichmentWorkflowTaskKind
         ? ref.watch(chapterEnrichmentBatchByWorkflowTaskProvider(task.id))
         : const AsyncValue<ChapterEnrichmentBatch?>.data(null);
-    final sColor = statusColor(
-      Theme.of(context).colorScheme,
-      task.status,
-    );
+    final illustrationRun =
+        task.kind == chapterIllustrationGenerationWorkflowTaskKind
+        ? ref.watch(
+            chapterIllustrationGenerationRunByWorkflowTaskProvider(task.id),
+          )
+        : const AsyncValue<ChapterIllustrationGenerationRun?>.data(null);
+    final sColor = statusColor(Theme.of(context).colorScheme, task.status);
     final bPath = businessDetailPath(task, styleRun, plotRun);
     final logs = _logsForTask(
       task,
       styleRun,
       plotRun,
       assetRun,
+      illustrationRun,
       chapterBatch,
       chapterBatchItems,
     );
@@ -184,6 +188,7 @@ class _WorkflowRunDetailScaffoldState
           assetRun: assetRun,
           chapterRun: chapterRun,
           enrichmentBatch: enrichmentBatch,
+          illustrationRun: illustrationRun,
         ),
         PersonaPanel(
           padding: EdgeInsets.zero,
@@ -491,12 +496,14 @@ class _WorkflowOutputPreviewPanel extends ConsumerWidget {
     required this.assetRun,
     required this.chapterRun,
     required this.enrichmentBatch,
+    required this.illustrationRun,
   });
 
   final WorkflowTask task;
   final AsyncValue<AssetGenerationRun?> assetRun;
   final AsyncValue<ChapterGenerationRun?> chapterRun;
   final AsyncValue<ChapterEnrichmentBatch?> enrichmentBatch;
+  final AsyncValue<ChapterIllustrationGenerationRun?> illustrationRun;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -529,6 +536,8 @@ class _WorkflowOutputPreviewPanel extends ConsumerWidget {
                   _ChapterWorkflowOutputPreview(run: chapterRun),
                 chapterEnrichmentWorkflowTaskKind =>
                   _EnrichmentWorkflowOutputPreview(batch: enrichmentBatch),
+                chapterIllustrationGenerationWorkflowTaskKind =>
+                  _IllustrationWorkflowOutputPreview(run: illustrationRun),
                 _ => const SizedBox.shrink(),
               },
           ],
@@ -594,8 +603,7 @@ class _AssetWorkflowOutputPreview extends ConsumerWidget {
           ],
         );
       },
-      error: (error, stackTrace) =>
-          _InlineError(message: '无法加载资产草稿：$error'),
+      error: (error, stackTrace) => _InlineError(message: '无法加载资产草稿：$error'),
       loading: () => const SkeletonBox(width: 260, height: 16),
     );
   }
@@ -619,6 +627,54 @@ class _AssetWorkflowOutputPreview extends ConsumerWidget {
         context,
       ).showSnackBar(SnackBar(content: Text('应用失败：$error')));
     }
+  }
+}
+
+class _IllustrationWorkflowOutputPreview extends StatelessWidget {
+  const _IllustrationWorkflowOutputPreview({required this.run});
+
+  final AsyncValue<ChapterIllustrationGenerationRun?> run;
+
+  @override
+  Widget build(BuildContext context) {
+    return run.when(
+      data: (item) {
+        if (item == null) {
+          return const PersonaEmptyStateCard(
+            icon: Icons.link_off_outlined,
+            title: '插图任务记录缺失',
+            description: '仍可在下方查看 Prompt Trace。',
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _PreviewMetadataRow(
+              children: [
+                _CompactMeta(label: '模型', value: item.modelName),
+                _CompactMeta(
+                  label: '参数',
+                  value: '${item.aspectRatio} · ${item.size} · ${item.quality}',
+                ),
+                _CompactMeta(label: '段落', value: '${item.paragraphIndex + 1}'),
+              ],
+            ),
+            const SizedBox(height: 10),
+            _PreviewMarkdownSurface(text: item.prompt),
+            if (item.illustrationId != null) ...[
+              const SizedBox(height: 12),
+              PersonaStatusPill(
+                label: '已进入插图库',
+                icon: Icons.photo_library_outlined,
+                color: const Color(0xFF16825D),
+              ),
+            ],
+          ],
+        );
+      },
+      error: (error, stackTrace) => _InlineError(message: '无法加载插图任务：$error'),
+      loading: () => const SkeletonBox(width: 260, height: 16),
+    );
   }
 }
 
@@ -672,8 +728,7 @@ class _ChapterWorkflowOutputPreview extends StatelessWidget {
           ],
         );
       },
-      error: (error, stackTrace) =>
-          _InlineError(message: '无法加载章节结果：$error'),
+      error: (error, stackTrace) => _InlineError(message: '无法加载章节结果：$error'),
       loading: () => const SkeletonBox(width: 260, height: 16),
     );
   }
@@ -748,8 +803,7 @@ class _EnrichmentWorkflowOutputPreview extends ConsumerWidget {
           loading: () => const SkeletonBox(width: 260, height: 16),
         );
       },
-      error: (error, stackTrace) =>
-          _InlineError(message: '无法加载加料批次：$error'),
+      error: (error, stackTrace) => _InlineError(message: '无法加载加料批次：$error'),
       loading: () => const SkeletonBox(width: 260, height: 16),
     );
   }
@@ -766,9 +820,9 @@ class _EnrichmentWorkflowOutputPreview extends ConsumerWidget {
             items.map((item) => item.id).toList(growable: false),
           );
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已应用 ${items.length} 个加料结果。')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('已应用 ${items.length} 个加料结果。')));
     } on Object catch (error) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
@@ -1153,9 +1207,7 @@ class _PromptTraceCallTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final sColor = call.failed
-        ? colorScheme.error
-        : const Color(0xFF16825D);
+    final sColor = call.failed ? colorScheme.error : const Color(0xFF16825D);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -1409,6 +1461,7 @@ AsyncValue<String> _logsForTask(
   AsyncValue<StyleAnalysisRun?> styleRun,
   AsyncValue<PlotAnalysisRun?> plotRun,
   AsyncValue<AssetGenerationRun?> assetRun,
+  AsyncValue<ChapterIllustrationGenerationRun?> illustrationRun,
   AsyncValue<ChapterGenerationBatch?> chapterBatch,
   AsyncValue<List<ChapterGenerationBatchItem>> chapterBatchItems,
 ) {
@@ -1418,6 +1471,9 @@ AsyncValue<String> _logsForTask(
     ),
     plotAnalysisWorkflowTaskKind => plotRun.whenData((run) => run?.logs ?? ''),
     assetGenerationWorkflowTaskKind => assetRun.whenData(
+      (run) => run?.logs ?? '',
+    ),
+    chapterIllustrationGenerationWorkflowTaskKind => illustrationRun.whenData(
       (run) => run?.logs ?? '',
     ),
     chapterGenerationBatchWorkflowTaskKind => _chapterBatchLogs(

@@ -20,6 +20,7 @@ import '../domain/writing_context.dart';
 import 'asset_generation_pipeline.dart';
 import 'chapter_enrichment_pipeline.dart';
 import 'chapter_generation_pipeline.dart';
+import 'chapter_illustration_generation_pipeline.dart';
 import 'chapter_illustration_service.dart';
 import 'novel_export_service.dart';
 import 'novel_import_parser.dart';
@@ -131,6 +132,17 @@ final chapterIllustrationServiceProvider =
       );
     });
 
+final chapterIllustrationGenerationPipelineProvider =
+    flutter_riverpod.Provider<ChapterIllustrationGenerationPipeline>((ref) {
+      return ChapterIllustrationGenerationPipeline(
+        repository: ref.watch(novelWorkshopRepositoryProvider),
+        imageProviderRepository: ref.watch(
+          imageProviderConfigRepositoryProvider,
+        ),
+        illustrationService: ref.watch(chapterIllustrationServiceProvider),
+      );
+    });
+
 @riverpod
 Stream<ProjectBible> projectBible(Ref ref, String projectId) {
   return ref
@@ -166,6 +178,24 @@ final chapterIllustrationsProvider =
           .watch(novelWorkshopRepositoryProvider)
           .watchChapterIllustrations(projectId);
     });
+
+final chapterIllustrationGenerationRunsProvider =
+    flutter_riverpod.StreamProvider.family<
+      List<ChapterIllustrationGenerationRun>,
+      String
+    >((ref, projectId) {
+      return ref
+          .watch(novelWorkshopRepositoryProvider)
+          .watchChapterIllustrationGenerationRuns(projectId);
+    });
+
+@riverpod
+Stream<ChapterIllustrationGenerationRun?>
+chapterIllustrationGenerationRunByWorkflowTask(Ref ref, String workflowTaskId) {
+  return ref
+      .watch(novelWorkshopRepositoryProvider)
+      .watchChapterIllustrationGenerationRunByWorkflowTask(workflowTaskId);
+}
 
 @riverpod
 Stream<List<NovelCharacter>> novelCharacters(Ref ref, String projectId) {
@@ -305,7 +335,11 @@ Future<ProjectPromptAssets> projectPromptAssets(Ref ref, String projectId) {
 @Riverpod(keepAlive: true)
 class NovelWorkshopController extends _$NovelWorkshopController {
   @override
-  FutureOr<void> build() {}
+  FutureOr<void> build() async {
+    await ref
+        .read(novelWorkshopRepositoryProvider)
+        .markInterruptedChapterIllustrationGenerationRunsFailed();
+  }
 
   Future<ChapterPlan> saveChapterPlan({
     String? id,
@@ -442,42 +476,133 @@ class NovelWorkshopController extends _$NovelWorkshopController {
     return path;
   }
 
-  Future<ChapterIllustration> generateChapterIllustration({
+  Future<ChapterIllustrationGenerationRun> createAndRunChapterIllustration({
     required ProjectChapter chapter,
     required int paragraphIndex,
     required String selectedText,
     required String prompt,
     required ImageProviderConfig provider,
     required String modelName,
+    required ImageAspectRatioPreset aspectRatio,
+    required ImageSizePreset size,
+    required ImageQualityPreset quality,
+    required ImageResponseFormat responseFormat,
   }) async {
     state = const AsyncLoading();
-    late ChapterIllustration saved;
-    state = await AsyncValue.guard(() async {
-      saved = await ref
-          .read(chapterIllustrationServiceProvider)
-          .generateIllustration(
-            chapter: chapter,
-            paragraphIndex: paragraphIndex,
-            selectedText: selectedText,
-            prompt: prompt,
-            provider: provider,
-            modelName: modelName,
+    final result = await AsyncValue.guard(() async {
+      final effectiveResponseFormat =
+          provider.providerKind == ImageProviderKind.grok
+          ? ImageResponseFormat.url
+          : responseFormat;
+      final run = await ref
+          .read(novelWorkshopRepositoryProvider)
+          .createChapterIllustrationGenerationRun(
+            ChapterIllustrationGenerationRunInput(
+              projectId: chapter.projectId,
+              chapterId: chapter.id,
+              chapterPlanId: chapter.chapterPlanId,
+              paragraphIndex: paragraphIndex,
+              anchorTextHash: anchorTextHash(selectedText),
+              selectedText: selectedText,
+              prompt: prompt,
+              providerId: provider.id,
+              modelName: modelName.trim().isEmpty
+                  ? provider.defaultModel
+                  : modelName.trim(),
+              aspectRatio: aspectRatio.ratio,
+              size: size.tier,
+              quality: provider.providerKind == ImageProviderKind.grok
+                  ? ImageQualityPreset.auto.quality
+                  : quality.quality,
+              responseFormat: effectiveResponseFormat.name,
+            ),
           );
+      unawaited(
+        ref
+            .read(chapterIllustrationGenerationPipelineProvider)
+            .run(run.id)
+            .then((_) {
+              ref.invalidate(chapterIllustrationsProvider(chapter.projectId));
+              ref.invalidate(
+                chapterIllustrationGenerationRunsProvider(chapter.projectId),
+              );
+            })
+            .catchError((Object _) {}),
+      );
+      return run;
+    });
+    state = result.whenData((_) {});
+    if (result.hasError) {
+      Error.throwWithStackTrace(result.error!, result.stackTrace!);
+    }
+    return result.requireValue;
+  }
+
+  Future<ChapterIllustrationGenerationRun> retryChapterIllustrationGeneration(
+    String runId,
+  ) async {
+    state = const AsyncLoading();
+    final result = await AsyncValue.guard(() async {
+      final run = await ref
+          .read(novelWorkshopRepositoryProvider)
+          .createChapterIllustrationGenerationRunFromExisting(runId);
+      unawaited(
+        ref
+            .read(chapterIllustrationGenerationPipelineProvider)
+            .run(run.id)
+            .then((_) {
+              ref.invalidate(chapterIllustrationsProvider(run.projectId));
+              ref.invalidate(
+                chapterIllustrationGenerationRunsProvider(run.projectId),
+              );
+            })
+            .catchError((Object _) {}),
+      );
+      return run;
+    });
+    state = result.whenData((_) {});
+    if (result.hasError) {
+      Error.throwWithStackTrace(result.error!, result.stackTrace!);
+    }
+    return result.requireValue;
+  }
+
+  Future<void> deleteChapterIllustrationGenerationRun(String runId) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref
+          .read(novelWorkshopRepositoryProvider)
+          .deleteChapterIllustrationGenerationRun(runId);
     });
     if (state.hasError) {
       Error.throwWithStackTrace(state.error!, state.stackTrace!);
     }
-    ref.invalidate(chapterIllustrationsProvider(chapter.projectId));
-    return saved;
   }
 
-  Future<ChapterIllustration> acceptChapterIllustration(String id) async {
+  Future<ChapterIllustration> insertChapterIllustration(String id) async {
     state = const AsyncLoading();
     late ChapterIllustration saved;
     state = await AsyncValue.guard(() async {
       saved = await ref
           .read(novelWorkshopRepositoryProvider)
-          .acceptChapterIllustration(id);
+          .insertChapterIllustration(id);
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
+    ref.invalidate(chapterIllustrationsProvider(saved.projectId));
+    return saved;
+  }
+
+  Future<ChapterIllustration> removeChapterIllustrationFromText(
+    String id,
+  ) async {
+    state = const AsyncLoading();
+    late ChapterIllustration saved;
+    state = await AsyncValue.guard(() async {
+      saved = await ref
+          .read(novelWorkshopRepositoryProvider)
+          .removeChapterIllustrationFromText(id);
     });
     if (state.hasError) {
       Error.throwWithStackTrace(state.error!, state.stackTrace!);

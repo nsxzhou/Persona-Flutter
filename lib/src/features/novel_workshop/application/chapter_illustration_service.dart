@@ -37,6 +37,10 @@ class ChapterIllustrationService {
     required String prompt,
     required ImageProviderConfig provider,
     required String modelName,
+    ImageAspectRatioPreset? aspectRatio,
+    ImageSizePreset? size,
+    ImageQualityPreset? quality,
+    ImageResponseFormat? responseFormat,
   }) async {
     final normalizedPrompt = prompt.trim();
     if (normalizedPrompt.isEmpty) {
@@ -46,6 +50,10 @@ class ChapterIllustrationService {
       provider: provider,
       prompt: normalizedPrompt,
       modelName: modelName,
+      aspectRatio: aspectRatio,
+      size: size,
+      quality: quality,
+      responseFormat: responseFormat,
     );
     final image = result.images.cast<GeneratedImage?>().firstWhere(
       (item) => item?.hasImage ?? false,

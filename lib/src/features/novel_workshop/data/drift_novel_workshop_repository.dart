@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
@@ -77,6 +78,23 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       ]);
     return query.watch().map(
       (rows) => rows.map(_mapIllustration).toList(growable: false),
+    );
+  }
+
+  @override
+  Stream<List<ChapterIllustrationGenerationRun>>
+  watchChapterIllustrationGenerationRuns(String projectId) {
+    final query =
+        _database.select(_database.chapterIllustrationGenerationRunRecords)
+          ..where((run) => run.projectId.equals(projectId))
+          ..orderBy([
+            (run) => OrderingTerm(
+              expression: run.updatedAt,
+              mode: OrderingMode.desc,
+            ),
+          ]);
+    return query.watch().map(
+      (rows) => rows.map(_mapIllustrationGenerationRun).toList(growable: false),
     );
   }
 
@@ -222,6 +240,18 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
   }
 
   @override
+  Stream<ChapterIllustrationGenerationRun?>
+  watchChapterIllustrationGenerationRunByWorkflowTask(String workflowTaskId) {
+    final query =
+        _database.select(_database.chapterIllustrationGenerationRunRecords)
+          ..where((run) => run.workflowTaskId.equals(workflowTaskId))
+          ..limit(1);
+    return query.watchSingleOrNull().map(
+      (row) => row == null ? null : _mapIllustrationGenerationRun(row),
+    );
+  }
+
+  @override
   Stream<ChapterEnrichmentBatch?> watchChapterEnrichmentBatchByWorkflowTask(
     String workflowTaskId,
   ) {
@@ -267,6 +297,17 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       ..limit(1);
     final row = await query.getSingleOrNull();
     return row == null ? null : _mapIllustration(row);
+  }
+
+  @override
+  Future<ChapterIllustrationGenerationRun?>
+  findChapterIllustrationGenerationRun(String id) async {
+    final query =
+        _database.select(_database.chapterIllustrationGenerationRunRecords)
+          ..where((row) => row.id.equals(id))
+          ..limit(1);
+    final row = await query.getSingleOrNull();
+    return row == null ? null : _mapIllustrationGenerationRun(row);
   }
 
   @override
@@ -376,6 +417,22 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
               .getSingleOrNull();
       if (assetRun != null) {
         handled = await _abandonAssetGenerationRun(assetRun, now) || handled;
+      }
+
+      final illustrationRun =
+          await (_database.select(
+                  _database.chapterIllustrationGenerationRunRecords,
+                )
+                ..where((run) => run.workflowTaskId.equals(workflowTaskId))
+                ..limit(1))
+              .getSingleOrNull();
+      if (illustrationRun != null) {
+        handled =
+            await _abandonChapterIllustrationGenerationRun(
+              illustrationRun,
+              now,
+            ) ||
+            handled;
       }
 
       final enrichmentBatch =
@@ -1252,7 +1309,7 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
   }
 
   @override
-  Future<ChapterIllustration> acceptChapterIllustration(String id) async {
+  Future<ChapterIllustration> insertChapterIllustration(String id) async {
     final illustration = await findChapterIllustration(id);
     if (illustration == null) {
       throw StateError('Chapter illustration does not exist: $id');
@@ -1262,8 +1319,32 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       _database.chapterIllustrationRecords,
     )..where((row) => row.id.equals(id))).write(
       ChapterIllustrationRecordsCompanion(
-        status: Value(ChapterIllustrationStatus.accepted.name),
-        acceptedAt: Value(now),
+        status: Value(ChapterIllustrationStatus.inserted.name),
+        acceptedAt: Value(illustration.acceptedAt ?? now),
+        updatedAt: Value(now),
+      ),
+    );
+    final saved = await findChapterIllustration(id);
+    if (saved == null) {
+      throw StateError('Chapter illustration was not updated.');
+    }
+    return saved;
+  }
+
+  @override
+  Future<ChapterIllustration> removeChapterIllustrationFromText(
+    String id,
+  ) async {
+    final illustration = await findChapterIllustration(id);
+    if (illustration == null) {
+      throw StateError('Chapter illustration does not exist: $id');
+    }
+    final now = DateTime.now();
+    await (_database.update(
+      _database.chapterIllustrationRecords,
+    )..where((row) => row.id.equals(id))).write(
+      ChapterIllustrationRecordsCompanion(
+        status: Value(ChapterIllustrationStatus.unused.name),
         updatedAt: Value(now),
       ),
     );
@@ -1276,9 +1357,236 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
 
   @override
   Future<void> deleteChapterIllustration(String id) async {
+    final illustration = await findChapterIllustration(id);
     await (_database.delete(
       _database.chapterIllustrationRecords,
     )..where((row) => row.id.equals(id))).go();
+    if (illustration == null || illustration.localPath.trim().isEmpty) {
+      return;
+    }
+    try {
+      final file = File(illustration.localPath);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } on Object {
+      // The database record is the source of truth; file cleanup is best effort.
+    }
+  }
+
+  @override
+  Future<ChapterIllustrationGenerationRun>
+  createChapterIllustrationGenerationRun(
+    ChapterIllustrationGenerationRunInput input,
+  ) async {
+    await _validateIllustrationGenerationInput(input);
+    final now = DateTime.now();
+    final runId = _uuid.v4();
+    final taskId = _uuid.v4();
+    final chapter = await findChapter(input.chapterId);
+    final title = chapter?.title.trim();
+
+    await _database.transaction(() async {
+      await _database
+          .into(_database.workflowTaskRecords)
+          .insert(
+            WorkflowTaskRecordsCompanion.insert(
+              id: taskId,
+              kind: chapterIllustrationGenerationWorkflowTaskKind,
+              status: WorkflowTaskStatus.pending.name,
+              title: title == null || title.isEmpty ? '插图生成任务' : '插图生成：$title',
+              stage: const Value('queued'),
+              errorMessage: const Value(null),
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+      await _database
+          .into(_database.chapterIllustrationGenerationRunRecords)
+          .insert(
+            ChapterIllustrationGenerationRunRecordsCompanion.insert(
+              id: runId,
+              workflowTaskId: taskId,
+              projectId: input.projectId,
+              chapterId: input.chapterId,
+              chapterPlanId: input.chapterPlanId,
+              paragraphIndex: input.paragraphIndex,
+              anchorTextHash: Value(input.anchorTextHash.trim()),
+              selectedText: Value(input.selectedText.trim()),
+              prompt: Value(input.prompt.trim()),
+              providerId: Value(input.providerId.trim()),
+              modelName: Value(input.modelName.trim()),
+              aspectRatio: Value(input.aspectRatio.trim()),
+              size: Value(input.size.trim()),
+              quality: Value(input.quality.trim()),
+              responseFormat: Value(input.responseFormat.trim()),
+              status: ChapterIllustrationGenerationStatus.pending.name,
+              stage: const Value(null),
+              errorMessage: const Value(null),
+              logs: const Value(''),
+              illustrationId: const Value(null),
+              createdAt: now,
+              updatedAt: now,
+              startedAt: const Value(null),
+              completedAt: const Value(null),
+            ),
+          );
+    });
+
+    final saved = await findChapterIllustrationGenerationRun(runId);
+    if (saved == null) {
+      throw StateError('Chapter illustration generation run was not created.');
+    }
+    return saved;
+  }
+
+  @override
+  Future<ChapterIllustrationGenerationRun>
+  createChapterIllustrationGenerationRunFromExisting(String id) async {
+    final existing = await findChapterIllustrationGenerationRun(id);
+    if (existing == null) {
+      throw StateError(
+        'Chapter illustration generation run does not exist: $id',
+      );
+    }
+    return createChapterIllustrationGenerationRun(
+      ChapterIllustrationGenerationRunInput(
+        projectId: existing.projectId,
+        chapterId: existing.chapterId,
+        chapterPlanId: existing.chapterPlanId,
+        paragraphIndex: existing.paragraphIndex,
+        anchorTextHash: existing.anchorTextHash,
+        selectedText: existing.selectedText,
+        prompt: existing.prompt,
+        providerId: existing.providerId,
+        modelName: existing.modelName,
+        aspectRatio: existing.aspectRatio,
+        size: existing.size,
+        quality: existing.quality,
+        responseFormat: existing.responseFormat,
+      ),
+    );
+  }
+
+  @override
+  Future<ChapterIllustrationGenerationRun>
+  updateChapterIllustrationGenerationRunState({
+    required String id,
+    required ChapterIllustrationGenerationStatus status,
+    ChapterIllustrationGenerationStage? stage,
+    String? errorMessage,
+    String? logs,
+    String? illustrationId,
+    DateTime? startedAt,
+    DateTime? completedAt,
+  }) async {
+    final run = await findChapterIllustrationGenerationRun(id);
+    if (run == null) {
+      throw StateError(
+        'Chapter illustration generation run does not exist: $id',
+      );
+    }
+    final now = DateTime.now();
+
+    await _database.transaction(() async {
+      await (_database.update(
+        _database.chapterIllustrationGenerationRunRecords,
+      )..where((row) => row.id.equals(id))).write(
+        ChapterIllustrationGenerationRunRecordsCompanion(
+          status: Value(status.name),
+          stage: Value(stage?.name),
+          errorMessage: Value(errorMessage),
+          logs: logs == null ? const Value.absent() : Value(logs),
+          illustrationId: illustrationId == null
+              ? const Value.absent()
+              : Value(illustrationId),
+          startedAt: startedAt == null
+              ? const Value.absent()
+              : Value(startedAt),
+          completedAt: completedAt == null
+              ? const Value.absent()
+              : Value(completedAt),
+          updatedAt: Value(now),
+        ),
+      );
+      await _updateWorkflowTaskForIllustrationGenerationRun(
+        workflowTaskId: run.workflowTaskId,
+        status: status,
+        stage: stage,
+        errorMessage: errorMessage,
+        updatedAt: now,
+      );
+    });
+
+    final saved = await findChapterIllustrationGenerationRun(id);
+    if (saved == null) {
+      throw StateError('Chapter illustration generation run was not updated.');
+    }
+    return saved;
+  }
+
+  @override
+  Future<int> markInterruptedChapterIllustrationGenerationRunsFailed() async {
+    final interrupted =
+        await (_database.select(
+              _database.chapterIllustrationGenerationRunRecords,
+            )..where(
+              (run) =>
+                  run.status.equals(
+                    ChapterIllustrationGenerationStatus.pending.name,
+                  ) |
+                  run.status.equals(
+                    ChapterIllustrationGenerationStatus.running.name,
+                  ),
+            ))
+            .get();
+    if (interrupted.isEmpty) {
+      return 0;
+    }
+    final now = DateTime.now();
+    const message = '应用重启，任务已中断，可重试。';
+    await _database.transaction(() async {
+      for (final run in interrupted) {
+        await (_database.update(
+          _database.chapterIllustrationGenerationRunRecords,
+        )..where((row) => row.id.equals(run.id))).write(
+          ChapterIllustrationGenerationRunRecordsCompanion(
+            status: Value(ChapterIllustrationGenerationStatus.failed.name),
+            stage: const Value(null),
+            errorMessage: const Value(message),
+            updatedAt: Value(now),
+            completedAt: Value(now),
+          ),
+        );
+        await _updateWorkflowTaskForIllustrationGenerationRun(
+          workflowTaskId: run.workflowTaskId,
+          status: ChapterIllustrationGenerationStatus.failed,
+          stage: null,
+          errorMessage: message,
+          updatedAt: now,
+        );
+      }
+    });
+    return interrupted.length;
+  }
+
+  @override
+  Future<void> deleteChapterIllustrationGenerationRun(String id) async {
+    final run = await findChapterIllustrationGenerationRun(id);
+    if (run == null) {
+      return;
+    }
+    await _database.transaction(() async {
+      await (_database.delete(_database.workflowPromptTraceRecords)
+            ..where((trace) => trace.workflowTaskId.equals(run.workflowTaskId)))
+          .go();
+      await (_database.delete(
+        _database.chapterIllustrationGenerationRunRecords,
+      )..where((row) => row.id.equals(id))).go();
+      await (_database.delete(
+        _database.workflowTaskRecords,
+      )..where((task) => task.id.equals(run.workflowTaskId))).go();
+    });
   }
 
   @override
@@ -2563,6 +2871,37 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     }
   }
 
+  Future<void> _validateIllustrationGenerationInput(
+    ChapterIllustrationGenerationRunInput input,
+  ) async {
+    await _requireProject(input.projectId);
+    final chapter = await findChapter(input.chapterId);
+    if (chapter == null || chapter.projectId != input.projectId) {
+      throw StateError('插图章节不存在。');
+    }
+    if (chapter.chapterPlanId != input.chapterPlanId) {
+      throw StateError('插图章节计划不匹配。');
+    }
+    if (input.paragraphIndex < 0) {
+      throw StateError('插图段落位置不能小于 0。');
+    }
+    if (input.selectedText.trim().isEmpty) {
+      throw StateError('插图需要选中文本。');
+    }
+    if (input.prompt.trim().isEmpty) {
+      throw StateError('插图提示词不能为空。');
+    }
+    if (input.providerId.trim().isEmpty || input.modelName.trim().isEmpty) {
+      throw StateError('插图需要图像 Provider 和模型。');
+    }
+    if (input.aspectRatio.trim().isEmpty ||
+        input.size.trim().isEmpty ||
+        input.quality.trim().isEmpty ||
+        input.responseFormat.trim().isEmpty) {
+      throw StateError('插图生成参数不完整。');
+    }
+  }
+
   String _normalizeMimeType(String value) {
     final normalized = value.trim().toLowerCase();
     return normalized.isEmpty ? 'image/png' : normalized;
@@ -2752,10 +3091,50 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       modelName: row.modelName,
       localPath: row.localPath,
       mimeType: row.mimeType,
-      status: ChapterIllustrationStatus.values.byName(row.status),
+      status: _mapIllustrationStatus(row.status),
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
       acceptedAt: row.acceptedAt,
+    );
+  }
+
+  ChapterIllustrationStatus _mapIllustrationStatus(String value) {
+    if (value == 'accepted') {
+      return ChapterIllustrationStatus.inserted;
+    }
+    return ChapterIllustrationStatus.values.byName(value);
+  }
+
+  ChapterIllustrationGenerationRun _mapIllustrationGenerationRun(
+    ChapterIllustrationGenerationRunRecord row,
+  ) {
+    return ChapterIllustrationGenerationRun(
+      id: row.id,
+      workflowTaskId: row.workflowTaskId,
+      projectId: row.projectId,
+      chapterId: row.chapterId,
+      chapterPlanId: row.chapterPlanId,
+      paragraphIndex: row.paragraphIndex,
+      anchorTextHash: row.anchorTextHash,
+      selectedText: row.selectedText,
+      prompt: row.prompt,
+      providerId: row.providerId,
+      modelName: row.modelName,
+      aspectRatio: row.aspectRatio,
+      size: row.size,
+      quality: row.quality,
+      responseFormat: row.responseFormat,
+      status: ChapterIllustrationGenerationStatus.values.byName(row.status),
+      stage: row.stage == null
+          ? null
+          : ChapterIllustrationGenerationStage.values.byName(row.stage!),
+      errorMessage: row.errorMessage,
+      logs: row.logs,
+      illustrationId: row.illustrationId,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      startedAt: row.startedAt,
+      completedAt: row.completedAt,
     );
   }
 
@@ -2952,6 +3331,20 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     };
   }
 
+  WorkflowTaskStatus _illustrationGenerationWorkflowStatus(
+    ChapterIllustrationGenerationStatus status,
+  ) {
+    return switch (status) {
+      ChapterIllustrationGenerationStatus.pending => WorkflowTaskStatus.pending,
+      ChapterIllustrationGenerationStatus.running => WorkflowTaskStatus.running,
+      ChapterIllustrationGenerationStatus.succeeded =>
+        WorkflowTaskStatus.succeeded,
+      ChapterIllustrationGenerationStatus.failed => WorkflowTaskStatus.failed,
+      ChapterIllustrationGenerationStatus.abandoned =>
+        WorkflowTaskStatus.abandoned,
+    };
+  }
+
   WorkflowTaskStatus _enrichmentWorkflowStatus(
     ChapterEnrichmentBatchStatus status,
   ) {
@@ -2985,6 +3378,27 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
         continuityReportMarkdown: const Value(''),
         completedAt: Value(now),
         updatedAt: Value(now),
+      ),
+    );
+    return true;
+  }
+
+  Future<bool> _abandonChapterIllustrationGenerationRun(
+    ChapterIllustrationGenerationRunRecord run,
+    DateTime now,
+  ) async {
+    if (run.status == ChapterIllustrationGenerationStatus.succeeded.name) {
+      return false;
+    }
+    await (_database.update(
+      _database.chapterIllustrationGenerationRunRecords,
+    )..where((row) => row.id.equals(run.id))).write(
+      ChapterIllustrationGenerationRunRecordsCompanion(
+        status: Value(ChapterIllustrationGenerationStatus.abandoned.name),
+        stage: const Value(null),
+        errorMessage: const Value(null),
+        updatedAt: Value(now),
+        completedAt: Value(now),
       ),
     );
     return true;
@@ -3150,6 +3564,25 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     )..where((task) => task.id.equals(workflowTaskId))).write(
       WorkflowTaskRecordsCompanion(
         status: Value(_assetWorkflowStatus(status).name),
+        stage: Value(stage?.name),
+        errorMessage: Value(errorMessage),
+        updatedAt: Value(updatedAt),
+      ),
+    );
+  }
+
+  Future<void> _updateWorkflowTaskForIllustrationGenerationRun({
+    required String workflowTaskId,
+    required ChapterIllustrationGenerationStatus status,
+    required ChapterIllustrationGenerationStage? stage,
+    required String? errorMessage,
+    required DateTime updatedAt,
+  }) {
+    return (_database.update(
+      _database.workflowTaskRecords,
+    )..where((task) => task.id.equals(workflowTaskId))).write(
+      WorkflowTaskRecordsCompanion(
+        status: Value(_illustrationGenerationWorkflowStatus(status).name),
         stage: Value(stage?.name),
         errorMessage: Value(errorMessage),
         updatedAt: Value(updatedAt),
