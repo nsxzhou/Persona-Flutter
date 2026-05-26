@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
@@ -1682,7 +1683,7 @@ class _ReaderChapterDrawer extends StatelessWidget {
   }
 }
 
-class _ReaderPaper extends StatefulWidget {
+class _ReaderPaper extends ConsumerStatefulWidget {
   const _ReaderPaper({
     required this.title,
     required this.projectTitle,
@@ -1710,10 +1711,10 @@ class _ReaderPaper extends StatefulWidget {
   final VoidCallback onIllustrationCreated;
 
   @override
-  State<_ReaderPaper> createState() => _ReaderPaperState();
+  ConsumerState<_ReaderPaper> createState() => _ReaderPaperState();
 }
 
-class _ReaderPaperState extends State<_ReaderPaper> {
+class _ReaderPaperState extends ConsumerState<_ReaderPaper> {
   String _selectedText = '';
 
   @override
@@ -1832,12 +1833,49 @@ class _ReaderPaperState extends State<_ReaderPaper> {
               ).showSnackBar(const SnackBar(content: Text('当前章节还没有可绑定的正文记录。')));
               return;
             }
+            final messenger = ScaffoldMessenger.of(this.context);
+            final paragraphIndex = _resolveSelectedParagraphIndex(selectedText);
+            var initialPrompt = selectedText;
+            String? initialPromptError;
+            messenger
+              ..hideCurrentSnackBar()
+              ..showSnackBar(
+                const SnackBar(
+                  content: Text('正在优化 Prompt...'),
+                  duration: Duration(minutes: 1),
+                ),
+              );
+            try {
+              initialPrompt = await ref
+                  .read(novelWorkshopControllerProvider.notifier)
+                  .generateChapterIllustrationPrompt(
+                    chapter: widget.chapter,
+                    paragraphIndex: paragraphIndex,
+                    selectedText: selectedText,
+                  );
+              if (!mounted) {
+                return;
+              }
+              messenger.hideCurrentSnackBar();
+            } on Object catch (error) {
+              if (!mounted) {
+                return;
+              }
+              initialPromptError = '$error';
+              messenger
+                ..hideCurrentSnackBar()
+                ..showSnackBar(
+                  SnackBar(content: Text('Prompt 优化失败，已使用原文打开：$error')),
+                );
+            }
             final created = await _showIllustrationDialog(
               this.context,
               chapter: widget.chapter,
-              paragraphIndex: _resolveSelectedParagraphIndex(selectedText),
+              paragraphIndex: paragraphIndex,
               selectedText: selectedText,
               providers: widget.enabledProviders,
+              initialPrompt: initialPrompt,
+              initialPromptError: initialPromptError,
             );
             if (created && mounted) {
               widget.onIllustrationCreated();
@@ -1936,7 +1974,6 @@ class _ReaderParagraph extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 24),
       child: Column(
@@ -1961,67 +1998,335 @@ class _ReaderParagraph extends ConsumerWidget {
             SelectionContainer.disabled(
               child: Padding(
                 padding: const EdgeInsets.only(top: 18, bottom: 8),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Image.file(
-                        File(illustration.localPath),
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          padding: const EdgeInsets.all(18),
-                          color: colorScheme.surfaceContainerHighest,
-                          child: Text('插图文件不可用：${illustration.localPath}'),
-                        ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _IllustrationImagePreview(
+                      localPath: illustration.localPath,
+                      maxHeight: math.min(
+                        300,
+                        MediaQuery.sizeOf(context).height * 0.32,
                       ),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                illustration.selectedText,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(
-                                      color: foregroundColor.withValues(
-                                        alpha: 0.56,
-                                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              illustration.selectedText,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: foregroundColor.withValues(
+                                      alpha: 0.56,
                                     ),
-                              ),
+                                  ),
                             ),
-                            const SizedBox(width: 8),
-                            TextButton.icon(
-                              onPressed: () async {
-                                await ref
-                                    .read(
-                                      novelWorkshopControllerProvider.notifier,
-                                    )
-                                    .removeChapterIllustrationFromText(
-                                      illustration.id,
-                                    );
-                                if (!context.mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('插图已移出正文。')),
-                                );
-                              },
-                              icon: const Icon(
-                                Icons.remove_circle_outline,
-                                size: 16,
-                              ),
-                              label: const Text('移出正文'),
+                          ),
+                          const SizedBox(width: 8),
+                          TextButton.icon(
+                            onPressed: () async {
+                              await ref
+                                  .read(
+                                    novelWorkshopControllerProvider.notifier,
+                                  )
+                                  .removeChapterIllustrationFromText(
+                                    illustration.id,
+                                  );
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('插图已移出正文。')),
+                              );
+                            },
+                            icon: const Icon(
+                              Icons.remove_circle_outline,
+                              size: 16,
                             ),
-                          ],
+                            label: const Text('移出正文'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _IllustrationImagePreview extends StatefulWidget {
+  const _IllustrationImagePreview({
+    required this.localPath,
+    this.width,
+    this.height,
+    this.maxHeight,
+    this.borderRadius = 6,
+    this.compactError = false,
+  });
+
+  final String localPath;
+  final double? width;
+  final double? height;
+  final double? maxHeight;
+  final double borderRadius;
+  final bool compactError;
+
+  @override
+  State<_IllustrationImagePreview> createState() =>
+      _IllustrationImagePreviewState();
+}
+
+class _IllustrationImagePreviewState extends State<_IllustrationImagePreview> {
+  ImageStream? _imageStream;
+  ImageStreamListener? _imageListener;
+  double? _aspectRatio;
+
+  bool get _usesFixedFrame => widget.width != null && widget.height != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!_usesFixedFrame) {
+      _resolveAspectRatio();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _IllustrationImagePreview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.localPath != widget.localPath ||
+        (oldWidget.width != widget.width ||
+            oldWidget.height != widget.height)) {
+      _aspectRatio = null;
+      _stopListening();
+      if (!_usesFixedFrame) {
+        _resolveAspectRatio();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _stopListening();
+    super.dispose();
+  }
+
+  void _resolveAspectRatio() {
+    final provider = FileImage(File(widget.localPath));
+    final stream = provider.resolve(const ImageConfiguration());
+    late final ImageStreamListener listener;
+    listener = ImageStreamListener(
+      (imageInfo, synchronousCall) {
+        final width = imageInfo.image.width;
+        final height = imageInfo.image.height;
+        if (mounted && width > 0 && height > 0) {
+          setState(() => _aspectRatio = width / height);
+        }
+        stream.removeListener(listener);
+      },
+      onError: (error, stackTrace) {
+        if (mounted) {
+          setState(() => _aspectRatio = null);
+        }
+        stream.removeListener(listener);
+      },
+    );
+    _imageStream = stream;
+    _imageListener = listener;
+    stream.addListener(listener);
+  }
+
+  void _stopListening() {
+    final listener = _imageListener;
+    if (listener != null) {
+      _imageStream?.removeListener(listener);
+    }
+    _imageStream = null;
+    _imageListener = null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final content = _usesFixedFrame
+        ? _fixedPreview(context)
+        : _adaptivePreview(context);
+    return Tooltip(
+      message: '预览插图',
+      child: Semantics(
+        button: true,
+        label: '预览插图',
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () =>
+                _showIllustrationFullscreenPreview(context, widget.localPath),
+            child: content,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _fixedPreview(BuildContext context) {
+    return _previewFrame(
+      context,
+      width: widget.width,
+      height: widget.height,
+      child: _image(context, width: widget.width, height: widget.height),
+    );
+  }
+
+  Widget _adaptivePreview(BuildContext context) {
+    final viewHeight = MediaQuery.sizeOf(context).height;
+    final maxHeight = widget.maxHeight ?? math.min(360, viewHeight * 0.42);
+    final aspectRatio = _aspectRatio ?? 1;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = widget.width ?? constraints.maxWidth;
+        return Align(
+          alignment: Alignment.center,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: maxWidth.isFinite ? maxWidth : 520,
+              maxHeight: maxHeight,
+            ),
+            child: AspectRatio(
+              aspectRatio: aspectRatio,
+              child: _previewFrame(context, child: _image(context)),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _previewFrame(
+    BuildContext context, {
+    required Widget child,
+    double? width,
+    double? height,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(widget.borderRadius),
+      child: Container(
+        width: width,
+        height: height,
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.48),
+        alignment: Alignment.center,
+        child: child,
+      ),
+    );
+  }
+
+  Widget _image(BuildContext context, {double? width, double? height}) {
+    return Image.file(
+      File(widget.localPath),
+      width: width,
+      height: height,
+      fit: BoxFit.contain,
+      errorBuilder: (context, error, stackTrace) => _illustrationImageError(
+        context,
+        widget.localPath,
+        widget.compactError,
+      ),
+    );
+  }
+}
+
+Widget _illustrationImageError(
+  BuildContext context,
+  String localPath,
+  bool compactError,
+) {
+  final colorScheme = Theme.of(context).colorScheme;
+  if (compactError) {
+    return Icon(
+      Icons.broken_image_outlined,
+      color: colorScheme.onSurfaceVariant,
+    );
+  }
+  return Padding(
+    padding: const EdgeInsets.all(18),
+    child: Text('插图文件不可用：$localPath'),
+  );
+}
+
+void _showIllustrationFullscreenPreview(
+  BuildContext context,
+  String localPath,
+) {
+  showDialog<void>(
+    context: context,
+    useSafeArea: false,
+    barrierColor: Colors.black.withValues(alpha: 0.92),
+    builder: (context) => _IllustrationFullscreenPreview(localPath: localPath),
+  );
+}
+
+class _IllustrationFullscreenPreview extends StatelessWidget {
+  const _IllustrationFullscreenPreview({required this.localPath});
+
+  final String localPath;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog.fullscreen(
+      backgroundColor: Colors.black,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: SafeArea(
+              child: Center(
+                child: InteractiveViewer(
+                  minScale: 0.7,
+                  maxScale: 5,
+                  child: Image.file(
+                    File(localPath),
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => Center(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(18),
+                          child: DefaultTextStyle(
+                            style: Theme.of(context).textTheme.bodyMedium!
+                                .copyWith(color: Colors.white),
+                            child: _illustrationImageError(
+                              context,
+                              localPath,
+                              false,
+                            ),
+                          ),
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
+          ),
+          Positioned(
+            top: 12,
+            right: 12,
+            child: SafeArea(
+              child: IconButton.filledTonal(
+                onPressed: () => Navigator.of(context).pop(),
+                tooltip: '关闭预览',
+                icon: const Icon(Icons.close),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -2737,26 +3042,12 @@ class _IllustrationLibraryListRow extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(12, 9, 10, 9),
           child: Row(
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: Image.file(
-                  File(illustration.localPath),
-                  width: 92,
-                  height: 62,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    width: 92,
-                    height: 62,
-                    color: colorScheme.surfaceContainerHighest.withValues(
-                      alpha: 0.55,
-                    ),
-                    alignment: Alignment.center,
-                    child: Icon(
-                      Icons.broken_image_outlined,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
+              _IllustrationImagePreview(
+                localPath: illustration.localPath,
+                width: 92,
+                height: 62,
+                borderRadius: 4,
+                compactError: true,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -3054,21 +3345,11 @@ class _IllustrationLibraryDetail extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: Image.file(
-                    File(item.localPath),
-                    height: 220,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      height: 220,
-                      padding: const EdgeInsets.all(18),
-                      color: colorScheme.surfaceContainerHighest.withValues(
-                        alpha: 0.55,
-                      ),
-                      alignment: Alignment.center,
-                      child: Text('插图文件不可用：${item.localPath}'),
-                    ),
+                _IllustrationImagePreview(
+                  localPath: item.localPath,
+                  maxHeight: math.min(
+                    520,
+                    MediaQuery.sizeOf(context).height * 0.55,
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -3890,15 +4171,9 @@ class _IllustrationLibraryCard extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: Image.file(
-                  File(illustration.localPath),
-                  height: 150,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      Text('插图文件不可用：${illustration.localPath}'),
-                ),
+              _IllustrationImagePreview(
+                localPath: illustration.localPath,
+                maxHeight: 260,
               ),
               const SizedBox(height: 8),
               Text(
@@ -13706,16 +13981,18 @@ Future<bool> _showIllustrationDialog(
   required String selectedText,
   required List<ImageProviderConfig> providers,
   String? initialPrompt,
+  String? initialPromptError,
 }) {
   return showGlassDialog<bool>(
     context: context,
-    maxWidth: 920,
+    maxWidth: 860,
     builder: (context) => _GenerateIllustrationDialog(
       chapter: chapter,
       paragraphIndex: paragraphIndex,
       selectedText: selectedText,
       providers: providers,
       initialPrompt: initialPrompt,
+      initialPromptError: initialPromptError,
     ),
   ).then((value) => value ?? false);
 }
@@ -13727,6 +14004,7 @@ class _GenerateIllustrationDialog extends ConsumerStatefulWidget {
     required this.selectedText,
     required this.providers,
     this.initialPrompt,
+    this.initialPromptError,
   });
 
   final ProjectChapter chapter;
@@ -13734,6 +14012,7 @@ class _GenerateIllustrationDialog extends ConsumerStatefulWidget {
   final String selectedText;
   final List<ImageProviderConfig> providers;
   final String? initialPrompt;
+  final String? initialPromptError;
 
   @override
   ConsumerState<_GenerateIllustrationDialog> createState() =>
@@ -13760,6 +14039,7 @@ class _GenerateIllustrationDialogState
         _provider?.defaultAspectRatio ?? ImageAspectRatioPreset.portrait;
     _size = _provider?.defaultSize ?? ImageSizePreset.oneK;
     _quality = _provider?.defaultQuality ?? ImageQualityPreset.auto;
+    _promptOptimizationError = widget.initialPromptError;
     _promptController = TextEditingController(
       text: widget.initialPrompt ?? widget.selectedText,
     );
@@ -13785,40 +14065,29 @@ class _GenerateIllustrationDialogState
             ...provider.modelNames,
           }.where((model) => model.trim().isNotEmpty).toList(growable: false);
     return SizedBox(
-      width: 900,
+      width: 840,
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('生成章节插图', style: textTheme.headlineSmall),
-                      const SizedBox(height: 4),
-                      Text(
-                        '创建后台任务，完成后到插图库确认。',
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
+                Text('生成章节插图', style: textTheme.titleLarge),
+                const SizedBox(height: 4),
+                Text(
+                  '确认图像 Provider、Prompt 与尺寸后创建后台任务。',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
                   ),
-                ),
-                PersonaStatusPill(
-                  label: '后台任务',
-                  icon: Icons.schedule_outlined,
-                  color: colorScheme.primary,
                 ),
               ],
             ),
             const SizedBox(height: 18),
             LayoutBuilder(
               builder: (context, constraints) {
-                final isWide = constraints.maxWidth >= 760;
+                final isWide = constraints.maxWidth >= 720;
                 final source = _IllustrationSourcePanel(
                   selectedText: widget.selectedText,
                   paragraphIndex: widget.paragraphIndex,
@@ -13865,7 +14134,7 @@ class _GenerateIllustrationDialogState
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(width: 310, child: source),
+                    SizedBox(width: 260, child: source),
                     const SizedBox(width: 16),
                     Expanded(child: form),
                   ],
@@ -13877,7 +14146,7 @@ class _GenerateIllustrationDialogState
               children: [
                 Expanded(
                   child: Text(
-                    '任务创建后可继续阅读；完整进度可在插图库或 Workflow Runs 查看。',
+                    '任务会在后台运行，完成后进入插图库待确认。',
                     style: textTheme.bodySmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
@@ -13933,7 +14202,7 @@ class _GenerateIllustrationDialogState
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.auto_awesome_outlined),
-                  label: const Text('创建后台任务'),
+                  label: const Text('创建任务'),
                 ),
               ],
             ),
@@ -13999,25 +14268,38 @@ class _IllustrationSourcePanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.22),
         border: Border.all(color: colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              '选中文段',
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: colorScheme.primary,
-                fontWeight: FontWeight.w700,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '选中文段',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Text(
+                  '第 ${paragraphIndex + 1} 段',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 10),
-            Text(selectedText, maxLines: 8, overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 14),
+            Text(selectedText, maxLines: 7, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 12),
             Text(
-              '锚定第 ${paragraphIndex + 1} 段；生成完成后进入插图库待确认。',
+              '插图将锚定到该段落。',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -14075,135 +14357,169 @@ class _IllustrationCreationForm extends StatelessWidget {
     if (providers.isEmpty) {
       return const Text('没有已启用的图像 Provider。');
     }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final stackControls = constraints.maxWidth < 560;
+
+        Widget providerDropdown() {
+          return DropdownButtonFormField<ImageProviderConfig>(
+            initialValue: provider,
+            decoration: const InputDecoration(labelText: '图像 Provider'),
+            items: [
+              for (final item in providers)
+                DropdownMenuItem(value: item, child: Text(item.name)),
+            ],
+            onChanged: isBusy ? null : onProviderChanged,
+          );
+        }
+
+        Widget modelDropdown() {
+          return DropdownButtonFormField<String>(
+            initialValue: modelNames.contains(modelName)
+                ? modelName
+                : modelNames.firstOrNull,
+            decoration: const InputDecoration(labelText: '模型'),
+            items: [
+              for (final model in modelNames)
+                DropdownMenuItem(value: model, child: Text(model)),
+            ],
+            onChanged: isBusy ? null : onModelChanged,
+          );
+        }
+
+        Widget aspectRatioDropdown() {
+          return DropdownButtonFormField<ImageAspectRatioPreset>(
+            initialValue: aspectRatio,
+            decoration: const InputDecoration(labelText: '比例'),
+            items: [
+              for (final item in ImageAspectRatioPreset.values)
+                DropdownMenuItem(value: item, child: Text(item.label)),
+            ],
+            onChanged: isBusy || provider == null
+                ? null
+                : (value) {
+                    if (value != null) onAspectRatioChanged(value);
+                  },
+          );
+        }
+
+        Widget sizeDropdown() {
+          return DropdownButtonFormField<ImageSizePreset>(
+            initialValue: size,
+            decoration: const InputDecoration(labelText: '尺寸'),
+            items: [
+              for (final item in ImageSizePreset.values)
+                DropdownMenuItem(value: item, child: Text(item.label)),
+            ],
+            onChanged: isBusy || provider == null
+                ? null
+                : (value) {
+                    if (value != null) onSizeChanged(value);
+                  },
+          );
+        }
+
+        Widget qualityDropdown() {
+          return DropdownButtonFormField<ImageQualityPreset>(
+            initialValue: isGrok ? ImageQualityPreset.auto : quality,
+            decoration: const InputDecoration(labelText: '质量'),
+            items: [
+              for (final item in ImageQualityPreset.values)
+                DropdownMenuItem(value: item, child: Text(item.label)),
+            ],
+            onChanged: isBusy || provider == null || isGrok
+                ? null
+                : (value) {
+                    if (value != null) onQualityChanged(value);
+                  },
+          );
+        }
+
+        final controlFields = stackControls
+            ? <Widget>[
+                providerDropdown(),
+                const SizedBox(height: 10),
+                modelDropdown(),
+                const SizedBox(height: 10),
+                aspectRatioDropdown(),
+                const SizedBox(height: 10),
+                sizeDropdown(),
+                const SizedBox(height: 10),
+                qualityDropdown(),
+              ]
+            : <Widget>[
+                Row(
+                  children: [
+                    Expanded(child: providerDropdown()),
+                    const SizedBox(width: 12),
+                    Expanded(child: modelDropdown()),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(child: aspectRatioDropdown()),
+                    const SizedBox(width: 12),
+                    Expanded(child: sizeDropdown()),
+                    const SizedBox(width: 12),
+                    Expanded(child: qualityDropdown()),
+                  ],
+                ),
+              ];
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              child: DropdownButtonFormField<ImageProviderConfig>(
-                initialValue: provider,
-                decoration: const InputDecoration(labelText: '图像 Provider'),
-                items: [
-                  for (final item in providers)
-                    DropdownMenuItem(value: item, child: Text(item.name)),
-                ],
-                onChanged: isBusy ? null : onProviderChanged,
-              ),
+            ...controlFields,
+            const SizedBox(height: 14),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Text(
+                    'Prompt',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: isBusy || isOptimizingPrompt
+                      ? null
+                      : onOptimizePrompt,
+                  icon: isOptimizingPrompt
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.auto_fix_high_outlined, size: 18),
+                  label: const Text('重新优化'),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                initialValue: modelNames.contains(modelName)
-                    ? modelName
-                    : modelNames.firstOrNull,
-                decoration: const InputDecoration(labelText: '模型'),
-                items: [
-                  for (final model in modelNames)
-                    DropdownMenuItem(value: model, child: Text(model)),
-                ],
-                onChanged: isBusy ? null : onModelChanged,
+            if (promptOptimizationError?.trim().isNotEmpty == true) ...[
+              const SizedBox(height: 6),
+              Text(
+                '优化失败：${promptOptimizationError!.trim()}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
+            ],
+            const SizedBox(height: 8),
+            TextField(
+              controller: promptController,
+              minLines: 7,
+              maxLines: 9,
+              decoration: const InputDecoration(
+                labelText: '提示词',
+                alignLabelWithHint: true,
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: DropdownButtonFormField<ImageAspectRatioPreset>(
-                initialValue: aspectRatio,
-                decoration: const InputDecoration(labelText: '比例'),
-                items: [
-                  for (final item in ImageAspectRatioPreset.values)
-                    DropdownMenuItem(value: item, child: Text(item.label)),
-                ],
-                onChanged: isBusy || provider == null
-                    ? null
-                    : (value) {
-                        if (value != null) onAspectRatioChanged(value);
-                      },
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: DropdownButtonFormField<ImageSizePreset>(
-                initialValue: size,
-                decoration: const InputDecoration(labelText: '尺寸'),
-                items: [
-                  for (final item in ImageSizePreset.values)
-                    DropdownMenuItem(value: item, child: Text(item.label)),
-                ],
-                onChanged: isBusy || provider == null
-                    ? null
-                    : (value) {
-                        if (value != null) onSizeChanged(value);
-                      },
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: DropdownButtonFormField<ImageQualityPreset>(
-                initialValue: isGrok ? ImageQualityPreset.auto : quality,
-                decoration: const InputDecoration(labelText: '质量'),
-                items: [
-                  for (final item in ImageQualityPreset.values)
-                    DropdownMenuItem(value: item, child: Text(item.label)),
-                ],
-                onChanged: isBusy || provider == null || isGrok
-                    ? null
-                    : (value) {
-                        if (value != null) onQualityChanged(value);
-                      },
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Text(
-                '提示词',
-                style: Theme.of(
-                  context,
-                ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
-              ),
-            ),
-            OutlinedButton.icon(
-              onPressed: isBusy || isOptimizingPrompt ? null : onOptimizePrompt,
-              icon: isOptimizingPrompt
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.auto_fix_high_outlined, size: 18),
-              label: const Text('优化 Prompt'),
-            ),
-          ],
-        ),
-        if (promptOptimizationError?.trim().isNotEmpty == true) ...[
-          const SizedBox(height: 8),
-          Text(
-            '优化失败：${promptOptimizationError!.trim()}',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.error,
-            ),
-          ),
-        ],
-        const SizedBox(height: 8),
-        TextField(
-          controller: promptController,
-          minLines: 6,
-          maxLines: 10,
-          decoration: const InputDecoration(
-            labelText: '提示词',
-            alignLabelWithHint: true,
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 }

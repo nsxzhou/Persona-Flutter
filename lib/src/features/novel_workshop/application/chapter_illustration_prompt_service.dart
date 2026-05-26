@@ -1,7 +1,6 @@
 import '../../../core/llm/application/markdown_completion_service.dart';
 import '../../settings/domain/provider_config.dart';
 import '../domain/novel_workshop.dart';
-import 'novel_export_service.dart';
 
 class ChapterIllustrationPromptService {
   const ChapterIllustrationPromptService({
@@ -10,16 +9,19 @@ class ChapterIllustrationPromptService {
 
   final MarkdownCompletionService _completionService;
 
+  static const _maxChapterContextLength = 12000;
+
   static const _businessSystemPrompt = '''
 You are Persona's dedicated literary illustration prompt director.
 Your job is to translate a selected passage from a serialized Chinese novel into a faithful, image-model-ready English prompt.
-You must preserve narrative facts, avoid inventing unsupported details, and separate desired visual content from constraints that prevent unwanted artifacts.
+You must infer visual facts only from the selected text and supplied chapter context, then omit unsupported details from the final prompt.
 ''';
 
   Future<String> generatePrompt({
     required ProjectChapter chapter,
     required int paragraphIndex,
     required String selectedText,
+    required List<ProjectChapter> contextChapters,
     required ProviderConfig provider,
     String? modelName,
   }) async {
@@ -36,6 +38,7 @@ You must preserve narrative facts, avoid inventing unsupported details, and sepa
         chapter: chapter,
         paragraphIndex: paragraphIndex,
         selectedText: normalizedSelection,
+        contextChapters: contextChapters,
       ),
     );
     final finalPrompt = _parsePromptOutput(raw);
@@ -49,27 +52,42 @@ You must preserve narrative facts, avoid inventing unsupported details, and sepa
     required ProjectChapter chapter,
     required int paragraphIndex,
     required String selectedText,
+    required List<ProjectChapter> contextChapters,
   }) {
-    final paragraphs = readerParagraphsFromMarkdown(chapter.contentMarkdown);
-    final context = _nearbyParagraphs(
-      paragraphs: paragraphs,
-      paragraphIndex: paragraphIndex,
-    );
     final chapterTitle = chapter.title.trim().isEmpty
         ? 'Untitled'
         : chapter.title.trim();
+    final context = _chapterContext(
+      targetChapter: chapter,
+      contextChapters: contextChapters,
+    );
 
     return '''
 Task:
 Convert the selected Chinese novel text into an English text-to-image prompt.
-Stay faithful to the text. Do not invent a fixed art style, genre, character appearance, era, or objects that are not supported by the provided context.
+First analyze the scene from the selected text and the provided previous/current/next chapter context, then write the final image prompt.
+
+Rules:
+- You may infer era, environment, facial expression, body language, weather, and lighting from adjacent chapter context when the evidence supports it.
+- If a detail is not supported, write "not specified" in Scene Analysis and omit that detail from Positive Prompt.
+- If the selected text is abstract, dialogue-only, or mostly internal thought, use the nearest concrete visible scene from the context while preserving the selected text's emotion.
+- Do not create symbolic or metaphor-only imagery unless the text itself describes it.
+- Do not add a fixed art style, genre, camera brand, character appearance, era, clothing, props, or objects without textual support.
+- Do not output any avoidance, artifact-prevention, or negative-prompt section.
 
 Output exactly these three sections, with no preface and no code fence:
+Scene Analysis:
+- Era/Time Period: <supported era or "not specified">
+- Location/Environment: <supported location and environment or "not specified">
+- Characters: <visible characters and supported identity/role details or "not specified">
+- Facial Expression/Body Language: <supported expression and posture or "not specified">
+- Action: <main visible action or nearest visible scene>
+- Lighting/Weather: <supported light, weather, time of day, atmosphere or "not specified">
+- Visual Evidence: <brief source evidence from selected text or chapter context>
+- Uncertain/Missing: <important visual details that are not supported>
+
 Positive Prompt:
 <one English paragraph or comma-separated phrase list describing the subject, setting, action, mood, light, composition, and important visual details>
-
-Negative Constraints:
-<short English comma-separated constraints for things to avoid, including text, watermark, unrelated objects, extra characters, and visual contradictions>
 
 Visual Notes:
 <one short English sentence explaining the key visual focus>
@@ -80,43 +98,66 @@ Paragraph anchor: ${paragraphIndex + 1}
 Selected text:
 $selectedText
 
-Nearby chapter context:
+Chapter context:
 $context
 ''';
   }
 
-  String _nearbyParagraphs({
-    required List<String> paragraphs,
-    required int paragraphIndex,
+  String _chapterContext({
+    required ProjectChapter targetChapter,
+    required List<ProjectChapter> contextChapters,
   }) {
-    if (paragraphs.isEmpty) {
-      return '(No nearby context available.)';
+    final chaptersByKey = <String, ProjectChapter>{};
+    for (final chapter in [targetChapter, ...contextChapters]) {
+      final key = chapter.id.trim().isNotEmpty
+          ? chapter.id
+          : '${chapter.projectId}:${chapter.chapterPlanId}:${chapter.chapterIndex}';
+      chaptersByKey[key] = chapter;
     }
-    final clamped = paragraphIndex.clamp(0, paragraphs.length - 1).toInt();
-    final start = (clamped - 2).clamp(0, paragraphs.length - 1).toInt();
-    final end = (clamped + 2).clamp(0, paragraphs.length - 1).toInt();
-    final buffer = StringBuffer();
-    for (var index = start; index <= end; index += 1) {
-      buffer.writeln('[${index + 1}] ${_truncate(paragraphs[index], 360)}');
+    final chapters =
+        chaptersByKey.values
+            .where((chapter) => chapter.contentMarkdown.trim().isNotEmpty)
+            .toList()
+          ..sort((a, b) => a.chapterIndex.compareTo(b.chapterIndex));
+    if (chapters.isEmpty) {
+      return '(No chapter context available.)';
     }
-    return buffer.toString().trim();
+    return chapters
+        .map((chapter) {
+          final title = chapter.title.trim().isEmpty
+              ? 'Untitled'
+              : chapter.title.trim();
+          final relation = _chapterRelation(targetChapter, chapter);
+          final content = _truncate(
+            chapter.contentMarkdown,
+            _maxChapterContextLength,
+          );
+          return '### $relation chapter [${chapter.chapterIndex}] $title\n$content';
+        })
+        .join('\n\n');
+  }
+
+  String _chapterRelation(
+    ProjectChapter targetChapter,
+    ProjectChapter chapter,
+  ) {
+    if (chapter.id == targetChapter.id ||
+        chapter.chapterIndex == targetChapter.chapterIndex) {
+      return 'Current';
+    }
+    if (chapter.chapterIndex < targetChapter.chapterIndex) {
+      return 'Previous';
+    }
+    return 'Next';
   }
 
   String _parsePromptOutput(String output) {
     final cleaned = _stripCodeFence(output).trim();
     final positive = _section(cleaned, 'Positive Prompt');
     if (positive.isEmpty) {
-      return cleaned;
+      return _hasStructuredSections(cleaned) ? '' : _singleLine(cleaned).trim();
     }
-    final negative = _section(cleaned, 'Negative Constraints');
-    final prompt = StringBuffer(_singleLine(positive));
-    final normalizedNegative = _singleLine(negative);
-    if (normalizedNegative.isNotEmpty) {
-      prompt
-        ..write('\n\nAvoid: ')
-        ..write(normalizedNegative);
-    }
-    return prompt.toString().trim();
+    return _singleLine(positive).trim();
   }
 
   String _section(String value, String title) {
@@ -131,12 +172,20 @@ $context
     }
     final start = match.end;
     final next = RegExp(
-      r'^\s*#{0,3}\s*(Positive Prompt|Negative Constraints|Visual Notes)\s*:?\s*$',
+      r'^\s*#{0,3}\s*(Scene Analysis|Positive Prompt|Negative Constraints|Visual Notes)\s*:?\s*$',
       multiLine: true,
       caseSensitive: false,
     ).firstMatch(value.substring(start));
     final end = next == null ? value.length : start + next.start;
     return value.substring(start, end).trim();
+  }
+
+  bool _hasStructuredSections(String value) {
+    return RegExp(
+      r'^\s*#{0,3}\s*(Scene Analysis|Positive Prompt|Negative Constraints|Visual Notes)\s*:?\s*$',
+      multiLine: true,
+      caseSensitive: false,
+    ).hasMatch(value);
   }
 
   String _stripCodeFence(String value) {

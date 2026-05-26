@@ -601,6 +601,13 @@ class NovelWorkshopController extends _$NovelWorkshopController {
       if (!provider.isEnabled) {
         throw StateError('默认文本 Provider 已停用。');
       }
+      final contextChapters = _illustrationPromptContextChapters(
+        chapter: chapter,
+        chapters: await ref
+            .read(novelWorkshopRepositoryProvider)
+            .watchChapters(chapter.projectId)
+            .first,
+      );
       final configuredModelName = project.defaultModelName?.trim();
       return ref
           .read(chapterIllustrationPromptServiceProvider)
@@ -608,6 +615,7 @@ class NovelWorkshopController extends _$NovelWorkshopController {
             chapter: chapter,
             paragraphIndex: paragraphIndex,
             selectedText: selectedText,
+            contextChapters: contextChapters,
             provider: provider,
             modelName:
                 configuredModelName == null || configuredModelName.isEmpty
@@ -620,6 +628,34 @@ class NovelWorkshopController extends _$NovelWorkshopController {
       Error.throwWithStackTrace(result.error!, result.stackTrace!);
     }
     return result.requireValue;
+  }
+
+  List<ProjectChapter> _illustrationPromptContextChapters({
+    required ProjectChapter chapter,
+    required List<ProjectChapter> chapters,
+  }) {
+    const chapterRadius = 1;
+    final minIndex = chapter.chapterIndex - chapterRadius;
+    final maxIndex = chapter.chapterIndex + chapterRadius;
+    final selected =
+        chapters
+            .where(
+              (candidate) =>
+                  candidate.projectId == chapter.projectId &&
+                  candidate.chapterIndex >= minIndex &&
+                  candidate.chapterIndex <= maxIndex &&
+                  candidate.contentMarkdown.trim().isNotEmpty,
+            )
+            .toList()
+          ..sort((a, b) => a.chapterIndex.compareTo(b.chapterIndex));
+    if (selected.any((candidate) => candidate.id == chapter.id)) {
+      return selected;
+    }
+    if (chapter.contentMarkdown.trim().isEmpty) {
+      return selected;
+    }
+    return [...selected, chapter]
+      ..sort((a, b) => a.chapterIndex.compareTo(b.chapterIndex));
   }
 
   Future<void> deleteChapterIllustrationGenerationRun(String runId) async {

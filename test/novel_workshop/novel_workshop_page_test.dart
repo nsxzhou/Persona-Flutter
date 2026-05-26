@@ -1101,6 +1101,7 @@ characters:
       expect(find.text('正文内插图。'), findsOneWidget);
       expect(find.text('移出正文'), findsWidgets);
 
+      await tester.ensureVisible(find.text('移出正文').first);
       await tester.tap(find.text('移出正文').first);
       await tester.pumpAndSettle();
 
@@ -1202,6 +1203,17 @@ characters:
     expect(find.text('海雾里的旧灯塔。'), findsWidgets);
     expect(find.text('港务处档案室。'), findsNothing);
     expect(find.text('失败的海雾远景。'), findsOneWidget);
+    expect(
+      tester.widgetList<Image>(find.byType(Image)).map((image) => image.fit),
+      isNot(contains(BoxFit.cover)),
+    );
+    await tester.tap(find.byTooltip('预览插图').first);
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('关闭预览'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('关闭预览'));
+    await tester.pumpAndSettle();
 
     await tester.tap(
       find.ancestor(of: find.text('失败'), matching: find.byType(InkWell)).first,
@@ -1331,15 +1343,39 @@ characters:
     expect(find.widgetWithText(TextField, '提示词'), findsOneWidget);
   });
 
-  testWidgets('reader can optimize illustration prompt before generation', (
+  testWidgets('reader auto optimizes illustration prompt before dialog', (
     tester,
   ) async {
     final fixture = _WorkshopFixture(
       plans: [
-        _plan(id: 'plan-1', index: 1, title: '第一章', objective: '主角进入雾港。'),
+        _plan(id: 'plan-2', index: 2, title: '第二章', objective: '主角进入雾港。'),
       ],
-      chapters: [_chapter(planId: 'plan-1', index: 1, content: '旧灯塔映着海雾。')],
+      chapters: [
+        _chapter(
+          id: 'chapter-1',
+          planId: 'plan-1',
+          index: 1,
+          title: '第一章',
+          content: '前一章写雾港街道仍有煤气灯。',
+        ),
+        _chapter(
+          id: 'chapter-2',
+          planId: 'plan-2',
+          index: 2,
+          title: '第二章',
+          content: '旧灯塔映着海雾。',
+        ),
+        _chapter(
+          id: 'chapter-3',
+          planId: 'plan-3',
+          index: 3,
+          title: '第三章',
+          content: '后一章写钟声穿过潮湿码头。',
+        ),
+      ],
     );
+    final promptGate = Completer<void>();
+    fixture.promptLlmClient.responseGate = promptGate;
     fixture.promptLlmClient.responses.add('''
 Positive Prompt:
 an old lighthouse glowing through sea fog, quiet tense atmosphere
@@ -1349,6 +1385,16 @@ text, watermark, unrelated objects, extra characters
 
 Visual Notes:
 Focus on the lighthouse silhouette.
+''');
+    fixture.promptLlmClient.responses.add('''
+Positive Prompt:
+a sharper old lighthouse silhouette above rolling sea fog
+
+Negative Constraints:
+text, watermark, unrelated objects, extra characters
+
+Visual Notes:
+Focus on the brighter beacon.
 ''');
     addTearDown(fixture.dispose);
 
@@ -1360,19 +1406,53 @@ Focus on the lighthouse silhouette.
     await tester.longPress(find.text('旧灯塔映着海雾。'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('生成插图'));
+    await tester.pump();
+
+    expect(find.text('正在优化 Prompt...'), findsOneWidget);
+    expect(find.text('生成章节插图'), findsNothing);
+    expect(fixture.repository.illustrationRuns, isEmpty);
+
+    promptGate.complete();
     await tester.pumpAndSettle();
 
-    await tester.tap(find.widgetWithText(OutlinedButton, '优化 Prompt'));
+    expect(find.text('生成章节插图'), findsOneWidget);
+    expect(find.textContaining('an old lighthouse glowing'), findsOneWidget);
+    expect(fixture.repository.illustrationRuns, isEmpty);
+    expect(
+      fixture.promptLlmClient.lastRequest!.messages.last.content,
+      contains('### Previous chapter [1] 第一章'),
+    );
+    expect(
+      fixture.promptLlmClient.lastRequest!.messages.last.content,
+      contains('前一章写雾港街道仍有煤气灯。'),
+    );
+    expect(
+      fixture.promptLlmClient.lastRequest!.messages.last.content,
+      contains('### Current chapter [2] 第二章'),
+    );
+    expect(
+      fixture.promptLlmClient.lastRequest!.messages.last.content,
+      contains('### Next chapter [3] 第三章'),
+    );
+    expect(
+      fixture.promptLlmClient.lastRequest!.messages.last.content,
+      contains('后一章写钟声穿过潮湿码头。'),
+    );
+
+    await tester.tap(find.widgetWithText(TextButton, '重新优化'));
     await tester.pump();
     await tester.runAsync(() async {
       await Future<void>.delayed(const Duration(milliseconds: 100));
     });
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('an old lighthouse glowing'), findsOneWidget);
+    expect(
+      find.textContaining('a sharper old lighthouse silhouette'),
+      findsOneWidget,
+    );
     expect(fixture.repository.illustrationRuns, isEmpty);
 
-    final createTaskButton = find.widgetWithText(FilledButton, '创建后台任务');
+    final createTaskButton = find.widgetWithText(FilledButton, '创建任务');
     await tester.ensureVisible(createTaskButton);
     await tester.tap(createTaskButton);
     await tester.pump();
@@ -1384,11 +1464,11 @@ Focus on the lighthouse silhouette.
     expect(fixture.repository.illustrationRuns, hasLength(1));
     expect(
       fixture.repository.illustrationRuns.single.prompt,
-      contains('an old lighthouse glowing through sea fog'),
+      contains('a sharper old lighthouse silhouette above rolling sea fog'),
     );
     expect(
       fixture.repository.illustrationRuns.single.prompt,
-      contains('Avoid: text, watermark'),
+      isNot(contains('Avoid:')),
     );
   });
 
@@ -1412,18 +1492,17 @@ Focus on the lighthouse silhouette.
     await tester.longPress(find.text('旧灯塔'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('生成插图'));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.widgetWithText(OutlinedButton, '优化 Prompt'));
     await tester.pump();
     await tester.runAsync(() async {
       await Future<void>.delayed(const Duration(milliseconds: 100));
     });
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('优化失败'), findsOneWidget);
+    expect(find.text('生成章节插图'), findsOneWidget);
+    expect(find.textContaining('Prompt 优化失败'), findsOneWidget);
+    expect(find.textContaining('优化失败：'), findsOneWidget);
 
-    final createTaskButton = find.widgetWithText(FilledButton, '创建后台任务');
+    final createTaskButton = find.widgetWithText(FilledButton, '创建任务');
     await tester.ensureVisible(createTaskButton);
     await tester.tap(createTaskButton);
     await tester.pump();
@@ -1516,7 +1595,7 @@ Focus on the lighthouse silhouette.
       expect(find.text('生成章节插图'), findsOneWidget);
       expect(find.textContaining('第二段写少'), findsWidgets);
 
-      final createTaskButton = find.widgetWithText(FilledButton, '创建后台任务');
+      final createTaskButton = find.widgetWithText(FilledButton, '创建任务');
       await tester.ensureVisible(createTaskButton);
       await tester.pumpAndSettle();
       await tester.tap(createTaskButton);
@@ -2333,6 +2412,7 @@ class _UnusedImageGenerationClient implements ImageGenerationClient {
 class _QueuedPromptLlmClient implements LlmClient {
   final List<String> responses = [];
   Object? error;
+  Completer<void>? responseGate;
   LlmRequest? lastRequest;
 
   @override
@@ -2344,6 +2424,13 @@ class _QueuedPromptLlmClient implements LlmClient {
     final configuredError = error;
     if (configuredError != null) {
       throw configuredError;
+    }
+    final gate = responseGate;
+    if (gate != null) {
+      await gate.future;
+      if (identical(responseGate, gate)) {
+        responseGate = null;
+      }
     }
     if (responses.isEmpty) {
       throw StateError('No queued prompt response.');
