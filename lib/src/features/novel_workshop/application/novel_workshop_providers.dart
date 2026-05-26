@@ -21,6 +21,7 @@ import 'asset_generation_pipeline.dart';
 import 'chapter_enrichment_pipeline.dart';
 import 'chapter_generation_pipeline.dart';
 import 'chapter_illustration_generation_pipeline.dart';
+import 'chapter_illustration_prompt_service.dart';
 import 'chapter_illustration_service.dart';
 import 'novel_export_service.dart';
 import 'novel_import_parser.dart';
@@ -129,6 +130,13 @@ final chapterIllustrationServiceProvider =
         repository: ref.watch(novelWorkshopRepositoryProvider),
         imageGenerationService: ref.watch(imageGenerationServiceProvider),
         httpClient: ref.watch(imageProviderHttpClientProvider),
+      );
+    });
+
+final chapterIllustrationPromptServiceProvider =
+    flutter_riverpod.Provider<ChapterIllustrationPromptService>((ref) {
+      return ChapterIllustrationPromptService(
+        completionService: ref.watch(markdownCompletionServiceProvider),
       );
     });
 
@@ -559,6 +567,53 @@ class NovelWorkshopController extends _$NovelWorkshopController {
             .catchError((Object _) {}),
       );
       return run;
+    });
+    state = result.whenData((_) {});
+    if (result.hasError) {
+      Error.throwWithStackTrace(result.error!, result.stackTrace!);
+    }
+    return result.requireValue;
+  }
+
+  Future<String> generateChapterIllustrationPrompt({
+    required ProjectChapter chapter,
+    required int paragraphIndex,
+    required String selectedText,
+  }) async {
+    state = const AsyncLoading();
+    final result = await AsyncValue.guard(() async {
+      final project = await ref
+          .read(projectRepositoryProvider)
+          .findProject(chapter.projectId);
+      if (project == null) {
+        throw StateError('项目不存在。');
+      }
+      final providerId = project.defaultProviderId?.trim() ?? '';
+      if (providerId.isEmpty) {
+        throw StateError('请先在项目设置中配置默认文本 Provider。');
+      }
+      final provider = await ref
+          .read(providerConfigRepositoryProvider)
+          .findProvider(providerId);
+      if (provider == null) {
+        throw StateError('默认文本 Provider 不存在。');
+      }
+      if (!provider.isEnabled) {
+        throw StateError('默认文本 Provider 已停用。');
+      }
+      final configuredModelName = project.defaultModelName?.trim();
+      return ref
+          .read(chapterIllustrationPromptServiceProvider)
+          .generatePrompt(
+            chapter: chapter,
+            paragraphIndex: paragraphIndex,
+            selectedText: selectedText,
+            provider: provider,
+            modelName:
+                configuredModelName == null || configuredModelName.isEmpty
+                ? provider.defaultModel
+                : configuredModelName,
+          );
     });
     state = result.whenData((_) {});
     if (result.hasError) {

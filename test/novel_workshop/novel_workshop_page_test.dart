@@ -6,6 +6,9 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:persona_flutter/src/core/llm/domain/llm_client.dart';
+import 'package:persona_flutter/src/core/llm/domain/llm_request.dart';
+import 'package:persona_flutter/src/core/llm/domain/llm_stream_event.dart';
 import 'package:persona_flutter/src/core/image_generation/application/image_generation_service.dart';
 import 'package:persona_flutter/src/core/image_generation/domain/image_generation_client.dart';
 import 'package:persona_flutter/src/core/image_generation/domain/image_generation_request.dart';
@@ -1328,6 +1331,114 @@ characters:
     expect(find.widgetWithText(TextField, '提示词'), findsOneWidget);
   });
 
+  testWidgets('reader can optimize illustration prompt before generation', (
+    tester,
+  ) async {
+    final fixture = _WorkshopFixture(
+      plans: [
+        _plan(id: 'plan-1', index: 1, title: '第一章', objective: '主角进入雾港。'),
+      ],
+      chapters: [_chapter(planId: 'plan-1', index: 1, content: '旧灯塔映着海雾。')],
+    );
+    fixture.promptLlmClient.responses.add('''
+Positive Prompt:
+an old lighthouse glowing through sea fog, quiet tense atmosphere
+
+Negative Constraints:
+text, watermark, unrelated objects, extra characters
+
+Visual Notes:
+Focus on the lighthouse silhouette.
+''');
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(
+      _WorkshopTestApp(fixture: fixture, initialLocation: _readerLocation),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.longPress(find.text('旧灯塔映着海雾。'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('生成插图'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(OutlinedButton, '优化 Prompt'));
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    });
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('an old lighthouse glowing'), findsOneWidget);
+    expect(fixture.repository.illustrationRuns, isEmpty);
+
+    final createTaskButton = find.widgetWithText(FilledButton, '创建后台任务');
+    await tester.ensureVisible(createTaskButton);
+    await tester.tap(createTaskButton);
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    });
+    await tester.pump();
+
+    expect(fixture.repository.illustrationRuns, hasLength(1));
+    expect(
+      fixture.repository.illustrationRuns.single.prompt,
+      contains('an old lighthouse glowing through sea fog'),
+    );
+    expect(
+      fixture.repository.illustrationRuns.single.prompt,
+      contains('Avoid: text, watermark'),
+    );
+  });
+
+  testWidgets('reader prompt optimization failure keeps manual fallback', (
+    tester,
+  ) async {
+    final fixture = _WorkshopFixture(
+      plans: [
+        _plan(id: 'plan-1', index: 1, title: '第一章', objective: '主角进入雾港。'),
+      ],
+      chapters: [_chapter(planId: 'plan-1', index: 1, content: '旧灯塔')],
+    );
+    fixture.promptLlmClient.error = StateError('LLM offline');
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(
+      _WorkshopTestApp(fixture: fixture, initialLocation: _readerLocation),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.longPress(find.text('旧灯塔'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('生成插图'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(OutlinedButton, '优化 Prompt'));
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    });
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('优化失败'), findsOneWidget);
+
+    final createTaskButton = find.widgetWithText(FilledButton, '创建后台任务');
+    await tester.ensureVisible(createTaskButton);
+    await tester.tap(createTaskButton);
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    });
+    await tester.pump();
+
+    expect(fixture.repository.illustrationRuns, hasLength(1));
+    expect(
+      fixture.repository.illustrationRuns.single.prompt,
+      fixture.repository.illustrationRuns.single.selectedText,
+    );
+  });
+
   testWidgets('reader selection generation explains missing image provider', (
     tester,
   ) async {
@@ -1967,6 +2078,7 @@ class _WorkshopTestApp extends StatelessWidget {
         providerConfigRepositoryProvider.overrideWithValue(
           fixture.providerRepository,
         ),
+        llmClientProvider.overrideWithValue(fixture.promptLlmClient),
         imageProviderConfigRepositoryProvider.overrideWithValue(
           fixture.imageProviderRepository,
         ),
@@ -2087,6 +2199,7 @@ class _WorkshopFixture {
   final _FakeProjectRepository projectRepository;
   final _FakeProviderConfigRepository providerRepository =
       _FakeProviderConfigRepository();
+  final _QueuedPromptLlmClient promptLlmClient = _QueuedPromptLlmClient();
   final _FakeImageProviderConfigRepository imageProviderRepository =
       _FakeImageProviderConfigRepository();
   final _FakeNovelWorkshopRepository repository;
@@ -2214,6 +2327,29 @@ class _UnusedImageGenerationClient implements ImageGenerationClient {
     required ImageEditRequest request,
   }) async {
     throw UnimplementedError();
+  }
+}
+
+class _QueuedPromptLlmClient implements LlmClient {
+  final List<String> responses = [];
+  Object? error;
+  LlmRequest? lastRequest;
+
+  @override
+  Stream<LlmStreamEvent> streamChat({
+    required ProviderConfig provider,
+    required LlmRequest request,
+  }) async* {
+    lastRequest = request;
+    final configuredError = error;
+    if (configuredError != null) {
+      throw configuredError;
+    }
+    if (responses.isEmpty) {
+      throw StateError('No queued prompt response.');
+    }
+    yield LlmStreamDelta(responses.removeAt(0));
+    yield const LlmStreamDone();
   }
 }
 

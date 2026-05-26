@@ -13748,6 +13748,8 @@ class _GenerateIllustrationDialogState
   late ImageAspectRatioPreset _aspectRatio;
   late ImageSizePreset _size;
   late ImageQualityPreset _quality;
+  bool _isOptimizingPrompt = false;
+  String? _promptOptimizationError;
 
   @override
   void initState() {
@@ -13831,7 +13833,10 @@ class _GenerateIllustrationDialogState
                   quality: _quality,
                   isGrok: isGrok,
                   isBusy: controllerState.isLoading,
+                  isOptimizingPrompt: _isOptimizingPrompt,
+                  promptOptimizationError: _promptOptimizationError,
                   promptController: _promptController,
+                  onOptimizePrompt: _optimizePrompt,
                   onProviderChanged: (value) {
                     setState(() {
                       _provider = value;
@@ -13937,6 +13942,45 @@ class _GenerateIllustrationDialogState
       ),
     );
   }
+
+  Future<void> _optimizePrompt() async {
+    if (_isOptimizingPrompt) {
+      return;
+    }
+    setState(() {
+      _isOptimizingPrompt = true;
+      _promptOptimizationError = null;
+    });
+    try {
+      final prompt = await ref
+          .read(novelWorkshopControllerProvider.notifier)
+          .generateChapterIllustrationPrompt(
+            chapter: widget.chapter,
+            paragraphIndex: widget.paragraphIndex,
+            selectedText: widget.selectedText,
+          );
+      if (!mounted) {
+        return;
+      }
+      _promptController.text = prompt;
+      setState(() {
+        _promptOptimizationError = null;
+      });
+    } on Object catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _promptOptimizationError = '$error';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isOptimizingPrompt = false;
+        });
+      }
+    }
+  }
 }
 
 class _IllustrationSourcePanel extends StatelessWidget {
@@ -13996,7 +14040,10 @@ class _IllustrationCreationForm extends StatelessWidget {
     required this.quality,
     required this.isGrok,
     required this.isBusy,
+    required this.isOptimizingPrompt,
+    required this.promptOptimizationError,
     required this.promptController,
+    required this.onOptimizePrompt,
     required this.onProviderChanged,
     required this.onModelChanged,
     required this.onAspectRatioChanged,
@@ -14013,7 +14060,10 @@ class _IllustrationCreationForm extends StatelessWidget {
   final ImageQualityPreset quality;
   final bool isGrok;
   final bool isBusy;
+  final bool isOptimizingPrompt;
+  final String? promptOptimizationError;
   final TextEditingController promptController;
+  final VoidCallback onOptimizePrompt;
   final ValueChanged<ImageProviderConfig?> onProviderChanged;
   final ValueChanged<String?> onModelChanged;
   final ValueChanged<ImageAspectRatioPreset> onAspectRatioChanged;
@@ -14110,6 +14160,40 @@ class _IllustrationCreationForm extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Text(
+                '提示词',
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ),
+            OutlinedButton.icon(
+              onPressed: isBusy || isOptimizingPrompt ? null : onOptimizePrompt,
+              icon: isOptimizingPrompt
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.auto_fix_high_outlined, size: 18),
+              label: const Text('优化 Prompt'),
+            ),
+          ],
+        ),
+        if (promptOptimizationError?.trim().isNotEmpty == true) ...[
+          const SizedBox(height: 8),
+          Text(
+            '优化失败：${promptOptimizationError!.trim()}',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.error,
+            ),
+          ),
+        ],
+        const SizedBox(height: 8),
         TextField(
           controller: promptController,
           minLines: 6,

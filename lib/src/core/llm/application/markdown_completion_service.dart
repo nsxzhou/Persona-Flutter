@@ -14,6 +14,7 @@ class MarkdownCompletionService {
   Future<String> completeMarkdown({
     required ProviderConfig provider,
     required String prompt,
+    String businessSystemPrompt = '',
     double temperature = 0.4,
     int maxAttempts = 3,
     String? modelName,
@@ -27,7 +28,7 @@ class MarkdownCompletionService {
         final buffer = StringBuffer();
         await for (final event in _invocation.streamChat(
           provider: provider,
-          businessSystemPrompt: '',
+          businessSystemPrompt: businessSystemPrompt,
           messages: [LlmMessage.user(prompt)],
           temperature: temperature,
           modelName: modelName,

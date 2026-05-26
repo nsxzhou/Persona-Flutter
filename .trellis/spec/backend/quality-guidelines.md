@@ -101,27 +101,33 @@ Enable `com.apple.security.network.client` for outbound Provider connectivity.
 - Stream events: `LlmStreamDelta(text)` and `LlmStreamDone()`.
 - Adapter: `LangChainLlmClient implements LlmClient` lives under `core/llm/data`.
 - Prompt composition: `ProviderPromptComposer.compose(businessSystemPrompt, providerSystemPrompt)`.
+- Markdown helper: `MarkdownCompletionService.completeMarkdown(..., String businessSystemPrompt = '')`.
 
 ### 3. Contracts
 - Business code and presentation widgets must not import LangChain.dart message, model, or result types directly.
 - Provider-level system prompt is appended after the business system prompt; it does not replace feature-specific prompts.
+- Feature-specific LLM identities and standing instructions must use `businessSystemPrompt`, not be embedded only in the user message body.
 - Empty Provider prompt means "append nothing" for production calls.
 - API keys may be passed to the adapter but must never be logged or rendered in UI/debug panels.
 
 ### 4. Validation & Error Matrix
 - Empty Provider prompt -> skip Provider prompt append.
 - Empty business prompt + non-empty Provider prompt -> use Provider prompt as the system prompt.
+- Non-empty business prompt + Provider prompt -> one system message containing business instructions first, then Provider instructions.
 - Adapter error containing API key -> replace the key with `[REDACTED]` before surfacing the error.
 - Unsupported Provider protocol -> fail at the adapter boundary, not in UI.
 
 ### 5. Good/Base/Bad Cases
 - Good: feature service calls `LlmInvocationService`, which composes prompts and delegates to `LlmClient`.
+- Good: feature service calls `MarkdownCompletionService.completeMarkdown` with `businessSystemPrompt` when the model needs a stable role or output contract.
 - Base: Provider settings uses `LlmClient` for chat tests with fake clients in tests.
 - Bad: a widget constructs `ChatOpenAI` directly or stores LangChain messages in feature state.
+- Bad: put the model's role definition only in the user prompt when it should be a persistent system-level instruction.
 
 ### 6. Tests Required
 - Unit test `ProviderPromptComposer` for empty and non-empty prompt composition.
 - Unit test `LlmInvocationService` for system-message ordering and temperature.
+- Unit test feature prompt services that pass `businessSystemPrompt` by asserting the fake `LlmClient` receives a system message before the user request.
 - Adapter test with fake chat model for stream-event conversion and key redaction.
 - Widget tests should override `llmClientProvider` instead of making live LLM calls.
 
@@ -130,6 +136,11 @@ Enable `com.apple.security.network.client` for outbound Provider connectivity.
 Import `ChatOpenAI` in a feature page and stream directly into widget state.
 #### Correct
 Feature code depends on `LlmInvocationService` / `LlmClient`; only `core/llm/data` imports LangChain.dart.
+
+#### Wrong
+Put "You are a specialized prompt engineer..." inside only the user prompt passed to `completeMarkdown`.
+#### Correct
+Pass that identity through `businessSystemPrompt` and keep the user prompt focused on task input and output shape.
 
 ## Scenario: Image generation provider boundary
 
