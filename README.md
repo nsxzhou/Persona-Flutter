@@ -240,3 +240,7 @@ flutter test
 | Prompt Trace | 模型调用追踪，用于审计一次 AI 任务实际发送了什么、返回了什么、是否失败。 |
 | Image Provider | 图像模型服务配置，包含 Provider 类型、Base URL、API Key、默认模型和图像参数。 |
 | Chapter Illustration | 章节插画，绑定到章节、段落和选中文本，可在确认后插入导出内容。 |
+
+## 许可证
+
+本项目基于 [MIT License](./LICENSE) 发布。Copyright (c) 2026 nsxzhou.
