@@ -40,7 +40,10 @@ class CharacterGraphTab extends ConsumerStatefulWidget {
   ConsumerState<CharacterGraphTab> createState() => _CharacterGraphTabState();
 }
 
-class _CharacterGraphTabState extends ConsumerState<CharacterGraphTab> {
+class _CharacterGraphTabState extends ConsumerState<CharacterGraphTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
   NovelCharacter? _selectedCharacter;
 
   bool get _generating =>
@@ -49,6 +52,7 @@ class _CharacterGraphTabState extends ConsumerState<CharacterGraphTab> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final controllerState = ref.watch(novelWorkshopControllerProvider);
     return widget.characters.when(
       data: (characterItems) => widget.relationships.when(

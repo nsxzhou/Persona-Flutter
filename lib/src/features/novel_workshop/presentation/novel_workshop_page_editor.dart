@@ -859,44 +859,50 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
           ];
     final children = imported
         ? [
-            _ImportedProjectOverviewTab(
-              project: widget.project,
-              volumes: widget.volumes,
-              plans: widget.plans,
-              chapters: widget.chapters,
-              enrichmentBatches: widget.enrichmentBatches,
-              assets: widget.assets,
-            ),
-            _YamlMarkdownAssetTab(
-              title: 'Voice Profile',
-              description:
-                  '加料时只注入 Voice Profile，不使用 Story Engine 或 Runtime Memory。',
-              markdownAsync: widget.assets.whenData(
-                (a) => a.voiceProfileMarkdown,
+            KeepAliveTabWrapper(
+              child: _ImportedProjectOverviewTab(
+                project: widget.project,
+                volumes: widget.volumes,
+                plans: widget.plans,
+                chapters: widget.chapters,
+                enrichmentBatches: widget.enrichmentBatches,
+                assets: widget.assets,
               ),
-              kind: _PromptDocumentKind.voiceProfile,
-              emptyIcon: Icons.record_voice_over_outlined,
-              emptyTitle: '暂无 Voice Profile',
-              emptyDescription: '可在设置中绑定 Style Profile。',
-              emptyAction: TextButton.icon(
-                onPressed: () => _onSwitchTab(2),
-                icon: const Icon(Icons.settings_outlined, size: 18),
-                label: const Text('前往设置'),
+            ),
+            KeepAliveTabWrapper(
+              child: _YamlMarkdownAssetTab(
+                title: 'Voice Profile',
+                description:
+                    '加料时只注入 Voice Profile，不使用 Story Engine 或 Runtime Memory。',
+                markdownAsync: widget.assets.whenData(
+                  (a) => a.voiceProfileMarkdown,
+                ),
+                kind: _PromptDocumentKind.voiceProfile,
+                emptyIcon: Icons.record_voice_over_outlined,
+                emptyTitle: '暂无 Voice Profile',
+                emptyDescription: '可在设置中绑定 Style Profile。',
+                emptyAction: TextButton.icon(
+                  onPressed: () => _onSwitchTab(2),
+                  icon: const Icon(Icons.settings_outlined, size: 18),
+                  label: const Text('前往设置'),
+                ),
               ),
             ),
             _WorkshopSettingsTab(project: widget.project, bible: widget.bible),
           ]
         : [
-            _ProjectOverviewTab(
-              project: widget.project,
-              bible: widget.bible,
-              volumes: widget.volumes,
-              plans: widget.plans,
-              chapters: widget.chapters,
-              runs: widget.runs,
-              assets: widget.assets,
-              memory: widget.memory,
-              onSwitchTab: _onSwitchTab,
+            KeepAliveTabWrapper(
+              child: _ProjectOverviewTab(
+                project: widget.project,
+                bible: widget.bible,
+                volumes: widget.volumes,
+                plans: widget.plans,
+                chapters: widget.chapters,
+                runs: widget.runs,
+                assets: widget.assets,
+                memory: widget.memory,
+                onSwitchTab: _onSwitchTab,
+              ),
             ),
             _BibleMarkdownEditorTab(
               title: '世界观设定',
@@ -961,36 +967,40 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
               onEditVolume: widget.onEditVolume,
               onEditPlan: widget.onEditPlan,
             ),
-            _YamlMarkdownAssetTab(
-              title: 'Voice Profile',
-              description: 'YAML 元数据独立展示，正文只渲染 Markdown body。',
-              markdownAsync: widget.assets.whenData(
-                (a) => a.voiceProfileMarkdown,
-              ),
-              kind: _PromptDocumentKind.voiceProfile,
-              emptyIcon: Icons.record_voice_over_outlined,
-              emptyTitle: '暂无 Voice Profile',
-              emptyDescription: '请先在项目设置中绑定 Style Profile。',
-              emptyAction: TextButton.icon(
-                onPressed: () => _onSwitchTab(9),
-                icon: const Icon(Icons.settings_outlined, size: 18),
-                label: const Text('前往设置'),
+            KeepAliveTabWrapper(
+              child: _YamlMarkdownAssetTab(
+                title: 'Voice Profile',
+                description: 'YAML 元数据独立展示，正文只渲染 Markdown body。',
+                markdownAsync: widget.assets.whenData(
+                  (a) => a.voiceProfileMarkdown,
+                ),
+                kind: _PromptDocumentKind.voiceProfile,
+                emptyIcon: Icons.record_voice_over_outlined,
+                emptyTitle: '暂无 Voice Profile',
+                emptyDescription: '请先在项目设置中绑定 Style Profile。',
+                emptyAction: TextButton.icon(
+                  onPressed: () => _onSwitchTab(9),
+                  icon: const Icon(Icons.settings_outlined, size: 18),
+                  label: const Text('前往设置'),
+                ),
               ),
             ),
-            _YamlMarkdownAssetTab(
-              title: 'Story Engine',
-              description: 'YAML 元数据独立展示，剧情写作指南只渲染 Markdown body。',
-              markdownAsync: widget.assets.whenData(
-                (a) => a.storyEngineMarkdown,
-              ),
-              kind: _PromptDocumentKind.storyEngine,
-              emptyIcon: Icons.engineering_outlined,
-              emptyTitle: '暂无 Story Engine',
-              emptyDescription: '请先在项目设置中绑定 Plot Profile。',
-              emptyAction: TextButton.icon(
-                onPressed: () => _onSwitchTab(9),
-                icon: const Icon(Icons.settings_outlined, size: 18),
-                label: const Text('前往设置'),
+            KeepAliveTabWrapper(
+              child: _YamlMarkdownAssetTab(
+                title: 'Story Engine',
+                description: 'YAML 元数据独立展示，剧情写作指南只渲染 Markdown body。',
+                markdownAsync: widget.assets.whenData(
+                  (a) => a.storyEngineMarkdown,
+                ),
+                kind: _PromptDocumentKind.storyEngine,
+                emptyIcon: Icons.engineering_outlined,
+                emptyTitle: '暂无 Story Engine',
+                emptyDescription: '请先在项目设置中绑定 Plot Profile。',
+                emptyAction: TextButton.icon(
+                  onPressed: () => _onSwitchTab(9),
+                  icon: const Icon(Icons.settings_outlined, size: 18),
+                  label: const Text('前往设置'),
+                ),
               ),
             ),
             _RuntimeMemoryTab(
@@ -1000,10 +1010,12 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
               characters: widget.characters,
               relationships: widget.relationships,
             ),
-            _PromptStackTab(
-              assets: widget.assets,
-              bible: widget.bible,
-              memory: widget.memory,
+            KeepAliveTabWrapper(
+              child: _PromptStackTab(
+                assets: widget.assets,
+                bible: widget.bible,
+                memory: widget.memory,
+              ),
             ),
             _WorkshopSettingsTab(project: widget.project, bible: widget.bible),
           ];
@@ -2452,7 +2464,11 @@ class _BibleMarkdownEditorTab extends ConsumerStatefulWidget {
 }
 
 class _BibleMarkdownEditorTabState
-    extends ConsumerState<_BibleMarkdownEditorTab> {
+    extends ConsumerState<_BibleMarkdownEditorTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   late final TextEditingController _controller;
   late String _loadedMarkdown;
   bool _editing = false;
@@ -2500,6 +2516,7 @@ class _BibleMarkdownEditorTabState
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final trimmed = _loadedMarkdown.trim();
     final state = ref.watch(novelWorkshopControllerProvider);
     final generating =
@@ -2808,7 +2825,11 @@ class _RuntimeMemoryTab extends ConsumerStatefulWidget {
   ConsumerState<_RuntimeMemoryTab> createState() => _RuntimeMemoryTabState();
 }
 
-class _RuntimeMemoryTabState extends ConsumerState<_RuntimeMemoryTab> {
+class _RuntimeMemoryTabState extends ConsumerState<_RuntimeMemoryTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   bool _editing = false;
   late TextEditingController _runtimeStateCtrl;
   late TextEditingController _threadsCtrl;
@@ -2882,6 +2903,7 @@ class _RuntimeMemoryTabState extends ConsumerState<_RuntimeMemoryTab> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final controllerState = ref.watch(novelWorkshopControllerProvider);
@@ -3121,7 +3143,11 @@ class _WorkshopSettingsTab extends ConsumerStatefulWidget {
       _WorkshopSettingsTabState();
 }
 
-class _WorkshopSettingsTabState extends ConsumerState<_WorkshopSettingsTab> {
+class _WorkshopSettingsTabState extends ConsumerState<_WorkshopSettingsTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
@@ -3227,6 +3253,7 @@ class _WorkshopSettingsTabState extends ConsumerState<_WorkshopSettingsTab> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final state = ref.watch(projectControllerProvider);
     final providers = ref.watch(providerConfigsProvider);
     final styleProfiles = ref.watch(styleProfilesProvider);
@@ -3614,7 +3641,11 @@ class _ChapterPlanningTab extends ConsumerStatefulWidget {
       _ChapterPlanningTabState();
 }
 
-class _ChapterPlanningTabState extends ConsumerState<_ChapterPlanningTab> {
+class _ChapterPlanningTabState extends ConsumerState<_ChapterPlanningTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   late final TextEditingController _yamlController;
   late String _loadedYaml;
   bool _editingYaml = false;
@@ -3712,6 +3743,7 @@ class _ChapterPlanningTabState extends ConsumerState<_ChapterPlanningTab> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final completedChapterCount = widget.plans
         .where(
           (plan) => widget.chapters.any(

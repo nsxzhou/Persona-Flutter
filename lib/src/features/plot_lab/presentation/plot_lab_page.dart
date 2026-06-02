@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/analysis_lab_widgets.dart';
 import '../../../core/ui/glass_container.dart';
+import '../../../core/ui/keep_alive_tab_wrapper.dart';
 import '../../../core/ui/persona_page.dart';
 import '../../../core/ui/skeleton_loader.dart';
 import '../../../core/utils/markdown_utils.dart';
@@ -1732,28 +1733,38 @@ class _PlotDetailBodyState extends State<_PlotDetailBody>
             child: TabBarView(
               controller: _tabController,
               children: [
-                _StoryEngineTab(
-                  controller: widget.storyEngineController,
-                  preview: widget.previewStoryEngine,
-                  onPreviewChanged: widget.onPreviewChanged,
+                KeepAliveTabWrapper(
+                  child: _StoryEngineTab(
+                    controller: widget.storyEngineController,
+                    preview: widget.previewStoryEngine,
+                    onPreviewChanged: widget.onPreviewChanged,
+                  ),
                 ),
-                _MarkdownTab(
-                  markdown: widget.skeletonMarkdown,
-                  emptyIcon: Icons.account_tree_outlined,
-                  emptyTitle: '暂无全书骨架',
-                  emptyDescription: '分析完成后会在这里展示只读骨架。',
+                KeepAliveTabWrapper(
+                  child: _MarkdownTab(
+                    markdown: widget.skeletonMarkdown,
+                    emptyIcon: Icons.account_tree_outlined,
+                    emptyTitle: '暂无全书骨架',
+                    emptyDescription: '分析完成后会在这里展示只读骨架。',
+                  ),
                 ),
-                _MarkdownTab(
-                  markdown: widget.reportMarkdown,
-                  emptyIcon: Icons.article_outlined,
-                  emptyTitle: '暂无分析报告',
-                  emptyDescription: '分析完成后会在这里展示只读报告。',
+                KeepAliveTabWrapper(
+                  child: _MarkdownTab(
+                    markdown: widget.reportMarkdown,
+                    emptyIcon: Icons.article_outlined,
+                    emptyTitle: '暂无分析报告',
+                    emptyDescription: '分析完成后会在这里展示只读报告。',
+                  ),
                 ),
-                _SampleTab(
-                  sample: widget.sample,
-                  sourceTitle: widget.sourceTitle,
+                KeepAliveTabWrapper(
+                  child: _SampleTab(
+                    sample: widget.sample,
+                    sourceTitle: widget.sourceTitle,
+                  ),
                 ),
-                _RunLogTab(run: widget.run),
+                KeepAliveTabWrapper(
+                  child: _RunLogTab(run: widget.run),
+                ),
               ],
             ),
           ),

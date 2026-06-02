@@ -11,6 +11,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/reader_settings_provider.dart';
 import '../../../core/ui/analysis_lab_widgets.dart';
 import '../../../core/ui/glass_container.dart';
+import '../../../core/ui/keep_alive_tab_wrapper.dart';
 import '../../../core/ui/persona_page.dart';
 import '../../../core/ui/skeleton_loader.dart';
 import '../../plot_lab/application/plot_lab_providers.dart';

@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/analysis_lab_widgets.dart';
 import '../../../core/ui/glass_container.dart';
+import '../../../core/ui/keep_alive_tab_wrapper.dart';
 import '../../../core/ui/persona_page.dart';
 import '../../../core/ui/skeleton_loader.dart';
 import '../../../core/utils/markdown_utils.dart';
@@ -1956,17 +1957,25 @@ class _ProfileDetailBodyState extends State<_ProfileDetailBody>
             child: TabBarView(
               controller: _tabController,
               children: [
-                _VoiceProfileTab(
-                  controller: widget.profileController,
-                  preview: widget.previewProfile,
-                  onPreviewChanged: widget.onPreviewChanged,
+                KeepAliveTabWrapper(
+                  child: _VoiceProfileTab(
+                    controller: widget.profileController,
+                    preview: widget.previewProfile,
+                    onPreviewChanged: widget.onPreviewChanged,
+                  ),
                 ),
-                _ReportTab(markdown: widget.reportMarkdown),
-                _SampleTab(
-                  sample: widget.sample,
-                  sourceTitle: widget.sourceTitle,
+                KeepAliveTabWrapper(
+                  child: _ReportTab(markdown: widget.reportMarkdown),
                 ),
-                _RunLogTab(run: widget.run),
+                KeepAliveTabWrapper(
+                  child: _SampleTab(
+                    sample: widget.sample,
+                    sourceTitle: widget.sourceTitle,
+                  ),
+                ),
+                KeepAliveTabWrapper(
+                  child: _RunLogTab(run: widget.run),
+                ),
               ],
             ),
           ),

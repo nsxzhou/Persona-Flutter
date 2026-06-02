@@ -9,6 +9,7 @@ import '../../../core/tasks/application/workflow_task_providers.dart';
 import '../../../core/tasks/domain/workflow_prompt_trace.dart';
 import '../../../core/tasks/domain/workflow_task.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/keep_alive_tab_wrapper.dart';
 import '../../../core/ui/persona_page.dart';
 import '../../../core/ui/skeleton_loader.dart';
 import '../../../core/utils/markdown_utils.dart';
@@ -252,8 +253,12 @@ class _WorkflowRunDetailScaffoldState
                     child: TabBarView(
                       controller: _tabController,
                       children: [
-                        _PromptTraceTab(trace: trace, mode: _traceMode),
-                        _WorkflowLogTab(logs: logs),
+                        KeepAliveTabWrapper(
+                          child: _PromptTraceTab(trace: trace, mode: _traceMode),
+                        ),
+                        KeepAliveTabWrapper(
+                          child: _WorkflowLogTab(logs: logs),
+                        ),
                       ],
                     ),
                   );
