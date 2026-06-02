@@ -663,10 +663,10 @@ class _IllustrationWorkflowOutputPreview extends StatelessWidget {
             _PreviewMarkdownSurface(text: item.prompt),
             if (item.illustrationId != null) ...[
               const SizedBox(height: 12),
-              PersonaStatusPill(
+              const PersonaStatusPill(
                 label: '已进入插图库',
                 icon: Icons.photo_library_outlined,
-                color: const Color(0xFF16825D),
+                color: Color(0xFF16825D),
               ),
             ],
           ],
@@ -1144,7 +1144,7 @@ class _PromptTraceStructuredView extends StatelessWidget {
               if (trace.updatedAt != null)
                 _TraceSummaryChip(
                   icon: Icons.schedule_outlined,
-                  label: _formatIsoRunTime(trace.updatedAt!),
+                  label: _formatIsoRunTime(trace.updatedAt),
                 ),
             ],
           ),

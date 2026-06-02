@@ -42,11 +42,11 @@ class ImageProviderDetailPage extends ConsumerWidget {
 
         return _ImageProviderDetailContent(provider: item);
       },
-      loading: () => PersonaPage(
+      loading: () => const PersonaPage(
         eyebrow: 'Image Provider',
         title: '加载中',
         description: '正在读取图像 Provider 配置。',
-        children: const [PersonaPanel(child: LinearProgressIndicator())],
+        children: [PersonaPanel(child: LinearProgressIndicator())],
       ),
       error: (error, stackTrace) => PersonaPage(
         eyebrow: 'Image Provider',

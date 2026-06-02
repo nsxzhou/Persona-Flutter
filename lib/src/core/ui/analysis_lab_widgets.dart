@@ -38,9 +38,6 @@ String providerLabel(String? providerName, String modelName) {
   return '$providerName · $modelName';
 }
 
-/// Status label from a raw status string (pending/running/succeeded/failed).
-String statusLabel(String status) => status;
-
 /// Status icon from a raw status string.
 IconData statusIcon(String status) {
   return switch (status) {
@@ -186,27 +183,27 @@ class AnalysisDetailLoading extends StatelessWidget {
           child: Column(
             children: [
               for (var i = 0; i < 5; i++)
-                Padding(
-                  padding: const EdgeInsets.symmetric(
+                const Padding(
+                  padding: EdgeInsets.symmetric(
                     horizontal: 18,
                     vertical: 14,
                   ),
                   child: Row(
                     children: [
-                      const SkeletonBox(width: 100, height: 28, borderRadius: 999),
-                      const SizedBox(width: 16),
+                      SkeletonBox(width: 100, height: 28, borderRadius: 999),
+                      SizedBox(width: 16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
+                          children: [
                             SkeletonBox(width: 180, height: 14),
                             SizedBox(height: 6),
                             SkeletonBox(width: 120, height: 12),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      const SkeletonBox(width: 80, height: 12),
+                      SizedBox(width: 12),
+                      SkeletonBox(width: 80, height: 12),
                     ],
                   ),
                 ),

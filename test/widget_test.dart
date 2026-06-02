@@ -26,7 +26,7 @@ void main() {
   testWidgets('shows the desktop shell and core product entries', (
     tester,
   ) async {
-    await tester.pumpWidget(_TestProviderScope(child: const PersonaApp()));
+    await tester.pumpWidget(const _TestProviderScope(child: PersonaApp()));
     await tester.pumpAndSettle();
 
     expect(find.text('项目'), findsWidgets);
@@ -83,7 +83,7 @@ void main() {
   testWidgets('toggles app theme mode from the sidebar control', (
     tester,
   ) async {
-    await tester.pumpWidget(_TestProviderScope(child: const PersonaApp()));
+    await tester.pumpWidget(const _TestProviderScope(child: PersonaApp()));
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.dark_mode_outlined), findsOneWidget);
@@ -132,7 +132,7 @@ void main() {
   testWidgets('does not keep outgoing route page content during navigation', (
     tester,
   ) async {
-    await tester.pumpWidget(_TestProviderScope(child: const PersonaApp()));
+    await tester.pumpWidget(const _TestProviderScope(child: PersonaApp()));
     await tester.pumpAndSettle();
 
     const projectsDescription = '用于长篇项目、蓝图和本地写作会话的项目管理工作区。';

@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../../core/llm/domain/llm_error_utils.dart';
 import '../domain/provider_config.dart';
 
 class ProviderConnectivityTester {
@@ -42,7 +43,9 @@ class ProviderConnectivityTester {
     } on FormatException {
       return const ProviderConnectivityResult.failure('响应不是有效 JSON。');
     } on Object catch (error) {
-      return ProviderConnectivityResult.failure(_sanitizeError(error));
+      return ProviderConnectivityResult.failure(
+        sanitizeLlmError(error, provider.apiKey, maxLength: 180),
+      );
     }
   }
 
@@ -64,14 +67,6 @@ class ProviderConnectivityTester {
     return Uri.parse('$withoutCompletions/models');
   }
 
-  String _sanitizeError(Object error) {
-    final message = error.toString();
-    if (message.length <= 180) {
-      return message;
-    }
-
-    return '${message.substring(0, 177)}...';
-  }
 }
 
 class ProviderConnectivityResult {

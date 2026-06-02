@@ -16,7 +16,7 @@ import 'package:persona_flutter/src/features/settings/domain/provider_config.dar
 void main() {
   testWidgets('plot lab shows profile library empty state', (tester) async {
     await tester.pumpWidget(
-      _PlotLabTestApp(samples: const [], runs: const [], profiles: const []),
+      const _PlotLabTestApp(samples: [], runs: [], profiles: []),
     );
     await _pumpPlotLab(tester);
 

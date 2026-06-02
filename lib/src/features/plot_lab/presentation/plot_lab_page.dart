@@ -212,7 +212,7 @@ class PlotLabProfileDetailPage extends ConsumerWidget {
     return profile.when(
       data: (item) {
         if (item == null) {
-          return const _PlotLabMissingDetail(
+          return const AnalysisMissingDetail(eyebrow: 'Plot Profile Detail', backRoute: '/plot-lab', 
             title: 'Profile 不存在',
             description: '这个 Plot Profile 可能已被删除。',
           );
@@ -232,9 +232,9 @@ class PlotLabProfileDetailPage extends ConsumerWidget {
           ),
         );
       },
-      loading: () => const _PlotLabDetailLoading(),
+      loading: () => const AnalysisDetailLoading(eyebrow: 'Plot Profile Detail', description: '正在读取剧情档案。'),
       error: (error, stackTrace) =>
-          _PlotLabMissingDetail(title: '无法读取 Profile', description: '$error'),
+          AnalysisMissingDetail(eyebrow: 'Plot Profile Detail', backRoute: '/plot-lab', title: '无法读取 Profile', description: '$error'),
     );
   }
 }
@@ -250,7 +250,7 @@ class PlotLabTaskDetailPage extends ConsumerWidget {
     return run.when(
       data: (item) {
         if (item == null) {
-          return const _PlotLabMissingDetail(
+          return const AnalysisMissingDetail(eyebrow: 'Plot Profile Detail', backRoute: '/plot-lab', 
             title: '任务不存在',
             description: '这个 Story Engine 草稿或分析任务可能已被删除。',
           );
@@ -262,9 +262,9 @@ class PlotLabTaskDetailPage extends ConsumerWidget {
           child: _PlotTaskDetail(run: item, sample: sample),
         );
       },
-      loading: () => const _PlotLabDetailLoading(),
+      loading: () => const AnalysisDetailLoading(eyebrow: 'Plot Profile Detail', description: '正在读取剧情档案。'),
       error: (error, stackTrace) =>
-          _PlotLabMissingDetail(title: '无法读取任务', description: '$error'),
+          AnalysisMissingDetail(eyebrow: 'Plot Profile Detail', backRoute: '/plot-lab', title: '无法读取任务', description: '$error'),
     );
   }
 }
@@ -934,7 +934,7 @@ class _LibraryAssetRowState extends State<_LibraryAssetRow> {
                       children: [
                         _AssetKindPill(kind: asset.kind),
                         PersonaStatusPill(
-                          label: statusLabel(asset.status.name),
+                          label: asset.status.name,
                           icon: statusIcon(asset.status.name),
                           color: statusColor(colorScheme, asset.status.name),
                         ),
@@ -980,7 +980,7 @@ class _LibraryAssetRowState extends State<_LibraryAssetRow> {
                     SizedBox(
                       width: 104,
                       child: Text(
-                        _formatDate(asset.updatedAt),
+                        formatDate(asset.updatedAt),
                         style: textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
@@ -1199,7 +1199,7 @@ class _ActivityRunRowState extends State<_ActivityRunRow> {
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             PersonaStatusPill(
-                              label: statusLabel(run.status.name),
+                              label: run.status.name,
                               icon: statusIcon(run.status.name),
                               color: statusColor(colorScheme, run.status.name),
                             ),
@@ -1803,7 +1803,7 @@ class _DetailHeader extends StatelessWidget {
             _StoryEngineStatus(markdown: storyEngineMarkdown),
             if (currentRun != null)
               PersonaStatusPill(
-                label: statusLabel(currentRun.status.name),
+                label: currentRun.status.name,
                 icon: statusIcon(currentRun.status.name),
                 color: statusColor(colorScheme, currentRun.status.name),
               ),
@@ -2057,7 +2057,7 @@ class _RunLogTab extends StatelessWidget {
                   runSpacing: 8,
                   children: [
                     PersonaStatusPill(
-                      label: statusLabel(item.status.name),
+                      label: item.status.name,
                       icon: statusIcon(item.status.name),
                       color: statusColor(
                         Theme.of(context).colorScheme,
@@ -2193,81 +2193,7 @@ class _StoryEngineStatus extends StatelessWidget {
   }
 }
 
-class _PlotLabDetailLoading extends StatelessWidget {
-  const _PlotLabDetailLoading();
 
-  @override
-  Widget build(BuildContext context) {
-    return PersonaPage(
-      eyebrow: 'Plot Profile Detail',
-      title: '读取中',
-      description: '正在读取剧情档案。',
-      children: [
-        PersonaPanel(
-          padding: EdgeInsets.zero,
-          child: Column(
-            children: [
-              for (var i = 0; i < 5; i++)
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                  child: Row(
-                    children: [
-                      SkeletonBox(width: 100, height: 28, borderRadius: 999),
-                      SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SkeletonBox(width: 180, height: 14),
-                            SizedBox(height: 6),
-                            SkeletonBox(width: 120, height: 12),
-                          ],
-                        ),
-                      ),
-                      SizedBox(width: 12),
-                      SkeletonBox(width: 80, height: 12),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _PlotLabMissingDetail extends StatelessWidget {
-  const _PlotLabMissingDetail({required this.title, required this.description});
-
-  final String title;
-  final String description;
-
-  @override
-  Widget build(BuildContext context) {
-    return PersonaPage(
-      eyebrow: 'Plot Profile Detail',
-      title: title,
-      description: description,
-      actions: [
-        OutlinedButton.icon(
-          onPressed: () => context.go('/plot-lab'),
-          icon: const Icon(Icons.arrow_back_outlined),
-          label: const Text('返回档案库'),
-        ),
-      ],
-      children: const [
-        PersonaPanel(
-          child: PersonaEmptyStateCard(
-            icon: Icons.search_off_outlined,
-            title: '没有找到内容',
-            description: '返回档案库选择其他 Profile。',
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 Future<bool> _confirmDeletePlotItem({
   required BuildContext context,
@@ -2477,7 +2403,7 @@ String _storyEnginePreviewMarkdown(String markdown) {
 }
 
 String _taskDetailSubtitle(PlotAnalysisRun run) {
-  final status = statusLabel(run.status.name);
+  final status = run.status.name;
   final stage = _stageLabel(run.stage);
   final chunks = _chunkProgressLabel(run);
   return '$status · $stage · $chunks · ${run.modelName}';
@@ -2611,13 +2537,4 @@ String _emptyDescription(_PlotLibraryFilter filter) {
     _PlotLibraryFilter.drafts => '成功生成但尚未保存的 Story Engine 会显示在这里。',
     _PlotLibraryFilter.activity => '运行中、失败和未入库任务会显示在活动区。',
   };
-}
-
-String _formatDate(DateTime value) {
-  final local = value.toLocal();
-  final month = local.month.toString().padLeft(2, '0');
-  final day = local.day.toString().padLeft(2, '0');
-  final hour = local.hour.toString().padLeft(2, '0');
-  final minute = local.minute.toString().padLeft(2, '0');
-  return '$month-$day $hour:$minute';
 }

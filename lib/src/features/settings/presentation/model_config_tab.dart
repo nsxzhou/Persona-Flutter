@@ -288,7 +288,7 @@ class _ProviderConfigRow extends ConsumerWidget {
                         const SizedBox(width: 12),
                         Flexible(
                           child: Tooltip(
-                            message: provider.lastTestMessage!,
+                            message: provider.lastTestMessage,
                             child: Text(
                               provider.lastTestMessage!,
                               maxLines: 1,
@@ -614,7 +614,7 @@ class _ImageProviderConfigRow extends ConsumerWidget {
                         const SizedBox(width: 12),
                         Flexible(
                           child: Tooltip(
-                            message: provider.lastTestMessage!,
+                            message: provider.lastTestMessage,
                             child: Text(
                               provider.lastTestMessage!,
                               maxLines: 1,
@@ -854,10 +854,10 @@ Widget _buildSkeletonLoading() {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 14),
+        const Padding(
+          padding: EdgeInsets.fromLTRB(20, 20, 20, 14),
           child: Row(
-            children: const [
+            children: [
               SkeletonBox(width: 120, height: 16),
               Spacer(),
               SkeletonBox(width: 70, height: 32),
@@ -878,10 +878,10 @@ class _ProviderRowSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
-        children: const [
+        children: [
           SkeletonBox(width: 8, height: 8),
           SizedBox(width: 10),
           SkeletonBox(width: 120, height: 14),

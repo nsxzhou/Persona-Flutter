@@ -190,7 +190,7 @@ class _ImageProviderRow extends ConsumerWidget {
                         const SizedBox(width: 12),
                         Flexible(
                           child: Tooltip(
-                            message: provider.lastTestMessage!,
+                            message: provider.lastTestMessage,
                             child: Text(
                               provider.lastTestMessage!,
                               maxLines: 1,

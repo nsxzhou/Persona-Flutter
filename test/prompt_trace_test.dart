@@ -117,8 +117,8 @@ void main() {
         modelName: provider.defaultModel,
         stageLabel: () => 'reporting',
       );
-      final service = LlmInvocationService(
-        client: const _StaticLlmClient('done'),
+      final service = const LlmInvocationService(
+        client: _StaticLlmClient('done'),
       );
 
       await service

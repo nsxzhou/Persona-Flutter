@@ -191,7 +191,7 @@ class _EmptyWorkflowRuns extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PersonaEmptyStateCard(
+    return const PersonaEmptyStateCard(
       icon: Icons.check_circle_outline,
       title: '尚未创建本地工作流任务。',
       description: '这里会显示最近的本地长任务、失败原因和可恢复任务。',
@@ -231,14 +231,14 @@ class _SkeletonLoading extends StatelessWidget {
               const SizedBox(height: 10),
               const SkeletonBox(width: 420, height: 16),
               const SizedBox(height: 28),
-              Row(
+              const Row(
                 children: [
                   Expanded(
                     child: PersonaPanel(
-                      padding: const EdgeInsets.all(16),
+                      padding: EdgeInsets.all(16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           SkeletonBox(width: 80, height: 10),
                           SizedBox(height: 14),
                           SkeletonBox(width: 40, height: 28),
@@ -248,13 +248,13 @@ class _SkeletonLoading extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 14),
+                  SizedBox(width: 14),
                   Expanded(
                     child: PersonaPanel(
-                      padding: const EdgeInsets.all(16),
+                      padding: EdgeInsets.all(16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           SkeletonBox(width: 80, height: 10),
                           SizedBox(height: 14),
                           SkeletonBox(width: 40, height: 28),
@@ -264,13 +264,13 @@ class _SkeletonLoading extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 14),
+                  SizedBox(width: 14),
                   Expanded(
                     child: PersonaPanel(
-                      padding: const EdgeInsets.all(16),
+                      padding: EdgeInsets.all(16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           SkeletonBox(width: 80, height: 10),
                           SizedBox(height: 14),
                           SkeletonBox(width: 40, height: 28),
@@ -283,9 +283,9 @@ class _SkeletonLoading extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 18),
-              PersonaPanel(
+              const PersonaPanel(
                 child: Row(
-                  children: const [
+                  children: [
                     Expanded(child: SkeletonBox(height: 40)),
                     SizedBox(width: 12),
                     Expanded(child: SkeletonBox(height: 40)),
@@ -297,16 +297,16 @@ class _SkeletonLoading extends StatelessWidget {
                 child: Column(
                   children: List.generate(
                     5,
-                    (_) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    (_) => const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
                       child: Row(
                         children: [
-                          const SkeletonBox(width: 126, height: 28),
-                          const SizedBox(width: 16),
+                          SkeletonBox(width: 126, height: 28),
+                          SizedBox(width: 16),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
+                              children: [
                                 SkeletonBox(width: 180, height: 14),
                                 SizedBox(height: 4),
                                 SkeletonBox(width: 120, height: 12),

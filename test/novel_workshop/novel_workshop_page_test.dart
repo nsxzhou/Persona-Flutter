@@ -1863,7 +1863,7 @@ Focus on the brighter beacon.
     expect(find.widgetWithText(OutlinedButton, '批量草稿'), findsOneWidget);
 
     await fixture.repository.createChapterGenerationBatch(
-      ChapterGenerationBatchInput(
+      const ChapterGenerationBatchInput(
         projectId: 'project-1',
         chapterPlanIds: ['plan-1'],
         providerId: 'provider-1',

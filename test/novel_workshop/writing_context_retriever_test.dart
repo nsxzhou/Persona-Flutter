@@ -216,7 +216,7 @@ final _plan = ChapterPlan(
   volumeTitle: '第一卷',
   chapterLocalIndex: 4,
   chapterIndex: 4,
-  objectiveCard: ChapterObjectiveCard(
+  objectiveCard: const ChapterObjectiveCard(
     chapterTitle: '第四章',
     objective: '林岚追查沉船账本。',
     pressureSource: '港务处追兵逼近。',

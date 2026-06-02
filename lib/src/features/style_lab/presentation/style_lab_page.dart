@@ -233,7 +233,7 @@ class StyleLabProfileDetailPage extends ConsumerWidget {
     return profile.when(
       data: (item) {
         if (item == null) {
-          return _StyleLabMissingDetail(
+          return const AnalysisMissingDetail(eyebrow: 'Profile Detail', backRoute: '/style-lab', 
             title: 'Profile 不存在',
             description: '这个 Style Profile 可能已被删除。',
           );
@@ -253,9 +253,9 @@ class StyleLabProfileDetailPage extends ConsumerWidget {
           ),
         );
       },
-      loading: () => const _StyleLabDetailLoading(),
+      loading: () => const AnalysisDetailLoading(eyebrow: 'Profile Detail', description: '正在读取风格档案。'),
       error: (error, stackTrace) =>
-          _StyleLabMissingDetail(title: '无法读取 Profile', description: '$error'),
+          AnalysisMissingDetail(eyebrow: 'Profile Detail', backRoute: '/style-lab', title: '无法读取 Profile', description: '$error'),
     );
   }
 }
@@ -271,7 +271,7 @@ class StyleLabDraftDetailPage extends ConsumerWidget {
     return run.when(
       data: (item) {
         if (item == null) {
-          return _StyleLabMissingDetail(
+          return const AnalysisMissingDetail(eyebrow: 'Profile Detail', backRoute: '/style-lab', 
             title: '草稿不存在',
             description: '这个 Voice Profile 草稿可能已被删除。',
           );
@@ -283,9 +283,9 @@ class StyleLabDraftDetailPage extends ConsumerWidget {
           child: _StyleLabDraftProfileDetail(run: item, sample: sample),
         );
       },
-      loading: () => const _StyleLabDetailLoading(),
+      loading: () => const AnalysisDetailLoading(eyebrow: 'Profile Detail', description: '正在读取风格档案。'),
       error: (error, stackTrace) =>
-          _StyleLabMissingDetail(title: '无法读取草稿', description: '$error'),
+          AnalysisMissingDetail(eyebrow: 'Profile Detail', backRoute: '/style-lab', title: '无法读取草稿', description: '$error'),
     );
   }
 }
@@ -301,7 +301,7 @@ class StyleLabTaskDetailPage extends ConsumerWidget {
     return run.when(
       data: (item) {
         if (item == null) {
-          return _StyleLabMissingDetail(
+          return const AnalysisMissingDetail(eyebrow: 'Profile Detail', backRoute: '/style-lab', 
             title: '任务不存在',
             description: '这个风格分析任务可能已被删除。',
           );
@@ -314,9 +314,9 @@ class StyleLabTaskDetailPage extends ConsumerWidget {
           child: _StyleLabTaskDetail(run: item, sample: sample),
         );
       },
-      loading: () => const _StyleLabDetailLoading(),
+      loading: () => const AnalysisDetailLoading(eyebrow: 'Profile Detail', description: '正在读取风格档案。'),
       error: (error, stackTrace) =>
-          _StyleLabMissingDetail(title: '无法读取任务', description: '$error'),
+          AnalysisMissingDetail(eyebrow: 'Profile Detail', backRoute: '/style-lab', title: '无法读取任务', description: '$error'),
     );
   }
 }
@@ -1019,7 +1019,7 @@ class _LibraryAssetRowState extends State<_LibraryAssetRow> {
                         _AssetKindPill(kind: asset.kind),
                         _YamlPill(markdown: asset.profileMarkdown),
                         PersonaStatusPill(
-                          label: statusLabel(asset.status.name),
+                          label: asset.status.name,
                           icon: statusIcon(asset.status.name),
                           color: statusColor(colorScheme, asset.status.name),
                         ),
@@ -1062,7 +1062,7 @@ class _LibraryAssetRowState extends State<_LibraryAssetRow> {
                     SizedBox(
                       width: 104,
                       child: Text(
-                        _formatDate(asset.updatedAt),
+                        formatDate(asset.updatedAt),
                         style: textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
@@ -1305,7 +1305,7 @@ class _ActivityRunRowState extends State<_ActivityRunRow> {
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             PersonaStatusPill(
-                              label: statusLabel(run.status.name),
+                              label: run.status.name,
                               icon: statusIcon(run.status.name),
                               color: statusColor(colorScheme, run.status.name),
                             ),
@@ -2016,7 +2016,7 @@ class _DetailHeader extends StatelessWidget {
             _ValidationStatus(markdown: profileMarkdown),
             if (currentRun != null)
               PersonaStatusPill(
-                label: statusLabel(currentRun.status.name),
+                label: currentRun.status.name,
                 icon: statusIcon(currentRun.status.name),
                 color: statusColor(colorScheme, currentRun.status.name),
               ),
@@ -2221,7 +2221,7 @@ class _RunLogTab extends StatelessWidget {
                   runSpacing: 8,
                   children: [
                     PersonaStatusPill(
-                      label: statusLabel(item.status.name),
+                      label: item.status.name,
                       icon: statusIcon(item.status.name),
                       color: statusColor(
                         Theme.of(context).colorScheme,
@@ -2397,61 +2397,7 @@ class _ValidationStatus extends StatelessWidget {
   }
 }
 
-class _StyleLabDetailLoading extends StatelessWidget {
-  const _StyleLabDetailLoading();
 
-  @override
-  Widget build(BuildContext context) {
-    return const PersonaPage(
-      eyebrow: 'Profile Detail',
-      title: '读取中',
-      description: '正在读取风格档案。',
-      children: [
-        PersonaPanel(
-          child: SizedBox(
-            height: 260,
-            child: Center(child: CircularProgressIndicator()),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StyleLabMissingDetail extends StatelessWidget {
-  const _StyleLabMissingDetail({
-    required this.title,
-    required this.description,
-  });
-
-  final String title;
-  final String description;
-
-  @override
-  Widget build(BuildContext context) {
-    return PersonaPage(
-      eyebrow: 'Profile Detail',
-      title: title,
-      description: description,
-      actions: [
-        OutlinedButton.icon(
-          onPressed: () => context.go('/style-lab'),
-          icon: const Icon(Icons.arrow_back_outlined),
-          label: const Text('返回档案库'),
-        ),
-      ],
-      children: const [
-        PersonaPanel(
-          child: PersonaEmptyStateCard(
-            icon: Icons.search_off_outlined,
-            title: '没有找到内容',
-            description: '返回档案库选择其他 Profile。',
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 Future<bool> _confirmDeleteStyleItem({
   required BuildContext context,
@@ -2649,7 +2595,7 @@ bool _isActivityRun(StyleAnalysisRun run) {
 }
 
 String _taskDetailSubtitle(StyleAnalysisRun run) {
-  final status = statusLabel(run.status.name);
+  final status = run.status.name;
   final stage = _stageLabel(run.stage);
   final chunks = _chunkProgressLabel(run);
   return '$status · $stage · $chunks · ${run.modelName}';
@@ -2834,11 +2780,6 @@ StageStepState _stageStepState(StyleAnalysisRun run, _StyleAnalysisStep step) {
 int? _stageIndex(StyleAnalysisStage? stage) {
   final index = _styleAnalysisSteps.indexWhere((step) => step.stage == stage);
   return index < 0 ? null : index;
-}
-
-String _formatDate(DateTime value) {
-  String two(int number) => number.toString().padLeft(2, '0');
-  return '${two(value.month)}-${two(value.day)} ${two(value.hour)}:${two(value.minute)}';
 }
 
 String _emptyTitle(_StyleLibraryFilter filter) {

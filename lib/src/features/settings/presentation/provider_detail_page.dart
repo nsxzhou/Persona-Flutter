@@ -44,11 +44,11 @@ class ProviderDetailPage extends ConsumerWidget {
 
         return _ProviderDetailContent(provider: item);
       },
-      loading: () => PersonaPage(
+      loading: () => const PersonaPage(
         eyebrow: 'Provider',
         title: '加载中',
         description: '正在读取 Provider 配置。',
-        children: const [PersonaPanel(child: LinearProgressIndicator())],
+        children: [PersonaPanel(child: LinearProgressIndicator())],
       ),
       error: (error, stackTrace) => PersonaPage(
         eyebrow: 'Provider',

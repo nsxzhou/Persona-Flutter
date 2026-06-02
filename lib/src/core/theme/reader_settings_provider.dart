@@ -1,5 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+part 'reader_settings_provider.freezed.dart';
 
 const _readerFontSizeKey = 'persona.reader.fontSize';
 const _readerLineHeightKey = 'persona.reader.lineHeight';
@@ -25,32 +28,14 @@ class ReaderSettingsNotifier extends Notifier<ReaderSettings> {
   }
 }
 
-class ReaderSettings {
-  const ReaderSettings({
-    this.fontSize = 19,
-    this.lineHeight = 1.9,
-    this.columnWidth = 760,
-    this.dark = false,
-  });
-
-  final double fontSize;
-  final double lineHeight;
-  final double columnWidth;
-  final bool dark;
-
-  ReaderSettings copyWith({
-    double? fontSize,
-    double? lineHeight,
-    double? columnWidth,
-    bool? dark,
-  }) {
-    return ReaderSettings(
-      fontSize: fontSize ?? this.fontSize,
-      lineHeight: lineHeight ?? this.lineHeight,
-      columnWidth: columnWidth ?? this.columnWidth,
-      dark: dark ?? this.dark,
-    );
-  }
+@freezed
+abstract class ReaderSettings with _$ReaderSettings {
+  const factory ReaderSettings({
+    @Default(19) double fontSize,
+    @Default(1.9) double lineHeight,
+    @Default(760) double columnWidth,
+    @Default(false) bool dark,
+  }) = _ReaderSettings;
 }
 
 abstract interface class ReaderSettingsStore {

@@ -145,6 +145,18 @@ class InputClassification {
       'noise_notes': noiseNotes,
     };
   }
+
+  factory InputClassification.fromJson(Map<String, Object?> json) {
+    return InputClassification(
+      textType: json['text_type'] as String? ?? '',
+      hasTimestamps: json['has_timestamps'] as bool? ?? false,
+      hasSpeakerLabels: json['has_speaker_labels'] as bool? ?? false,
+      hasNoiseMarkers: json['has_noise_markers'] as bool? ?? false,
+      usesBatchProcessing: json['uses_batch_processing'] as bool? ?? false,
+      locationIndexing: json['location_indexing'] as String? ?? '',
+      noiseNotes: json['noise_notes'] as String? ?? '',
+    );
+  }
 }
 
 class AnalysisInputSignals {

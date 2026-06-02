@@ -535,12 +535,12 @@ class _ProjectsLoading extends StatelessWidget {
         Row(
           children: [
             for (var index = 0; index < 3; index++) ...[
-              Expanded(
+              const Expanded(
                 child: PersonaPanel(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
+                    children: [
                       SkeletonBox(width: 80, height: 10),
                       SizedBox(height: 14),
                       SkeletonBox(width: 46, height: 28),
@@ -559,16 +559,16 @@ class _ProjectsLoading extends StatelessWidget {
           child: Column(
             children: List.generate(
               3,
-              (_) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+              (_) => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
                 child: Row(
                   children: [
-                    const SkeletonBox(width: 38, height: 38),
-                    const SizedBox(width: 14),
+                    SkeletonBox(width: 38, height: 38),
+                    SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           SkeletonBox(width: 160, height: 14),
                           SizedBox(height: 8),
                           SkeletonBox(width: 280, height: 12),
@@ -1105,8 +1105,8 @@ class _ProjectDialogForm extends StatelessWidget {
                     onStatusChanged(value);
                   }
                 },
-                child: Column(
-                  children: const [
+                child: const Column(
+                  children: [
                     RadioListTile<ProjectStatus>(
                       title: Text('活动项目'),
                       subtitle: Text('显示在默认 Projects 工作区。'),

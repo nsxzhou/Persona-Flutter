@@ -93,7 +93,7 @@ final class ThemeModePreference {
     return switch (mode) {
       ThemeMode.light => 'light',
       ThemeMode.dark => 'dark',
-      ThemeMode.system => 'dark',
+      ThemeMode.system => 'system',
     };
   }
 }

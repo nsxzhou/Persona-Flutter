@@ -247,7 +247,7 @@ class _CharacterGraphTabState extends ConsumerState<CharacterGraphTab> {
           // Legacy markdown reference.
           if (widget.legacyMarkdown.trim().isNotEmpty) ...[
             const SizedBox(height: 18),
-            PersonaSectionHeader(
+            const PersonaSectionHeader(
               title: '旧角色索引参考',
               description: '历史 Markdown 不自动迁移，仅供对照。',
             ),

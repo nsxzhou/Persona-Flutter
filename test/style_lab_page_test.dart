@@ -16,7 +16,7 @@ import 'package:persona_flutter/src/features/style_lab/presentation/style_lab_pa
 void main() {
   testWidgets('style lab shows profile library empty state', (tester) async {
     await tester.pumpWidget(
-      _StyleLabTestApp(samples: const [], runs: const [], profiles: const []),
+      const _StyleLabTestApp(samples: [], runs: [], profiles: []),
     );
     await _pumpStyleLab(tester);
 

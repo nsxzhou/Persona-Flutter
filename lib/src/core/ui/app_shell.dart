@@ -55,7 +55,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                     _collapsedSidebarWidth,
                     _expandedSidebarWidth,
                     sidebarProgress,
-                  )!,
+                  ),
                   child: _PersonaSidebar(
                     sidebarProgress: sidebarProgress,
                     isExpanded: _isExpanded,
