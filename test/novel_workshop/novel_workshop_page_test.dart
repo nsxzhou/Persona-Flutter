@@ -308,7 +308,10 @@ void main() {
       const ValueKey('generate-asset-outlineDetailYaml'),
     );
     await tester.tap(button);
-    await tester.tap(button, warnIfMissed: false);
+    await tester.pumpAndSettle();
+
+    // Dismiss the pre-generation feedback dialog.
+    await tester.tap(find.text('开始生成'));
     await tester.pump();
 
     expect(fixture.assetPipeline.generateCalls, 1);
@@ -319,7 +322,8 @@ void main() {
     await tester.pump();
     await tester.pump();
     if (find.text('分卷规划草稿').evaluate().isNotEmpty) {
-      await tester.tap(find.text('取消'));
+      // Tap the "取消" button in the review dialog (last one).
+      await tester.tap(find.text('取消').last);
       await tester.pump();
     }
   });
@@ -339,6 +343,10 @@ void main() {
       await tester.tap(
         find.byKey(const ValueKey('generate-asset-outlineDetailYaml')),
       );
+      await tester.pumpAndSettle();
+
+      // Dismiss the pre-generation feedback dialog.
+      await tester.tap(find.text('开始生成'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
       await tester.pump();
@@ -356,6 +364,10 @@ void main() {
       await tester.ensureVisible(generateVolumeDetailButton);
       await tester.pumpAndSettle();
       await tester.tap(generateVolumeDetailButton);
+      await tester.pumpAndSettle();
+
+      // Dismiss the pre-generation feedback dialog.
+      await tester.tap(find.text('开始生成'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
       await tester.pump();
@@ -2343,6 +2355,7 @@ class _FakeAssetGenerationPipeline implements AssetGenerationPipeline {
   Future<AssetGenerationResult> generateAsset({
     required String projectId,
     required AssetGenerationKind kind,
+    String userFeedback = '',
     String? targetVolumeId,
   }) async {
     generateCalls += 1;
@@ -4397,6 +4410,14 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
     required String projectId,
     required String charactersYaml,
   }) async {}
+
+  @override
+  String charactersToYaml({
+    required List<NovelCharacter> characters,
+    required List<NovelRelationship> relationships,
+  }) {
+    return '';
+  }
 
   @override
   Future<List<ChapterVolume>> watchChapterVolumesOnce(String projectId) async {

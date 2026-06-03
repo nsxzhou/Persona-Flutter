@@ -3,11 +3,123 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/ui/persona_page.dart';
+import '../../application/character_graph_parser.dart';
 import '../../application/novel_workshop_providers.dart';
 import '../../domain/novel_workshop.dart';
 import '../asset_review_state.dart';
 import 'character_detail_panel.dart';
 import 'relationship_canvas.dart';
+
+/// Dialog shown before draft generation to collect optional user feedback.
+class _PreGenerationFeedbackDialog extends StatefulWidget {
+  const _PreGenerationFeedbackDialog();
+
+  @override
+  State<_PreGenerationFeedbackDialog> createState() =>
+      _PreGenerationFeedbackDialogState();
+}
+
+class _PreGenerationFeedbackDialogState
+    extends State<_PreGenerationFeedbackDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 520),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.auto_fix_high_outlined,
+                  color: colorScheme.onPrimaryContainer,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  '生成指导',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '可选：告诉 AI 你的具体要求或偏好，让生成结果更符合预期。',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _controller,
+            maxLines: 4,
+            minLines: 2,
+            style: Theme.of(context).textTheme.bodyMedium,
+            decoration: InputDecoration(
+              hintText: '例如：侧重描写角色内心冲突，避免过多战斗场景...',
+              hintStyle: TextStyle(
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+              ),
+              filled: true,
+              fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: colorScheme.outlineVariant),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: colorScheme.outlineVariant),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
+              ),
+              contentPadding: const EdgeInsets.all(12),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop<String?>(null),
+                child: const Text('跳过'),
+              ),
+              const SizedBox(width: 8),
+              FilledButton.icon(
+                onPressed: () =>
+                    Navigator.of(context).pop<String>(_controller.text),
+                icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                label: const Text('开始生成'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 /// Tab displaying the character relationship graph as the sole primary view.
 ///
@@ -21,6 +133,7 @@ class CharacterGraphTab extends ConsumerStatefulWidget {
     required this.relationships,
     required this.latestRun,
     required this.onShowDraftReview,
+    required this.charactersYaml,
     super.key,
   });
 
@@ -29,6 +142,7 @@ class CharacterGraphTab extends ConsumerStatefulWidget {
   final AsyncValue<List<NovelCharacter>> characters;
   final AsyncValue<List<NovelRelationship>> relationships;
   final AssetGenerationRun? latestRun;
+  final String charactersYaml;
 
   /// Callback to show the draft review dialog. Receives the run and returns
   /// a result indicating the user's chosen action. This avoids coupling to a
@@ -48,13 +162,91 @@ class _CharacterGraphTabState extends ConsumerState<CharacterGraphTab>
   bool get wantKeepAlive => true;
   NovelCharacter? _selectedCharacter;
 
+  late final TextEditingController _yamlController;
+  late String _loadedYaml;
+  bool _editingYaml = false;
+
+  bool get _isDirty => _yamlController.text != _loadedYaml;
+
   bool get _generating =>
       widget.latestRun?.status == AssetGenerationStatus.pending ||
       widget.latestRun?.status == AssetGenerationStatus.running;
 
   @override
+  void initState() {
+    super.initState();
+    _loadedYaml = widget.charactersYaml;
+    _yamlController = TextEditingController(text: _loadedYaml);
+    _yamlController.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant CharacterGraphTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.charactersYaml != widget.charactersYaml && !_isDirty) {
+      _loadedYaml = widget.charactersYaml;
+      _yamlController.text = _loadedYaml;
+    }
+  }
+
+  @override
+  void dispose() {
+    _yamlController.dispose();
+    super.dispose();
+  }
+
+  void _startEditing() {
+    setState(() {
+      _editingYaml = true;
+    });
+  }
+
+  void _cancelEditing() {
+    setState(() {
+      _yamlController.text = _loadedYaml;
+      _editingYaml = false;
+    });
+  }
+
+  Future<void> _saveYaml() async {
+    final yaml = _yamlController.text;
+    try {
+      const CharacterGraphParser().parse(yaml);
+    } on CharacterGraphValidationException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('YAML 格式错误：${error.message}')),
+      );
+      return;
+    }
+    try {
+      await ref
+          .read(novelWorkshopControllerProvider.notifier)
+          .applyCharactersYaml(projectId: widget.projectId, charactersYaml: yaml);
+      if (!mounted) return;
+      setState(() {
+        _loadedYaml = yaml;
+        _editingYaml = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('角色蓝图已保存。')),
+      );
+    } on Object catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('保存失败：$error')),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     super.build(context);
+    if (_editingYaml) {
+      return _buildYamlEditor(context);
+    }
     final controllerState = ref.watch(novelWorkshopControllerProvider);
     return widget.characters.when(
       data: (characterItems) => widget.relationships.when(
@@ -111,6 +303,11 @@ class _CharacterGraphTabState extends ConsumerState<CharacterGraphTab>
                 runSpacing: 8,
                 alignment: WrapAlignment.end,
                 children: [
+                  OutlinedButton.icon(
+                    onPressed: _startEditing,
+                    icon: const Icon(Icons.code_outlined, size: 18),
+                    label: const Text('编辑 YAML'),
+                  ),
                   OutlinedButton.icon(
                     onPressed: characterItems.isEmpty
                         ? null
@@ -276,13 +473,109 @@ class _CharacterGraphTabState extends ConsumerState<CharacterGraphTab>
     );
   }
 
+  Widget _buildYamlEditor(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    // Live validation status.
+    CharacterGraphValidationException? validationError;
+    try {
+      const CharacterGraphParser().parse(_yamlController.text);
+    } on CharacterGraphValidationException catch (e) {
+      validationError = e;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '编辑角色蓝图 YAML — 修改后保存，结构化角色和关系会同步更新。',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: _cancelEditing,
+                child: const Text('取消'),
+              ),
+              const SizedBox(width: 8),
+              FilledButton.icon(
+                onPressed: _isDirty ? _saveYaml : null,
+                icon: const Icon(Icons.save_outlined, size: 18),
+                label: const Text('保存'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Validation status pill.
+          if (validationError != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: colorScheme.errorContainer,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(
+                'YAML 错误：${validationError.message}',
+                style: TextStyle(
+                  color: colorScheme.onErrorContainer,
+                  fontSize: 12,
+                ),
+              ),
+            )
+          else if (_yamlController.text.trim().isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(
+                'YAML 有效',
+                style: TextStyle(
+                  color: colorScheme.onPrimaryContainer,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: TextField(
+              controller: _yamlController,
+              maxLines: null,
+              minLines: 20,
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: '在此编辑角色和关系的 YAML...',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _generateCharacters(BuildContext context, WidgetRef ref) async {
+    // Show feedback dialog before generation.
+    final feedback = await showDialog<String>(
+      context: context,
+      builder: (context) => const _PreGenerationFeedbackDialog(),
+    );
+    if (feedback == null) return; // User cancelled.
     try {
       final result = await ref
           .read(novelWorkshopControllerProvider.notifier)
           .generateAsset(
             projectId: widget.projectId,
             kind: AssetGenerationKind.charactersBlueprint,
+            userFeedback: feedback,
           );
       if (!context.mounted) return;
       await _reviewAndHandleDraft(context, ref, result.run);

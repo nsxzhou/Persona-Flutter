@@ -54,7 +54,7 @@ class OutlineDetailParser {
   OutlineDetailDocument parse(String yamlText) {
     final trimmed = yamlText.trim();
     if (trimmed.isEmpty) {
-      throw const OutlineDetailValidationException('分卷与章节细纲不能为空。');
+      return const OutlineDetailDocument(volumes: []);
     }
 
     final parsed = loadYaml(trimmed);
@@ -91,67 +91,62 @@ class OutlineDetailParser {
       }
 
       final chaptersValue = volumeMap['chapters'];
-      if (chaptersValue is! YamlList && chaptersValue is! List) {
-        throw OutlineDetailValidationException('$volumePath 缺少 chapters 章节列表。');
-      }
-      final chapterItems = chaptersValue as Iterable<Object?>;
-      if (chapterItems.isEmpty) {
-        throw OutlineDetailValidationException('$volumePath 至少需要一个 chapter。');
-      }
-
-      final seenChapterIndexes = <int>{};
       final chapters = <OutlineChapterDraft>[];
-      for (
-        var chapterOffset = 0;
-        chapterOffset < chapterItems.length;
-        chapterOffset += 1
-      ) {
-        final chapterPath = '$volumePath.chapters[$chapterOffset]';
-        final chapterMap = _requireMap(
-          chapterItems.elementAt(chapterOffset),
-          chapterPath,
-        );
-        final localIndex = _requiredPositiveInt(
-          chapterMap,
-          'index',
-          chapterPath,
-        );
-        final title = _requiredString(chapterMap, 'title', chapterPath);
-        if (!seenChapterIndexes.add(localIndex)) {
-          throw OutlineDetailValidationException(
-            '$volumePath 章节序号重复：$localIndex。',
+      if (chaptersValue is YamlList || chaptersValue is List) {
+        final chapterItems = chaptersValue as Iterable<Object?>;
+        final seenChapterIndexes = <int>{};
+        for (
+          var chapterOffset = 0;
+          chapterOffset < chapterItems.length;
+          chapterOffset += 1
+        ) {
+          final chapterPath = '$volumePath.chapters[$chapterOffset]';
+          final chapterMap = _requireMap(
+            chapterItems.elementAt(chapterOffset),
+            chapterPath,
           );
-        }
-        final objective = _string(chapterMap, 'objective');
-        final pressureSource = _string(chapterMap, 'pressureSource');
-        final payoffTarget = _string(chapterMap, 'payoffTarget');
-        final relationshipShift = _string(chapterMap, 'relationshipShift');
-        final hookType = _string(chapterMap, 'hookType');
-        final coreEvent = _string(chapterMap, 'coreEvent');
-        final emotionArc = _string(chapterMap, 'emotionArc');
-        final chapterHook = _string(chapterMap, 'chapterHook');
-        final outlineMarkdown = _string(chapterMap, 'outlineMarkdown');
-        chapters.add(
-          OutlineChapterDraft(
-            volumeIndex: volumeIndex,
-            volumeTitle: volumeTitle,
-            chapterLocalIndex: localIndex,
-            chapterIndex: wholeBookIndex,
-            objectiveCard: ChapterObjectiveCard(
-              chapterTitle: title,
-              objective: objective,
-              pressureSource: pressureSource,
-              payoffTarget: payoffTarget,
-              relationshipShift: relationshipShift,
-              hookType: hookType,
+          final localIndex = _requiredPositiveInt(
+            chapterMap,
+            'index',
+            chapterPath,
+          );
+          final title = _requiredString(chapterMap, 'title', chapterPath);
+          if (!seenChapterIndexes.add(localIndex)) {
+            throw OutlineDetailValidationException(
+              '$volumePath 章节序号重复：$localIndex。',
+            );
+          }
+          final objective = _string(chapterMap, 'objective');
+          final pressureSource = _string(chapterMap, 'pressureSource');
+          final payoffTarget = _string(chapterMap, 'payoffTarget');
+          final relationshipShift = _string(chapterMap, 'relationshipShift');
+          final hookType = _string(chapterMap, 'hookType');
+          final coreEvent = _string(chapterMap, 'coreEvent');
+          final emotionArc = _string(chapterMap, 'emotionArc');
+          final chapterHook = _string(chapterMap, 'chapterHook');
+          final outlineMarkdown = _string(chapterMap, 'outlineMarkdown');
+          chapters.add(
+            OutlineChapterDraft(
+              volumeIndex: volumeIndex,
+              volumeTitle: volumeTitle,
+              chapterLocalIndex: localIndex,
+              chapterIndex: wholeBookIndex,
+              objectiveCard: ChapterObjectiveCard(
+                chapterTitle: title,
+                objective: objective,
+                pressureSource: pressureSource,
+                payoffTarget: payoffTarget,
+                relationshipShift: relationshipShift,
+                hookType: hookType,
+              ),
+              coreEvent: coreEvent,
+              emotionArc: emotionArc,
+              chapterHook: chapterHook,
+              outlineMarkdown: outlineMarkdown,
             ),
-            coreEvent: coreEvent,
-            emotionArc: emotionArc,
-            chapterHook: chapterHook,
-            outlineMarkdown: outlineMarkdown,
-          ),
-        );
-        wholeBookIndex += 1;
+          );
+          wholeBookIndex += 1;
+        }
       }
 
       volumes.add(

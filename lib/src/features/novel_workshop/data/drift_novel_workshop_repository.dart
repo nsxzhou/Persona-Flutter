@@ -664,8 +664,23 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
   }) async {
     await _validateChapterVolumeInput(input);
     final now = DateTime.now();
-    final normalizedId = id ?? _uuid.v4();
-    final existing = id == null ? null : await _findChapterVolume(id);
+    // 当未提供 id 时，按 (projectId, volumeIndex) 查找已有记录以复用 id，
+    // 避免与唯一约束冲突。
+    ChapterVolume? existing;
+    if (id != null) {
+      existing = await _findChapterVolume(id);
+    } else {
+      final row = await (_database.select(_database.chapterVolumeRecords)
+            ..where((v) =>
+                v.projectId.equals(input.projectId) &
+                v.volumeIndex.equals(input.volumeIndex))
+            ..limit(1))
+          .getSingleOrNull();
+      if (row != null) {
+        existing = _mapVolume(row);
+      }
+    }
+    final normalizedId = existing?.id ?? id ?? _uuid.v4();
     await _database
         .into(_database.chapterVolumeRecords)
         .insertOnConflictUpdate(
@@ -852,6 +867,15 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
               ),
             );
       }
+      // 删除不在文档中的已有分卷
+      final keptVolumeIndexes = {for (final v in document.volumes) v.volumeIndex};
+      for (final existing in existingVolumes) {
+        if (!keptVolumeIndexes.contains(existing.volumeIndex)) {
+          await (_database.delete(_database.chapterVolumeRecords)
+                ..where((v) => v.id.equals(existing.id)))
+              .go();
+        }
+      }
 
       final existingPlans = await (_database.select(
         _database.chapterPlanRecords,
@@ -891,6 +915,15 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
                 updatedAt: Value(now),
               ),
             );
+      }
+      // 删除不在文档中的已有章节
+      final keptChapterIndexes = {for (final c in document.chapters) c.chapterIndex};
+      for (final existing in existingPlans) {
+        if (!keptChapterIndexes.contains(existing.chapterIndex)) {
+          await (_database.delete(_database.chapterPlanRecords)
+                ..where((p) => p.id.equals(existing.id)))
+              .go();
+        }
       }
     });
     final saved = await findProjectBible(projectId);
@@ -951,8 +984,12 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     for (final volume in document.volumes) {
       buffer
         ..writeln('  - index: ${volume.volumeIndex}')
-        ..writeln('    title: ${_yamlScalar(volume.title)}')
-        ..writeln('    chapters:');
+        ..writeln('    title: ${_yamlScalar(volume.title)}');
+      if (volume.chapters.isEmpty) {
+        buffer.writeln('    chapters: []');
+      } else {
+        buffer.writeln('    chapters:');
+      }
       for (final chapter in volume.chapters) {
         buffer
           ..writeln('      - index: ${chapter.chapterLocalIndex}')
@@ -1002,6 +1039,48 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       return;
     }
     buffer.writeln('        $key: ${_yamlScalar(value)}');
+  }
+
+  @override
+  String charactersToYaml({
+    required List<NovelCharacter> characters,
+    required List<NovelRelationship> relationships,
+  }) {
+    if (characters.isEmpty && relationships.isEmpty) {
+      return '';
+    }
+    final nameById = {for (final c in characters) c.id: c.name};
+    final buffer = StringBuffer('characters:\n');
+    for (final c in characters) {
+      buffer
+        ..writeln('  - name: ${_yamlScalar(c.name)}')
+        ..writeln('    role: ${_yamlScalar(c.role)}');
+      _writeCharYamlField(buffer, 'aliases', c.aliases);
+      _writeCharYamlField(buffer, 'faction', c.faction);
+      _writeCharYamlField(buffer, 'status', c.currentStatus);
+      _writeCharYamlField(buffer, 'longTermGoal', c.longTermGoal);
+      _writeCharYamlField(buffer, 'secrets', c.secrets);
+      _writeCharYamlField(buffer, 'tags', c.tags);
+    }
+    if (relationships.isNotEmpty) {
+      buffer.writeln('\nrelationships:');
+      for (final r in relationships) {
+        final fromName = nameById[r.fromCharacterId] ?? r.fromCharacterId;
+        final toName = nameById[r.toCharacterId] ?? r.toCharacterId;
+        buffer
+          ..writeln('  - from: ${_yamlScalar(fromName)}')
+          ..writeln('    to: ${_yamlScalar(toName)}')
+          ..writeln('    type: ${_yamlScalar(r.relationshipType)}');
+        _writeCharYamlField(buffer, 'status', r.status);
+        _writeCharYamlField(buffer, 'description', r.description);
+      }
+    }
+    return buffer.toString().trimRight();
+  }
+
+  void _writeCharYamlField(StringBuffer buffer, String key, String value) {
+    if (value.trim().isEmpty) return;
+    buffer.writeln('    $key: ${_yamlScalar(value)}');
   }
 
   void _writeYamlBlockField(StringBuffer buffer, String key, String value) {
@@ -1204,6 +1283,41 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
                 updatedAt: Value(now),
               ),
             );
+      }
+
+      // 删除不在文档中的已有角色
+      final keptCharacterNames = {for (final c in document.characters) c.name};
+      for (final row in existingRows) {
+        if (!keptCharacterNames.contains(row.name)) {
+          await (_database.delete(_database.novelCharacterRecords)
+                ..where((r) => r.id.equals(row.id)))
+              .go();
+        }
+      }
+
+      // 删除不在文档中的已有关系
+      final existingRelationships = await (_database.select(
+        _database.novelRelationshipRecords,
+      )..where((r) => r.projectId.equals(projectId))).get();
+      final keptRelationshipKeys = {
+        for (final d in document.relationships) '${d.fromName}|${d.toName}',
+      };
+      for (final rel in existingRelationships) {
+        final fromName = existingRows
+            .where((r) => r.id == rel.fromCharacterId)
+            .map((r) => r.name)
+            .firstOrNull;
+        final toName = existingRows
+            .where((r) => r.id == rel.toCharacterId)
+            .map((r) => r.name)
+            .firstOrNull;
+        if (fromName != null &&
+            toName != null &&
+            !keptRelationshipKeys.contains('$fromName|$toName')) {
+          await (_database.delete(_database.novelRelationshipRecords)
+                ..where((r) => r.id.equals(rel.id)))
+              .go();
+        }
       }
     });
   }
@@ -2057,7 +2171,20 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       projectId: projectId,
       volumeBlueprintYaml: draft,
     );
-    return bible;
+    // 同步 outline detail YAML，使 YAML 编辑器显示分卷结构
+    final document = const VolumeBlueprintParser().parse(draft);
+    final outlineDoc = OutlineDetailDocument(
+      volumes: [
+        for (final v in document.volumes)
+          OutlineVolumeDraft(
+            volumeIndex: v.volumeIndex,
+            title: v.title,
+            chapters: const [],
+          ),
+      ],
+    );
+    final outlineYaml = _outlineDetailYamlFromDocument(outlineDoc);
+    return saveOutlineDetailYaml(projectId: projectId, outlineDetailYaml: outlineYaml);
   }
 
   @override

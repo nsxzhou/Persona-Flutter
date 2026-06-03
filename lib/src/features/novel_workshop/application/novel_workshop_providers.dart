@@ -417,6 +417,26 @@ class NovelWorkshopController extends _$NovelWorkshopController {
     return saved;
   }
 
+  Future<void> applyCharactersYaml({
+    required String projectId,
+    required String charactersYaml,
+  }) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref
+          .read(novelWorkshopRepositoryProvider)
+          .applyCharactersYaml(
+            projectId: projectId,
+            charactersYaml: charactersYaml,
+          );
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
+    ref.invalidate(novelCharactersProvider(projectId));
+    ref.invalidate(novelRelationshipsProvider(projectId));
+  }
+
   Future<ProjectChapter> saveChapter({
     String? id,
     required ProjectChapterInput input,
@@ -761,6 +781,7 @@ class NovelWorkshopController extends _$NovelWorkshopController {
   Future<AssetGenerationResult> generateAsset({
     required String projectId,
     required AssetGenerationKind kind,
+    String userFeedback = '',
     String? targetVolumeId,
   }) async {
     state = const AsyncLoading();
@@ -771,6 +792,7 @@ class NovelWorkshopController extends _$NovelWorkshopController {
           .generateAsset(
             projectId: projectId,
             kind: kind,
+            userFeedback: userFeedback,
             targetVolumeId: targetVolumeId,
           );
     });
@@ -821,6 +843,7 @@ class NovelWorkshopController extends _$NovelWorkshopController {
     if (state.hasError) {
       Error.throwWithStackTrace(state.error!, state.stackTrace!);
     }
+    ref.invalidate(projectBibleProvider(saved.projectId));
     return saved;
   }
 

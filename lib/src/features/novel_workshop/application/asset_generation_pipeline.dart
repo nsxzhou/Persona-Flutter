@@ -57,6 +57,7 @@ class AssetGenerationPipeline {
   Future<AssetGenerationResult> generateAsset({
     required String projectId,
     required AssetGenerationKind kind,
+    String userFeedback = '',
     String? targetVolumeId,
   }) async {
     final normalizedVolumeId = targetVolumeId?.trim();
@@ -152,13 +153,16 @@ class AssetGenerationPipeline {
 
       final bible = await _repository.ensureProjectBible(projectId);
       final assets = await _promptAssetResolver.resolve(projectId);
-      final prompt = _promptBuilder.buildPrompt(
+      var prompt = _promptBuilder.buildPrompt(
         kind: kind,
         project: project,
         bible: bible,
         assets: assets,
         targetVolume: targetVolume,
       );
+      if (userFeedback.trim().isNotEmpty) {
+        prompt = '$prompt\n\n## 用户额外要求\n${userFeedback.trim()}\n';
+      }
 
       await transition(
         AssetGenerationStatus.running,

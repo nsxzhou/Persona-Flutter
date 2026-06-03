@@ -150,6 +150,11 @@ abstract interface class NovelWorkshopRepository {
     required String charactersYaml,
   });
 
+  String charactersToYaml({
+    required List<NovelCharacter> characters,
+    required List<NovelRelationship> relationships,
+  });
+
   Future<ProjectChapter> saveChapter({
     String? id,
     required ProjectChapterInput input,

@@ -20,6 +20,19 @@ class _NovelWorkshopPageState extends ConsumerState<NovelWorkshopPage> {
     final memory = ref.watch(projectRuntimeMemoryProvider(widget.projectId));
     final assets = ref.watch(projectPromptAssetsProvider(widget.projectId));
 
+    // Pre-compute charactersYaml from current data.
+    final charactersYaml = characters.when(
+      data: (chars) => relationships.when(
+        data: (rels) => ref
+            .read(novelWorkshopRepositoryProvider)
+            .charactersToYaml(characters: chars, relationships: rels),
+        error: (_, __) => '',
+        loading: () => '',
+      ),
+      error: (_, __) => '',
+      loading: () => '',
+    );
+
     return project.when(
       data: (item) {
         if (item == null) {
@@ -48,6 +61,7 @@ class _NovelWorkshopPageState extends ConsumerState<NovelWorkshopPage> {
                         enrichmentBatches: batchItems,
                         assets: assets,
                         memory: memory,
+                        charactersYaml: charactersYaml,
                         onCreatePlan: () => _showPlanDialog(
                           context: context,
                           projectId: item.id,
@@ -676,6 +690,7 @@ class _AssetWorkbenchPage extends StatelessWidget {
     required this.enrichmentBatches,
     required this.assets,
     required this.memory,
+    required this.charactersYaml,
     required this.onCreatePlan,
     required this.onCreateVolume,
     required this.onEditVolume,
@@ -695,6 +710,7 @@ class _AssetWorkbenchPage extends StatelessWidget {
   final List<ChapterEnrichmentBatch> enrichmentBatches;
   final AsyncValue<ProjectPromptAssets> assets;
   final AsyncValue<ProjectRuntimeMemory> memory;
+  final String charactersYaml;
   final VoidCallback onCreatePlan;
   final VoidCallback onCreateVolume;
   final ValueChanged<ChapterVolume> onEditVolume;
@@ -754,6 +770,7 @@ class _AssetWorkbenchPage extends StatelessWidget {
           enrichmentBatches: enrichmentBatches,
           assets: assets,
           memory: memory,
+          charactersYaml: charactersYaml,
           onCreatePlan: onCreatePlan,
           onCreateVolume: onCreateVolume,
           onEditVolume: onEditVolume,
@@ -778,6 +795,7 @@ class _WorkbenchTabs extends StatefulWidget {
     required this.enrichmentBatches,
     required this.assets,
     required this.memory,
+    required this.charactersYaml,
     required this.onCreatePlan,
     required this.onCreateVolume,
     required this.onEditVolume,
@@ -796,6 +814,7 @@ class _WorkbenchTabs extends StatefulWidget {
   final List<ChapterEnrichmentBatch> enrichmentBatches;
   final AsyncValue<ProjectPromptAssets> assets;
   final AsyncValue<ProjectRuntimeMemory> memory;
+  final String charactersYaml;
   final VoidCallback onCreatePlan;
   final VoidCallback onCreateVolume;
   final ValueChanged<ChapterVolume> onEditVolume;
@@ -926,6 +945,7 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
                 widget.assetRuns,
                 AssetGenerationKind.charactersBlueprint,
               ),
+              charactersYaml: widget.charactersYaml,
               onShowDraftReview: (context, run) async {
                 final result = await showGlassDialog<AssetDraftReviewResult>(
                   context: context,
@@ -2654,6 +2674,12 @@ class _BibleMarkdownEditorTabState
     if (_generatingAsset) {
       return;
     }
+    // Show feedback dialog before generation.
+    final feedback = await showGlassDialog<String?>(
+      context: context,
+      builder: (context) => const _PreGenerationFeedbackDialog(),
+    );
+    if (feedback == null) return; // User cancelled.
     setState(() => _generatingAsset = true);
     try {
       final result = await ref
@@ -2661,6 +2687,7 @@ class _BibleMarkdownEditorTabState
           .generateAsset(
             projectId: widget.bible.projectId,
             kind: _assetKindForField(widget.field),
+            userFeedback: feedback,
           );
       if (!mounted) return;
       await _reviewDraft(result.run, currentMarkdown);
@@ -3939,6 +3966,16 @@ class _ChapterPlanningTabState extends ConsumerState<_ChapterPlanningTab>
     if (!_generatingVolumeIds.add(volume.id)) {
       return;
     }
+    // Show feedback dialog before generation.
+    final feedback = await showGlassDialog<String?>(
+      context: context,
+      builder: (context) => const _PreGenerationFeedbackDialog(),
+    );
+    if (feedback == null) {
+      _generatingVolumeIds.remove(volume.id);
+      setState(() {});
+      return; // User cancelled.
+    }
     setState(() {});
     try {
       final result = await ref
@@ -3946,6 +3983,7 @@ class _ChapterPlanningTabState extends ConsumerState<_ChapterPlanningTab>
           .generateAsset(
             projectId: widget.projectId,
             kind: AssetGenerationKind.outlineDetailYaml,
+            userFeedback: feedback,
             targetVolumeId: volume.id,
           );
       if (!context.mounted) return;
@@ -4276,6 +4314,12 @@ class _OutlineAssetGenerationButtonBodyState
     if (_generatingDraft) {
       return;
     }
+    // Show feedback dialog before generation.
+    final feedback = await showGlassDialog<String?>(
+      context: context,
+      builder: (context) => const _PreGenerationFeedbackDialog(),
+    );
+    if (feedback == null) return; // User cancelled.
     setState(() => _generatingDraft = true);
     try {
       final result = await ref
@@ -4283,6 +4327,7 @@ class _OutlineAssetGenerationButtonBodyState
           .generateAsset(
             projectId: widget.projectId,
             kind: AssetGenerationKind.volumeBlueprintYaml,
+            userFeedback: feedback,
           );
       if (!context.mounted) return;
       await _reviewDraft(context, result.run);
@@ -9562,6 +9607,117 @@ class _ConfirmOverwriteDialog extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// Dialog shown before draft generation to collect optional user feedback.
+class _PreGenerationFeedbackDialog extends StatefulWidget {
+  const _PreGenerationFeedbackDialog();
+
+  @override
+  State<_PreGenerationFeedbackDialog> createState() =>
+      _PreGenerationFeedbackDialogState();
+}
+
+class _PreGenerationFeedbackDialogState
+    extends State<_PreGenerationFeedbackDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 520),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.auto_fix_high_outlined,
+                  color: colorScheme.onPrimaryContainer,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  '生成指导',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '可选：告诉 AI 你的具体要求或偏好，让生成结果更符合预期。',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _controller,
+            maxLines: 4,
+            minLines: 2,
+            style: Theme.of(context).textTheme.bodyMedium,
+            decoration: InputDecoration(
+              hintText: '例如：侧重描写角色内心冲突，避免过多战斗场景...',
+              hintStyle: TextStyle(
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+              ),
+              filled: true,
+              fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: colorScheme.outlineVariant),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: colorScheme.outlineVariant),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
+              ),
+              contentPadding: const EdgeInsets.all(12),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop<String?>(null),
+                child: const Text('跳过'),
+              ),
+              const SizedBox(width: 8),
+              FilledButton.icon(
+                onPressed: () =>
+                    Navigator.of(context).pop<String>(_controller.text),
+                icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                label: const Text('开始生成'),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

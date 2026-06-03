@@ -84,7 +84,7 @@ class CharacterGraphParser {
   CharacterGraphDocument parse(String yamlText) {
     final trimmed = yamlText.trim();
     if (trimmed.isEmpty) {
-      throw const CharacterGraphValidationException('角色 YAML 不能为空。');
+      return const CharacterGraphDocument(characters: [], relationships: []);
     }
     final parsed = loadYaml(trimmed);
     if (parsed is! YamlMap) {
