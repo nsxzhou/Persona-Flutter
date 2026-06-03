@@ -419,7 +419,7 @@ class _CreatePlotProfileDialogState
             data: (sampleItems) => providers.when(
               data: (providerItems) => projects.when(
                 data: (projectItems) {
-                  _syncDefaults(sampleItems, providerItems, projectItems);
+                  _syncDefaults(providerItems, projectItems);
                   final selectedSample = findOrNull(
                     sampleItems,
                     _selectedSampleId,
@@ -438,7 +438,6 @@ class _CreatePlotProfileDialogState
                     (item) => item.id,
                   );
                   return _CreatePlotProfileForm(
-                    samples: sampleItems,
                     providers: providerItems,
                     projects: projectItems,
                     selectedSample: selectedSample,
@@ -448,16 +447,6 @@ class _CreatePlotProfileDialogState
                     plotNameController: _plotNameController,
                     controllerBusy: controller.isLoading,
                     onImportSample: _importSample,
-                    onSampleSelected: (id) => setState(() {
-                      _selectedSampleId = id;
-                      _plotNameController.text =
-                          findOrNull(
-                            sampleItems,
-                            id,
-                            (item) => item.id,
-                          )?.title ??
-                          '';
-                    }),
                     onProviderSelected: (id) => setState(() {
                       _selectedProviderId = id;
                       final provider = findOrNull(
@@ -502,24 +491,15 @@ class _CreatePlotProfileDialogState
   }
 
   void _syncDefaults(
-    List<PlotSample> samples,
     List<ProviderConfig> providers,
     List<WritingProject> projects,
   ) {
-    if (_selectedSampleId == null && samples.isNotEmpty) {
-      _selectedSampleId = samples.first.id;
-      _plotNameController.text = samples.first.title;
-    }
     if (_selectedProviderId == null && providers.isNotEmpty) {
       final enabled = providers.where((provider) => provider.isEnabled);
       _selectedProviderId =
           (enabled.isEmpty ? providers.first : enabled.first).id;
       _selectedModelName =
           (enabled.isEmpty ? providers.first : enabled.first).defaultModel;
-    }
-    if (_selectedSampleId != null &&
-        !samples.any((sample) => sample.id == _selectedSampleId)) {
-      _selectedSampleId = samples.isEmpty ? null : samples.first.id;
     }
     if (_selectedProviderId != null &&
         !providers.any((provider) => provider.id == _selectedProviderId)) {
@@ -602,13 +582,11 @@ class _CreatePlotProfileDialogState
 
 class _CreatePlotProfileForm extends StatelessWidget {
   const _CreatePlotProfileForm({
-    required this.samples,
     required this.providers,
     required this.projects,
     required this.plotNameController,
     required this.controllerBusy,
     required this.onImportSample,
-    required this.onSampleSelected,
     required this.onProviderSelected,
     required this.onModelSelected,
     required this.onProjectSelected,
@@ -619,7 +597,6 @@ class _CreatePlotProfileForm extends StatelessWidget {
     this.onRun,
   });
 
-  final List<PlotSample> samples;
   final List<ProviderConfig> providers;
   final List<WritingProject> projects;
   final PlotSample? selectedSample;
@@ -629,7 +606,6 @@ class _CreatePlotProfileForm extends StatelessWidget {
   final TextEditingController plotNameController;
   final bool controllerBusy;
   final VoidCallback onImportSample;
-  final ValueChanged<String> onSampleSelected;
   final ValueChanged<String> onProviderSelected;
   final ValueChanged<String> onModelSelected;
   final ValueChanged<String?> onProjectSelected;
@@ -648,7 +624,7 @@ class _CreatePlotProfileForm extends StatelessWidget {
               const Expanded(
                 child: PersonaSectionHeader(
                   title: '新建 Plot Profile',
-                  description: '导入或选择样本，运行分析后生成可保存的 Story Engine 草稿。',
+                  description: '导入样本，运行分析后生成可保存的 Story Engine 草稿。',
                 ),
               ),
               IconButton(
@@ -665,29 +641,6 @@ class _CreatePlotProfileForm extends StatelessWidget {
             label: const Text('导入 TXT / EPUB'),
           ),
           const SizedBox(height: 14),
-          DropdownButtonFormField<String>(
-            initialValue: selectedSample?.id,
-            items: [
-              for (final sample in samples)
-                DropdownMenuItem(
-                  value: sample.id,
-                  child: Text(
-                    '${sample.title} · ${_sourceLabel(sample)}',
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-            ],
-            onChanged: samples.isEmpty
-                ? null
-                : (value) {
-                    if (value != null) onSampleSelected(value);
-                  },
-            decoration: const InputDecoration(
-              labelText: '样本',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 12),
           TextField(
             controller: plotNameController,
             decoration: const InputDecoration(

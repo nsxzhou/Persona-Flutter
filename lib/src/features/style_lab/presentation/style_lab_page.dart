@@ -501,7 +501,7 @@ class _CreateProfileDialogState extends ConsumerState<_CreateProfileDialog> {
             data: (sampleItems) => providers.when(
               data: (providerItems) => projects.when(
                 data: (projectItems) {
-                  _syncDefaults(sampleItems, providerItems, projectItems);
+                  _syncDefaults(providerItems, projectItems);
                   final selectedSample = findOrNull(
                     sampleItems,
                     _selectedSampleId,
@@ -520,7 +520,6 @@ class _CreateProfileDialogState extends ConsumerState<_CreateProfileDialog> {
                     (item) => item.id,
                   );
                   return _CreateProfileForm(
-                    samples: sampleItems,
                     providers: providerItems,
                     projects: projectItems,
                     selectedSample: selectedSample,
@@ -530,16 +529,6 @@ class _CreateProfileDialogState extends ConsumerState<_CreateProfileDialog> {
                     styleNameController: _styleNameController,
                     controllerBusy: controller.isLoading,
                     onImportSample: _importSample,
-                    onSampleSelected: (id) => setState(() {
-                      _selectedSampleId = id;
-                      _styleNameController.text =
-                          findOrNull(
-                            sampleItems,
-                            id,
-                            (item) => item.id,
-                          )?.title ??
-                          '';
-                    }),
                     onProviderSelected: (id) => setState(() {
                       _selectedProviderId = id;
                       final provider = findOrNull(
@@ -584,24 +573,15 @@ class _CreateProfileDialogState extends ConsumerState<_CreateProfileDialog> {
   }
 
   void _syncDefaults(
-    List<StyleSample> samples,
     List<ProviderConfig> providers,
     List<WritingProject> projects,
   ) {
-    if (_selectedSampleId == null && samples.isNotEmpty) {
-      _selectedSampleId = samples.first.id;
-      _styleNameController.text = samples.first.title;
-    }
     if (_selectedProviderId == null && providers.isNotEmpty) {
       final enabled = providers.where((provider) => provider.isEnabled);
       _selectedProviderId =
           (enabled.isEmpty ? providers.first : enabled.first).id;
       _selectedModelName =
           (enabled.isEmpty ? providers.first : enabled.first).defaultModel;
-    }
-    if (_selectedSampleId != null &&
-        !samples.any((sample) => sample.id == _selectedSampleId)) {
-      _selectedSampleId = samples.isEmpty ? null : samples.first.id;
     }
     if (_selectedProviderId != null &&
         !providers.any((provider) => provider.id == _selectedProviderId)) {
@@ -686,13 +666,11 @@ class _CreateProfileDialogState extends ConsumerState<_CreateProfileDialog> {
 
 class _CreateProfileForm extends StatelessWidget {
   const _CreateProfileForm({
-    required this.samples,
     required this.providers,
     required this.projects,
     required this.styleNameController,
     required this.controllerBusy,
     required this.onImportSample,
-    required this.onSampleSelected,
     required this.onProviderSelected,
     required this.onModelSelected,
     required this.onProjectSelected,
@@ -703,7 +681,6 @@ class _CreateProfileForm extends StatelessWidget {
     this.onRun,
   });
 
-  final List<StyleSample> samples;
   final List<ProviderConfig> providers;
   final List<WritingProject> projects;
   final StyleSample? selectedSample;
@@ -713,7 +690,6 @@ class _CreateProfileForm extends StatelessWidget {
   final TextEditingController styleNameController;
   final bool controllerBusy;
   final VoidCallback onImportSample;
-  final ValueChanged<String> onSampleSelected;
   final ValueChanged<String> onProviderSelected;
   final ValueChanged<String> onModelSelected;
   final ValueChanged<String?> onProjectSelected;
@@ -732,7 +708,7 @@ class _CreateProfileForm extends StatelessWidget {
               const Expanded(
                 child: PersonaSectionHeader(
                   title: '新建 Profile',
-                  description: '导入或选择样本，运行分析后生成可保存的 Voice Profile 草稿。',
+                  description: '导入样本，运行分析后生成可保存的 Voice Profile 草稿。',
                 ),
               ),
               IconButton(
@@ -749,29 +725,6 @@ class _CreateProfileForm extends StatelessWidget {
             label: const Text('导入 TXT / EPUB'),
           ),
           const SizedBox(height: 14),
-          DropdownButtonFormField<String>(
-            initialValue: selectedSample?.id,
-            items: [
-              for (final sample in samples)
-                DropdownMenuItem(
-                  value: sample.id,
-                  child: Text(
-                    '${sample.title} · ${_sourceLabel(sample)}',
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-            ],
-            onChanged: samples.isEmpty
-                ? null
-                : (value) {
-                    if (value != null) onSampleSelected(value);
-                  },
-            decoration: const InputDecoration(
-              labelText: '样本',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 12),
           TextField(
             controller: styleNameController,
             decoration: const InputDecoration(
