@@ -2380,6 +2380,23 @@ class _FakeAssetGenerationPipeline implements AssetGenerationPipeline {
     _pausedGeneration = null;
     pauseGeneration = false;
   }
+
+  @override
+  Future<AssetGenerationResult> regenerateAssetWithFeedback({
+    required String projectId,
+    required AssetGenerationKind kind,
+    required String previousRunId,
+    required String previousDraft,
+    required String validationErrors,
+    String userFeedback = '',
+    String? targetVolumeId,
+  }) async {
+    return generateAsset(
+      projectId: projectId,
+      kind: kind,
+      targetVolumeId: targetVolumeId,
+    );
+  }
 }
 
 class _FakeChapterIllustrationService extends ChapterIllustrationService {
@@ -4088,6 +4105,8 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
       updatedAt: _testUpdatedAt,
       startedAt: startedAt ?? current.startedAt,
       completedAt: completedAt ?? current.completedAt,
+      previousRunId: current.previousRunId,
+      userFeedback: current.userFeedback,
     );
     assetRuns[index] = updated;
     emit();

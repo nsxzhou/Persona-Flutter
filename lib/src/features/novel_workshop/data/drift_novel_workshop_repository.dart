@@ -1841,6 +1841,8 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
               updatedAt: now,
               startedAt: const Value(null),
               completedAt: const Value(null),
+              previousRunId: Value(input.previousRunId),
+              userFeedback: Value(input.userFeedback),
             ),
           );
     });
@@ -3228,6 +3230,8 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       updatedAt: row.updatedAt,
       startedAt: row.startedAt,
       completedAt: row.completedAt,
+      previousRunId: row.previousRunId,
+      userFeedback: row.userFeedback,
     );
   }
 

@@ -56,7 +56,7 @@ enum AssetGenerationStatus {
   abandoned,
 }
 
-enum AssetGenerationStage { preparingContext, generatingDraft, savingDraft }
+enum AssetGenerationStage { preparingContext, generatingDraft, repairingDraft, savingDraft }
 
 enum ChapterEnrichmentBatchStatus {
   pending,
@@ -919,6 +919,8 @@ class AssetGenerationRun {
     required this.updatedAt,
     required this.startedAt,
     required this.completedAt,
+    this.previousRunId,
+    this.userFeedback,
   });
 
   final String id;
@@ -937,6 +939,8 @@ class AssetGenerationRun {
   final DateTime updatedAt;
   final DateTime? startedAt;
   final DateTime? completedAt;
+  final String? previousRunId;
+  final String? userFeedback;
 }
 
 class AssetGenerationRunInput {
@@ -945,12 +949,16 @@ class AssetGenerationRunInput {
     required this.kind,
     required this.providerId,
     required this.modelName,
+    this.previousRunId,
+    this.userFeedback,
   });
 
   final String projectId;
   final AssetGenerationKind kind;
   final String providerId;
   final String modelName;
+  final String? previousRunId;
+  final String? userFeedback;
 }
 
 class AssetGenerationResult {

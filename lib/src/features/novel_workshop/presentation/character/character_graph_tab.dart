@@ -31,10 +31,12 @@ class CharacterGraphTab extends ConsumerStatefulWidget {
   final AssetGenerationRun? latestRun;
 
   /// Callback to show the draft review dialog. Receives the run and returns
-  /// whether the draft should be applied. This avoids coupling to a specific
-  /// dialog implementation in the parent file.
-  final Future<bool?> Function(BuildContext context, AssetGenerationRun run)
-  onShowDraftReview;
+  /// a result indicating the user's chosen action. This avoids coupling to a
+  /// specific dialog implementation in the parent file.
+  final Future<AssetDraftReviewResult> Function(
+    BuildContext context,
+    AssetGenerationRun run,
+  ) onShowDraftReview;
 
   @override
   ConsumerState<CharacterGraphTab> createState() => _CharacterGraphTabState();
@@ -139,7 +141,7 @@ class _CharacterGraphTabState extends ConsumerState<CharacterGraphTab>
                     TextButton.icon(
                       onPressed: controllerState.isLoading
                           ? null
-                          : () => _reviewCharacterDraft(
+                          : () => _reviewAndHandleDraft(
                               context,
                               ref,
                               widget.latestRun!,
@@ -283,32 +285,168 @@ class _CharacterGraphTabState extends ConsumerState<CharacterGraphTab>
             kind: AssetGenerationKind.charactersBlueprint,
           );
       if (!context.mounted) return;
-      await _reviewCharacterDraft(context, ref, result.run);
+      await _reviewAndHandleDraft(context, ref, result.run);
     } on Object {
       // Controller listener renders the error.
     }
   }
 
-  Future<void> _reviewCharacterDraft(
+  /// Shows the review dialog and handles apply / regenerate / cancel actions.
+  /// Loops back to regenerate if the user requests regeneration.
+  Future<void> _reviewAndHandleDraft(
     BuildContext context,
     WidgetRef ref,
     AssetGenerationRun run,
   ) async {
-    final shouldApply = await widget.onShowDraftReview(context, run);
-    if (shouldApply != true) return;
+    final reviewResult = await widget.onShowDraftReview(context, run);
+    if (reviewResult.isApply) {
+      try {
+        await ref
+            .read(novelWorkshopControllerProvider.notifier)
+            .applyAssetDraft(run.id);
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('角色草稿已导入。')));
+      } on Object catch (error) {
+        if (!context.mounted) return;
+        _showApplyErrorSheet(
+          context,
+          ref,
+          error: error.toString(),
+          run: run,
+        );
+      }
+    } else if (reviewResult.isRegenerate) {
+      try {
+        final regenResult = await ref
+            .read(novelWorkshopControllerProvider.notifier)
+            .regenerateAssetWithFeedback(
+              projectId: widget.projectId,
+              kind: AssetGenerationKind.charactersBlueprint,
+              previousRunId: run.id,
+              previousDraft: run.draftMarkdown,
+              validationErrors: run.errorMessage ?? '',
+              userFeedback: reviewResult.feedback ?? '',
+            );
+        if (!context.mounted) return;
+        // Re-open review dialog with the new draft.
+        await _reviewAndHandleDraft(context, ref, regenResult.run);
+      } on Object {
+        // Controller listener renders the error.
+      }
+    }
+  }
+
+  void _showApplyErrorSheet(
+    BuildContext context,
+    WidgetRef ref, {
+    required String error,
+    required AssetGenerationRun run,
+  }) {
+    final feedbackController = TextEditingController();
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    color: Theme.of(sheetContext).colorScheme.error,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '导入失败',
+                      style: Theme.of(sheetContext).textTheme.titleMedium,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SelectableText(
+                error,
+                style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(sheetContext).colorScheme.error,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: feedbackController,
+                decoration: const InputDecoration(
+                  labelText: '修改意见（可选）',
+                  hintText: '输入修改意见，让 AI 修正问题...',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(sheetContext).pop(),
+                    child: const Text('取消'),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton.icon(
+                    onPressed: () {
+                      final feedback = feedbackController.text.trim();
+                      Navigator.of(sheetContext).pop();
+                      _regenerateFromError(
+                        context,
+                        ref,
+                        run: run,
+                        error: error,
+                        feedback: feedback,
+                      );
+                    },
+                    icon: const Icon(Icons.refresh_outlined, size: 18),
+                    label: const Text('重新生成'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _regenerateFromError(
+    BuildContext context,
+    WidgetRef ref, {
+    required AssetGenerationRun run,
+    required String error,
+    String feedback = '',
+  }) async {
     try {
-      await ref
+      final regenResult = await ref
           .read(novelWorkshopControllerProvider.notifier)
-          .applyAssetDraft(run.id);
+          .regenerateAssetWithFeedback(
+            projectId: widget.projectId,
+            kind: AssetGenerationKind.charactersBlueprint,
+            previousRunId: run.id,
+            previousDraft: run.draftMarkdown,
+            validationErrors: error,
+            userFeedback: feedback,
+          );
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('角色草稿已导入。')));
-    } on Object catch (error) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('导入失败：$error')));
+      await _reviewAndHandleDraft(context, ref, regenResult.run);
+    } on Object {
+      // Controller listener renders the error.
     }
   }
 }

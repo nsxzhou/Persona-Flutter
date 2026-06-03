@@ -22866,6 +22866,28 @@ class $AssetGenerationRunRecordsTable extends AssetGenerationRunRecords
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _previousRunIdMeta = const VerificationMeta(
+    'previousRunId',
+  );
+  @override
+  late final GeneratedColumn<String> previousRunId = GeneratedColumn<String>(
+    'previous_run_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _userFeedbackMeta = const VerificationMeta(
+    'userFeedback',
+  );
+  @override
+  late final GeneratedColumn<String> userFeedback = GeneratedColumn<String>(
+    'user_feedback',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -22884,6 +22906,8 @@ class $AssetGenerationRunRecordsTable extends AssetGenerationRunRecords
     updatedAt,
     startedAt,
     completedAt,
+    previousRunId,
+    userFeedback,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -23023,6 +23047,24 @@ class $AssetGenerationRunRecordsTable extends AssetGenerationRunRecords
         ),
       );
     }
+    if (data.containsKey('previous_run_id')) {
+      context.handle(
+        _previousRunIdMeta,
+        previousRunId.isAcceptableOrUnknown(
+          data['previous_run_id']!,
+          _previousRunIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('user_feedback')) {
+      context.handle(
+        _userFeedbackMeta,
+        userFeedback.isAcceptableOrUnknown(
+          data['user_feedback']!,
+          _userFeedbackMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -23099,6 +23141,14 @@ class $AssetGenerationRunRecordsTable extends AssetGenerationRunRecords
         DriftSqlType.dateTime,
         data['${effectivePrefix}completed_at'],
       ),
+      previousRunId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}previous_run_id'],
+      ),
+      userFeedback: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_feedback'],
+      ),
     );
   }
 
@@ -23126,6 +23176,8 @@ class AssetGenerationRunRecord extends DataClass
   final DateTime updatedAt;
   final DateTime? startedAt;
   final DateTime? completedAt;
+  final String? previousRunId;
+  final String? userFeedback;
   const AssetGenerationRunRecord({
     required this.id,
     required this.workflowTaskId,
@@ -23143,6 +23195,8 @@ class AssetGenerationRunRecord extends DataClass
     required this.updatedAt,
     this.startedAt,
     this.completedAt,
+    this.previousRunId,
+    this.userFeedback,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -23172,6 +23226,12 @@ class AssetGenerationRunRecord extends DataClass
     }
     if (!nullToAbsent || completedAt != null) {
       map['completed_at'] = Variable<DateTime>(completedAt);
+    }
+    if (!nullToAbsent || previousRunId != null) {
+      map['previous_run_id'] = Variable<String>(previousRunId);
+    }
+    if (!nullToAbsent || userFeedback != null) {
+      map['user_feedback'] = Variable<String>(userFeedback);
     }
     return map;
   }
@@ -23204,6 +23264,12 @@ class AssetGenerationRunRecord extends DataClass
       completedAt: completedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(completedAt),
+      previousRunId: previousRunId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(previousRunId),
+      userFeedback: userFeedback == null && nullToAbsent
+          ? const Value.absent()
+          : Value(userFeedback),
     );
   }
 
@@ -23229,6 +23295,8 @@ class AssetGenerationRunRecord extends DataClass
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       startedAt: serializer.fromJson<DateTime?>(json['startedAt']),
       completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
+      previousRunId: serializer.fromJson<String?>(json['previousRunId']),
+      userFeedback: serializer.fromJson<String?>(json['userFeedback']),
     );
   }
   @override
@@ -23251,6 +23319,8 @@ class AssetGenerationRunRecord extends DataClass
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'startedAt': serializer.toJson<DateTime?>(startedAt),
       'completedAt': serializer.toJson<DateTime?>(completedAt),
+      'previousRunId': serializer.toJson<String?>(previousRunId),
+      'userFeedback': serializer.toJson<String?>(userFeedback),
     };
   }
 
@@ -23271,6 +23341,8 @@ class AssetGenerationRunRecord extends DataClass
     DateTime? updatedAt,
     Value<DateTime?> startedAt = const Value.absent(),
     Value<DateTime?> completedAt = const Value.absent(),
+    Value<String?> previousRunId = const Value.absent(),
+    Value<String?> userFeedback = const Value.absent(),
   }) => AssetGenerationRunRecord(
     id: id ?? this.id,
     workflowTaskId: workflowTaskId ?? this.workflowTaskId,
@@ -23290,6 +23362,10 @@ class AssetGenerationRunRecord extends DataClass
     updatedAt: updatedAt ?? this.updatedAt,
     startedAt: startedAt.present ? startedAt.value : this.startedAt,
     completedAt: completedAt.present ? completedAt.value : this.completedAt,
+    previousRunId: previousRunId.present
+        ? previousRunId.value
+        : this.previousRunId,
+    userFeedback: userFeedback.present ? userFeedback.value : this.userFeedback,
   );
   AssetGenerationRunRecord copyWithCompanion(
     AssetGenerationRunRecordsCompanion data,
@@ -23323,6 +23399,12 @@ class AssetGenerationRunRecord extends DataClass
       completedAt: data.completedAt.present
           ? data.completedAt.value
           : this.completedAt,
+      previousRunId: data.previousRunId.present
+          ? data.previousRunId.value
+          : this.previousRunId,
+      userFeedback: data.userFeedback.present
+          ? data.userFeedback.value
+          : this.userFeedback,
     );
   }
 
@@ -23344,7 +23426,9 @@ class AssetGenerationRunRecord extends DataClass
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('startedAt: $startedAt, ')
-          ..write('completedAt: $completedAt')
+          ..write('completedAt: $completedAt, ')
+          ..write('previousRunId: $previousRunId, ')
+          ..write('userFeedback: $userFeedback')
           ..write(')'))
         .toString();
   }
@@ -23367,6 +23451,8 @@ class AssetGenerationRunRecord extends DataClass
     updatedAt,
     startedAt,
     completedAt,
+    previousRunId,
+    userFeedback,
   );
   @override
   bool operator ==(Object other) =>
@@ -23387,7 +23473,9 @@ class AssetGenerationRunRecord extends DataClass
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.startedAt == this.startedAt &&
-          other.completedAt == this.completedAt);
+          other.completedAt == this.completedAt &&
+          other.previousRunId == this.previousRunId &&
+          other.userFeedback == this.userFeedback);
 }
 
 class AssetGenerationRunRecordsCompanion
@@ -23408,6 +23496,8 @@ class AssetGenerationRunRecordsCompanion
   final Value<DateTime> updatedAt;
   final Value<DateTime?> startedAt;
   final Value<DateTime?> completedAt;
+  final Value<String?> previousRunId;
+  final Value<String?> userFeedback;
   final Value<int> rowid;
   const AssetGenerationRunRecordsCompanion({
     this.id = const Value.absent(),
@@ -23426,6 +23516,8 @@ class AssetGenerationRunRecordsCompanion
     this.updatedAt = const Value.absent(),
     this.startedAt = const Value.absent(),
     this.completedAt = const Value.absent(),
+    this.previousRunId = const Value.absent(),
+    this.userFeedback = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   AssetGenerationRunRecordsCompanion.insert({
@@ -23445,6 +23537,8 @@ class AssetGenerationRunRecordsCompanion
     required DateTime updatedAt,
     this.startedAt = const Value.absent(),
     this.completedAt = const Value.absent(),
+    this.previousRunId = const Value.absent(),
+    this.userFeedback = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        workflowTaskId = Value(workflowTaskId),
@@ -23472,6 +23566,8 @@ class AssetGenerationRunRecordsCompanion
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? startedAt,
     Expression<DateTime>? completedAt,
+    Expression<String>? previousRunId,
+    Expression<String>? userFeedback,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -23491,6 +23587,8 @@ class AssetGenerationRunRecordsCompanion
       if (updatedAt != null) 'updated_at': updatedAt,
       if (startedAt != null) 'started_at': startedAt,
       if (completedAt != null) 'completed_at': completedAt,
+      if (previousRunId != null) 'previous_run_id': previousRunId,
+      if (userFeedback != null) 'user_feedback': userFeedback,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -23512,6 +23610,8 @@ class AssetGenerationRunRecordsCompanion
     Value<DateTime>? updatedAt,
     Value<DateTime?>? startedAt,
     Value<DateTime?>? completedAt,
+    Value<String?>? previousRunId,
+    Value<String?>? userFeedback,
     Value<int>? rowid,
   }) {
     return AssetGenerationRunRecordsCompanion(
@@ -23531,6 +23631,8 @@ class AssetGenerationRunRecordsCompanion
       updatedAt: updatedAt ?? this.updatedAt,
       startedAt: startedAt ?? this.startedAt,
       completedAt: completedAt ?? this.completedAt,
+      previousRunId: previousRunId ?? this.previousRunId,
+      userFeedback: userFeedback ?? this.userFeedback,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -23586,6 +23688,12 @@ class AssetGenerationRunRecordsCompanion
     if (completedAt.present) {
       map['completed_at'] = Variable<DateTime>(completedAt.value);
     }
+    if (previousRunId.present) {
+      map['previous_run_id'] = Variable<String>(previousRunId.value);
+    }
+    if (userFeedback.present) {
+      map['user_feedback'] = Variable<String>(userFeedback.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -23611,6 +23719,8 @@ class AssetGenerationRunRecordsCompanion
           ..write('updatedAt: $updatedAt, ')
           ..write('startedAt: $startedAt, ')
           ..write('completedAt: $completedAt, ')
+          ..write('previousRunId: $previousRunId, ')
+          ..write('userFeedback: $userFeedback, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -46592,6 +46702,8 @@ typedef $$AssetGenerationRunRecordsTableCreateCompanionBuilder =
       required DateTime updatedAt,
       Value<DateTime?> startedAt,
       Value<DateTime?> completedAt,
+      Value<String?> previousRunId,
+      Value<String?> userFeedback,
       Value<int> rowid,
     });
 typedef $$AssetGenerationRunRecordsTableUpdateCompanionBuilder =
@@ -46612,6 +46724,8 @@ typedef $$AssetGenerationRunRecordsTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<DateTime?> startedAt,
       Value<DateTime?> completedAt,
+      Value<String?> previousRunId,
+      Value<String?> userFeedback,
       Value<int> rowid,
     });
 
@@ -46769,6 +46883,16 @@ class $$AssetGenerationRunRecordsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get previousRunId => $composableBuilder(
+    column: $table.previousRunId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userFeedback => $composableBuilder(
+    column: $table.userFeedback,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$WorkflowTaskRecordsTableFilterComposer get workflowTaskId {
     final $$WorkflowTaskRecordsTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -46913,6 +47037,16 @@ class $$AssetGenerationRunRecordsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get previousRunId => $composableBuilder(
+    column: $table.previousRunId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userFeedback => $composableBuilder(
+    column: $table.userFeedback,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$WorkflowTaskRecordsTableOrderingComposer get workflowTaskId {
     final $$WorkflowTaskRecordsTableOrderingComposer composer =
         $composerBuilder(
@@ -47038,6 +47172,16 @@ class $$AssetGenerationRunRecordsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get completedAt => $composableBuilder(
     column: $table.completedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get previousRunId => $composableBuilder(
+    column: $table.previousRunId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get userFeedback => $composableBuilder(
+    column: $table.userFeedback,
     builder: (column) => column,
   );
 
@@ -47175,6 +47319,8 @@ class $$AssetGenerationRunRecordsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> startedAt = const Value.absent(),
                 Value<DateTime?> completedAt = const Value.absent(),
+                Value<String?> previousRunId = const Value.absent(),
+                Value<String?> userFeedback = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => AssetGenerationRunRecordsCompanion(
                 id: id,
@@ -47193,6 +47339,8 @@ class $$AssetGenerationRunRecordsTableTableManager
                 updatedAt: updatedAt,
                 startedAt: startedAt,
                 completedAt: completedAt,
+                previousRunId: previousRunId,
+                userFeedback: userFeedback,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -47213,6 +47361,8 @@ class $$AssetGenerationRunRecordsTableTableManager
                 required DateTime updatedAt,
                 Value<DateTime?> startedAt = const Value.absent(),
                 Value<DateTime?> completedAt = const Value.absent(),
+                Value<String?> previousRunId = const Value.absent(),
+                Value<String?> userFeedback = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => AssetGenerationRunRecordsCompanion.insert(
                 id: id,
@@ -47231,6 +47381,8 @@ class $$AssetGenerationRunRecordsTableTableManager
                 updatedAt: updatedAt,
                 startedAt: startedAt,
                 completedAt: completedAt,
+                previousRunId: previousRunId,
+                userFeedback: userFeedback,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

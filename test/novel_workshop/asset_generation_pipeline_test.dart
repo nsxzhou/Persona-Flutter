@@ -413,6 +413,143 @@ volumes:
     );
     expect(task!.status, WorkflowTaskStatus.abandoned);
   });
+
+  test(
+    'charactersBlueprint auto-repairs invalid reference on first retry',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      // First call: YAML with broken reference; second call: fixed YAML.
+      final llmClient = _SequenceLlmClient([
+        '''
+characters:
+  - name: 林岚
+    role: 主角
+relationships:
+  - from: 林岚
+    to: 天魔宗
+    type: 敌对
+    strength: -3
+''',
+        '''
+characters:
+  - name: 林岚
+    role: 主角
+  - name: 天魔宗
+    role: 组织
+relationships:
+  - from: 林岚
+    to: 天魔宗
+    type: 敌对
+    strength: -3
+''',
+      ]);
+      final fixture = await _Fixture.create(
+        database,
+        llmClient: llmClient,
+      );
+
+      final result = await fixture.pipeline.generateAsset(
+        projectId: fixture.project.id,
+        kind: AssetGenerationKind.charactersBlueprint,
+      );
+
+      expect(result.run.status, AssetGenerationStatus.succeeded);
+      // errorMessage should be null since repair succeeded.
+      expect(result.run.errorMessage, isNull);
+      expect(result.run.draftMarkdown, contains('天魔宗'));
+    },
+  );
+
+  test(
+    'charactersBlueprint auto-repair failure degrades to review with warning',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      // Both calls return broken YAML.
+      final llmClient = _SequenceLlmClient([
+        '''
+characters:
+  - name: 林岚
+    role: 主角
+relationships:
+  - from: 林岚
+    to: 天魔宗
+    type: 敌对
+    strength: -3
+''',
+        '''
+characters:
+  - name: 林岚
+    role: 主角
+relationships:
+  - from: 林岚
+    to: 天魔宗
+    type: 敌对
+    strength: -3
+''',
+      ]);
+      final fixture = await _Fixture.create(
+        database,
+        llmClient: llmClient,
+      );
+
+      final result = await fixture.pipeline.generateAsset(
+        projectId: fixture.project.id,
+        kind: AssetGenerationKind.charactersBlueprint,
+      );
+
+      // Still succeeded, but errorMessage contains the validation warning.
+      expect(result.run.status, AssetGenerationStatus.succeeded);
+      expect(result.run.errorMessage, isNotNull);
+      expect(result.run.errorMessage, contains('关系引用的角色不存在'));
+    },
+  );
+
+  test('regenerateAssetWithFeedback creates new run with feedback', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final llmClient = _SequenceLlmClient([
+      // First call (original generation): valid characters YAML.
+      '''
+characters:
+  - name: 林岚
+    role: 主角
+''',
+      // Second call (regeneration with feedback).
+      '''
+characters:
+  - name: 林岚
+    role: 主角
+  - name: 司空玄
+    role: 反派
+''',
+    ]);
+    final fixture = await _Fixture.create(
+      database,
+      llmClient: llmClient,
+    );
+
+    final original = await fixture.pipeline.generateAsset(
+      projectId: fixture.project.id,
+      kind: AssetGenerationKind.charactersBlueprint,
+    );
+
+    final regenerated = await fixture.pipeline.regenerateAssetWithFeedback(
+      projectId: fixture.project.id,
+      kind: AssetGenerationKind.charactersBlueprint,
+      previousRunId: original.run.id,
+      previousDraft: original.run.draftMarkdown,
+      validationErrors: '缺少反派角色',
+      userFeedback: '请添加司空玄作为反派',
+    );
+
+    expect(regenerated.run.status, AssetGenerationStatus.succeeded);
+    expect(regenerated.run.id, isNot(original.run.id));
+    expect(regenerated.run.previousRunId, original.run.id);
+    expect(regenerated.run.userFeedback, '请添加司空玄作为反派');
+    expect(regenerated.run.draftMarkdown, contains('司空玄'));
+  });
 }
 
 class _Fixture {
@@ -430,7 +567,7 @@ class _Fixture {
 
   static Future<_Fixture> create(
     AppDatabase database, {
-    required _StaticLlmClient llmClient,
+    required LlmClient llmClient,
     bool withPlotProfile = false,
     WorkflowTaskCancellationRegistry Function()? cancellationRegistryFactory,
   }) async {
@@ -544,6 +681,25 @@ class _StaticLlmClient implements LlmClient {
     required ProviderConfig provider,
     required LlmRequest request,
   }) async* {
+    yield LlmStreamDelta(output);
+    yield const LlmStreamDone();
+  }
+}
+
+class _SequenceLlmClient implements LlmClient {
+  _SequenceLlmClient(this.outputs);
+
+  final List<String> outputs;
+  int _callIndex = 0;
+
+  @override
+  Stream<LlmStreamEvent> streamChat({
+    required ProviderConfig provider,
+    required LlmRequest request,
+  }) async* {
+    final output =
+        outputs[_callIndex < outputs.length ? _callIndex : outputs.length - 1];
+    _callIndex++;
     yield LlmStreamDelta(output);
     yield const LlmStreamDone();
   }

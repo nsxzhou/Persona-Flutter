@@ -927,7 +927,7 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
                 AssetGenerationKind.charactersBlueprint,
               ),
               onShowDraftReview: (context, run) async {
-                return showGlassDialog<bool>(
+                final result = await showGlassDialog<AssetDraftReviewResult>(
                   context: context,
                   maxWidth: 860,
                   builder: (context) => _AssetDraftReviewDialog(
@@ -936,6 +936,7 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
                     hasExistingContent: true,
                   ),
                 );
+                return result ?? const AssetDraftReviewResult.cancelled();
               },
             ),
             _BibleMarkdownEditorTab(
@@ -2676,38 +2677,63 @@ class _BibleMarkdownEditorTabState
     AssetGenerationRun run,
     String currentMarkdown,
   ) async {
-    final shouldApply = await showGlassDialog<bool>(
-      context: context,
-      maxWidth: 860,
-      builder: (context) => _AssetDraftReviewDialog(
-        title: '${widget.title}草稿',
-        run: run,
-        hasExistingContent: currentMarkdown.trim().isNotEmpty,
-      ),
-    );
-    if (shouldApply != true) return;
-    try {
-      final saved = await ref
-          .read(novelWorkshopControllerProvider.notifier)
-          .applyAssetDraft(run.id);
+    var currentRun = run;
+    while (mounted) {
       if (!mounted) return;
-      setState(() {
-        _loadedMarkdown = _markdownFor(saved, widget.field);
-        _controller.text = _loadedMarkdown;
-        _editing = false;
-      });
-      if (Scaffold.maybeOf(context) != null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('${widget.title}草稿已应用。')));
+      final result = await showGlassDialog<AssetDraftReviewResult>(
+        context: context,
+        maxWidth: 860,
+        builder: (context) => _AssetDraftReviewDialog(
+          title: '${widget.title}草稿',
+          run: currentRun,
+          hasExistingContent: currentMarkdown.trim().isNotEmpty,
+        ),
+      ) ?? const AssetDraftReviewResult.cancelled();
+      if (result.isCancelled) return;
+      if (result.isRegenerate) {
+        try {
+          final regen = await ref
+              .read(novelWorkshopControllerProvider.notifier)
+              .regenerateAssetWithFeedback(
+                projectId: currentRun.projectId,
+                kind: currentRun.kind,
+                previousRunId: currentRun.id,
+                previousDraft: currentRun.draftMarkdown,
+                validationErrors: currentRun.errorMessage ?? '',
+                userFeedback: result.feedback ?? '',
+              );
+          currentRun = regen.run;
+          continue;
+        } on Object {
+          if (!mounted) return;
+          return;
+        }
       }
-    } on Object catch (error) {
-      if (!mounted) return;
-      if (Scaffold.maybeOf(context) != null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('应用失败：$error')));
+      // isApply
+      try {
+        final saved = await ref
+            .read(novelWorkshopControllerProvider.notifier)
+            .applyAssetDraft(currentRun.id);
+        if (!mounted) return;
+        setState(() {
+          _loadedMarkdown = _markdownFor(saved, widget.field);
+          _controller.text = _loadedMarkdown;
+          _editing = false;
+        });
+        if (Scaffold.maybeOf(context) != null) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('${widget.title}草稿已应用。')));
+        }
+      } on Object catch (error) {
+        if (!mounted) return;
+        if (Scaffold.maybeOf(context) != null) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('应用失败：$error')));
+        }
       }
+      return;
     }
   }
 
@@ -3923,19 +3949,43 @@ class _ChapterPlanningTabState extends ConsumerState<_ChapterPlanningTab>
             targetVolumeId: volume.id,
           );
       if (!context.mounted) return;
-      final shouldApply = await showGlassDialog<bool>(
-        context: context,
-        maxWidth: 860,
-        builder: (context) => _AssetDraftReviewDialog(
-          title: '${volume.title}章节细纲草稿',
-          run: result.run,
-          hasExistingContent: widget.outlineDetailYaml.trim().isNotEmpty,
-        ),
-      );
-      if (shouldApply == true) {
+      var currentRun = result.run;
+      while (context.mounted) {
+        if (!context.mounted) return;
+        final reviewResult = await showGlassDialog<AssetDraftReviewResult>(
+          context: context,
+          maxWidth: 860,
+          builder: (context) => _AssetDraftReviewDialog(
+            title: '${volume.title}章节细纲草稿',
+            run: currentRun,
+            hasExistingContent: widget.outlineDetailYaml.trim().isNotEmpty,
+          ),
+        ) ?? const AssetDraftReviewResult.cancelled();
+        if (reviewResult.isCancelled) break;
+        if (reviewResult.isRegenerate) {
+          try {
+            final regen = await ref
+                .read(novelWorkshopControllerProvider.notifier)
+                .regenerateAssetWithFeedback(
+                  projectId: currentRun.projectId,
+                  kind: currentRun.kind,
+                  previousRunId: currentRun.id,
+                  previousDraft: currentRun.draftMarkdown,
+                  validationErrors: currentRun.errorMessage ?? '',
+                  userFeedback: reviewResult.feedback ?? '',
+                  targetVolumeId: volume.id,
+                );
+            currentRun = regen.run;
+            continue;
+          } on Object {
+            break;
+          }
+        }
+        // isApply
         await ref
             .read(novelWorkshopControllerProvider.notifier)
-            .applyAssetDraft(result.run.id);
+            .applyAssetDraft(currentRun.id);
+        break;
       }
     } on Object {
       // The controller listener renders the error where available.
@@ -4249,33 +4299,58 @@ class _OutlineAssetGenerationButtonBodyState
     BuildContext context,
     AssetGenerationRun run,
   ) async {
-    final shouldApply = await showGlassDialog<bool>(
-      context: context,
-      maxWidth: 860,
-      builder: (context) => _AssetDraftReviewDialog(
-        title: '分卷规划草稿',
-        run: run,
-        hasExistingContent: widget.outlineDetailYaml.trim().isNotEmpty,
-      ),
-    );
-    if (shouldApply != true) return;
-    try {
-      await ref
-          .read(novelWorkshopControllerProvider.notifier)
-          .applyAssetDraft(run.id);
+    var currentRun = run;
+    while (context.mounted) {
       if (!context.mounted) return;
-      if (Scaffold.maybeOf(context) != null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('细纲草稿已应用。')));
+      final result = await showGlassDialog<AssetDraftReviewResult>(
+        context: context,
+        maxWidth: 860,
+        builder: (context) => _AssetDraftReviewDialog(
+          title: '分卷规划草稿',
+          run: currentRun,
+          hasExistingContent: widget.outlineDetailYaml.trim().isNotEmpty,
+        ),
+      ) ?? const AssetDraftReviewResult.cancelled();
+      if (result.isCancelled) return;
+      if (result.isRegenerate) {
+        try {
+          final regen = await ref
+              .read(novelWorkshopControllerProvider.notifier)
+              .regenerateAssetWithFeedback(
+                projectId: currentRun.projectId,
+                kind: currentRun.kind,
+                previousRunId: currentRun.id,
+                previousDraft: currentRun.draftMarkdown,
+                validationErrors: currentRun.errorMessage ?? '',
+                userFeedback: result.feedback ?? '',
+              );
+          currentRun = regen.run;
+          continue;
+        } on Object {
+          if (!context.mounted) return;
+          return;
+        }
       }
-    } on Object catch (error) {
-      if (!context.mounted) return;
-      if (Scaffold.maybeOf(context) != null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('应用失败：$error')));
+      // isApply
+      try {
+        await ref
+            .read(novelWorkshopControllerProvider.notifier)
+            .applyAssetDraft(currentRun.id);
+        if (!context.mounted) return;
+        if (Scaffold.maybeOf(context) != null) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('细纲草稿已应用。')));
+        }
+      } on Object catch (error) {
+        if (!context.mounted) return;
+        if (Scaffold.maybeOf(context) != null) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('应用失败：$error')));
+        }
       }
+      return;
     }
   }
 }
@@ -9491,7 +9566,7 @@ class _ConfirmOverwriteDialog extends StatelessWidget {
   }
 }
 
-class _AssetDraftReviewDialog extends StatelessWidget {
+class _AssetDraftReviewDialog extends StatefulWidget {
   const _AssetDraftReviewDialog({
     required this.title,
     required this.run,
@@ -9503,8 +9578,23 @@ class _AssetDraftReviewDialog extends StatelessWidget {
   final bool hasExistingContent;
 
   @override
+  State<_AssetDraftReviewDialog> createState() =>
+      _AssetDraftReviewDialogState();
+}
+
+class _AssetDraftReviewDialogState extends State<_AssetDraftReviewDialog> {
+  final _feedbackController = TextEditingController();
+
+  @override
+  void dispose() {
+    _feedbackController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final validationWarning = widget.run.errorMessage;
     return ConstrainedBox(
       constraints: const BoxConstraints(maxHeight: 720),
       child: Column(
@@ -9517,13 +9607,44 @@ class _AssetDraftReviewDialog extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  title,
+                  widget.title,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
             ],
           ),
-          if (hasExistingContent) ...[
+          // Validation warning banner.
+          if (validationWarning != null && validationWarning.trim().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: colorScheme.errorContainer.withValues(alpha: 0.35),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: colorScheme.error.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.warning_amber_outlined, color: colorScheme.error),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: SelectableText(
+                        '校验警告：$validationWarning',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onErrorContainer,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          if (widget.hasExistingContent) ...[
             const SizedBox(height: 12),
             DecoratedBox(
               decoration: BoxDecoration(
@@ -9560,9 +9681,9 @@ class _AssetDraftReviewDialog extends StatelessWidget {
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(14),
                 child: SelectableText(
-                  run.draftMarkdown.trim().isEmpty
+                  widget.run.draftMarkdown.trim().isEmpty
                       ? '草稿为空。'
-                      : run.draftMarkdown,
+                      : widget.run.draftMarkdown,
                   style: Theme.of(
                     context,
                   ).textTheme.bodyMedium?.copyWith(height: 1.55),
@@ -9570,21 +9691,53 @@ class _AssetDraftReviewDialog extends StatelessWidget {
               ),
             ),
           ),
+          // Feedback input.
+          const SizedBox(height: 12),
+          TextField(
+            controller: _feedbackController,
+            decoration: const InputDecoration(
+              labelText: '修改意见（可选）',
+              hintText: '输入修改意见，让 AI 修正问题...',
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+            maxLines: 2,
+            minLines: 1,
+          ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
+                onPressed: () => Navigator.of(context).pop(
+                  const AssetDraftReviewResult.cancelled(),
+                ),
                 child: const Text('取消'),
               ),
               const SizedBox(width: 8),
+              OutlinedButton.icon(
+                onPressed: () {
+                  final feedback = _feedbackController.text.trim();
+                  Navigator.of(context).pop(
+                    AssetDraftReviewResult.regenerate(
+                      feedback.isEmpty ? null : feedback,
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.refresh_outlined, size: 18),
+                label: const Text('重新生成'),
+              ),
+              const SizedBox(width: 8),
               FilledButton.icon(
-                onPressed: run.draftMarkdown.trim().isEmpty
+                onPressed: widget.run.draftMarkdown.trim().isEmpty
                     ? null
-                    : () => Navigator.of(context).pop(true),
+                    : () => Navigator.of(context).pop(
+                          const AssetDraftReviewResult.apply(),
+                        ),
                 icon: const Icon(Icons.check_outlined, size: 18),
-                label: Text(hasExistingContent ? '合并并应用' : '应用草稿'),
+                label: Text(
+                  widget.hasExistingContent ? '合并并应用' : '应用草稿',
+                ),
               ),
             ],
           ),

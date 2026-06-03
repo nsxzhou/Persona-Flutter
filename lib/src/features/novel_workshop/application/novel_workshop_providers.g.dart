@@ -2196,7 +2196,7 @@ final class NovelWorkshopControllerProvider
 }
 
 String _$novelWorkshopControllerHash() =>
-    r'1e8605d8cd5365c9d8b5015ac0c81582821325d6';
+    r'e484076b4407058617f5f28592e75c77a38766a3';
 
 abstract class _$NovelWorkshopController extends $AsyncNotifier<void> {
   FutureOr<void> build();

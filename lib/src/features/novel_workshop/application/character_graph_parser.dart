@@ -101,15 +101,37 @@ class CharacterGraphParser {
       );
     }
 
+    final characters = [
+      for (var index = 0; index < characterItems.length; index += 1)
+        _parseCharacter(characterItems[index], 'characters[$index]'),
+    ];
+    final relationships = [
+      for (var index = 0; index < relationshipItems.length; index += 1)
+        _parseRelationship(relationshipItems[index], 'relationships[$index]'),
+    ];
+
+    // Cross-validate: every relationship endpoint must reference a known character.
+    // Only validate when the YAML defines characters; relationship-only patches
+    // reference characters that already exist in the database.
+    if (characters.isNotEmpty) {
+      final characterNames = {for (final c in characters) c.name};
+      final errors = <String>[];
+      for (final rel in relationships) {
+        if (!characterNames.contains(rel.fromName)) {
+          errors.add('关系引用的角色不存在：${rel.fromName}');
+        }
+        if (!characterNames.contains(rel.toName)) {
+          errors.add('关系引用的角色不存在：${rel.toName}');
+        }
+      }
+      if (errors.isNotEmpty) {
+        throw CharacterGraphValidationException(errors.join('\n'));
+      }
+    }
+
     return CharacterGraphDocument(
-      characters: [
-        for (var index = 0; index < characterItems.length; index += 1)
-          _parseCharacter(characterItems[index], 'characters[$index]'),
-      ],
-      relationships: [
-        for (var index = 0; index < relationshipItems.length; index += 1)
-          _parseRelationship(relationshipItems[index], 'relationships[$index]'),
-      ],
+      characters: characters,
+      relationships: relationships,
     );
   }
 

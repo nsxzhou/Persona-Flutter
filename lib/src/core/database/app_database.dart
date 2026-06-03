@@ -653,6 +653,8 @@ class AssetGenerationRunRecords extends Table {
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get startedAt => dateTime().nullable()();
   DateTimeColumn get completedAt => dateTime().nullable()();
+  TextColumn get previousRunId => text().nullable()();
+  TextColumn get userFeedback => text().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -703,7 +705,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 30;
+  int get schemaVersion => 31;
 
   @override
   MigrationStrategy get migration {
@@ -1119,6 +1121,28 @@ class AppDatabase extends _$AppDatabase {
             SET status = 'inserted'
             WHERE status = 'accepted'
           ''');
+        }
+        if (from < 31) {
+          if (await _tableExists('asset_generation_run_records')) {
+            if (!await _columnExists(
+              'asset_generation_run_records',
+              'previous_run_id',
+            )) {
+              await migrator.addColumn(
+                assetGenerationRunRecords,
+                assetGenerationRunRecords.previousRunId,
+              );
+            }
+            if (!await _columnExists(
+              'asset_generation_run_records',
+              'user_feedback',
+            )) {
+              await migrator.addColumn(
+                assetGenerationRunRecords,
+                assetGenerationRunRecords.userFeedback,
+              );
+            }
+          }
         }
       },
     );

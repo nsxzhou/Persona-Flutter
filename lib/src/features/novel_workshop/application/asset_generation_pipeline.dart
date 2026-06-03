@@ -180,11 +180,65 @@ class AssetGenerationPipeline {
         cancellationToken: cancellationToken,
       );
       cancellationToken.throwIfCancelled();
-      final draft = _cleanDraft(generated);
+      var draft = _cleanDraft(generated);
       if (draft.trim().isEmpty) {
         throw StateError('模型返回了空资产草稿。');
       }
-      _validateDraft(kind, draft);
+
+      // Validate; if it fails, attempt one automatic repair.
+      var validationError = _tryValidateDraft(kind, draft);
+      String? validationWarning;
+      if (validationError != null) {
+        await transition(
+          AssetGenerationStatus.running,
+          AssetGenerationStage.repairingDraft,
+          message: '阶段: 自动修复。校验发现问题，正在调用模型修复。',
+        );
+        cancellationToken.throwIfCancelled();
+        final repairPrompt = _promptBuilder.buildRepairPrompt(
+          kind: kind,
+          project: project,
+          bible: bible,
+          assets: assets,
+          previousDraft: draft,
+          validationErrors: validationError,
+          targetVolume: targetVolume,
+        );
+        final repairGenerated = await _completionService.completeMarkdown(
+          provider: provider,
+          prompt: repairPrompt,
+          temperature:
+              kind == AssetGenerationKind.outlineDetailYaml ||
+                  kind == AssetGenerationKind.volumeBlueprintYaml
+              ? 0.35
+              : 0.55,
+          modelName: modelName,
+          promptTrace: traceRecorder.config(
+            label: 'repair_${kind.name}',
+          ),
+          cancellationToken: cancellationToken,
+        );
+        cancellationToken.throwIfCancelled();
+        final repairedDraft = _cleanDraft(repairGenerated);
+        if (repairedDraft.trim().isNotEmpty) {
+          final repairError = _tryValidateDraft(kind, repairedDraft);
+          if (repairError == null) {
+            // Repair succeeded.
+            draft = repairedDraft;
+          } else {
+            // Repair failed — use repaired draft anyway but attach warnings.
+            draft = repairedDraft;
+            validationWarning = repairError;
+            await transition(
+              AssetGenerationStatus.running,
+              null,
+              message: '自动修复未能完全解决校验问题，请人工审阅。',
+              errorMessage: repairError,
+            );
+          }
+        }
+        // If repaired draft was empty, keep the original draft.
+      }
 
       await transition(
         AssetGenerationStatus.running,
@@ -196,6 +250,233 @@ class AssetGenerationPipeline {
         AssetGenerationStatus.succeeded,
         null,
         message: '资产草稿生成完成。',
+        errorMessage: validationWarning,
+        draftMarkdown: draft,
+        completedAt: DateTime.now(),
+      );
+
+      return AssetGenerationResult(
+        run: currentRun,
+        workflowTaskId: currentRun.workflowTaskId,
+      );
+    } on LlmCancellationException {
+      await _repository.abandonWorkflowTask(currentRun.workflowTaskId);
+      rethrow;
+    } on Object catch (error) {
+      await transition(
+        AssetGenerationStatus.failed,
+        null,
+        message: '资产草稿生成失败。',
+        errorMessage: _sanitizeError(error, resolvedProvider),
+        completedAt: DateTime.now(),
+      );
+      rethrow;
+    } finally {
+      _cancellationRegistry.unregister(
+        currentRun.workflowTaskId,
+        cancellationToken,
+      );
+      await cancellationToken.dispose();
+    }
+  }
+
+  /// Creates a new [AssetGenerationRun] that regenerates a draft based on the
+  /// previous draft, validation errors and optional user feedback.
+  Future<AssetGenerationResult> regenerateAssetWithFeedback({
+    required String projectId,
+    required AssetGenerationKind kind,
+    required String previousRunId,
+    required String previousDraft,
+    required String validationErrors,
+    String userFeedback = '',
+    String? targetVolumeId,
+  }) async {
+    final normalizedVolumeId = targetVolumeId?.trim();
+    final scopedKind =
+        normalizedVolumeId == null || normalizedVolumeId.isEmpty
+            ? kind
+            : AssetGenerationKind.outlineDetailYaml;
+    if (await _repository.hasRunningAssetGeneration(
+      projectId: projectId,
+      kind: scopedKind,
+      targetVolumeId: normalizedVolumeId,
+    )) {
+      throw StateError(_runningAssetMessage(scopedKind, normalizedVolumeId));
+    }
+    final run = await _repository.createAssetGenerationRun(
+      AssetGenerationRunInput(
+        projectId: projectId,
+        kind: kind,
+        providerId: '',
+        modelName: '',
+        previousRunId: previousRunId,
+        userFeedback: userFeedback.trim().isEmpty ? null : userFeedback.trim(),
+      ),
+    );
+    var currentRun = run;
+    final cancellationToken = _cancellationRegistry.register(
+      run.workflowTaskId,
+    );
+    var currentStage = currentRun.stage;
+    final log = StringBuffer(currentRun.logs);
+    ProviderConfig? resolvedProvider;
+
+    Future<void> transition(
+      AssetGenerationStatus status,
+      AssetGenerationStage? stage, {
+      String? message,
+      String? providerId,
+      String? modelName,
+      String? errorMessage,
+      String? draftMarkdown,
+      DateTime? startedAt,
+      DateTime? completedAt,
+    }) async {
+      currentStage = stage;
+      if (message != null && message.trim().isNotEmpty) {
+        _appendLog(log, message);
+      }
+      currentRun = await _repository.updateAssetGenerationRunState(
+        id: currentRun.id,
+        status: status,
+        stage: stage,
+        providerId: providerId,
+        modelName: modelName,
+        errorMessage: errorMessage,
+        logs: log.toString(),
+        draftMarkdown: draftMarkdown,
+        startedAt: startedAt,
+        completedAt: completedAt,
+      );
+    }
+
+    try {
+      cancellationToken.throwIfCancelled();
+      final project = await _requireProject(projectId);
+      final targetVolume = currentRun.targetVolumeId == null
+          ? null
+          : await _requireVolume(projectId, currentRun.targetVolumeId!);
+      final provider = await _requireProvider(project);
+      final modelName = _requireModelName(project, provider);
+      resolvedProvider = provider;
+      final traceRecorder = PromptTraceRecorder(
+        repository: _workflowTaskRepository,
+        workflowTaskId: currentRun.workflowTaskId,
+        workflowKind: assetGenerationWorkflowTaskKind,
+        runId: currentRun.id,
+        providerId: provider.id,
+        providerApiKey: provider.apiKey,
+        modelName: modelName,
+        stageLabel: () => currentStage?.name,
+      );
+
+      await transition(
+        AssetGenerationStatus.running,
+        AssetGenerationStage.preparingContext,
+        message: '阶段: 准备上下文。构建修复 Prompt。',
+        providerId: provider.id,
+        modelName: modelName,
+        startedAt: DateTime.now(),
+      );
+      cancellationToken.throwIfCancelled();
+
+      final bible = await _repository.ensureProjectBible(projectId);
+      final assets = await _promptAssetResolver.resolve(projectId);
+      final prompt = _promptBuilder.buildRepairPrompt(
+        kind: kind,
+        project: project,
+        bible: bible,
+        assets: assets,
+        previousDraft: previousDraft,
+        validationErrors: validationErrors,
+        userFeedback: userFeedback,
+        targetVolume: targetVolume,
+      );
+
+      await transition(
+        AssetGenerationStatus.running,
+        AssetGenerationStage.generatingDraft,
+        message: '阶段: 生成草稿。调用模型修复${_kindLabel(kind)}。',
+      );
+      cancellationToken.throwIfCancelled();
+
+      final generated = await _completionService.completeMarkdown(
+        provider: provider,
+        prompt: prompt,
+        temperature:
+            kind == AssetGenerationKind.outlineDetailYaml ||
+                    kind == AssetGenerationKind.volumeBlueprintYaml
+                ? 0.35
+                : 0.55,
+        modelName: modelName,
+        promptTrace: traceRecorder.config(
+          label: 'regenerate_${kind.name}',
+        ),
+        cancellationToken: cancellationToken,
+      );
+      cancellationToken.throwIfCancelled();
+      var draft = _cleanDraft(generated);
+      if (draft.trim().isEmpty) {
+        throw StateError('模型返回了空资产草稿。');
+      }
+
+      // Validate; if it fails, attempt one automatic repair.
+      var validationError = _tryValidateDraft(kind, draft);
+      String? validationWarning;
+      if (validationError != null) {
+        await transition(
+          AssetGenerationStatus.running,
+          AssetGenerationStage.repairingDraft,
+          message: '阶段: 自动修复。校验发现问题，正在调用模型修复。',
+        );
+        cancellationToken.throwIfCancelled();
+        final repairPrompt = _promptBuilder.buildRepairPrompt(
+          kind: kind,
+          project: project,
+          bible: bible,
+          assets: assets,
+          previousDraft: draft,
+          validationErrors: validationError,
+          targetVolume: targetVolume,
+        );
+        final repairGenerated = await _completionService.completeMarkdown(
+          provider: provider,
+          prompt: repairPrompt,
+          temperature:
+              kind == AssetGenerationKind.outlineDetailYaml ||
+                      kind == AssetGenerationKind.volumeBlueprintYaml
+                  ? 0.35
+                  : 0.55,
+          modelName: modelName,
+          promptTrace: traceRecorder.config(
+            label: 'repair_${kind.name}',
+          ),
+          cancellationToken: cancellationToken,
+        );
+        cancellationToken.throwIfCancelled();
+        final repairedDraft = _cleanDraft(repairGenerated);
+        if (repairedDraft.trim().isNotEmpty) {
+          final repairError = _tryValidateDraft(kind, repairedDraft);
+          if (repairError == null) {
+            draft = repairedDraft;
+          } else {
+            draft = repairedDraft;
+            validationWarning = repairError;
+          }
+        }
+      }
+
+      await transition(
+        AssetGenerationStatus.running,
+        AssetGenerationStage.savingDraft,
+        message: '阶段: 保存草稿。等待人工审阅确认。',
+      );
+      cancellationToken.throwIfCancelled();
+      await transition(
+        AssetGenerationStatus.succeeded,
+        null,
+        message: '资产草稿生成完成。',
+        errorMessage: validationWarning,
         draftMarkdown: draft,
         completedAt: DateTime.now(),
       );
@@ -268,17 +549,24 @@ class AssetGenerationPipeline {
     throw StateError('目标分卷不存在。');
   }
 
-  void _validateDraft(AssetGenerationKind kind, String draft) {
-    switch (kind) {
-      case AssetGenerationKind.worldBuilding:
-      case AssetGenerationKind.outlineMaster:
-        return;
-      case AssetGenerationKind.charactersBlueprint:
-        _characterGraphParser.parse(draft);
-      case AssetGenerationKind.volumeBlueprintYaml:
-        _volumeBlueprintParser.parse(draft);
-      case AssetGenerationKind.outlineDetailYaml:
-        _outlineDetailParser.parse(draft);
+  /// Validates a draft and returns the error message if invalid, or null if
+  /// the draft passes all checks.
+  String? _tryValidateDraft(AssetGenerationKind kind, String draft) {
+    try {
+      switch (kind) {
+        case AssetGenerationKind.worldBuilding:
+        case AssetGenerationKind.outlineMaster:
+          return null;
+        case AssetGenerationKind.charactersBlueprint:
+          _characterGraphParser.parse(draft);
+        case AssetGenerationKind.volumeBlueprintYaml:
+          _volumeBlueprintParser.parse(draft);
+        case AssetGenerationKind.outlineDetailYaml:
+          _outlineDetailParser.parse(draft);
+      }
+      return null;
+    } on Object catch (e) {
+      return e.toString();
     }
   }
 

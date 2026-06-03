@@ -780,6 +780,36 @@ class NovelWorkshopController extends _$NovelWorkshopController {
     return result;
   }
 
+  Future<AssetGenerationResult> regenerateAssetWithFeedback({
+    required String projectId,
+    required AssetGenerationKind kind,
+    required String previousRunId,
+    required String previousDraft,
+    required String validationErrors,
+    String userFeedback = '',
+    String? targetVolumeId,
+  }) async {
+    state = const AsyncLoading();
+    late AssetGenerationResult result;
+    state = await AsyncValue.guard(() async {
+      result = await ref
+          .read(assetGenerationPipelineProvider)
+          .regenerateAssetWithFeedback(
+            projectId: projectId,
+            kind: kind,
+            previousRunId: previousRunId,
+            previousDraft: previousDraft,
+            validationErrors: validationErrors,
+            userFeedback: userFeedback,
+            targetVolumeId: targetVolumeId,
+          );
+    });
+    if (state.hasError) {
+      Error.throwWithStackTrace(state.error!, state.stackTrace!);
+    }
+    return result;
+  }
+
   Future<ProjectBible> applyAssetDraft(String runId) async {
     state = const AsyncLoading();
     late ProjectBible saved;

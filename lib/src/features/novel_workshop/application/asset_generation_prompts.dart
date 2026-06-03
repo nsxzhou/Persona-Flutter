@@ -34,6 +34,38 @@ class AssetGenerationPromptBuilder {
     };
   }
 
+  /// Builds a prompt that asks the model to fix a previously generated draft
+  /// based on validation errors and optional user feedback.
+  String buildRepairPrompt({
+    required AssetGenerationKind kind,
+    required WritingProject project,
+    required ProjectBible bible,
+    required ProjectPromptAssets assets,
+    required String previousDraft,
+    required String validationErrors,
+    String userFeedback = '',
+    ChapterVolume? targetVolume,
+  }) {
+    final basePrompt = buildPrompt(
+      kind: kind,
+      project: project,
+      bible: bible,
+      assets: assets,
+      targetVolume: targetVolume,
+    );
+    final feedbackBlock = userFeedback.trim().isEmpty
+        ? ''
+        : '\n## 用户修改意见\n${userFeedback.trim()}\n';
+    return '$basePrompt\n\n'
+        '## 上一次生成的草稿（存在问题）\n'
+        '$previousDraft\n\n'
+        '## 校验错误\n'
+        '$validationErrors\n'
+        '$feedbackBlock'
+        '请基于上一次草稿修复以上问题。保留草稿中正确的部分，'
+        '只修正有问题的地方。输出完整的修正后内容。\n';
+  }
+
   String _worldBuilding(WritingProject project, ProjectBible bible) {
     return '''
 你是长篇小说项目的世界架构师。你的工作不是堆背景资料，而是设计一套能持续制造角色选择、冲突升级和伏笔回收的故事运行系统。
