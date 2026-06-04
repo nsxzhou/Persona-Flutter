@@ -326,6 +326,12 @@ class ChapterEnrichmentPipeline {
 - 目标扩写比例：约 ${batch.expansionRatioPercent}%。
 - 用户加料要求：${batch.instruction.trim()}。
 
+## 写作约束
+- 角色行为由利益和欲望驱动，不由道德感驱动。扩写时不要给角色添加道德挣扎、正义感悟或善良包装。
+- 禁用AI腔高频词：仿佛、犹如、缓缓、不禁、微微、淡淡、映入眼帘、心中暗道、嘴角微扬。用具体身体动作和感官细节替代。
+- 心理描写外化：不写"他感到XX"，写身体反应。
+- 章末禁止总结感慨或哲理收尾。
+
 ## 项目参数
 - 项目：${project.title.trim()}
 - 语言：${project.language.trim()}
