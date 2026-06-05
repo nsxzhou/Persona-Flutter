@@ -544,3 +544,36 @@ Changed Novel Workshop context selector prompts and parser from JSON output to Y
 ### Next Steps
 
 - None - task complete
+
+
+## Session 17: Market Scan Feature Implementation
+
+**Date**: 2026-06-05
+**Task**: Market Scan Feature Implementation
+**Branch**: `main`
+
+### Summary
+
+Added market scan feature: DB tables (schema v32), scrapers for qidian/fanqie/jinjiang, ranking domain, recommendation engine, project creation page, ADR docs, and background scheduler.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a59512c` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
