@@ -18,11 +18,15 @@ App-wide infrastructure lives under `lib/src/core/`. Domain-specific code lives 
 lib/src/
 ├── app/                 # Flutter app root
 ├── core/                # Cross-cutting infrastructure
+│   ├── analysis/        # Shared analysis utilities (text chunking, import parsing)
 │   ├── database/        # Drift SQLite bootstrap and database providers
+│   ├── image_generation/# Image generation ports, services, adapters
+│   ├── llm/             # Shared LLM ports, prompt composition, adapters
 │   ├── router/          # go_router routes and route metadata
 │   ├── tasks/           # Shared long-running task primitives
 │   ├── theme/           # ThemeData factories
-│   └── ui/              # Shared shell/widgets
+│   ├── ui/              # Shared shell/widgets
+│   └── utils/           # Shared utilities (e.g. Markdown helpers)
 └── features/
     └── <feature>/
         ├── domain/      # Entities, value objects, repository contracts

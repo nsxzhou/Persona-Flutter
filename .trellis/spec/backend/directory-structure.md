@@ -19,15 +19,21 @@ lib/src/
 ├── core/
 │   ├── analysis/        # Shared local analysis utilities for Style/Plot pipelines
 │   ├── database/        # AppDatabase, Drift table definitions, DB providers
+│   ├── image_generation/# Image generation ports, services, adapters (GPT/Grok)
 │   ├── llm/             # Shared LLM ports, prompt composition, adapters
-│   └── tasks/
-│       ├── domain/      # Shared task entities/value objects
-│       ├── application/ # Shared task repository contracts/providers
-│       └── data/        # Drift repository implementations
+│   ├── router/          # go_router routes and route metadata
+│   ├── tasks/
+│   │   ├── domain/      # Shared task entities/value objects
+│   │   ├── application/ # Shared task repository contracts/providers
+│   │   └── data/        # Drift repository implementations
+│   ├── theme/           # ThemeData factories and app theme setup
+│   ├── ui/              # Shared shell/widgets (PersonaPage, PersonaPanel, etc.)
+│   └── utils/           # Shared utilities (e.g. Markdown helpers)
 └── features/<feature>/
     ├── domain/          # Feature entities and repository contracts
     ├── application/     # Use cases, app services, generated providers
-    └── data/            # Drift DAOs, DTOs, mappers, repository implementations
+    ├── data/            # Drift DAOs, DTOs, mappers, repository implementations
+    └── presentation/    # Pages, widgets, controllers, UI state
 ```
 
 ---
@@ -41,6 +47,13 @@ by more than one analysis lab. Examples include text chunking, input signal
 detection, provider-error sanitization, and shared TXT/EPUB import text
 parsing. Feature-specific prompt builders, document parsers, and domain-specific
 classification wrappers stay in the feature's `application/` directory.
+
+Shared image generation primitives live in `lib/src/core/image_generation/`
+and follow the same layered pattern as `core/llm/`:
+
+* `domain/` — Persona-owned `ImageGenerationClient` contract.
+* `application/` — `ImageGenerationService` orchestration.
+* `data/` — `BearerImageGenerationClient` adapter for GPT/Grok endpoints.
 
 Shared task primitives live in `lib/src/core/tasks/`, as shown by:
 

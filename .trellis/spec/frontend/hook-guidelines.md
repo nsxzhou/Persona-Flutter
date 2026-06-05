@@ -1,16 +1,16 @@
-# Hook Guidelines
+# Provider Guidelines
 
-> How hooks are used in this project.
+> How Riverpod providers are organized in this project.
 
 ---
 
 ## Overview
 
-This Flutter project does not use React hooks. The equivalent shared stateful logic is expressed with Riverpod providers, preferably generated via `riverpod_generator`.
+This Flutter project uses Riverpod providers, preferably generated via `riverpod_generator`, for shared stateful logic. There are no React-style hooks in this codebase.
 
 ---
 
-## Custom Hook Patterns
+## Provider Patterns
 
 Create providers in `application/` for feature-specific logic and in `core/<area>/application/` for shared logic.
 

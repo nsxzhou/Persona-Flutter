@@ -42,7 +42,7 @@ flutter analyze
 flutter test
 ```
 
-Add focused tests for changed behavior. Current smoke coverage lives in `test/widget_test.dart`.
+Add focused tests for changed behavior. Tests are organized under `test/` with feature-specific subdirectories (e.g., `test/novel_workshop/`) for pipeline, parser, repository, widget, and export tests.
 
 ---
 
@@ -100,7 +100,7 @@ Enable `com.apple.security.network.client` for outbound Provider connectivity.
 - Request types: `LlmRequest(model, temperature, messages)`, `LlmMessage(role, content)`.
 - Stream events: `LlmStreamDelta(text)` and `LlmStreamDone()`.
 - Adapter: `LangChainLlmClient implements LlmClient` lives under `core/llm/data`.
-- Prompt composition: `ProviderPromptComposer.compose(businessSystemPrompt, providerSystemPrompt)`.
+- Prompt composition: `LlmInvocationService` composes business and provider system prompts internally via a private `_composeSystemPrompt` method.
 - Markdown helper: `MarkdownCompletionService.completeMarkdown(..., String businessSystemPrompt = '')`.
 
 ### 3. Contracts
@@ -125,8 +125,7 @@ Enable `com.apple.security.network.client` for outbound Provider connectivity.
 - Bad: put the model's role definition only in the user prompt when it should be a persistent system-level instruction.
 
 ### 6. Tests Required
-- Unit test `ProviderPromptComposer` for empty and non-empty prompt composition.
-- Unit test `LlmInvocationService` for system-message ordering and temperature.
+- Unit test `LlmInvocationService` for system-message ordering, temperature, and prompt composition.
 - Unit test feature prompt services that pass `businessSystemPrompt` by asserting the fake `LlmClient` receives a system message before the user request.
 - Adapter test with fake chat model for stream-event conversion and key redaction.
 - Widget tests should override `llmClientProvider` instead of making live LLM calls.

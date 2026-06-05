@@ -36,6 +36,60 @@ Use descriptive table class names ending in `Records` for persisted task-like re
 
 ---
 
+## Table Catalog
+
+All tables are defined in `core/database/app_database.dart`.
+
+### Core infrastructure
+
+| Table | Purpose |
+|-------|---------|
+| `WorkflowTaskRecords` | Generic long-running task status and lifecycle |
+| `WorkflowPromptTraceRecords` | LLM prompt diagnostics keyed by workflow task |
+| `ProviderConfigRecords` | OpenAI-compatible text LLM provider settings |
+| `ProviderModelRecords` | Per-provider available model list with sort order |
+| `ImageProviderConfigRecords` | Text-to-image provider settings (GPT/Grok) |
+| `ImageProviderModelRecords` | Per-image-provider available model list |
+| `ProjectRecords` | Writing project metadata and status |
+
+### Style Lab
+
+| Table | Purpose |
+|-------|---------|
+| `StyleSampleRecords` | Source text samples for style analysis (manual or EPUB import) |
+| `StyleAnalysisRunRecords` | Async style analysis runs producing Voice Profiles |
+| `StyleProfileRecords` | Saved Voice Profile artifacts |
+
+### Plot Lab
+
+| Table | Purpose |
+|-------|---------|
+| `PlotSampleRecords` | Source text samples for plot analysis |
+| `PlotAnalysisRunRecords` | Async plot analysis runs producing skeletons and Story Engines |
+| `PlotProfileRecords` | Saved Story Engine artifacts |
+
+### Novel Workshop
+
+| Table | Purpose |
+|-------|---------|
+| `ProjectBibleRecords` | Project-level settings, world-building, characters, outline |
+| `ProjectRuntimeMemoryRecords` | Project-level runtime memory (one row per project) |
+| `NovelCharacterRecords` | Structured character profiles with narrative metadata |
+| `NovelRelationshipRecords` | Directed character relationship edges with type and strength |
+| `ChapterVolumeRecords` | Chapter volume grouping |
+| `ChapterPlanRecords` | Chapter plans under volumes |
+| `ProjectChapterRecords` | Current chapter body content |
+| `ChapterGenerationRunRecords` | Single chapter generation workflow runs |
+| `ChapterGenerationBatchRecords` | Batch chapter generation jobs |
+| `ChapterGenerationBatchItemRecords` | Per-chapter status within a batch |
+| `AssetGenerationRunRecords` | Project-level asset generation (bible, volume outlines) |
+| `ChapterIllustrationRecords` | Generated chapter illustrations with lifecycle status |
+| `ChapterIllustrationGenerationRunRecords` | Illustration generation workflow runs |
+| `ChapterEnrichmentBatchRecords` | Imported novel enrichment batch jobs |
+| `ChapterEnrichmentItemRecords` | Per-chapter enrichment preview items |
+
+---
+
 ## Common Mistakes
 
 * Do not expose Drift row types directly to UI.
@@ -283,7 +337,7 @@ Keep `WorkflowTaskRepository` read-only and update run/task records together ins
 - This is a database schema and cross-layer contract because Drift tables, domain models, prompt assembly, LLM proposal parsing, review UI, and repository writes all depend on the same five Runtime Memory fields.
 
 ### 2. Signatures
-- Drift schema version: `20`.
+- Drift schema version: `31`.
 - Domain state: `RuntimeMemoryState`.
 - Current memory table: `ProjectRuntimeMemoryRecords`, one row per `projectId`.
 - Chapter proposal table: `ProjectChapterRecords`, one pending proposal per chapter row.

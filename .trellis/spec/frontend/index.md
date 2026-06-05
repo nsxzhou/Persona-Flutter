@@ -16,7 +16,7 @@ This directory contains guidelines for Flutter presentation and app-shell develo
 |-------|-------------|--------|
 | [Directory Structure](./directory-structure.md) | Module organization and file layout | Filled |
 | [Component Guidelines](./component-guidelines.md) | Widget patterns, props, composition | Filled |
-| [Hook Guidelines](./hook-guidelines.md) | Riverpod provider conventions | Filled |
+| [Provider Guidelines](./hook-guidelines.md) | Riverpod provider conventions | Filled |
 | [State Management](./state-management.md) | Local state, provider state, persistence state | Filled |
 | [Quality Guidelines](./quality-guidelines.md) | Linting, generated code, testing | Filled |
 | [Type Safety](./type-safety.md) | Dart model and generated contract patterns | Filled |

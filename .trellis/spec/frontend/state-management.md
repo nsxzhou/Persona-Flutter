@@ -29,6 +29,30 @@ Do not wrap the top-level `StatefulNavigationShell` body in a route-level `Anima
 
 Shell widgets that read Riverpod providers must be wrapped in `ProviderScope` in tests and demos. If a shell owns app-level state like theme mode, route changes, or top-level selection, its tests should construct the same provider boundary that production uses.
 
+### Route Map
+
+`/` redirects to `/projects`.
+
+| Branch | Path | Widget |
+|--------|------|--------|
+| Projects | `/projects` | `ProjectsPage` |
+| | `/projects/:projectId/workshop` | `NovelWorkshopPage` |
+| | `.../workshop/editor` | `NovelEditorPage` |
+| | `.../workshop/reader` | `NovelReaderPage` |
+| | `.../workshop/illustrations` | `NovelIllustrationLibraryPage` |
+| Style Lab | `/style-lab` | `StyleLabPage` |
+| | `/style-lab/profiles/:profileId` | `StyleLabProfileDetailPage` |
+| | `/style-lab/drafts/:runId` | `StyleLabDraftDetailPage` |
+| | `/style-lab/tasks/:runId` | `StyleLabTaskDetailPage` |
+| Plot Lab | `/plot-lab` | `PlotLabPage` |
+| | `/plot-lab/profiles/:profileId` | `PlotLabProfileDetailPage` |
+| | `/plot-lab/tasks/:runId` | `PlotLabTaskDetailPage` |
+| Workflow Runs | `/workflow-runs` | `WorkflowRunsPage` |
+| | `/workflow-runs/:taskId` | `WorkflowRunDetailPage` |
+| Settings | `/settings` | `SettingsPage` |
+| | `/settings/providers/:providerId` | `ProviderDetailPage` |
+| | `/settings/image-providers/:providerId` | `ImageProviderDetailPage` |
+
 ---
 
 ## When to Use Global State
@@ -84,8 +108,10 @@ Persona Flutter has no remote server in the baseline. Local persisted data is ex
 
 ### 2. Signatures
 - Route: `/projects/:projectId/workshop`.
+- Sub-routes: `/projects/:projectId/workshop/editor`, `/projects/:projectId/workshop/reader`, `/projects/:projectId/workshop/illustrations`.
 - Entry point: active project row action labeled `打开工作台`.
 - Page widget: `NovelWorkshopPage(projectId: state.pathParameters['projectId']!)`.
+- Sub-page widgets: `NovelEditorPage`, `NovelReaderPage`, `NovelIllustrationLibraryPage` (defined via `part` directives in `novel_workshop_page.dart`).
 - Command provider: `NovelWorkshopController` wraps chapter-plan save, chapter save, and generation commands.
 
 ### 3. Contracts

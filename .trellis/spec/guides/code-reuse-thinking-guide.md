@@ -86,13 +86,11 @@ When you've made similar changes to multiple files:
 
 ## Gotcha: Asymmetric Mechanisms Producing Same Output
 
-**Problem**: When two different mechanisms must produce the same file set (e.g., recursive directory copy for init vs. manual `files.set()` for update), structural changes (renaming, moving, adding subdirectories) only propagate through the automatic mechanism. The manual one silently drifts.
-
-**Symptom**: Init works perfectly, but update creates files at wrong paths or misses files entirely.
+**Problem**: When two different code paths must produce the same output set (e.g., an automatic copy vs. a manually listed set), structural changes (renaming, moving, adding items) only propagate through the automatic path. The manual one silently drifts.
 
 **Prevention checklist**:
-- [ ] When migrating directory structures, search for ALL code paths that reference the old structure
-- [ ] If one path is auto-derived (glob/copy) and another is manually listed, the manual one needs updating
+- [ ] When migrating structures, search for ALL code paths that reference the old structure
+- [ ] If one path is auto-derived and another is manually listed, the manual one needs updating
 - [ ] Add a regression test that compares outputs from both mechanisms
 
 ---
