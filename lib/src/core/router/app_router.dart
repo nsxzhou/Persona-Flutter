@@ -2,7 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/plot_lab/presentation/plot_lab_page.dart';
+import '../../features/market_scan/presentation/recommendation_page.dart';
 import '../../features/novel_workshop/presentation/novel_workshop_page.dart';
+import '../../features/projects/presentation/project_creation_page.dart';
 import '../../features/projects/presentation/projects_page.dart';
 import '../../features/settings/presentation/provider_detail_page.dart';
 import '../../features/settings/presentation/image_provider_detail_page.dart';
@@ -28,6 +30,28 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: AppRoute.projects.path,
                 builder: (context, state) => const ProjectsPage(),
                 routes: [
+                  GoRoute(
+                    path: 'recommend',
+                    builder: (context, state) =>
+                        const RecommendationPage(),
+                  ),
+                  GoRoute(
+                    path: 'create',
+                    builder: (context, state) {
+                      final uri = state.uri;
+                      final tagsParam = uri.queryParameters['tags'];
+                      final wordCountParam =
+                          uri.queryParameters['wordCount'];
+                      return ProjectCreationPage(
+                        prefillTitle: uri.queryParameters['title'],
+                        prefillSynopsis: uri.queryParameters['synopsis'],
+                        prefillGenreTags: tagsParam?.split(','),
+                        prefillWordCount: wordCountParam != null
+                            ? int.tryParse(wordCountParam)
+                            : null,
+                      );
+                    },
+                  ),
                   GoRoute(
                     path: ':projectId/workshop',
                     builder: (context, state) => NovelWorkshopPage(

@@ -23727,6 +23727,2072 @@ class AssetGenerationRunRecordsCompanion
   }
 }
 
+class $MarketBookRecordsTable extends MarketBookRecords
+    with TableInfo<$MarketBookRecordsTable, MarketBookRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MarketBookRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _platformMeta = const VerificationMeta(
+    'platform',
+  );
+  @override
+  late final GeneratedColumn<String> platform = GeneratedColumn<String>(
+    'platform',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _platformBookIdMeta = const VerificationMeta(
+    'platformBookId',
+  );
+  @override
+  late final GeneratedColumn<String> platformBookId = GeneratedColumn<String>(
+    'platform_book_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _authorMeta = const VerificationMeta('author');
+  @override
+  late final GeneratedColumn<String> author = GeneratedColumn<String>(
+    'author',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _categoriesMeta = const VerificationMeta(
+    'categories',
+  );
+  @override
+  late final GeneratedColumn<String> categories = GeneratedColumn<String>(
+    'categories',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _tagsMeta = const VerificationMeta('tags');
+  @override
+  late final GeneratedColumn<String> tags = GeneratedColumn<String>(
+    'tags',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _totalWordCountMeta = const VerificationMeta(
+    'totalWordCount',
+  );
+  @override
+  late final GeneratedColumn<int> totalWordCount = GeneratedColumn<int>(
+    'total_word_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('ongoing'),
+  );
+  static const VerificationMeta _firstPublishDateMeta = const VerificationMeta(
+    'firstPublishDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> firstPublishDate =
+      GeneratedColumn<DateTime>(
+        'first_publish_date',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    platform,
+    platformBookId,
+    title,
+    author,
+    description,
+    categories,
+    tags,
+    totalWordCount,
+    status,
+    firstPublishDate,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'market_book_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MarketBookRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('platform')) {
+      context.handle(
+        _platformMeta,
+        platform.isAcceptableOrUnknown(data['platform']!, _platformMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_platformMeta);
+    }
+    if (data.containsKey('platform_book_id')) {
+      context.handle(
+        _platformBookIdMeta,
+        platformBookId.isAcceptableOrUnknown(
+          data['platform_book_id']!,
+          _platformBookIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_platformBookIdMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('author')) {
+      context.handle(
+        _authorMeta,
+        author.isAcceptableOrUnknown(data['author']!, _authorMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_authorMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('categories')) {
+      context.handle(
+        _categoriesMeta,
+        categories.isAcceptableOrUnknown(data['categories']!, _categoriesMeta),
+      );
+    }
+    if (data.containsKey('tags')) {
+      context.handle(
+        _tagsMeta,
+        tags.isAcceptableOrUnknown(data['tags']!, _tagsMeta),
+      );
+    }
+    if (data.containsKey('total_word_count')) {
+      context.handle(
+        _totalWordCountMeta,
+        totalWordCount.isAcceptableOrUnknown(
+          data['total_word_count']!,
+          _totalWordCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('first_publish_date')) {
+      context.handle(
+        _firstPublishDateMeta,
+        firstPublishDate.isAcceptableOrUnknown(
+          data['first_publish_date']!,
+          _firstPublishDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {platform, platformBookId},
+  ];
+  @override
+  MarketBookRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MarketBookRecord(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      platform: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}platform'],
+      )!,
+      platformBookId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}platform_book_id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      author: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}author'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      )!,
+      categories: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}categories'],
+      )!,
+      tags: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tags'],
+      )!,
+      totalWordCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}total_word_count'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      firstPublishDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}first_publish_date'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $MarketBookRecordsTable createAlias(String alias) {
+    return $MarketBookRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class MarketBookRecord extends DataClass
+    implements Insertable<MarketBookRecord> {
+  final String id;
+  final String platform;
+  final String platformBookId;
+  final String title;
+  final String author;
+  final String description;
+  final String categories;
+  final String tags;
+  final int totalWordCount;
+  final String status;
+  final DateTime? firstPublishDate;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const MarketBookRecord({
+    required this.id,
+    required this.platform,
+    required this.platformBookId,
+    required this.title,
+    required this.author,
+    required this.description,
+    required this.categories,
+    required this.tags,
+    required this.totalWordCount,
+    required this.status,
+    this.firstPublishDate,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['platform'] = Variable<String>(platform);
+    map['platform_book_id'] = Variable<String>(platformBookId);
+    map['title'] = Variable<String>(title);
+    map['author'] = Variable<String>(author);
+    map['description'] = Variable<String>(description);
+    map['categories'] = Variable<String>(categories);
+    map['tags'] = Variable<String>(tags);
+    map['total_word_count'] = Variable<int>(totalWordCount);
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || firstPublishDate != null) {
+      map['first_publish_date'] = Variable<DateTime>(firstPublishDate);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  MarketBookRecordsCompanion toCompanion(bool nullToAbsent) {
+    return MarketBookRecordsCompanion(
+      id: Value(id),
+      platform: Value(platform),
+      platformBookId: Value(platformBookId),
+      title: Value(title),
+      author: Value(author),
+      description: Value(description),
+      categories: Value(categories),
+      tags: Value(tags),
+      totalWordCount: Value(totalWordCount),
+      status: Value(status),
+      firstPublishDate: firstPublishDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(firstPublishDate),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory MarketBookRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MarketBookRecord(
+      id: serializer.fromJson<String>(json['id']),
+      platform: serializer.fromJson<String>(json['platform']),
+      platformBookId: serializer.fromJson<String>(json['platformBookId']),
+      title: serializer.fromJson<String>(json['title']),
+      author: serializer.fromJson<String>(json['author']),
+      description: serializer.fromJson<String>(json['description']),
+      categories: serializer.fromJson<String>(json['categories']),
+      tags: serializer.fromJson<String>(json['tags']),
+      totalWordCount: serializer.fromJson<int>(json['totalWordCount']),
+      status: serializer.fromJson<String>(json['status']),
+      firstPublishDate: serializer.fromJson<DateTime?>(
+        json['firstPublishDate'],
+      ),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'platform': serializer.toJson<String>(platform),
+      'platformBookId': serializer.toJson<String>(platformBookId),
+      'title': serializer.toJson<String>(title),
+      'author': serializer.toJson<String>(author),
+      'description': serializer.toJson<String>(description),
+      'categories': serializer.toJson<String>(categories),
+      'tags': serializer.toJson<String>(tags),
+      'totalWordCount': serializer.toJson<int>(totalWordCount),
+      'status': serializer.toJson<String>(status),
+      'firstPublishDate': serializer.toJson<DateTime?>(firstPublishDate),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  MarketBookRecord copyWith({
+    String? id,
+    String? platform,
+    String? platformBookId,
+    String? title,
+    String? author,
+    String? description,
+    String? categories,
+    String? tags,
+    int? totalWordCount,
+    String? status,
+    Value<DateTime?> firstPublishDate = const Value.absent(),
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => MarketBookRecord(
+    id: id ?? this.id,
+    platform: platform ?? this.platform,
+    platformBookId: platformBookId ?? this.platformBookId,
+    title: title ?? this.title,
+    author: author ?? this.author,
+    description: description ?? this.description,
+    categories: categories ?? this.categories,
+    tags: tags ?? this.tags,
+    totalWordCount: totalWordCount ?? this.totalWordCount,
+    status: status ?? this.status,
+    firstPublishDate: firstPublishDate.present
+        ? firstPublishDate.value
+        : this.firstPublishDate,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  MarketBookRecord copyWithCompanion(MarketBookRecordsCompanion data) {
+    return MarketBookRecord(
+      id: data.id.present ? data.id.value : this.id,
+      platform: data.platform.present ? data.platform.value : this.platform,
+      platformBookId: data.platformBookId.present
+          ? data.platformBookId.value
+          : this.platformBookId,
+      title: data.title.present ? data.title.value : this.title,
+      author: data.author.present ? data.author.value : this.author,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      categories: data.categories.present
+          ? data.categories.value
+          : this.categories,
+      tags: data.tags.present ? data.tags.value : this.tags,
+      totalWordCount: data.totalWordCount.present
+          ? data.totalWordCount.value
+          : this.totalWordCount,
+      status: data.status.present ? data.status.value : this.status,
+      firstPublishDate: data.firstPublishDate.present
+          ? data.firstPublishDate.value
+          : this.firstPublishDate,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MarketBookRecord(')
+          ..write('id: $id, ')
+          ..write('platform: $platform, ')
+          ..write('platformBookId: $platformBookId, ')
+          ..write('title: $title, ')
+          ..write('author: $author, ')
+          ..write('description: $description, ')
+          ..write('categories: $categories, ')
+          ..write('tags: $tags, ')
+          ..write('totalWordCount: $totalWordCount, ')
+          ..write('status: $status, ')
+          ..write('firstPublishDate: $firstPublishDate, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    platform,
+    platformBookId,
+    title,
+    author,
+    description,
+    categories,
+    tags,
+    totalWordCount,
+    status,
+    firstPublishDate,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MarketBookRecord &&
+          other.id == this.id &&
+          other.platform == this.platform &&
+          other.platformBookId == this.platformBookId &&
+          other.title == this.title &&
+          other.author == this.author &&
+          other.description == this.description &&
+          other.categories == this.categories &&
+          other.tags == this.tags &&
+          other.totalWordCount == this.totalWordCount &&
+          other.status == this.status &&
+          other.firstPublishDate == this.firstPublishDate &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class MarketBookRecordsCompanion extends UpdateCompanion<MarketBookRecord> {
+  final Value<String> id;
+  final Value<String> platform;
+  final Value<String> platformBookId;
+  final Value<String> title;
+  final Value<String> author;
+  final Value<String> description;
+  final Value<String> categories;
+  final Value<String> tags;
+  final Value<int> totalWordCount;
+  final Value<String> status;
+  final Value<DateTime?> firstPublishDate;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const MarketBookRecordsCompanion({
+    this.id = const Value.absent(),
+    this.platform = const Value.absent(),
+    this.platformBookId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.author = const Value.absent(),
+    this.description = const Value.absent(),
+    this.categories = const Value.absent(),
+    this.tags = const Value.absent(),
+    this.totalWordCount = const Value.absent(),
+    this.status = const Value.absent(),
+    this.firstPublishDate = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MarketBookRecordsCompanion.insert({
+    required String id,
+    required String platform,
+    required String platformBookId,
+    required String title,
+    required String author,
+    this.description = const Value.absent(),
+    this.categories = const Value.absent(),
+    this.tags = const Value.absent(),
+    this.totalWordCount = const Value.absent(),
+    this.status = const Value.absent(),
+    this.firstPublishDate = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       platform = Value(platform),
+       platformBookId = Value(platformBookId),
+       title = Value(title),
+       author = Value(author),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<MarketBookRecord> custom({
+    Expression<String>? id,
+    Expression<String>? platform,
+    Expression<String>? platformBookId,
+    Expression<String>? title,
+    Expression<String>? author,
+    Expression<String>? description,
+    Expression<String>? categories,
+    Expression<String>? tags,
+    Expression<int>? totalWordCount,
+    Expression<String>? status,
+    Expression<DateTime>? firstPublishDate,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (platform != null) 'platform': platform,
+      if (platformBookId != null) 'platform_book_id': platformBookId,
+      if (title != null) 'title': title,
+      if (author != null) 'author': author,
+      if (description != null) 'description': description,
+      if (categories != null) 'categories': categories,
+      if (tags != null) 'tags': tags,
+      if (totalWordCount != null) 'total_word_count': totalWordCount,
+      if (status != null) 'status': status,
+      if (firstPublishDate != null) 'first_publish_date': firstPublishDate,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MarketBookRecordsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? platform,
+    Value<String>? platformBookId,
+    Value<String>? title,
+    Value<String>? author,
+    Value<String>? description,
+    Value<String>? categories,
+    Value<String>? tags,
+    Value<int>? totalWordCount,
+    Value<String>? status,
+    Value<DateTime?>? firstPublishDate,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return MarketBookRecordsCompanion(
+      id: id ?? this.id,
+      platform: platform ?? this.platform,
+      platformBookId: platformBookId ?? this.platformBookId,
+      title: title ?? this.title,
+      author: author ?? this.author,
+      description: description ?? this.description,
+      categories: categories ?? this.categories,
+      tags: tags ?? this.tags,
+      totalWordCount: totalWordCount ?? this.totalWordCount,
+      status: status ?? this.status,
+      firstPublishDate: firstPublishDate ?? this.firstPublishDate,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (platform.present) {
+      map['platform'] = Variable<String>(platform.value);
+    }
+    if (platformBookId.present) {
+      map['platform_book_id'] = Variable<String>(platformBookId.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (author.present) {
+      map['author'] = Variable<String>(author.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (categories.present) {
+      map['categories'] = Variable<String>(categories.value);
+    }
+    if (tags.present) {
+      map['tags'] = Variable<String>(tags.value);
+    }
+    if (totalWordCount.present) {
+      map['total_word_count'] = Variable<int>(totalWordCount.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (firstPublishDate.present) {
+      map['first_publish_date'] = Variable<DateTime>(firstPublishDate.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MarketBookRecordsCompanion(')
+          ..write('id: $id, ')
+          ..write('platform: $platform, ')
+          ..write('platformBookId: $platformBookId, ')
+          ..write('title: $title, ')
+          ..write('author: $author, ')
+          ..write('description: $description, ')
+          ..write('categories: $categories, ')
+          ..write('tags: $tags, ')
+          ..write('totalWordCount: $totalWordCount, ')
+          ..write('status: $status, ')
+          ..write('firstPublishDate: $firstPublishDate, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $MarketScanRunRecordsTable extends MarketScanRunRecords
+    with TableInfo<$MarketScanRunRecordsTable, MarketScanRunRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MarketScanRunRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _platformMeta = const VerificationMeta(
+    'platform',
+  );
+  @override
+  late final GeneratedColumn<String> platform = GeneratedColumn<String>(
+    'platform',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _startedAtMeta = const VerificationMeta(
+    'startedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startedAt = GeneratedColumn<DateTime>(
+    'started_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _completedAtMeta = const VerificationMeta(
+    'completedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> completedAt = GeneratedColumn<DateTime>(
+    'completed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _itemCountMeta = const VerificationMeta(
+    'itemCount',
+  );
+  @override
+  late final GeneratedColumn<int> itemCount = GeneratedColumn<int>(
+    'item_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _errorMessageMeta = const VerificationMeta(
+    'errorMessage',
+  );
+  @override
+  late final GeneratedColumn<String> errorMessage = GeneratedColumn<String>(
+    'error_message',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    platform,
+    status,
+    startedAt,
+    completedAt,
+    itemCount,
+    errorMessage,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'market_scan_run_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MarketScanRunRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('platform')) {
+      context.handle(
+        _platformMeta,
+        platform.isAcceptableOrUnknown(data['platform']!, _platformMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_platformMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('started_at')) {
+      context.handle(
+        _startedAtMeta,
+        startedAt.isAcceptableOrUnknown(data['started_at']!, _startedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startedAtMeta);
+    }
+    if (data.containsKey('completed_at')) {
+      context.handle(
+        _completedAtMeta,
+        completedAt.isAcceptableOrUnknown(
+          data['completed_at']!,
+          _completedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('item_count')) {
+      context.handle(
+        _itemCountMeta,
+        itemCount.isAcceptableOrUnknown(data['item_count']!, _itemCountMeta),
+      );
+    }
+    if (data.containsKey('error_message')) {
+      context.handle(
+        _errorMessageMeta,
+        errorMessage.isAcceptableOrUnknown(
+          data['error_message']!,
+          _errorMessageMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  MarketScanRunRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MarketScanRunRecord(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      platform: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}platform'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      startedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}started_at'],
+      )!,
+      completedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}completed_at'],
+      ),
+      itemCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}item_count'],
+      )!,
+      errorMessage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}error_message'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $MarketScanRunRecordsTable createAlias(String alias) {
+    return $MarketScanRunRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class MarketScanRunRecord extends DataClass
+    implements Insertable<MarketScanRunRecord> {
+  final String id;
+  final String platform;
+  final String status;
+  final DateTime startedAt;
+  final DateTime? completedAt;
+  final int itemCount;
+  final String? errorMessage;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const MarketScanRunRecord({
+    required this.id,
+    required this.platform,
+    required this.status,
+    required this.startedAt,
+    this.completedAt,
+    required this.itemCount,
+    this.errorMessage,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['platform'] = Variable<String>(platform);
+    map['status'] = Variable<String>(status);
+    map['started_at'] = Variable<DateTime>(startedAt);
+    if (!nullToAbsent || completedAt != null) {
+      map['completed_at'] = Variable<DateTime>(completedAt);
+    }
+    map['item_count'] = Variable<int>(itemCount);
+    if (!nullToAbsent || errorMessage != null) {
+      map['error_message'] = Variable<String>(errorMessage);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  MarketScanRunRecordsCompanion toCompanion(bool nullToAbsent) {
+    return MarketScanRunRecordsCompanion(
+      id: Value(id),
+      platform: Value(platform),
+      status: Value(status),
+      startedAt: Value(startedAt),
+      completedAt: completedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(completedAt),
+      itemCount: Value(itemCount),
+      errorMessage: errorMessage == null && nullToAbsent
+          ? const Value.absent()
+          : Value(errorMessage),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory MarketScanRunRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MarketScanRunRecord(
+      id: serializer.fromJson<String>(json['id']),
+      platform: serializer.fromJson<String>(json['platform']),
+      status: serializer.fromJson<String>(json['status']),
+      startedAt: serializer.fromJson<DateTime>(json['startedAt']),
+      completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
+      itemCount: serializer.fromJson<int>(json['itemCount']),
+      errorMessage: serializer.fromJson<String?>(json['errorMessage']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'platform': serializer.toJson<String>(platform),
+      'status': serializer.toJson<String>(status),
+      'startedAt': serializer.toJson<DateTime>(startedAt),
+      'completedAt': serializer.toJson<DateTime?>(completedAt),
+      'itemCount': serializer.toJson<int>(itemCount),
+      'errorMessage': serializer.toJson<String?>(errorMessage),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  MarketScanRunRecord copyWith({
+    String? id,
+    String? platform,
+    String? status,
+    DateTime? startedAt,
+    Value<DateTime?> completedAt = const Value.absent(),
+    int? itemCount,
+    Value<String?> errorMessage = const Value.absent(),
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => MarketScanRunRecord(
+    id: id ?? this.id,
+    platform: platform ?? this.platform,
+    status: status ?? this.status,
+    startedAt: startedAt ?? this.startedAt,
+    completedAt: completedAt.present ? completedAt.value : this.completedAt,
+    itemCount: itemCount ?? this.itemCount,
+    errorMessage: errorMessage.present ? errorMessage.value : this.errorMessage,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  MarketScanRunRecord copyWithCompanion(MarketScanRunRecordsCompanion data) {
+    return MarketScanRunRecord(
+      id: data.id.present ? data.id.value : this.id,
+      platform: data.platform.present ? data.platform.value : this.platform,
+      status: data.status.present ? data.status.value : this.status,
+      startedAt: data.startedAt.present ? data.startedAt.value : this.startedAt,
+      completedAt: data.completedAt.present
+          ? data.completedAt.value
+          : this.completedAt,
+      itemCount: data.itemCount.present ? data.itemCount.value : this.itemCount,
+      errorMessage: data.errorMessage.present
+          ? data.errorMessage.value
+          : this.errorMessage,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MarketScanRunRecord(')
+          ..write('id: $id, ')
+          ..write('platform: $platform, ')
+          ..write('status: $status, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('itemCount: $itemCount, ')
+          ..write('errorMessage: $errorMessage, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    platform,
+    status,
+    startedAt,
+    completedAt,
+    itemCount,
+    errorMessage,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MarketScanRunRecord &&
+          other.id == this.id &&
+          other.platform == this.platform &&
+          other.status == this.status &&
+          other.startedAt == this.startedAt &&
+          other.completedAt == this.completedAt &&
+          other.itemCount == this.itemCount &&
+          other.errorMessage == this.errorMessage &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class MarketScanRunRecordsCompanion
+    extends UpdateCompanion<MarketScanRunRecord> {
+  final Value<String> id;
+  final Value<String> platform;
+  final Value<String> status;
+  final Value<DateTime> startedAt;
+  final Value<DateTime?> completedAt;
+  final Value<int> itemCount;
+  final Value<String?> errorMessage;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const MarketScanRunRecordsCompanion({
+    this.id = const Value.absent(),
+    this.platform = const Value.absent(),
+    this.status = const Value.absent(),
+    this.startedAt = const Value.absent(),
+    this.completedAt = const Value.absent(),
+    this.itemCount = const Value.absent(),
+    this.errorMessage = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MarketScanRunRecordsCompanion.insert({
+    required String id,
+    required String platform,
+    required String status,
+    required DateTime startedAt,
+    this.completedAt = const Value.absent(),
+    this.itemCount = const Value.absent(),
+    this.errorMessage = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       platform = Value(platform),
+       status = Value(status),
+       startedAt = Value(startedAt),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<MarketScanRunRecord> custom({
+    Expression<String>? id,
+    Expression<String>? platform,
+    Expression<String>? status,
+    Expression<DateTime>? startedAt,
+    Expression<DateTime>? completedAt,
+    Expression<int>? itemCount,
+    Expression<String>? errorMessage,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (platform != null) 'platform': platform,
+      if (status != null) 'status': status,
+      if (startedAt != null) 'started_at': startedAt,
+      if (completedAt != null) 'completed_at': completedAt,
+      if (itemCount != null) 'item_count': itemCount,
+      if (errorMessage != null) 'error_message': errorMessage,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MarketScanRunRecordsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? platform,
+    Value<String>? status,
+    Value<DateTime>? startedAt,
+    Value<DateTime?>? completedAt,
+    Value<int>? itemCount,
+    Value<String?>? errorMessage,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return MarketScanRunRecordsCompanion(
+      id: id ?? this.id,
+      platform: platform ?? this.platform,
+      status: status ?? this.status,
+      startedAt: startedAt ?? this.startedAt,
+      completedAt: completedAt ?? this.completedAt,
+      itemCount: itemCount ?? this.itemCount,
+      errorMessage: errorMessage ?? this.errorMessage,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (platform.present) {
+      map['platform'] = Variable<String>(platform.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (startedAt.present) {
+      map['started_at'] = Variable<DateTime>(startedAt.value);
+    }
+    if (completedAt.present) {
+      map['completed_at'] = Variable<DateTime>(completedAt.value);
+    }
+    if (itemCount.present) {
+      map['item_count'] = Variable<int>(itemCount.value);
+    }
+    if (errorMessage.present) {
+      map['error_message'] = Variable<String>(errorMessage.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MarketScanRunRecordsCompanion(')
+          ..write('id: $id, ')
+          ..write('platform: $platform, ')
+          ..write('status: $status, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('itemCount: $itemCount, ')
+          ..write('errorMessage: $errorMessage, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $MarketRankingRecordsTable extends MarketRankingRecords
+    with TableInfo<$MarketRankingRecordsTable, MarketRankingRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MarketRankingRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _bookIdMeta = const VerificationMeta('bookId');
+  @override
+  late final GeneratedColumn<String> bookId = GeneratedColumn<String>(
+    'book_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES market_book_records (id)',
+    ),
+  );
+  static const VerificationMeta _chartNameMeta = const VerificationMeta(
+    'chartName',
+  );
+  @override
+  late final GeneratedColumn<String> chartName = GeneratedColumn<String>(
+    'chart_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _rankMeta = const VerificationMeta('rank');
+  @override
+  late final GeneratedColumn<int> rank = GeneratedColumn<int>(
+    'rank',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _runIdMeta = const VerificationMeta('runId');
+  @override
+  late final GeneratedColumn<String> runId = GeneratedColumn<String>(
+    'run_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES market_scan_run_records (id)',
+    ),
+  );
+  static const VerificationMeta _favoritesMeta = const VerificationMeta(
+    'favorites',
+  );
+  @override
+  late final GeneratedColumn<int> favorites = GeneratedColumn<int>(
+    'favorites',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _recommendVotesMeta = const VerificationMeta(
+    'recommendVotes',
+  );
+  @override
+  late final GeneratedColumn<int> recommendVotes = GeneratedColumn<int>(
+    'recommend_votes',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _monthlyTicketsMeta = const VerificationMeta(
+    'monthlyTickets',
+  );
+  @override
+  late final GeneratedColumn<int> monthlyTickets = GeneratedColumn<int>(
+    'monthly_tickets',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _commentCountMeta = const VerificationMeta(
+    'commentCount',
+  );
+  @override
+  late final GeneratedColumn<int> commentCount = GeneratedColumn<int>(
+    'comment_count',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _scrapedAtMeta = const VerificationMeta(
+    'scrapedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> scrapedAt = GeneratedColumn<DateTime>(
+    'scraped_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    bookId,
+    chartName,
+    rank,
+    runId,
+    favorites,
+    recommendVotes,
+    monthlyTickets,
+    commentCount,
+    scrapedAt,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'market_ranking_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MarketRankingRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('book_id')) {
+      context.handle(
+        _bookIdMeta,
+        bookId.isAcceptableOrUnknown(data['book_id']!, _bookIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_bookIdMeta);
+    }
+    if (data.containsKey('chart_name')) {
+      context.handle(
+        _chartNameMeta,
+        chartName.isAcceptableOrUnknown(data['chart_name']!, _chartNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_chartNameMeta);
+    }
+    if (data.containsKey('rank')) {
+      context.handle(
+        _rankMeta,
+        rank.isAcceptableOrUnknown(data['rank']!, _rankMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_rankMeta);
+    }
+    if (data.containsKey('run_id')) {
+      context.handle(
+        _runIdMeta,
+        runId.isAcceptableOrUnknown(data['run_id']!, _runIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_runIdMeta);
+    }
+    if (data.containsKey('favorites')) {
+      context.handle(
+        _favoritesMeta,
+        favorites.isAcceptableOrUnknown(data['favorites']!, _favoritesMeta),
+      );
+    }
+    if (data.containsKey('recommend_votes')) {
+      context.handle(
+        _recommendVotesMeta,
+        recommendVotes.isAcceptableOrUnknown(
+          data['recommend_votes']!,
+          _recommendVotesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('monthly_tickets')) {
+      context.handle(
+        _monthlyTicketsMeta,
+        monthlyTickets.isAcceptableOrUnknown(
+          data['monthly_tickets']!,
+          _monthlyTicketsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('comment_count')) {
+      context.handle(
+        _commentCountMeta,
+        commentCount.isAcceptableOrUnknown(
+          data['comment_count']!,
+          _commentCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('scraped_at')) {
+      context.handle(
+        _scrapedAtMeta,
+        scrapedAt.isAcceptableOrUnknown(data['scraped_at']!, _scrapedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_scrapedAtMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  MarketRankingRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MarketRankingRecord(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      bookId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}book_id'],
+      )!,
+      chartName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}chart_name'],
+      )!,
+      rank: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}rank'],
+      )!,
+      runId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}run_id'],
+      )!,
+      favorites: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}favorites'],
+      ),
+      recommendVotes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}recommend_votes'],
+      ),
+      monthlyTickets: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}monthly_tickets'],
+      ),
+      commentCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}comment_count'],
+      ),
+      scrapedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}scraped_at'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $MarketRankingRecordsTable createAlias(String alias) {
+    return $MarketRankingRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class MarketRankingRecord extends DataClass
+    implements Insertable<MarketRankingRecord> {
+  final String id;
+  final String bookId;
+  final String chartName;
+  final int rank;
+  final String runId;
+  final int? favorites;
+  final int? recommendVotes;
+  final int? monthlyTickets;
+  final int? commentCount;
+  final DateTime scrapedAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const MarketRankingRecord({
+    required this.id,
+    required this.bookId,
+    required this.chartName,
+    required this.rank,
+    required this.runId,
+    this.favorites,
+    this.recommendVotes,
+    this.monthlyTickets,
+    this.commentCount,
+    required this.scrapedAt,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['book_id'] = Variable<String>(bookId);
+    map['chart_name'] = Variable<String>(chartName);
+    map['rank'] = Variable<int>(rank);
+    map['run_id'] = Variable<String>(runId);
+    if (!nullToAbsent || favorites != null) {
+      map['favorites'] = Variable<int>(favorites);
+    }
+    if (!nullToAbsent || recommendVotes != null) {
+      map['recommend_votes'] = Variable<int>(recommendVotes);
+    }
+    if (!nullToAbsent || monthlyTickets != null) {
+      map['monthly_tickets'] = Variable<int>(monthlyTickets);
+    }
+    if (!nullToAbsent || commentCount != null) {
+      map['comment_count'] = Variable<int>(commentCount);
+    }
+    map['scraped_at'] = Variable<DateTime>(scrapedAt);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  MarketRankingRecordsCompanion toCompanion(bool nullToAbsent) {
+    return MarketRankingRecordsCompanion(
+      id: Value(id),
+      bookId: Value(bookId),
+      chartName: Value(chartName),
+      rank: Value(rank),
+      runId: Value(runId),
+      favorites: favorites == null && nullToAbsent
+          ? const Value.absent()
+          : Value(favorites),
+      recommendVotes: recommendVotes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recommendVotes),
+      monthlyTickets: monthlyTickets == null && nullToAbsent
+          ? const Value.absent()
+          : Value(monthlyTickets),
+      commentCount: commentCount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(commentCount),
+      scrapedAt: Value(scrapedAt),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory MarketRankingRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MarketRankingRecord(
+      id: serializer.fromJson<String>(json['id']),
+      bookId: serializer.fromJson<String>(json['bookId']),
+      chartName: serializer.fromJson<String>(json['chartName']),
+      rank: serializer.fromJson<int>(json['rank']),
+      runId: serializer.fromJson<String>(json['runId']),
+      favorites: serializer.fromJson<int?>(json['favorites']),
+      recommendVotes: serializer.fromJson<int?>(json['recommendVotes']),
+      monthlyTickets: serializer.fromJson<int?>(json['monthlyTickets']),
+      commentCount: serializer.fromJson<int?>(json['commentCount']),
+      scrapedAt: serializer.fromJson<DateTime>(json['scrapedAt']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'bookId': serializer.toJson<String>(bookId),
+      'chartName': serializer.toJson<String>(chartName),
+      'rank': serializer.toJson<int>(rank),
+      'runId': serializer.toJson<String>(runId),
+      'favorites': serializer.toJson<int?>(favorites),
+      'recommendVotes': serializer.toJson<int?>(recommendVotes),
+      'monthlyTickets': serializer.toJson<int?>(monthlyTickets),
+      'commentCount': serializer.toJson<int?>(commentCount),
+      'scrapedAt': serializer.toJson<DateTime>(scrapedAt),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  MarketRankingRecord copyWith({
+    String? id,
+    String? bookId,
+    String? chartName,
+    int? rank,
+    String? runId,
+    Value<int?> favorites = const Value.absent(),
+    Value<int?> recommendVotes = const Value.absent(),
+    Value<int?> monthlyTickets = const Value.absent(),
+    Value<int?> commentCount = const Value.absent(),
+    DateTime? scrapedAt,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => MarketRankingRecord(
+    id: id ?? this.id,
+    bookId: bookId ?? this.bookId,
+    chartName: chartName ?? this.chartName,
+    rank: rank ?? this.rank,
+    runId: runId ?? this.runId,
+    favorites: favorites.present ? favorites.value : this.favorites,
+    recommendVotes: recommendVotes.present
+        ? recommendVotes.value
+        : this.recommendVotes,
+    monthlyTickets: monthlyTickets.present
+        ? monthlyTickets.value
+        : this.monthlyTickets,
+    commentCount: commentCount.present ? commentCount.value : this.commentCount,
+    scrapedAt: scrapedAt ?? this.scrapedAt,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  MarketRankingRecord copyWithCompanion(MarketRankingRecordsCompanion data) {
+    return MarketRankingRecord(
+      id: data.id.present ? data.id.value : this.id,
+      bookId: data.bookId.present ? data.bookId.value : this.bookId,
+      chartName: data.chartName.present ? data.chartName.value : this.chartName,
+      rank: data.rank.present ? data.rank.value : this.rank,
+      runId: data.runId.present ? data.runId.value : this.runId,
+      favorites: data.favorites.present ? data.favorites.value : this.favorites,
+      recommendVotes: data.recommendVotes.present
+          ? data.recommendVotes.value
+          : this.recommendVotes,
+      monthlyTickets: data.monthlyTickets.present
+          ? data.monthlyTickets.value
+          : this.monthlyTickets,
+      commentCount: data.commentCount.present
+          ? data.commentCount.value
+          : this.commentCount,
+      scrapedAt: data.scrapedAt.present ? data.scrapedAt.value : this.scrapedAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MarketRankingRecord(')
+          ..write('id: $id, ')
+          ..write('bookId: $bookId, ')
+          ..write('chartName: $chartName, ')
+          ..write('rank: $rank, ')
+          ..write('runId: $runId, ')
+          ..write('favorites: $favorites, ')
+          ..write('recommendVotes: $recommendVotes, ')
+          ..write('monthlyTickets: $monthlyTickets, ')
+          ..write('commentCount: $commentCount, ')
+          ..write('scrapedAt: $scrapedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    bookId,
+    chartName,
+    rank,
+    runId,
+    favorites,
+    recommendVotes,
+    monthlyTickets,
+    commentCount,
+    scrapedAt,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MarketRankingRecord &&
+          other.id == this.id &&
+          other.bookId == this.bookId &&
+          other.chartName == this.chartName &&
+          other.rank == this.rank &&
+          other.runId == this.runId &&
+          other.favorites == this.favorites &&
+          other.recommendVotes == this.recommendVotes &&
+          other.monthlyTickets == this.monthlyTickets &&
+          other.commentCount == this.commentCount &&
+          other.scrapedAt == this.scrapedAt &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class MarketRankingRecordsCompanion
+    extends UpdateCompanion<MarketRankingRecord> {
+  final Value<String> id;
+  final Value<String> bookId;
+  final Value<String> chartName;
+  final Value<int> rank;
+  final Value<String> runId;
+  final Value<int?> favorites;
+  final Value<int?> recommendVotes;
+  final Value<int?> monthlyTickets;
+  final Value<int?> commentCount;
+  final Value<DateTime> scrapedAt;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const MarketRankingRecordsCompanion({
+    this.id = const Value.absent(),
+    this.bookId = const Value.absent(),
+    this.chartName = const Value.absent(),
+    this.rank = const Value.absent(),
+    this.runId = const Value.absent(),
+    this.favorites = const Value.absent(),
+    this.recommendVotes = const Value.absent(),
+    this.monthlyTickets = const Value.absent(),
+    this.commentCount = const Value.absent(),
+    this.scrapedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MarketRankingRecordsCompanion.insert({
+    required String id,
+    required String bookId,
+    required String chartName,
+    required int rank,
+    required String runId,
+    this.favorites = const Value.absent(),
+    this.recommendVotes = const Value.absent(),
+    this.monthlyTickets = const Value.absent(),
+    this.commentCount = const Value.absent(),
+    required DateTime scrapedAt,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       bookId = Value(bookId),
+       chartName = Value(chartName),
+       rank = Value(rank),
+       runId = Value(runId),
+       scrapedAt = Value(scrapedAt),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<MarketRankingRecord> custom({
+    Expression<String>? id,
+    Expression<String>? bookId,
+    Expression<String>? chartName,
+    Expression<int>? rank,
+    Expression<String>? runId,
+    Expression<int>? favorites,
+    Expression<int>? recommendVotes,
+    Expression<int>? monthlyTickets,
+    Expression<int>? commentCount,
+    Expression<DateTime>? scrapedAt,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (bookId != null) 'book_id': bookId,
+      if (chartName != null) 'chart_name': chartName,
+      if (rank != null) 'rank': rank,
+      if (runId != null) 'run_id': runId,
+      if (favorites != null) 'favorites': favorites,
+      if (recommendVotes != null) 'recommend_votes': recommendVotes,
+      if (monthlyTickets != null) 'monthly_tickets': monthlyTickets,
+      if (commentCount != null) 'comment_count': commentCount,
+      if (scrapedAt != null) 'scraped_at': scrapedAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MarketRankingRecordsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? bookId,
+    Value<String>? chartName,
+    Value<int>? rank,
+    Value<String>? runId,
+    Value<int?>? favorites,
+    Value<int?>? recommendVotes,
+    Value<int?>? monthlyTickets,
+    Value<int?>? commentCount,
+    Value<DateTime>? scrapedAt,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return MarketRankingRecordsCompanion(
+      id: id ?? this.id,
+      bookId: bookId ?? this.bookId,
+      chartName: chartName ?? this.chartName,
+      rank: rank ?? this.rank,
+      runId: runId ?? this.runId,
+      favorites: favorites ?? this.favorites,
+      recommendVotes: recommendVotes ?? this.recommendVotes,
+      monthlyTickets: monthlyTickets ?? this.monthlyTickets,
+      commentCount: commentCount ?? this.commentCount,
+      scrapedAt: scrapedAt ?? this.scrapedAt,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (bookId.present) {
+      map['book_id'] = Variable<String>(bookId.value);
+    }
+    if (chartName.present) {
+      map['chart_name'] = Variable<String>(chartName.value);
+    }
+    if (rank.present) {
+      map['rank'] = Variable<int>(rank.value);
+    }
+    if (runId.present) {
+      map['run_id'] = Variable<String>(runId.value);
+    }
+    if (favorites.present) {
+      map['favorites'] = Variable<int>(favorites.value);
+    }
+    if (recommendVotes.present) {
+      map['recommend_votes'] = Variable<int>(recommendVotes.value);
+    }
+    if (monthlyTickets.present) {
+      map['monthly_tickets'] = Variable<int>(monthlyTickets.value);
+    }
+    if (commentCount.present) {
+      map['comment_count'] = Variable<int>(commentCount.value);
+    }
+    if (scrapedAt.present) {
+      map['scraped_at'] = Variable<DateTime>(scrapedAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MarketRankingRecordsCompanion(')
+          ..write('id: $id, ')
+          ..write('bookId: $bookId, ')
+          ..write('chartName: $chartName, ')
+          ..write('rank: $rank, ')
+          ..write('runId: $runId, ')
+          ..write('favorites: $favorites, ')
+          ..write('recommendVotes: $recommendVotes, ')
+          ..write('monthlyTickets: $monthlyTickets, ')
+          ..write('commentCount: $commentCount, ')
+          ..write('scrapedAt: $scrapedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -23788,6 +25854,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $NovelRelationshipRecordsTable(this);
   late final $AssetGenerationRunRecordsTable assetGenerationRunRecords =
       $AssetGenerationRunRecordsTable(this);
+  late final $MarketBookRecordsTable marketBookRecords =
+      $MarketBookRecordsTable(this);
+  late final $MarketScanRunRecordsTable marketScanRunRecords =
+      $MarketScanRunRecordsTable(this);
+  late final $MarketRankingRecordsTable marketRankingRecords =
+      $MarketRankingRecordsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -23821,6 +25893,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     novelCharacterRecords,
     novelRelationshipRecords,
     assetGenerationRunRecords,
+    marketBookRecords,
+    marketScanRunRecords,
+    marketRankingRecords,
   ];
 }
 
@@ -47493,6 +49568,1483 @@ typedef $$AssetGenerationRunRecordsTableProcessedTableManager =
         bool targetVolumeId,
       })
     >;
+typedef $$MarketBookRecordsTableCreateCompanionBuilder =
+    MarketBookRecordsCompanion Function({
+      required String id,
+      required String platform,
+      required String platformBookId,
+      required String title,
+      required String author,
+      Value<String> description,
+      Value<String> categories,
+      Value<String> tags,
+      Value<int> totalWordCount,
+      Value<String> status,
+      Value<DateTime?> firstPublishDate,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$MarketBookRecordsTableUpdateCompanionBuilder =
+    MarketBookRecordsCompanion Function({
+      Value<String> id,
+      Value<String> platform,
+      Value<String> platformBookId,
+      Value<String> title,
+      Value<String> author,
+      Value<String> description,
+      Value<String> categories,
+      Value<String> tags,
+      Value<int> totalWordCount,
+      Value<String> status,
+      Value<DateTime?> firstPublishDate,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+final class $$MarketBookRecordsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $MarketBookRecordsTable,
+          MarketBookRecord
+        > {
+  $$MarketBookRecordsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static MultiTypedResultKey<
+    $MarketRankingRecordsTable,
+    List<MarketRankingRecord>
+  >
+  _marketRankingRecordsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.marketRankingRecords,
+        aliasName: $_aliasNameGenerator(
+          db.marketBookRecords.id,
+          db.marketRankingRecords.bookId,
+        ),
+      );
+
+  $$MarketRankingRecordsTableProcessedTableManager
+  get marketRankingRecordsRefs {
+    final manager = $$MarketRankingRecordsTableTableManager(
+      $_db,
+      $_db.marketRankingRecords,
+    ).filter((f) => f.bookId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _marketRankingRecordsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$MarketBookRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $MarketBookRecordsTable> {
+  $$MarketBookRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get platform => $composableBuilder(
+    column: $table.platform,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get platformBookId => $composableBuilder(
+    column: $table.platformBookId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get author => $composableBuilder(
+    column: $table.author,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get categories => $composableBuilder(
+    column: $table.categories,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tags => $composableBuilder(
+    column: $table.tags,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get totalWordCount => $composableBuilder(
+    column: $table.totalWordCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get firstPublishDate => $composableBuilder(
+    column: $table.firstPublishDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> marketRankingRecordsRefs(
+    Expression<bool> Function($$MarketRankingRecordsTableFilterComposer f) f,
+  ) {
+    final $$MarketRankingRecordsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.marketRankingRecords,
+      getReferencedColumn: (t) => t.bookId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MarketRankingRecordsTableFilterComposer(
+            $db: $db,
+            $table: $db.marketRankingRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$MarketBookRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $MarketBookRecordsTable> {
+  $$MarketBookRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get platform => $composableBuilder(
+    column: $table.platform,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get platformBookId => $composableBuilder(
+    column: $table.platformBookId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get author => $composableBuilder(
+    column: $table.author,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get categories => $composableBuilder(
+    column: $table.categories,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tags => $composableBuilder(
+    column: $table.tags,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get totalWordCount => $composableBuilder(
+    column: $table.totalWordCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get firstPublishDate => $composableBuilder(
+    column: $table.firstPublishDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$MarketBookRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MarketBookRecordsTable> {
+  $$MarketBookRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get platform =>
+      $composableBuilder(column: $table.platform, builder: (column) => column);
+
+  GeneratedColumn<String> get platformBookId => $composableBuilder(
+    column: $table.platformBookId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get author =>
+      $composableBuilder(column: $table.author, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get categories => $composableBuilder(
+    column: $table.categories,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get tags =>
+      $composableBuilder(column: $table.tags, builder: (column) => column);
+
+  GeneratedColumn<int> get totalWordCount => $composableBuilder(
+    column: $table.totalWordCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get firstPublishDate => $composableBuilder(
+    column: $table.firstPublishDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  Expression<T> marketRankingRecordsRefs<T extends Object>(
+    Expression<T> Function($$MarketRankingRecordsTableAnnotationComposer a) f,
+  ) {
+    final $$MarketRankingRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.marketRankingRecords,
+          getReferencedColumn: (t) => t.bookId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$MarketRankingRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.marketRankingRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+}
+
+class $$MarketBookRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $MarketBookRecordsTable,
+          MarketBookRecord,
+          $$MarketBookRecordsTableFilterComposer,
+          $$MarketBookRecordsTableOrderingComposer,
+          $$MarketBookRecordsTableAnnotationComposer,
+          $$MarketBookRecordsTableCreateCompanionBuilder,
+          $$MarketBookRecordsTableUpdateCompanionBuilder,
+          (MarketBookRecord, $$MarketBookRecordsTableReferences),
+          MarketBookRecord,
+          PrefetchHooks Function({bool marketRankingRecordsRefs})
+        > {
+  $$MarketBookRecordsTableTableManager(
+    _$AppDatabase db,
+    $MarketBookRecordsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MarketBookRecordsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MarketBookRecordsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MarketBookRecordsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> platform = const Value.absent(),
+                Value<String> platformBookId = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> author = const Value.absent(),
+                Value<String> description = const Value.absent(),
+                Value<String> categories = const Value.absent(),
+                Value<String> tags = const Value.absent(),
+                Value<int> totalWordCount = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<DateTime?> firstPublishDate = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MarketBookRecordsCompanion(
+                id: id,
+                platform: platform,
+                platformBookId: platformBookId,
+                title: title,
+                author: author,
+                description: description,
+                categories: categories,
+                tags: tags,
+                totalWordCount: totalWordCount,
+                status: status,
+                firstPublishDate: firstPublishDate,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String platform,
+                required String platformBookId,
+                required String title,
+                required String author,
+                Value<String> description = const Value.absent(),
+                Value<String> categories = const Value.absent(),
+                Value<String> tags = const Value.absent(),
+                Value<int> totalWordCount = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<DateTime?> firstPublishDate = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => MarketBookRecordsCompanion.insert(
+                id: id,
+                platform: platform,
+                platformBookId: platformBookId,
+                title: title,
+                author: author,
+                description: description,
+                categories: categories,
+                tags: tags,
+                totalWordCount: totalWordCount,
+                status: status,
+                firstPublishDate: firstPublishDate,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$MarketBookRecordsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({marketRankingRecordsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (marketRankingRecordsRefs) db.marketRankingRecords,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (marketRankingRecordsRefs)
+                    await $_getPrefetchedData<
+                      MarketBookRecord,
+                      $MarketBookRecordsTable,
+                      MarketRankingRecord
+                    >(
+                      currentTable: table,
+                      referencedTable: $$MarketBookRecordsTableReferences
+                          ._marketRankingRecordsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$MarketBookRecordsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).marketRankingRecordsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.bookId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$MarketBookRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $MarketBookRecordsTable,
+      MarketBookRecord,
+      $$MarketBookRecordsTableFilterComposer,
+      $$MarketBookRecordsTableOrderingComposer,
+      $$MarketBookRecordsTableAnnotationComposer,
+      $$MarketBookRecordsTableCreateCompanionBuilder,
+      $$MarketBookRecordsTableUpdateCompanionBuilder,
+      (MarketBookRecord, $$MarketBookRecordsTableReferences),
+      MarketBookRecord,
+      PrefetchHooks Function({bool marketRankingRecordsRefs})
+    >;
+typedef $$MarketScanRunRecordsTableCreateCompanionBuilder =
+    MarketScanRunRecordsCompanion Function({
+      required String id,
+      required String platform,
+      required String status,
+      required DateTime startedAt,
+      Value<DateTime?> completedAt,
+      Value<int> itemCount,
+      Value<String?> errorMessage,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$MarketScanRunRecordsTableUpdateCompanionBuilder =
+    MarketScanRunRecordsCompanion Function({
+      Value<String> id,
+      Value<String> platform,
+      Value<String> status,
+      Value<DateTime> startedAt,
+      Value<DateTime?> completedAt,
+      Value<int> itemCount,
+      Value<String?> errorMessage,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+final class $$MarketScanRunRecordsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $MarketScanRunRecordsTable,
+          MarketScanRunRecord
+        > {
+  $$MarketScanRunRecordsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static MultiTypedResultKey<
+    $MarketRankingRecordsTable,
+    List<MarketRankingRecord>
+  >
+  _marketRankingRecordsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.marketRankingRecords,
+        aliasName: $_aliasNameGenerator(
+          db.marketScanRunRecords.id,
+          db.marketRankingRecords.runId,
+        ),
+      );
+
+  $$MarketRankingRecordsTableProcessedTableManager
+  get marketRankingRecordsRefs {
+    final manager = $$MarketRankingRecordsTableTableManager(
+      $_db,
+      $_db.marketRankingRecords,
+    ).filter((f) => f.runId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _marketRankingRecordsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$MarketScanRunRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $MarketScanRunRecordsTable> {
+  $$MarketScanRunRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get platform => $composableBuilder(
+    column: $table.platform,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get itemCount => $composableBuilder(
+    column: $table.itemCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get errorMessage => $composableBuilder(
+    column: $table.errorMessage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> marketRankingRecordsRefs(
+    Expression<bool> Function($$MarketRankingRecordsTableFilterComposer f) f,
+  ) {
+    final $$MarketRankingRecordsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.marketRankingRecords,
+      getReferencedColumn: (t) => t.runId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MarketRankingRecordsTableFilterComposer(
+            $db: $db,
+            $table: $db.marketRankingRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$MarketScanRunRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $MarketScanRunRecordsTable> {
+  $$MarketScanRunRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get platform => $composableBuilder(
+    column: $table.platform,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get itemCount => $composableBuilder(
+    column: $table.itemCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get errorMessage => $composableBuilder(
+    column: $table.errorMessage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$MarketScanRunRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MarketScanRunRecordsTable> {
+  $$MarketScanRunRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get platform =>
+      $composableBuilder(column: $table.platform, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startedAt =>
+      $composableBuilder(column: $table.startedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get itemCount =>
+      $composableBuilder(column: $table.itemCount, builder: (column) => column);
+
+  GeneratedColumn<String> get errorMessage => $composableBuilder(
+    column: $table.errorMessage,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  Expression<T> marketRankingRecordsRefs<T extends Object>(
+    Expression<T> Function($$MarketRankingRecordsTableAnnotationComposer a) f,
+  ) {
+    final $$MarketRankingRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.marketRankingRecords,
+          getReferencedColumn: (t) => t.runId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$MarketRankingRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.marketRankingRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+}
+
+class $$MarketScanRunRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $MarketScanRunRecordsTable,
+          MarketScanRunRecord,
+          $$MarketScanRunRecordsTableFilterComposer,
+          $$MarketScanRunRecordsTableOrderingComposer,
+          $$MarketScanRunRecordsTableAnnotationComposer,
+          $$MarketScanRunRecordsTableCreateCompanionBuilder,
+          $$MarketScanRunRecordsTableUpdateCompanionBuilder,
+          (MarketScanRunRecord, $$MarketScanRunRecordsTableReferences),
+          MarketScanRunRecord,
+          PrefetchHooks Function({bool marketRankingRecordsRefs})
+        > {
+  $$MarketScanRunRecordsTableTableManager(
+    _$AppDatabase db,
+    $MarketScanRunRecordsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MarketScanRunRecordsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MarketScanRunRecordsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$MarketScanRunRecordsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> platform = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<DateTime> startedAt = const Value.absent(),
+                Value<DateTime?> completedAt = const Value.absent(),
+                Value<int> itemCount = const Value.absent(),
+                Value<String?> errorMessage = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MarketScanRunRecordsCompanion(
+                id: id,
+                platform: platform,
+                status: status,
+                startedAt: startedAt,
+                completedAt: completedAt,
+                itemCount: itemCount,
+                errorMessage: errorMessage,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String platform,
+                required String status,
+                required DateTime startedAt,
+                Value<DateTime?> completedAt = const Value.absent(),
+                Value<int> itemCount = const Value.absent(),
+                Value<String?> errorMessage = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => MarketScanRunRecordsCompanion.insert(
+                id: id,
+                platform: platform,
+                status: status,
+                startedAt: startedAt,
+                completedAt: completedAt,
+                itemCount: itemCount,
+                errorMessage: errorMessage,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$MarketScanRunRecordsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({marketRankingRecordsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (marketRankingRecordsRefs) db.marketRankingRecords,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (marketRankingRecordsRefs)
+                    await $_getPrefetchedData<
+                      MarketScanRunRecord,
+                      $MarketScanRunRecordsTable,
+                      MarketRankingRecord
+                    >(
+                      currentTable: table,
+                      referencedTable: $$MarketScanRunRecordsTableReferences
+                          ._marketRankingRecordsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$MarketScanRunRecordsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).marketRankingRecordsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.runId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$MarketScanRunRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $MarketScanRunRecordsTable,
+      MarketScanRunRecord,
+      $$MarketScanRunRecordsTableFilterComposer,
+      $$MarketScanRunRecordsTableOrderingComposer,
+      $$MarketScanRunRecordsTableAnnotationComposer,
+      $$MarketScanRunRecordsTableCreateCompanionBuilder,
+      $$MarketScanRunRecordsTableUpdateCompanionBuilder,
+      (MarketScanRunRecord, $$MarketScanRunRecordsTableReferences),
+      MarketScanRunRecord,
+      PrefetchHooks Function({bool marketRankingRecordsRefs})
+    >;
+typedef $$MarketRankingRecordsTableCreateCompanionBuilder =
+    MarketRankingRecordsCompanion Function({
+      required String id,
+      required String bookId,
+      required String chartName,
+      required int rank,
+      required String runId,
+      Value<int?> favorites,
+      Value<int?> recommendVotes,
+      Value<int?> monthlyTickets,
+      Value<int?> commentCount,
+      required DateTime scrapedAt,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$MarketRankingRecordsTableUpdateCompanionBuilder =
+    MarketRankingRecordsCompanion Function({
+      Value<String> id,
+      Value<String> bookId,
+      Value<String> chartName,
+      Value<int> rank,
+      Value<String> runId,
+      Value<int?> favorites,
+      Value<int?> recommendVotes,
+      Value<int?> monthlyTickets,
+      Value<int?> commentCount,
+      Value<DateTime> scrapedAt,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+final class $$MarketRankingRecordsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $MarketRankingRecordsTable,
+          MarketRankingRecord
+        > {
+  $$MarketRankingRecordsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $MarketBookRecordsTable _bookIdTable(_$AppDatabase db) =>
+      db.marketBookRecords.createAlias(
+        $_aliasNameGenerator(
+          db.marketRankingRecords.bookId,
+          db.marketBookRecords.id,
+        ),
+      );
+
+  $$MarketBookRecordsTableProcessedTableManager get bookId {
+    final $_column = $_itemColumn<String>('book_id')!;
+
+    final manager = $$MarketBookRecordsTableTableManager(
+      $_db,
+      $_db.marketBookRecords,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_bookIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $MarketScanRunRecordsTable _runIdTable(_$AppDatabase db) =>
+      db.marketScanRunRecords.createAlias(
+        $_aliasNameGenerator(
+          db.marketRankingRecords.runId,
+          db.marketScanRunRecords.id,
+        ),
+      );
+
+  $$MarketScanRunRecordsTableProcessedTableManager get runId {
+    final $_column = $_itemColumn<String>('run_id')!;
+
+    final manager = $$MarketScanRunRecordsTableTableManager(
+      $_db,
+      $_db.marketScanRunRecords,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_runIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$MarketRankingRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $MarketRankingRecordsTable> {
+  $$MarketRankingRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get chartName => $composableBuilder(
+    column: $table.chartName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get rank => $composableBuilder(
+    column: $table.rank,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get favorites => $composableBuilder(
+    column: $table.favorites,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get recommendVotes => $composableBuilder(
+    column: $table.recommendVotes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get monthlyTickets => $composableBuilder(
+    column: $table.monthlyTickets,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get commentCount => $composableBuilder(
+    column: $table.commentCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get scrapedAt => $composableBuilder(
+    column: $table.scrapedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$MarketBookRecordsTableFilterComposer get bookId {
+    final $$MarketBookRecordsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.bookId,
+      referencedTable: $db.marketBookRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MarketBookRecordsTableFilterComposer(
+            $db: $db,
+            $table: $db.marketBookRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$MarketScanRunRecordsTableFilterComposer get runId {
+    final $$MarketScanRunRecordsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.runId,
+      referencedTable: $db.marketScanRunRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MarketScanRunRecordsTableFilterComposer(
+            $db: $db,
+            $table: $db.marketScanRunRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$MarketRankingRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $MarketRankingRecordsTable> {
+  $$MarketRankingRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get chartName => $composableBuilder(
+    column: $table.chartName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get rank => $composableBuilder(
+    column: $table.rank,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get favorites => $composableBuilder(
+    column: $table.favorites,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get recommendVotes => $composableBuilder(
+    column: $table.recommendVotes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get monthlyTickets => $composableBuilder(
+    column: $table.monthlyTickets,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get commentCount => $composableBuilder(
+    column: $table.commentCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get scrapedAt => $composableBuilder(
+    column: $table.scrapedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$MarketBookRecordsTableOrderingComposer get bookId {
+    final $$MarketBookRecordsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.bookId,
+      referencedTable: $db.marketBookRecords,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MarketBookRecordsTableOrderingComposer(
+            $db: $db,
+            $table: $db.marketBookRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$MarketScanRunRecordsTableOrderingComposer get runId {
+    final $$MarketScanRunRecordsTableOrderingComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.runId,
+          referencedTable: $db.marketScanRunRecords,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$MarketScanRunRecordsTableOrderingComposer(
+                $db: $db,
+                $table: $db.marketScanRunRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$MarketRankingRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MarketRankingRecordsTable> {
+  $$MarketRankingRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get chartName =>
+      $composableBuilder(column: $table.chartName, builder: (column) => column);
+
+  GeneratedColumn<int> get rank =>
+      $composableBuilder(column: $table.rank, builder: (column) => column);
+
+  GeneratedColumn<int> get favorites =>
+      $composableBuilder(column: $table.favorites, builder: (column) => column);
+
+  GeneratedColumn<int> get recommendVotes => $composableBuilder(
+    column: $table.recommendVotes,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get monthlyTickets => $composableBuilder(
+    column: $table.monthlyTickets,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get commentCount => $composableBuilder(
+    column: $table.commentCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get scrapedAt =>
+      $composableBuilder(column: $table.scrapedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$MarketBookRecordsTableAnnotationComposer get bookId {
+    final $$MarketBookRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.bookId,
+          referencedTable: $db.marketBookRecords,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$MarketBookRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.marketBookRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+
+  $$MarketScanRunRecordsTableAnnotationComposer get runId {
+    final $$MarketScanRunRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.runId,
+          referencedTable: $db.marketScanRunRecords,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$MarketScanRunRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.marketScanRunRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$MarketRankingRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $MarketRankingRecordsTable,
+          MarketRankingRecord,
+          $$MarketRankingRecordsTableFilterComposer,
+          $$MarketRankingRecordsTableOrderingComposer,
+          $$MarketRankingRecordsTableAnnotationComposer,
+          $$MarketRankingRecordsTableCreateCompanionBuilder,
+          $$MarketRankingRecordsTableUpdateCompanionBuilder,
+          (MarketRankingRecord, $$MarketRankingRecordsTableReferences),
+          MarketRankingRecord,
+          PrefetchHooks Function({bool bookId, bool runId})
+        > {
+  $$MarketRankingRecordsTableTableManager(
+    _$AppDatabase db,
+    $MarketRankingRecordsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MarketRankingRecordsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MarketRankingRecordsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$MarketRankingRecordsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> bookId = const Value.absent(),
+                Value<String> chartName = const Value.absent(),
+                Value<int> rank = const Value.absent(),
+                Value<String> runId = const Value.absent(),
+                Value<int?> favorites = const Value.absent(),
+                Value<int?> recommendVotes = const Value.absent(),
+                Value<int?> monthlyTickets = const Value.absent(),
+                Value<int?> commentCount = const Value.absent(),
+                Value<DateTime> scrapedAt = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MarketRankingRecordsCompanion(
+                id: id,
+                bookId: bookId,
+                chartName: chartName,
+                rank: rank,
+                runId: runId,
+                favorites: favorites,
+                recommendVotes: recommendVotes,
+                monthlyTickets: monthlyTickets,
+                commentCount: commentCount,
+                scrapedAt: scrapedAt,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String bookId,
+                required String chartName,
+                required int rank,
+                required String runId,
+                Value<int?> favorites = const Value.absent(),
+                Value<int?> recommendVotes = const Value.absent(),
+                Value<int?> monthlyTickets = const Value.absent(),
+                Value<int?> commentCount = const Value.absent(),
+                required DateTime scrapedAt,
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => MarketRankingRecordsCompanion.insert(
+                id: id,
+                bookId: bookId,
+                chartName: chartName,
+                rank: rank,
+                runId: runId,
+                favorites: favorites,
+                recommendVotes: recommendVotes,
+                monthlyTickets: monthlyTickets,
+                commentCount: commentCount,
+                scrapedAt: scrapedAt,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$MarketRankingRecordsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({bookId = false, runId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (bookId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.bookId,
+                                referencedTable:
+                                    $$MarketRankingRecordsTableReferences
+                                        ._bookIdTable(db),
+                                referencedColumn:
+                                    $$MarketRankingRecordsTableReferences
+                                        ._bookIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+                    if (runId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.runId,
+                                referencedTable:
+                                    $$MarketRankingRecordsTableReferences
+                                        ._runIdTable(db),
+                                referencedColumn:
+                                    $$MarketRankingRecordsTableReferences
+                                        ._runIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$MarketRankingRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $MarketRankingRecordsTable,
+      MarketRankingRecord,
+      $$MarketRankingRecordsTableFilterComposer,
+      $$MarketRankingRecordsTableOrderingComposer,
+      $$MarketRankingRecordsTableAnnotationComposer,
+      $$MarketRankingRecordsTableCreateCompanionBuilder,
+      $$MarketRankingRecordsTableUpdateCompanionBuilder,
+      (MarketRankingRecord, $$MarketRankingRecordsTableReferences),
+      MarketRankingRecord,
+      PrefetchHooks Function({bool bookId, bool runId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -47608,4 +51160,10 @@ class $AppDatabaseManager {
         _db,
         _db.assetGenerationRunRecords,
       );
+  $$MarketBookRecordsTableTableManager get marketBookRecords =>
+      $$MarketBookRecordsTableTableManager(_db, _db.marketBookRecords);
+  $$MarketScanRunRecordsTableTableManager get marketScanRunRecords =>
+      $$MarketScanRunRecordsTableTableManager(_db, _db.marketScanRunRecords);
+  $$MarketRankingRecordsTableTableManager get marketRankingRecords =>
+      $$MarketRankingRecordsTableTableManager(_db, _db.marketRankingRecords);
 }

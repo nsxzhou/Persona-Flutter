@@ -39,12 +39,17 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
       description: '用于长篇项目、蓝图和本地写作会话的项目管理工作区。',
       actions: [
         OutlinedButton.icon(
+          onPressed: () => context.go('/projects/recommend'),
+          icon: const Icon(Icons.auto_awesome_outlined),
+          label: const Text('AI 推荐'),
+        ),
+        OutlinedButton.icon(
           onPressed: () => _showNovelImportDialog(context),
           icon: const Icon(Icons.upload_file_outlined),
           label: const Text('导入小说'),
         ),
         FilledButton.icon(
-          onPressed: () => _showProjectDialog(context),
+          onPressed: () => context.go('/projects/create'),
           icon: const Icon(Icons.add),
           label: const Text('新建项目'),
         ),
@@ -294,7 +299,7 @@ class _EmptyProjectsState extends StatelessWidget {
       action: isArchived
           ? null
           : OutlinedButton.icon(
-              onPressed: () => _showProjectDialog(context),
+              onPressed: () => context.go('/projects/create'),
               icon: const Icon(Icons.add),
               label: const Text('新建项目'),
             ),

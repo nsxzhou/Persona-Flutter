@@ -660,6 +660,63 @@ class AssetGenerationRunRecords extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+class MarketBookRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get platform => text()();
+  TextColumn get platformBookId => text()();
+  TextColumn get title => text()();
+  TextColumn get author => text()();
+  TextColumn get description => text().withDefault(const Constant(''))();
+  TextColumn get categories => text().withDefault(const Constant('[]'))();
+  TextColumn get tags => text().withDefault(const Constant('[]'))();
+  IntColumn get totalWordCount => integer().withDefault(const Constant(0))();
+  TextColumn get status => text().withDefault(const Constant('ongoing'))();
+  DateTimeColumn get firstPublishDate => dateTime().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+
+  @override
+  List<Set<Column<Object>>> get uniqueKeys => [
+    {platform, platformBookId},
+  ];
+}
+
+class MarketRankingRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get bookId => text().references(MarketBookRecords, #id)();
+  TextColumn get chartName => text()();
+  IntColumn get rank => integer()();
+  TextColumn get runId => text().references(MarketScanRunRecords, #id)();
+  IntColumn get favorites => integer().nullable()();
+  IntColumn get recommendVotes => integer().nullable()();
+  IntColumn get monthlyTickets => integer().nullable()();
+  IntColumn get commentCount => integer().nullable()();
+  DateTimeColumn get scrapedAt => dateTime()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+class MarketScanRunRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get platform => text()();
+  TextColumn get status => text()();
+  DateTimeColumn get startedAt => dateTime()();
+  DateTimeColumn get completedAt => dateTime().nullable()();
+  IntColumn get itemCount => integer().withDefault(const Constant(0))();
+  TextColumn get errorMessage => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     WorkflowTaskRecords,
@@ -690,6 +747,9 @@ class AssetGenerationRunRecords extends Table {
     NovelRelationshipRecords,
     ChapterGenerationRunRecords,
     AssetGenerationRunRecords,
+    MarketBookRecords,
+    MarketRankingRecords,
+    MarketScanRunRecords,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -705,7 +765,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 31;
+  int get schemaVersion => 32;
 
   @override
   MigrationStrategy get migration {
@@ -1142,6 +1202,19 @@ class AppDatabase extends _$AppDatabase {
                 assetGenerationRunRecords.userFeedback,
               );
             }
+          }
+        }
+        if (from < 32) {
+          // MarketScanRunRecords must be created before MarketRankingRecords
+          // because MarketRankingRecords has a FK reference to it.
+          if (!await _tableExists('market_scan_run_records')) {
+            await migrator.createTable(marketScanRunRecords);
+          }
+          if (!await _tableExists('market_book_records')) {
+            await migrator.createTable(marketBookRecords);
+          }
+          if (!await _tableExists('market_ranking_records')) {
+            await migrator.createTable(marketRankingRecords);
           }
         }
       },
