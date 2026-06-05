@@ -1,45 +1,75 @@
+import 'package:flutter/foundation.dart';
+
 import '../domain/data_source_adapter.dart';
 import '../domain/market_book.dart';
 import '../domain/market_ranking.dart';
 import '../domain/market_scan_repository.dart';
 import '../domain/scraped_book.dart';
+import 'scraper_process_runner.dart';
 
 /// Orchestrates scraping across all platform adapters.
 ///
 /// For each adapter: creates a run record, scrapes, upserts books,
 /// inserts rankings, and marks the run as completed or failed.
+/// All platforms run concurrently — one failure doesn't block others.
 class MarketScanService {
   const MarketScanService({
     required this.repository,
     required this.adapters,
+    required this.runner,
   });
 
   final MarketScanRepository repository;
   final List<DataSourceAdapter> adapters;
+  final ScraperProcessRunner runner;
 
-  /// Run scraping for all platforms. Returns total items scraped.
+  /// Run scraping for all platforms in parallel. Returns total items scraped.
   /// Each platform runs independently — one failure doesn't block others.
   Future<ScanAllResult> scanAll() async {
-    final results = <String, PlatformScanResult>{};
+    final futures = adapters.map((adapter) => scanPlatform(adapter));
+    final results = await Future.wait(futures);
+
+    final resultMap = <String, PlatformScanResult>{};
     var totalItems = 0;
 
-    for (final adapter in adapters) {
-      final result = await scanPlatform(adapter);
-      results[adapter.platform.name] = result;
+    for (var i = 0; i < adapters.length; i++) {
+      final result = results[i];
+      resultMap[adapters[i].platform.name] = result;
       totalItems += result.itemCount;
     }
 
     return ScanAllResult(
       totalItems: totalItems,
-      platformResults: results,
+      platformResults: resultMap,
     );
   }
 
   /// Run scraping for a single platform.
   Future<PlatformScanResult> scanPlatform(DataSourceAdapter adapter) async {
+    debugPrint('[ScanService] scanPlatform(${adapter.displayName}) starting');
+
+    // Auto-launch Chrome for adapters that need CDP.
+    if (adapter.requiresCdp) {
+      debugPrint('[ScanService] ${adapter.displayName} requires CDP, ensuring Chrome...');
+      final cdpReady = await runner.ensureCdpReady();
+      debugPrint('[ScanService] CDP ready: $cdpReady');
+      if (!cdpReady) {
+        return PlatformScanResult(
+          platform: adapter.displayName,
+          itemCount: 0,
+          success: false,
+          errorMessage: 'Chrome 未找到或无法自动启动。请手动以调试模式启动:\n'
+              'Google Chrome --remote-debugging-port=9222',
+          cdpRequired: true,
+        );
+      }
+    }
+
     final run = await repository.createRun(adapter.platform.name);
+    debugPrint('[ScanService] Run created with id ${run.id}');
     try {
       final scrapedBooks = await adapter.scrapeCoreCharts();
+      debugPrint('[ScanService] ${adapter.displayName}: scraped ${scrapedBooks.length} books');
       if (scrapedBooks.isEmpty) {
         await repository.completeRun(runId: run.id, itemCount: 0);
         return PlatformScanResult(
@@ -95,6 +125,8 @@ class MarketScanService {
         success: true,
       );
     } catch (e) {
+      debugPrint('[ScanService] ${adapter.displayName} failed: $e');
+      final isCdpRequired = e is CdpRequiredException;
       await repository.failRun(
         runId: run.id,
         errorMessage: e.toString(),
@@ -104,6 +136,7 @@ class MarketScanService {
         itemCount: 0,
         success: false,
         errorMessage: e.toString(),
+        cdpRequired: isCdpRequired,
       );
     }
   }
@@ -143,12 +176,18 @@ class PlatformScanResult {
     required this.itemCount,
     required this.success,
     this.errorMessage,
+    this.cdpRequired = false,
   });
 
   final String platform;
   final int itemCount;
   final bool success;
   final String? errorMessage;
+
+  /// True when the scraper failed because Chrome DevTools Protocol
+  /// was not available. The UI should prompt the user to start Chrome
+  /// in debug mode.
+  final bool cdpRequired;
 }
 
 class _PendingRanking {

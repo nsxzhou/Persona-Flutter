@@ -8,6 +8,7 @@ import '../../../core/ui/skeleton_loader.dart';
 import '../application/market_scan_controller.dart';
 import '../application/market_scan_providers.dart';
 import '../domain/recommendation_direction.dart';
+import 'scan_data_browser.dart';
 
 class RecommendationPage extends ConsumerStatefulWidget {
   const RecommendationPage({super.key});
@@ -103,6 +104,12 @@ class _RecommendationPageState extends ConsumerState<RecommendationPage> {
         // Show completed scan results summary below content.
         if (!scanState.isScanning && scanState.platforms.isNotEmpty)
           _ScanResultSummary(scanState: scanState),
+
+        // Show scanned data browser when data exists.
+        if (!scanState.isScanning && marketScanState.value == true) ...[
+          const SizedBox(height: 14),
+          const ScanDataBrowser(),
+        ],
       ],
     );
   }
@@ -304,6 +311,16 @@ class _PlatformProgressRow extends StatelessWidget {
             ),
           ),
         ),
+      PlatformScanStatus.cdpRequired => (
+          Icons.open_in_browser_outlined,
+          colorScheme.tertiary,
+          Text(
+            '需要 Chrome',
+            style: textTheme.labelMedium?.copyWith(
+              color: colorScheme.tertiary,
+            ),
+          ),
+        ),
     };
 
     return Row(
@@ -324,49 +341,272 @@ class _PlatformProgressRow extends StatelessWidget {
 
 // --- Scan result summary (shown after scan completes) ---
 
-class _ScanResultSummary extends StatelessWidget {
+class _ScanResultSummary extends StatefulWidget {
   const _ScanResultSummary({required this.scanState});
 
   final MarketScanState scanState;
 
   @override
+  State<_ScanResultSummary> createState() => _ScanResultSummaryState();
+}
+
+class _ScanResultSummaryState extends State<_ScanResultSummary> {
+  bool _errorsExpanded = false;
+
+  Color _platformColor(MarketScanState scanState, String platform) {
+    return switch (platform) {
+      'qidian' => const Color(0xFF2758D9),
+      'fanqie' => const Color(0xFFE64A19),
+      'jinjiang' => const Color(0xFFAD1457),
+      _ => Theme.of(context).colorScheme.primary,
+    };
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final scanState = widget.scanState;
     final totalItems =
         scanState.platforms.fold<int>(0, (sum, p) => sum + p.itemCount);
     final succeeded = scanState.completedCount;
     final failed = scanState.failedCount;
+    final allSuccess = failed == 0;
+    final failedPlatforms = scanState.platforms
+        .where((p) => p.status == PlatformScanStatus.failed)
+        .toList();
 
     return Padding(
       padding: const EdgeInsets.only(top: 14),
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: colorScheme.outlineVariant),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                failed > 0
-                    ? Icons.warning_amber_outlined
-                    : Icons.check_circle_outline,
-                size: 18,
-                color: failed > 0
-                    ? colorScheme.error
-                    : const Color(0xFF2E7D32),
+              // Header row
+              Row(
+                children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: (allSuccess
+                              ? const Color(0xFF2E7D32)
+                              : colorScheme.error)
+                          .withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Icon(
+                        allSuccess
+                            ? Icons.check_circle_outline
+                            : Icons.warning_amber_outlined,
+                        size: 16,
+                        color: allSuccess
+                            ? const Color(0xFF2E7D32)
+                            : colorScheme.error,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      allSuccess ? '扫描完成' : '扫描完成（部分失败）',
+                      style: textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: allSuccess
+                            ? const Color(0xFF2E7D32)
+                            : colorScheme.error,
+                      ),
+                    ),
+                  ),
+                  if (failed > 0)
+                    GestureDetector(
+                      onTap: () =>
+                          setState(() => _errorsExpanded = !_errorsExpanded),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _errorsExpanded ? '收起' : '错误详情',
+                            style: textTheme.labelSmall?.copyWith(
+                              color: colorScheme.primary,
+                            ),
+                          ),
+                          Icon(
+                            _errorsExpanded
+                                ? Icons.expand_less
+                                : Icons.expand_more,
+                            size: 16,
+                            color: colorScheme.primary,
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  '扫描完成：$succeeded/${scanState.platforms.length} 平台成功，共采集 $totalItems 条数据'
-                  '${failed > 0 ? '，$failed 平台失败' : ''}',
-                  style: textTheme.bodyMedium,
+              const SizedBox(height: 14),
+              // Per-platform breakdown
+              Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                children: scanState.platforms.map((p) {
+                  final pColor = _platformColor(scanState, p.platform);
+                  final isSuccess =
+                      p.status == PlatformScanStatus.completed;
+                  return DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: colorScheme.surface,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: colorScheme.outlineVariant),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isSuccess
+                                ? Icons.check_circle_outline
+                                : Icons.error_outline,
+                            size: 14,
+                            color: isSuccess
+                                ? const Color(0xFF2E7D32)
+                                : colorScheme.error,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            p.displayName,
+                            style: textTheme.labelMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: pColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              child: Text(
+                                isSuccess
+                                    ? '${p.itemCount} 本'
+                                    : '—',
+                                style: textTheme.labelSmall?.copyWith(
+                                  color: pColor,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              // Total
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  const SizedBox(width: 4),
+                  Text(
+                    '共采集 ',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  Text(
+                    '$totalItems',
+                    style: textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  Text(
+                    ' 条数据，',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  Text(
+                    '$succeeded/${scanState.platforms.length}',
+                    style: textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: allSuccess
+                          ? const Color(0xFF2E7D32)
+                          : colorScheme.error,
+                    ),
+                  ),
+                  Text(
+                    ' 平台成功',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+              // Error details
+              if (_errorsExpanded && failedPlatforms.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: colorScheme.error.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: colorScheme.error.withValues(alpha: 0.15),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (final platform in failedPlatforms)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(
+                                  Icons.error_outline,
+                                  size: 14,
+                                  color: colorScheme.error,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  platform.displayName,
+                                  style: textTheme.labelMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    platform.errorMessage ?? '未知错误',
+                                    style: textTheme.labelSmall?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                      fontFamily: 'monospace',
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),

@@ -45,7 +45,7 @@ final class MarketScanControllerProvider
 }
 
 String _$marketScanControllerHash() =>
-    r'3189f26ecc19a17cf6cc96ac099022175e81e974';
+    r'e870db5fade13b008db28bf3c4e488b7286e3054';
 
 /// Controller that manages manual scan operations with real-time progress.
 

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -32,6 +33,7 @@ class ScraperProcessRunner {
     if (_resolvedNodePath != null) return;
     _resolvedNodePath = await _resolveNodeExecutable();
     _resolvedScrapersDir = await _resolveScrapersDir();
+    debugPrint('[Scraper] Node: $_resolvedNodePath, Scrapers dir: $_resolvedScrapersDir');
   }
 
   /// Run a scraper script and return parsed [ScrapedBook] results.
@@ -39,6 +41,8 @@ class ScraperProcessRunner {
   /// [scriptName] is the filename (e.g. 'qidian_scraper.js').
   /// [args] are optional CLI arguments passed to the script.
   /// Throws [ScraperException] on process failure or invalid output.
+  /// Throws [CdpRequiredException] when the script exits with code 2
+  /// (Chrome DevTools Protocol not available).
   Future<List<ScrapedBook>> run(
     String scriptName, {
     List<String> args = const [],
@@ -49,13 +53,24 @@ class ScraperProcessRunner {
     final nodePath = _resolvedNodePath!;
     final scriptPath = p.join(_resolvedScrapersDir!, scriptName);
 
+    debugPrint('[Scraper] Running: $nodePath $scriptPath');
+
     if (!File(scriptPath).existsSync()) {
       throw ScraperException('Scraper script not found: $scriptPath');
     }
 
+    // Set NODE_PATH so require() finds node_modules even when scripts
+    // run from flutter_assets/ (which doesn't contain node_modules).
+    final nodeModulesDir = await _resolveNodeModulesDir();
+    final env = <String, String>{
+      ...Platform.environment,
+      if (nodeModulesDir != null) 'NODE_PATH': nodeModulesDir,
+    };
+
     final result = await Process.run(
       nodePath,
       [scriptPath, ...args],
+      environment: env,
       stdoutEncoding: utf8,
       stderrEncoding: utf8,
     ).timeout(timeout, onTimeout: () {
@@ -64,19 +79,149 @@ class ScraperProcessRunner {
       );
     });
 
+    // Exit code 2 = CDP not available (set by cdp-helper.js).
+    if (result.exitCode == 2) {
+      throw CdpRequiredException(
+        (result.stderr as String).trim(),
+      );
+    }
+
     if (result.exitCode != 0) {
       final stderr = (result.stderr as String).trim();
+      debugPrint('[Scraper] $scriptName failed (exit ${result.exitCode}): $stderr');
       throw ScraperException(
         'Scraper $scriptName exited with code ${result.exitCode}: $stderr',
       );
     }
 
     final stdout = (result.stdout as String).trim();
+    debugPrint('[Scraper] $scriptName succeeded, stdout length: ${stdout.length}');
     if (stdout.isEmpty) {
       return const [];
     }
 
     return _parseOutput(stdout, scriptName);
+  }
+
+  /// Check if Chrome DevTools Protocol is available at the default endpoint.
+  Future<bool> checkCdpAvailable({
+    String endpoint = 'http://127.0.0.1:9222',
+  }) async {
+    try {
+      final client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 3);
+      final request = await client.getUrl(
+        Uri.parse('$endpoint/json/version'),
+      );
+      final response = await request.close();
+      client.close();
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Ensure Chrome is running with CDP enabled. If no Chrome is listening on
+  /// port 9222, auto-launch one as a detached process and wait until it's ready.
+  ///
+  /// Returns `true` if CDP is available (either already running or auto-launched).
+  /// Returns `false` if Chrome could not be found or launched.
+  Future<bool> ensureCdpReady({
+    int port = 9222,
+    Duration launchTimeout = const Duration(seconds: 15),
+  }) async {
+    // Already available — nothing to do.
+    if (await checkCdpAvailable()) return true;
+
+    final chromePath = _findChromeBinary();
+    if (chromePath == null) {
+      debugPrint('[Scraper] Chrome binary not found, cannot auto-launch CDP.');
+      return false;
+    }
+
+    debugPrint('[Scraper] Auto-launching Chrome for CDP: $chromePath');
+    try {
+      await Process.start(
+        chromePath,
+        [
+          '--headless=new',
+          '--remote-debugging-port=$port',
+          '--no-first-run',
+          '--no-default-browser-check',
+          '--disable-extensions',
+          '--disable-gpu',
+          '--user-data-dir=${await _chromeUserDataDir()}',
+        ],
+        mode: ProcessStartMode.detached,
+      );
+    } catch (e) {
+      debugPrint('[Scraper] Failed to launch Chrome: $e');
+      return false;
+    }
+
+    // Poll until CDP is ready or timeout.
+    final deadline = DateTime.now().add(launchTimeout);
+    while (DateTime.now().isBefore(deadline)) {
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      if (await checkCdpAvailable()) {
+        debugPrint('[Scraper] Chrome CDP ready on port $port');
+        return true;
+      }
+    }
+
+    debugPrint('[Scraper] Chrome CDP did not become ready within ${launchTimeout.inSeconds}s');
+    return false;
+  }
+
+  /// Locate Chrome/Chromium binary on the system.
+  String? _findChromeBinary() {
+    if (Platform.isMacOS) {
+      final candidates = [
+        '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+        '/Applications/Chromium.app/Contents/MacOS/Chromium',
+        '/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary',
+      ];
+      for (final path in candidates) {
+        if (File(path).existsSync()) return path;
+      }
+      // Try `mdfind` as a last resort.
+      try {
+        final result = Process.runSync(
+          'mdfind',
+          ['kMDItemCFBundleIdentifier == "com.google.Chrome"'],
+        );
+        if (result.exitCode == 0) {
+          final appPath = (result.stdout as String).trim().split('\n').first.trim();
+          if (appPath.isNotEmpty) {
+            final binary = p.join(appPath, 'Contents', 'MacOS', 'Google Chrome');
+            if (File(binary).existsSync()) return binary;
+          }
+        }
+      } catch (_) {}
+    } else if (Platform.isWindows) {
+      final programFiles = Platform.environment['ProgramFiles'] ?? r'C:\Program Files';
+      final programFilesX86 = Platform.environment['ProgramFiles(x86)'] ?? r'C:\Program Files (x86)';
+      final localAppData = Platform.environment['LOCALAPPDATA'] ?? '';
+      final candidates = [
+        p.join(programFiles, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+        p.join(programFilesX86, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+        if (localAppData.isNotEmpty)
+          p.join(localAppData, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+      ];
+      for (final path in candidates) {
+        if (File(path).existsSync()) return path;
+      }
+    }
+    return null;
+  }
+
+  /// Dedicated user-data-dir so the auto-launched Chrome does not interfere
+  /// with the user's default profile.
+  Future<String> _chromeUserDataDir() async {
+    final supportDir = await getApplicationSupportDirectory();
+    final dir = Directory(p.join(supportDir.path, 'chrome-cdp-profile'));
+    if (!dir.existsSync()) dir.createSync(recursive: true);
+    return dir.path;
   }
 
   List<ScrapedBook> _parseOutput(String stdout, String scriptName) {
@@ -151,6 +296,7 @@ class ScraperProcessRunner {
   }
 
   Future<String?> _findSystemNode() async {
+    // 1. Try `which node` (works when running from terminal with PATH set).
     try {
       final result = await Process.run(
         Platform.isWindows ? 'where' : 'which',
@@ -163,7 +309,47 @@ class ScraperProcessRunner {
         }
       }
     } catch (_) {}
+
+    // 2. Search common node locations (macOS GUI apps don't inherit shell PATH
+    //    from nvm, fnm, volta, or homebrew).
+    if (Platform.isMacOS) {
+      final home = Platform.environment['HOME'] ?? '';
+      final directPaths = [
+        '/opt/homebrew/bin/node',
+        '/usr/local/bin/node',
+        if (home.isNotEmpty) ...[
+          '$home/.volta/bin/node',
+        ],
+      ];
+      for (final path in directPaths) {
+        if (File(path).existsSync()) return path;
+      }
+
+      // NVM: pick the latest installed version.
+      final nvmNode = _findVersionedNode(
+        home.isNotEmpty ? '$home/.nvm/versions/node' : null,
+        'node',
+      );
+      if (nvmNode != null) return nvmNode;
+    }
+
     return null;
+  }
+
+  /// Walk a version-manager directory (nvm, fnm, …) and return the node
+  /// binary from the highest-versioned sub-directory, or null.
+  String? _findVersionedNode(String? versionsDir, String binaryName) {
+    if (versionsDir == null) return null;
+    final dir = Directory(versionsDir);
+    if (!dir.existsSync()) return null;
+
+    String? best;
+    for (final entry in dir.listSync()) {
+      if (entry is! Directory) continue;
+      final candidate = p.join(entry.path, 'bin', binaryName);
+      if (File(candidate).existsSync()) best = candidate;
+    }
+    return best;
   }
 
   Future<String> _resolveScrapersDir() async {
@@ -171,14 +357,34 @@ class ScraperProcessRunner {
       return _scrapersDirOverride;
     }
 
-    // Check bundled scripts in app resources.
     if (Platform.isMacOS) {
       final executableDir = p.dirname(Platform.resolvedExecutable);
-      final appBundleDir = p.normalize(
+
+      // Production: bundled in Resources/scrapers/ (via prepare script).
+      final resourcesScrapers = p.normalize(
         p.join(executableDir, '..', 'Resources', 'scrapers'),
       );
-      if (Directory(appBundleDir).existsSync()) {
-        return appBundleDir;
+      if (Directory(resourcesScrapers).existsSync()) {
+        return resourcesScrapers;
+      }
+
+      // Fallback: Flutter asset bundle (scrapers declared in pubspec.yaml).
+      final flutterAssetsScrapers = p.normalize(
+        p.join(
+          executableDir,
+          '..',
+          'Frameworks',
+          'App.framework',
+          'Versions',
+          'A',
+          'Resources',
+          'flutter_assets',
+          'assets',
+          'scrapers',
+        ),
+      );
+      if (Directory(flutterAssetsScrapers).existsSync()) {
+        return flutterAssetsScrapers;
       }
     } else if (Platform.isWindows) {
       final executableDir = p.dirname(Platform.resolvedExecutable);
@@ -188,7 +394,7 @@ class ScraperProcessRunner {
       }
     }
 
-    // Fallback: project assets directory (development).
+    // Development fallback: project assets directory.
     final projectRoot = await _findProjectRoot();
     if (projectRoot != null) {
       return p.join(projectRoot, 'assets', 'scrapers');
@@ -210,6 +416,23 @@ class ScraperProcessRunner {
     }
     return null;
   }
+
+  /// Find the node_modules directory for scraper dependencies.
+  /// Searches: scrapers dir itself, then project root's scrapers dir.
+  Future<String?> _resolveNodeModulesDir() async {
+    // 1. Directly inside the scrapers directory (development / production bundle).
+    final inlineModules = p.join(_resolvedScrapersDir!, 'node_modules');
+    if (Directory(inlineModules).existsSync()) return inlineModules;
+
+    // 2. Project's assets/scrapers/node_modules (when scripts run from flutter_assets).
+    final projectRoot = await _findProjectRoot();
+    if (projectRoot != null) {
+      final projectModules = p.join(projectRoot, 'assets', 'scrapers', 'node_modules');
+      if (Directory(projectModules).existsSync()) return projectModules;
+    }
+
+    return null;
+  }
 }
 
 class ScraperException implements Exception {
@@ -218,4 +441,14 @@ class ScraperException implements Exception {
 
   @override
   String toString() => 'ScraperException: $message';
+}
+
+/// Thrown when a scraper requires Chrome DevTools Protocol but it's not available.
+/// The Dart side should prompt the user to start Chrome in debug mode.
+class CdpRequiredException implements Exception {
+  const CdpRequiredException(this.message);
+  final String message;
+
+  @override
+  String toString() => 'CdpRequiredException: $message';
 }

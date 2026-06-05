@@ -3,8 +3,8 @@ import '../../domain/market_book.dart';
 import '../../domain/scraped_book.dart';
 import '../scraper_process_runner.dart';
 
-class FanqieAdapter implements DataSourceAdapter {
-  const FanqieAdapter(this._runner);
+class FanqieAdapter extends DataSourceAdapter {
+  FanqieAdapter(this._runner);
 
   final ScraperProcessRunner _runner;
 
@@ -13,6 +13,9 @@ class FanqieAdapter implements DataSourceAdapter {
 
   @override
   String get displayName => '番茄小说';
+
+  @override
+  bool get requiresCdp => true;
 
   @override
   Future<List<ScrapedBook>> scrapeCoreCharts() {

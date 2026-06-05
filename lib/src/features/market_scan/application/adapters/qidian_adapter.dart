@@ -3,8 +3,8 @@ import '../../domain/market_book.dart';
 import '../../domain/scraped_book.dart';
 import '../scraper_process_runner.dart';
 
-class QidianAdapter implements DataSourceAdapter {
-  const QidianAdapter(this._runner);
+class QidianAdapter extends DataSourceAdapter {
+  QidianAdapter(this._runner);
 
   final ScraperProcessRunner _runner;
 

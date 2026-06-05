@@ -1,11 +1,23 @@
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../domain/data_source_adapter.dart';
 import 'market_scan_providers.dart';
+import 'market_scan_service.dart';
 
 part 'market_scan_controller.g.dart';
 
 /// Per-platform scan status during a scan operation.
-enum PlatformScanStatus { pending, scanning, completed, failed }
+enum PlatformScanStatus {
+  pending,
+  scanning,
+  completed,
+  failed,
+
+  /// Chrome DevTools Protocol not available — user needs to start Chrome
+  /// in debug mode for this platform to work.
+  cdpRequired,
+}
 
 class PlatformScanEntry {
   const PlatformScanEntry({
@@ -76,10 +88,13 @@ class MarketScanController extends _$MarketScanController {
   @override
   MarketScanState build() => const MarketScanState();
 
-  /// Trigger a full scan across all platforms, reporting per-platform progress.
+  /// Trigger a full scan across all platforms in parallel,
+  /// reporting per-platform progress.
   Future<void> scanNow() async {
+    debugPrint('[ScanController] scanNow() called');
     final service = ref.read(marketScanServiceProvider);
     final adapters = service.adapters;
+    debugPrint('[ScanController] ${adapters.length} adapters loaded');
 
     // Initialize all platforms as pending.
     state = MarketScanState(
@@ -94,35 +109,83 @@ class MarketScanController extends _$MarketScanController {
       ],
     );
 
+    // Run all platforms in parallel. Each updates its own slot.
+    final futures = <Future<void>>[];
     for (var i = 0; i < adapters.length; i++) {
-      final adapter = adapters[i];
+      final index = i;
+      final adapter = adapters[index];
 
-      // Mark current platform as scanning.
-      state = state.copyWith(
-        platforms: _updatePlatform(i, (e) => e.copyWith(
-          status: PlatformScanStatus.scanning,
-        )),
-      );
+      futures.add(_runPlatform(index, adapter, service));
+    }
 
-      try {
-        final result = await service.scanPlatform(adapter);
+    await Future.wait(futures);
+    state = state.copyWith(isScanning: false);
+  }
+
+  Future<void> _runPlatform(
+    int index,
+    DataSourceAdapter adapter,
+    MarketScanService service,
+  ) async {
+    // Mark as scanning.
+    state = state.copyWith(
+      platforms: _updatePlatform(index, (e) => e.copyWith(
+        status: PlatformScanStatus.scanning,
+      )),
+    );
+
+    try {
+      // Auto-launch Chrome for adapters that need CDP.
+      if (adapter.requiresCdp) {
+        debugPrint('[ScanController] ${adapter.displayName} requires CDP, ensuring Chrome is ready...');
+        final runner = ref.read(scraperProcessRunnerProvider);
+        final cdpReady = await runner.ensureCdpReady();
+        debugPrint('[ScanController] CDP ready: $cdpReady');
+        if (!cdpReady) {
+          state = state.copyWith(
+            platforms: _updatePlatform(index, (e) => e.copyWith(
+              status: PlatformScanStatus.cdpRequired,
+              errorMessage: 'Chrome 未找到或无法启动。请手动以调试模式启动 Chrome:\n'
+                  'Google Chrome --remote-debugging-port=9222',
+            )),
+          );
+          return;
+        }
+      }
+
+      final result = await service.scanPlatform(adapter);
+
+      if (result.cdpRequired) {
         state = state.copyWith(
-          platforms: _updatePlatform(i, (e) => e.copyWith(
+          platforms: _updatePlatform(index, (e) => e.copyWith(
+            status: PlatformScanStatus.cdpRequired,
+            errorMessage: result.errorMessage,
+          )),
+        );
+      } else if (result.success) {
+        state = state.copyWith(
+          platforms: _updatePlatform(index, (e) => e.copyWith(
             status: PlatformScanStatus.completed,
             itemCount: result.itemCount,
           )),
         );
-      } catch (e) {
+      } else {
         state = state.copyWith(
-          platforms: _updatePlatform(i, (e) => e.copyWith(
+          platforms: _updatePlatform(index, (e) => e.copyWith(
             status: PlatformScanStatus.failed,
-            errorMessage: e.toString(),
+            errorMessage: result.errorMessage,
           )),
         );
       }
+    } catch (e) {
+      debugPrint('[ScanController] Platform ${adapter.displayName} threw: $e');
+      state = state.copyWith(
+        platforms: _updatePlatform(index, (e) => e.copyWith(
+          status: PlatformScanStatus.failed,
+          errorMessage: e.toString(),
+        )),
+      );
     }
-
-    state = state.copyWith(isScanning: false);
   }
 
   List<PlatformScanEntry> _updatePlatform(

@@ -3,8 +3,8 @@ import '../../domain/market_book.dart';
 import '../../domain/scraped_book.dart';
 import '../scraper_process_runner.dart';
 
-class JinjiangAdapter implements DataSourceAdapter {
-  const JinjiangAdapter(this._runner);
+class JinjiangAdapter extends DataSourceAdapter {
+  JinjiangAdapter(this._runner);
 
   final ScraperProcessRunner _runner;
 

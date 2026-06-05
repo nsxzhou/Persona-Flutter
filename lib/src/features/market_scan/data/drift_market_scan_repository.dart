@@ -322,13 +322,23 @@ class DriftMarketScanRepository implements MarketScanRepository {
       id: data['id'] as String,
       platform: data['platform'] as String,
       status: MarketScanRunStatus.values.byName(data['status'] as String),
-      startedAt: data['started_at'] as DateTime,
-      completedAt: data['completed_at'] as DateTime?,
+      startedAt: _toDateTime(data['started_at'])!,
+      completedAt: _toDateTime(data['completed_at']),
       itemCount: data['item_count'] as int,
       errorMessage: data['error_message'] as String?,
-      createdAt: data['created_at'] as DateTime,
-      updatedAt: data['updated_at'] as DateTime,
+      createdAt: _toDateTime(data['created_at'])!,
+      updatedAt: _toDateTime(data['updated_at'])!,
     );
+  }
+
+  /// Convert a raw SQLite value to DateTime.
+  /// customSelect bypasses Drift type converters, so DateTime columns
+  /// come back as int (milliseconds since epoch).
+  DateTime? _toDateTime(Object? value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+    return null;
   }
 
   List<String> _decodeStringList(String json) {

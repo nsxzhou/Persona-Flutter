@@ -198,7 +198,7 @@ final class MarketScanServiceProvider
   }
 }
 
-String _$marketScanServiceHash() => r'4e8fef71acbfc00e7c6824eb966d84f35e6e9f07';
+String _$marketScanServiceHash() => r'b76a02764643e87db1517a8f92c3fe9640115afc';
 
 @ProviderFor(marketScanScheduler)
 final marketScanSchedulerProvider = MarketScanSchedulerProvider._();

@@ -9,6 +9,6 @@
     "scrape:jinjiang": "node jinjiang_scraper.js"
   },
   "dependencies": {
-    "puppeteer": "^24.0.0"
+    "puppeteer-core": "^24.0.0"
   }
 }

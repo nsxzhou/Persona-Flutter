@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: get codegen run test analyze format check clean logs
+.PHONY: get codegen run build prepare test analyze format check clean logs
 
 RUN_DIR := .run
 
@@ -15,6 +15,14 @@ codegen:
 run:
 	@mkdir -p "$(RUN_DIR)"
 	@set -o pipefail; flutter run -d macos 2>&1 | tee "$(RUN_DIR)/run.log"
+
+build:
+	@mkdir -p "$(RUN_DIR)"
+	@set -o pipefail; flutter build macos --debug 2>&1 | tee "$(RUN_DIR)/build.log"
+	@scripts/prepare_macos.sh debug
+
+prepare:
+	@scripts/prepare_macos.sh $(or $(MODE),debug)
 
 test:
 	@mkdir -p "$(RUN_DIR)"
