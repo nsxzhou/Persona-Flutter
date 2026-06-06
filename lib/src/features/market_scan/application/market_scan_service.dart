@@ -119,6 +119,8 @@ class MarketScanService {
       );
 
       await repository.completeRun(runId: run.id, itemCount: scrapedBooks.length);
+      // Clean up old runs to prevent database bloat.
+      await repository.cleanupOldRuns();
       return PlatformScanResult(
         platform: adapter.displayName,
         itemCount: scrapedBooks.length,

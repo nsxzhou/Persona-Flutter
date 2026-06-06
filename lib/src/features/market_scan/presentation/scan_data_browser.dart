@@ -3,51 +3,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/persona_page.dart';
+import '../application/market_scan_providers.dart';
 import '../domain/market_book.dart';
 import '../domain/market_ranking.dart';
 import '../domain/market_scan_run.dart';
-import '../application/market_scan_providers.dart';
-
-// ── Helpers ─────────────────────────────────────────────────────────
-
-class _ScanStats {
-  final int totalBooks;
-  final int platformCount;
-  final int chartCount;
-  final int runCount;
-  final DateTime? latestScanTime;
-
-  const _ScanStats({
-    required this.totalBooks,
-    required this.platformCount,
-    required this.chartCount,
-    required this.runCount,
-    this.latestScanTime,
-  });
-}
-
-// ── Providers ───────────────────────────────────────────────────────
-
-final scanRunHistoryProvider = FutureProvider<List<MarketScanRun>>((ref) async {
-  final repo = ref.watch(marketScanRepositoryProvider);
-  return repo.findRuns(limit: 20);
-});
-
-final latestRankingsProvider =
-    FutureProvider<List<MarketRanking>>((ref) async {
-  final repo = ref.watch(marketScanRepositoryProvider);
-  return repo.findLatestRankings();
-});
-
-final allScannedBooksProvider = FutureProvider<List<MarketBook>>((ref) async {
-  final repo = ref.watch(marketScanRepositoryProvider);
-  return repo.findBooks();
-});
 
 // ── Widget ──────────────────────────────────────────────────────────
 
+/// Displays scan data overview: stat cards, platform filter, rankings list,
+/// and scan history.
+///
+/// When [showHeader] is true (default), renders as a collapsible panel with
+/// a clickable header. When false, renders always-expanded without the header
+/// (suitable for embedding as a tab body).
 class ScanDataBrowser extends ConsumerStatefulWidget {
-  const ScanDataBrowser({super.key});
+  const ScanDataBrowser({super.key, this.showHeader = true});
+
+  final bool showHeader;
 
   @override
   ConsumerState<ScanDataBrowser> createState() => _ScanDataBrowserState();
@@ -61,6 +33,11 @@ class _ScanDataBrowserState extends ConsumerState<ScanDataBrowser> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+
+    // When showHeader is false, always render expanded content directly.
+    if (!widget.showHeader) {
+      return _buildExpandedContent(context);
+    }
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -100,219 +77,178 @@ class _ScanDataBrowserState extends ConsumerState<ScanDataBrowser> {
           ),
           if (_expanded) ...[
             const Divider(height: 1),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildStatCards(context),
-                  const SizedBox(height: 20),
-                  _buildPlatformFilter(context),
-                  const SizedBox(height: 20),
-                  _buildRankingsList(context),
-                  const SizedBox(height: 20),
-                  _buildScanHistory(context),
-                ],
-              ),
-            ),
+            _buildExpandedContent(context),
           ],
         ],
       ),
     );
   }
 
-  // ── Stat Cards ──────────────────────────────────────────────────
+  Widget _buildExpandedContent(BuildContext context) {
+    final bundleAsync = ref.watch(scanDataBundleProvider);
 
-  Widget _buildStatCards(BuildContext context) {
-    final booksAsync = ref.watch(allScannedBooksProvider);
-    final rankingsAsync = ref.watch(latestRankingsProvider);
-    final runsAsync = ref.watch(scanRunHistoryProvider);
-
-    return booksAsync.when(
-      data: (books) => rankingsAsync.when(
-        data: (rankings) => runsAsync.when(
-          data: (runs) {
-            final stats = _ScanStats(
-              totalBooks: books.length,
+    return bundleAsync.when(
+      data: (bundle) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _StatCardsRow(
+              totalBooks: bundle.books.length,
               platformCount:
-                  books.map((b) => b.platform).toSet().length,
+                  bundle.books.map((b) => b.platform).toSet().length,
               chartCount:
-                  rankings.map((r) => r.chartName).toSet().length,
-              runCount: runs.length,
+                  bundle.rankings.map((r) => r.chartName).toSet().length,
               latestScanTime:
-                  runs.isNotEmpty ? runs.first.startedAt : null,
-            );
-            return _StatCardsRow(stats: stats);
-          },
-          loading: () => const _StatCardsLoading(),
-          error: (e, _) =>
-              Text('加载失败: $e', style: Theme.of(context).textTheme.bodySmall),
+                  bundle.runs.isNotEmpty ? bundle.runs.first.startedAt : null,
+            ),
+            const SizedBox(height: 20),
+            _buildPlatformFilter(bundle.books),
+            const SizedBox(height: 20),
+            _buildRankingsList(bundle),
+            const SizedBox(height: 20),
+            _ScanHistorySection(runs: bundle.runs),
+          ],
         ),
-        loading: () => const _StatCardsLoading(),
-        error: (e, _) =>
-            Text('加载失败: $e', style: Theme.of(context).textTheme.bodySmall),
       ),
-      loading: () => const _StatCardsLoading(),
-      error: (e, _) =>
-          Text('加载失败: $e', style: Theme.of(context).textTheme.bodySmall),
+      loading: () => const Padding(
+        padding: EdgeInsets.all(16),
+        child: _ContentLoading(),
+      ),
+      error: (e, _) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text('加载失败: $e',
+            style: Theme.of(context).textTheme.bodySmall),
+      ),
     );
   }
 
   // ── Platform Filter ────────────────────────────────────────────
 
-  Widget _buildPlatformFilter(BuildContext context) {
+  Widget _buildPlatformFilter(List<MarketBook> books) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final booksAsync = ref.watch(allScannedBooksProvider);
 
-    return booksAsync.when(
-      data: (books) {
-        final platformCounts = <MarketPlatform, int>{};
-        for (final book in books) {
-          platformCounts[book.platform] =
-              (platformCounts[book.platform] ?? 0) + 1;
-        }
+    final platformCounts = <MarketPlatform, int>{};
+    for (final book in books) {
+      platformCounts[book.platform] =
+          (platformCounts[book.platform] ?? 0) + 1;
+    }
 
-        final filters = <MarketPlatform?>[null, ...MarketPlatform.values];
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('排行榜数据',
-                style:
-                    textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: filters.map((p) {
-                final selected = _platformFilter == p;
-                final count = p == null
-                    ? books.length
-                    : (platformCounts[p] ?? 0);
-                final label = p == null ? '全部' : _platformLabel(p.name);
-
-                return ChoiceChip(
-                  label: Text('$label ($count)'),
-                  selected: selected,
-                  onSelected: (_) => setState(() => _platformFilter = p),
-                  visualDensity: VisualDensity.compact,
-                  avatar: p != null
-                      ? Icon(
-                          _platformIcon(p),
-                          size: 14,
-                          color: selected
-                              ? colorScheme.onPrimary
-                              : _platformColor(p, colorScheme),
-                        )
-                      : null,
-                  labelStyle: textTheme.labelSmall?.copyWith(
-                    color: selected
-                        ? colorScheme.onPrimary
-                        : colorScheme.onSurfaceVariant,
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
-    );
-  }
-
-  // ── Rankings List ──────────────────────────────────────────────
-
-  Widget _buildRankingsList(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final rankingsAsync = ref.watch(latestRankingsProvider);
-    final booksAsync = ref.watch(allScannedBooksProvider);
-
-    return rankingsAsync.when(
-      data: (rankings) {
-        return booksAsync.when(
-          data: (books) {
-            final bookMap = {for (final b in books) b.id: b};
-            var filtered = rankings;
-            if (_platformFilter != null) {
-              filtered = rankings.where((r) {
-                final book = bookMap[r.bookId];
-                return book?.platform == _platformFilter;
-              }).toList();
-            }
-
-            final grouped = <String, List<MarketRanking>>{};
-            for (final r in filtered) {
-              grouped.putIfAbsent(r.chartName, () => []).add(r);
-            }
-
-            if (grouped.isEmpty) {
-              return const _EmptyRankingsPlaceholder();
-            }
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: grouped.entries
-                  .map((entry) => _ChartSection(
-                        chartName: entry.key,
-                        rankings: entry.value,
-                        bookMap: bookMap,
-                      ))
-                  .toList(),
-            );
-          },
-          loading: () => const _RankingsLoading(),
-          error: (e, _) => Text('加载失败: $e', style: textTheme.bodySmall),
-        );
-      },
-      loading: () => const _RankingsLoading(),
-      error: (e, _) => Text('加载失败: $e', style: textTheme.bodySmall),
-    );
-  }
-
-  // ── Scan History ───────────────────────────────────────────────
-
-  Widget _buildScanHistory(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final runsAsync = ref.watch(scanRunHistoryProvider);
+    final filters = <MarketPlatform?>[null, ...MarketPlatform.values];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('扫描历史',
-            style: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600)),
+        Text('排行榜数据',
+            style:
+                textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600)),
         const SizedBox(height: 10),
-        runsAsync.when(
-          data: (runs) {
-            if (runs.isEmpty) {
-              return Text('暂无扫描记录', style: textTheme.bodySmall);
-            }
-            return Column(
-              children: runs
-                  .take(10)
-                  .map((run) => _ScanHistoryRow(run: run))
-                  .toList(),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: filters.map((p) {
+            final selected = _platformFilter == p;
+            final count =
+                p == null ? books.length : (platformCounts[p] ?? 0);
+            final label = p == null ? '全部' : _platformLabel(p.name);
+
+            return ChoiceChip(
+              label: Text('$label ($count)'),
+              selected: selected,
+              onSelected: (_) => setState(() => _platformFilter = p),
+              visualDensity: VisualDensity.compact,
+              avatar: p != null
+                  ? Icon(
+                      _platformIcon(p),
+                      size: 14,
+                      color: selected
+                          ? colorScheme.onPrimary
+                          : _platformColor(p, colorScheme),
+                    )
+                  : null,
+              labelStyle: textTheme.labelSmall?.copyWith(
+                color: selected
+                    ? colorScheme.onPrimary
+                    : colorScheme.onSurfaceVariant,
+              ),
             );
-          },
-          loading: () => const SizedBox(
-            height: 20,
-            width: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-          error: (e, _) => Text('加载失败: $e', style: textTheme.bodySmall),
+          }).toList(),
         ),
       ],
     );
+  }
+
+  // ── Rankings List (virtualized) ──────────────────────────────
+
+  Widget _buildRankingsList(ScanDataBundle bundle) {
+    final bookMap = {for (final b in bundle.books) b.id: b};
+
+    var filtered = bundle.rankings;
+    if (_platformFilter != null) {
+      filtered = bundle.rankings.where((r) {
+        final book = bookMap[r.bookId];
+        return book?.platform == _platformFilter;
+      }).toList();
+    }
+
+    final grouped = <String, List<MarketRanking>>{};
+    for (final r in filtered) {
+      grouped.putIfAbsent(r.chartName, () => []).add(r);
+    }
+
+    if (grouped.isEmpty) {
+      return const _EmptyRankingsPlaceholder();
+    }
+
+    final sections = grouped.entries.toList();
+
+    // Use ListView.builder for virtualized rendering.
+    return SizedBox(
+      height: _estimateListHeight(sections, bookMap),
+      child: ListView.builder(
+        itemCount: sections.length,
+        physics: const NeverScrollableScrollPhysics(),
+        itemBuilder: (context, index) {
+          final entry = sections[index];
+          return _ChartSection(
+            chartName: entry.key,
+            rankings: entry.value,
+            bookMap: bookMap,
+          );
+        },
+      ),
+    );
+  }
+
+  /// Rough height estimate to avoid unbounded ListView inside Column.
+  double _estimateListHeight(
+    List<MapEntry<String, List<MarketRanking>>> sections,
+    Map<String, MarketBook> bookMap,
+  ) {
+    var total = 0.0;
+    for (final section in sections) {
+      // Header ~48px + divider 1px + items * ~64px + padding 16px
+      total += 49 + section.value.length * 64.0 + 16;
+    }
+    return total;
   }
 }
 
 // ── Stat Cards Row ────────────────────────────────────────────────────
 
 class _StatCardsRow extends StatelessWidget {
-  const _StatCardsRow({required this.stats});
+  const _StatCardsRow({
+    required this.totalBooks,
+    required this.platformCount,
+    required this.chartCount,
+    this.latestScanTime,
+  });
 
-  final _ScanStats stats;
+  final int totalBooks;
+  final int platformCount;
+  final int chartCount;
+  final DateTime? latestScanTime;
 
   @override
   Widget build(BuildContext context) {
@@ -330,26 +266,26 @@ class _StatCardsRow extends StatelessWidget {
             _StatCard(
               icon: Icons.menu_book_outlined,
               label: '扫描书籍',
-              value: '${stats.totalBooks}',
+              value: '$totalBooks',
               color: const Color(0xFF2758D9),
             ),
             _StatCard(
               icon: Icons.public_outlined,
               label: '覆盖平台',
-              value: '${stats.platformCount}',
+              value: '$platformCount',
               color: const Color(0xFF00897B),
             ),
             _StatCard(
               icon: Icons.leaderboard_outlined,
               label: '榜单数量',
-              value: '${stats.chartCount}',
+              value: '$chartCount',
               color: const Color(0xFFF57C00),
             ),
             _StatCard(
               icon: Icons.history_outlined,
               label: '最近扫描',
-              value: stats.latestScanTime != null
-                  ? _compactTime(stats.latestScanTime!)
+              value: latestScanTime != null
+                  ? _compactTime(latestScanTime!)
                   : '—',
               color: const Color(0xFF7B1FA2),
             ),
@@ -432,8 +368,8 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-class _StatCardsLoading extends StatelessWidget {
-  const _StatCardsLoading();
+class _ContentLoading extends StatelessWidget {
+  const _ContentLoading();
 
   @override
   Widget build(BuildContext context) {
@@ -490,13 +426,12 @@ class _ChartSection extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    // Detect platform from first book in this chart.
-    final firstBook = rankings.isNotEmpty
-        ? bookMap[rankings.first.bookId]
-        : null;
+    final firstBook =
+        rankings.isNotEmpty ? bookMap[rankings.first.bookId] : null;
     final platform = firstBook?.platform;
-    final platformClr =
-        platform != null ? _platformColor(platform, colorScheme) : colorScheme.primary;
+    final platformClr = platform != null
+        ? _platformColor(platform, colorScheme)
+        : colorScheme.primary;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -509,7 +444,6 @@ class _ChartSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Chart header
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
               child: Row(
@@ -552,7 +486,6 @@ class _ChartSection extends StatelessWidget {
               ),
             ),
             const Divider(height: 1),
-            // Ranking items
             ...rankings.asMap().entries.map((entry) {
               final book = bookMap[entry.value.bookId];
               return _RankingItem(
@@ -596,10 +529,8 @@ class _RankingItem extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Rank badge
             _RankBadge(rank: ranking.rank),
             const SizedBox(width: 12),
-            // Book info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -628,7 +559,6 @@ class _RankingItem extends StatelessWidget {
                       ],
                     ],
                   ),
-                  // Categories
                   if (book != null && book!.categories.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Wrap(
@@ -637,7 +567,8 @@ class _RankingItem extends StatelessWidget {
                       children: book!.categories.take(3).map((c) {
                         return DecoratedBox(
                           decoration: BoxDecoration(
-                            color: colorScheme.primary.withValues(alpha: 0.07),
+                            color:
+                                colorScheme.primary.withValues(alpha: 0.07),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Padding(
@@ -659,7 +590,6 @@ class _RankingItem extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            // Right-side metrics
             _buildMetrics(context),
           ],
         ),
@@ -672,7 +602,6 @@ class _RankingItem extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     final metrics = <Widget>[];
-
     if (ranking.favorites != null && ranking.favorites! > 0) {
       metrics.add(_MiniMetric(
         icon: Icons.favorite_border,
@@ -835,8 +764,7 @@ class _PlatformDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final color = _platformColor(platform, colorScheme);
+    final color = _platformColor(platform, Theme.of(context).colorScheme);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -863,7 +791,31 @@ class _PlatformDot extends StatelessWidget {
   }
 }
 
-// ── Scan History Row ──────────────────────────────────────────────────
+// ── Scan History ──────────────────────────────────────────────────────
+
+class _ScanHistorySection extends StatelessWidget {
+  const _ScanHistorySection({required this.runs});
+  final List<MarketScanRun> runs;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('扫描历史',
+            style:
+                textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 10),
+        if (runs.isEmpty)
+          Text('暂无扫描记录', style: textTheme.bodySmall)
+        else
+          ...runs.take(10).map((run) => _ScanHistoryRow(run: run)),
+      ],
+    );
+  }
+}
 
 class _ScanHistoryRow extends StatelessWidget {
   const _ScanHistoryRow({required this.run});
@@ -920,7 +872,8 @@ class _ScanHistoryRow extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             _platformLabel(run.platform),
-            style: textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+            style:
+                textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(width: 10),
           Text(
@@ -972,24 +925,6 @@ class _EmptyRankingsPlaceholder extends StatelessWidget {
   }
 }
 
-class _RankingsLoading extends StatelessWidget {
-  const _RankingsLoading();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 20),
-      child: Center(
-        child: SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
-      ),
-    );
-  }
-}
-
 // ── Book Detail Dialog ────────────────────────────────────────────────
 
 void _showBookDetail(
@@ -1014,7 +949,6 @@ void _showBookDetail(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Platform-colored header bar
                 Container(
                   height: 4,
                   decoration: BoxDecoration(
@@ -1028,7 +962,6 @@ void _showBookDetail(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Platform + chart info
                       Row(
                         children: [
                           _PlatformBadge(platform: book.platform),
@@ -1060,8 +993,6 @@ void _showBookDetail(
                         ],
                       ),
                       const SizedBox(height: 16),
-
-                      // Title + author
                       Text(
                         book.title,
                         style: textTheme.titleLarge?.copyWith(
@@ -1078,24 +1009,18 @@ void _showBookDetail(
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 16),
                 const Divider(height: 1),
-
-                // Scrollable content
                 Flexible(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Metrics grid
                         if (_hasAnyMetric(ranking)) ...[
                           _DialogMetricsGrid(ranking: ranking),
                           const SizedBox(height: 16),
                         ],
-
-                        // Info row
                         _DialogInfoRow(
                           wordCount: book.totalWordCount,
                           status: book.status,
@@ -1104,8 +1029,6 @@ void _showBookDetail(
                         if (book.totalWordCount > 0 ||
                             book.firstPublishDate != null)
                           const SizedBox(height: 16),
-
-                        // Categories
                         if (book.categories.isNotEmpty) ...[
                           Text(
                             '分类',
@@ -1122,17 +1045,15 @@ void _showBookDetail(
                                 decoration: BoxDecoration(
                                   color: colorScheme.primary
                                       .withValues(alpha: 0.08),
-                                  borderRadius:
-                                      BorderRadius.circular(6),
+                                  borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
                                     color: colorScheme.primary
                                         .withValues(alpha: 0.18),
                                   ),
                                 ),
                                 child: Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 4),
                                   child: Text(
                                     c,
                                     style:
@@ -1147,8 +1068,6 @@ void _showBookDetail(
                           ),
                           const SizedBox(height: 16),
                         ],
-
-                        // Tags
                         if (book.tags.isNotEmpty) ...[
                           Text(
                             '标签',
@@ -1166,13 +1085,11 @@ void _showBookDetail(
                                   color: colorScheme
                                       .surfaceContainerHighest
                                       .withValues(alpha: 0.5),
-                                  borderRadius:
-                                      BorderRadius.circular(6),
+                                  borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 3),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 3),
                                   child: Text(
                                     t,
                                     style:
@@ -1187,8 +1104,6 @@ void _showBookDetail(
                           ),
                           const SizedBox(height: 16),
                         ],
-
-                        // Description
                         if (book.description.isNotEmpty) ...[
                           Text(
                             '简介',
@@ -1375,7 +1290,8 @@ class _DialogInfoRow extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               status == BookStatus.completed ? '已完结' : '连载中',
-              style: textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+              style:
+                  textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -1388,8 +1304,8 @@ class _DialogInfoRow extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 '${publishDate!.year}-${publishDate!.month.toString().padLeft(2, '0')}-${publishDate!.day.toString().padLeft(2, '0')}',
-                style: textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w600),
+                style: textTheme.bodySmall
+                    ?.copyWith(fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -1502,7 +1418,7 @@ String _formatCountFull(int count) {
   if (count >= 10000) {
     final wan = count ~/ 10000;
     final remainder = (count % 10000) ~/ 1000;
-    return remainder > 0 ? '$wan.${remainder}万' : '${wan}万';
+    return remainder > 0 ? '$wan.$remainder万' : '$wan万';
   }
   return count.toString();
 }
@@ -1511,7 +1427,7 @@ String _formatWordCount(int count) {
   if (count >= 10000) {
     final wan = count ~/ 10000;
     final remainder = (count % 10000) ~/ 1000;
-    return remainder > 0 ? '$wan.${remainder}万字' : '${wan}万字';
+    return remainder > 0 ? '$wan.$remainder万字' : '$wan万字';
   }
   return '$count 字';
 }

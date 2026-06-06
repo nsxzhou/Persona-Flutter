@@ -3,13 +3,15 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../core/database/database_providers.dart';
 import '../data/drift_market_scan_repository.dart';
 import '../domain/data_source_adapter.dart';
+import '../domain/market_book.dart';
+import '../domain/market_ranking.dart';
 import '../domain/market_scan_repository.dart';
+import '../domain/market_scan_run.dart';
 import 'adapters/fanqie_adapter.dart';
 import 'adapters/jinjiang_adapter.dart';
 import 'adapters/qidian_adapter.dart';
 import '../../settings/application/provider_config_providers.dart';
 import '../../style_lab/application/style_lab_providers.dart';
-import 'market_scan_scheduler.dart';
 import 'market_scan_service.dart';
 import 'recommendation_generation_service.dart';
 import 'rule_engine.dart';
@@ -47,15 +49,6 @@ MarketScanService marketScanService(Ref ref) {
 }
 
 @Riverpod(keepAlive: true)
-MarketScanScheduler marketScanScheduler(Ref ref) {
-  final repository = ref.watch(marketScanRepositoryProvider);
-  final service = ref.watch(marketScanServiceProvider);
-  final scheduler = MarketScanScheduler(repository: repository, service: service);
-  ref.onDispose(scheduler.dispose);
-  return scheduler;
-}
-
-@Riverpod(keepAlive: true)
 RuleEngine ruleEngine(Ref ref) {
   final repository = ref.watch(marketScanRepositoryProvider);
   return RuleEngine(repository);
@@ -75,3 +68,34 @@ Future<bool> marketScanHasData(Ref ref) {
   final repository = ref.watch(marketScanRepositoryProvider);
   return repository.hasData();
 }
+
+/// Bundled scan data to avoid redundant provider watches in the UI.
+class ScanDataBundle {
+  const ScanDataBundle({
+    required this.books,
+    required this.rankings,
+    required this.runs,
+  });
+
+  final List<MarketBook> books;
+  final List<MarketRanking> rankings;
+  final List<MarketScanRun> runs;
+}
+
+@riverpod
+Future<ScanDataBundle> scanDataBundle(Ref ref) async {
+  final repo = ref.watch(marketScanRepositoryProvider);
+  final results = await Future.wait([
+    repo.findBooks(),
+    repo.findLatestRankings(),
+    repo.findRuns(limit: 20),
+  ]);
+  return ScanDataBundle(
+    books: results[0] as List<MarketBook>,
+    rankings: results[1] as List<MarketRanking>,
+    runs: results[2] as List<MarketScanRun>,
+  );
+}
+
+/// Maximum number of scan runs to retain per platform before auto-cleanup.
+const kMaxRetainedRunsPerPlatform = 10;

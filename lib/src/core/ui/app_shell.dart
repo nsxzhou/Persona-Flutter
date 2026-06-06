@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/market_scan/application/market_scan_providers.dart';
 import '../router/app_route.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_mode_provider.dart';
@@ -27,14 +26,6 @@ class _AppShellState extends ConsumerState<AppShell> {
   bool _isExpanded = true;
   String? _lastRoutePath;
 
-  @override
-  void initState() {
-    super.initState();
-    // Start background market scan scheduler (fire-and-forget).
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(marketScanSchedulerProvider).init();
-    });
-  }
 
   @override
   Widget build(BuildContext context) {

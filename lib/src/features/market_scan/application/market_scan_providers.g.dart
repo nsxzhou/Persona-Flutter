@@ -200,54 +200,6 @@ final class MarketScanServiceProvider
 
 String _$marketScanServiceHash() => r'b76a02764643e87db1517a8f92c3fe9640115afc';
 
-@ProviderFor(marketScanScheduler)
-final marketScanSchedulerProvider = MarketScanSchedulerProvider._();
-
-final class MarketScanSchedulerProvider
-    extends
-        $FunctionalProvider<
-          MarketScanScheduler,
-          MarketScanScheduler,
-          MarketScanScheduler
-        >
-    with $Provider<MarketScanScheduler> {
-  MarketScanSchedulerProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'marketScanSchedulerProvider',
-        isAutoDispose: false,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
-
-  @override
-  String debugGetCreateSourceHash() => _$marketScanSchedulerHash();
-
-  @$internal
-  @override
-  $ProviderElement<MarketScanScheduler> $createElement(
-    $ProviderPointer pointer,
-  ) => $ProviderElement(pointer);
-
-  @override
-  MarketScanScheduler create(Ref ref) {
-    return marketScanScheduler(ref);
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(MarketScanScheduler value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<MarketScanScheduler>(value),
-    );
-  }
-}
-
-String _$marketScanSchedulerHash() =>
-    r'b1bb34d159bdb4e8e94af2f47a1e7e99aefa8f40';
-
 @ProviderFor(ruleEngine)
 final ruleEngineProvider = RuleEngineProvider._();
 
@@ -372,3 +324,42 @@ final class MarketScanHasDataProvider
 }
 
 String _$marketScanHasDataHash() => r'8e67ab9c4af9d8f1b741be5b10fc494914692924';
+
+@ProviderFor(scanDataBundle)
+final scanDataBundleProvider = ScanDataBundleProvider._();
+
+final class ScanDataBundleProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<ScanDataBundle>,
+          ScanDataBundle,
+          FutureOr<ScanDataBundle>
+        >
+    with $FutureModifier<ScanDataBundle>, $FutureProvider<ScanDataBundle> {
+  ScanDataBundleProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'scanDataBundleProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$scanDataBundleHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<ScanDataBundle> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<ScanDataBundle> create(Ref ref) {
+    return scanDataBundle(ref);
+  }
+}
+
+String _$scanDataBundleHash() => r'2485342e004dbfc14368e71dda5d02a116399587';

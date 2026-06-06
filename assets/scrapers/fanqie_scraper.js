@@ -103,7 +103,7 @@ async function fetchBookDetail(browser, bookId) {
       if (abstractHeader) {
         const next = abstractHeader.nextElementSibling;
         if (next) {
-          description = next.textContent?.trim()?.slice(0, 200) || '';
+          description = next.textContent?.trim() || '';
         }
       }
 

@@ -64,7 +64,7 @@ function recordToScrapedBook(record, chartName, rank) {
     platformBookId: String(record.bid || ''),
     title: record.bName || '',
     author: record.bAuth || '',
-    description: (record.desc || '').slice(0, 200),
+    description: record.desc || '',
     categories: record.cat ? [record.cat] : [],
     tags: record.subCat ? [record.subCat] : [],
     totalWordCount: parseWordCount(record.cnt),

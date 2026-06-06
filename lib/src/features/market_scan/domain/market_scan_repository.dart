@@ -41,4 +41,8 @@ abstract interface class MarketScanRepository {
 
   /// Whether any market data exists (at least one completed run).
   Future<bool> hasData();
+
+  /// Delete runs older than the most recent [retainCount] per platform,
+  /// along with their associated ranking records.
+  Future<void> cleanupOldRuns({int retainCount = 10});
 }

@@ -265,6 +265,37 @@ class DriftMarketScanRepository implements MarketScanRepository {
     return row != null;
   }
 
+  @override
+  Future<void> cleanupOldRuns({int retainCount = 10}) async {
+    // Find run IDs to keep: the most recent [retainCount] per platform.
+    final allRuns = await findRuns();
+    final runsByPlatform = <String, List<MarketScanRun>>{};
+    for (final run in allRuns) {
+      runsByPlatform.putIfAbsent(run.platform, () => []).add(run);
+    }
+
+    final idsToDelete = <String>[];
+    for (final runs in runsByPlatform.values) {
+      // Runs are already sorted newest-first from findRuns().
+      if (runs.length > retainCount) {
+        idsToDelete.addAll(runs.skip(retainCount).map((r) => r.id));
+      }
+    }
+
+    if (idsToDelete.isEmpty) return;
+
+    await _database.transaction(() async {
+      // Delete associated rankings first.
+      await (_database.delete(_database.marketRankingRecords)
+            ..where((t) => t.runId.isIn(idsToDelete)))
+          .go();
+      // Then delete the runs.
+      await (_database.delete(_database.marketScanRunRecords)
+            ..where((t) => t.id.isIn(idsToDelete)))
+          .go();
+    });
+  }
+
   // ── Mapping ──────────────────────────────────────────────────────
 
   MarketBook _mapBook(MarketBookRecord row) {
