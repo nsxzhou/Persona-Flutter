@@ -290,7 +290,7 @@ final class RecommendationGenerationServiceProvider
 }
 
 String _$recommendationGenerationServiceHash() =>
-    r'd14b8b3b706aee739caab9b29471715a5d61cd0c';
+    r'2bc9754f622dd0e51a19f3a8539ab0f80b167432';
 
 @ProviderFor(marketScanHasData)
 final marketScanHasDataProvider = MarketScanHasDataProvider._();

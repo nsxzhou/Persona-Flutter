@@ -10,16 +10,23 @@ import '../domain/market_scan_run.dart';
 
 // ── Widget ──────────────────────────────────────────────────────────
 
-/// Displays scan data overview: stat cards, platform filter, rankings list,
-/// and scan history.
+/// Displays scan data overview: optional stat cards, platform filter, rankings
+/// list, and optional scan history.
 ///
 /// When [showHeader] is true (default), renders as a collapsible panel with
 /// a clickable header. When false, renders always-expanded without the header
 /// (suitable for embedding as a tab body).
 class ScanDataBrowser extends ConsumerStatefulWidget {
-  const ScanDataBrowser({super.key, this.showHeader = true});
+  const ScanDataBrowser({
+    super.key,
+    this.showHeader = true,
+    this.showStats = true,
+    this.showHistory = true,
+  });
 
   final bool showHeader;
+  final bool showStats;
+  final bool showHistory;
 
   @override
   ConsumerState<ScanDataBrowser> createState() => _ScanDataBrowserState();
@@ -96,23 +103,30 @@ class _ScanDataBrowserState extends ConsumerState<ScanDataBrowser> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _StatCardsRow(
-              totalBooks: bundle.books.length,
-              platformCount: bundle.books.map((b) => b.platform).toSet().length,
-              chartCount: bundle.rankings
-                  .map((r) => r.chartName)
-                  .toSet()
-                  .length,
-              latestScanTime: bundle.runs.isNotEmpty
-                  ? bundle.runs.first.startedAt
-                  : null,
-            ),
-            const SizedBox(height: 20),
+            if (widget.showStats) ...[
+              _StatCardsRow(
+                totalBooks: bundle.books.length,
+                platformCount: bundle.books
+                    .map((b) => b.platform)
+                    .toSet()
+                    .length,
+                chartCount: bundle.rankings
+                    .map((r) => r.chartName)
+                    .toSet()
+                    .length,
+                latestScanTime: bundle.runs.isNotEmpty
+                    ? bundle.runs.first.startedAt
+                    : null,
+              ),
+              const SizedBox(height: 20),
+            ],
             _buildPlatformFilter(bundle.books),
             const SizedBox(height: 20),
             _buildRankingsList(bundle),
-            const SizedBox(height: 20),
-            _ScanHistorySection(runs: bundle.runs),
+            if (widget.showHistory) ...[
+              const SizedBox(height: 20),
+              _ScanHistorySection(runs: bundle.runs),
+            ],
           ],
         ),
       ),
@@ -219,36 +233,43 @@ class _ScanDataBrowserState extends ConsumerState<ScanDataBrowser> {
       }
     }
 
-    // Keep the inner list bounded so ListView.builder can virtualize rows
-    // instead of forcing every ranking item to build in the outer scroll view.
-    return SizedBox(
-      height: 620,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outlineVariant,
-          ),
-        ),
-        child: ListView.builder(
-          itemCount: rows.length,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          itemBuilder: (context, index) {
-            final row = rows[index];
-            return switch (row) {
-              _RankingHeaderListRow() => _RankingListHeader(row: row),
-              _RankingBookListRow() => _RankingItem(
-                ranking: row.ranking,
-                book: bookMap[row.ranking.bookId],
-                isLast:
-                    index == rows.length - 1 ||
-                    rows[index + 1] is _RankingHeaderListRow,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final viewportHeight = MediaQuery.sizeOf(context).height;
+        final listHeight = (viewportHeight * 0.56).clamp(360.0, 720.0);
+
+        // Keep the inner list bounded so ListView.builder can virtualize rows
+        // instead of forcing every ranking item to build in the outer scroll view.
+        return SizedBox(
+          height: listHeight,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant,
               ),
-            };
-          },
-        ),
-      ),
+            ),
+            child: ListView.builder(
+              itemCount: rows.length,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemBuilder: (context, index) {
+                final row = rows[index];
+                return switch (row) {
+                  _RankingHeaderListRow() => _RankingListHeader(row: row),
+                  _RankingBookListRow() => _RankingItem(
+                    ranking: row.ranking,
+                    book: bookMap[row.ranking.bookId],
+                    isLast:
+                        index == rows.length - 1 ||
+                        rows[index + 1] is _RankingHeaderListRow,
+                  ),
+                };
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -294,40 +315,56 @@ class _StatCardsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final crossCount = constraints.maxWidth >= 500 ? 4 : 2;
-        return GridView.count(
-          crossAxisCount: crossCount,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
-          mainAxisExtent: 82,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
+        final columns = constraints.maxWidth >= 860
+            ? 4
+            : constraints.maxWidth >= 520
+            ? 2
+            : 1;
+        final spacing = columns == 1 ? 0.0 : 10.0;
+        final itemWidth =
+            (constraints.maxWidth - spacing * (columns - 1)) / columns;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: 10,
           children: [
-            _StatCard(
-              icon: Icons.menu_book_outlined,
-              label: '扫描书籍',
-              value: '$totalBooks',
-              color: const Color(0xFF2758D9),
+            SizedBox(
+              width: itemWidth,
+              child: _StatCard(
+                icon: Icons.menu_book_outlined,
+                label: '扫描书籍',
+                value: '$totalBooks',
+                color: const Color(0xFF2758D9),
+              ),
             ),
-            _StatCard(
-              icon: Icons.public_outlined,
-              label: '覆盖平台',
-              value: '$platformCount',
-              color: const Color(0xFF00897B),
+            SizedBox(
+              width: itemWidth,
+              child: _StatCard(
+                icon: Icons.public_outlined,
+                label: '覆盖平台',
+                value: '$platformCount',
+                color: const Color(0xFF00897B),
+              ),
             ),
-            _StatCard(
-              icon: Icons.leaderboard_outlined,
-              label: '榜单数量',
-              value: '$chartCount',
-              color: const Color(0xFFF57C00),
+            SizedBox(
+              width: itemWidth,
+              child: _StatCard(
+                icon: Icons.leaderboard_outlined,
+                label: '榜单数量',
+                value: '$chartCount',
+                color: const Color(0xFFF57C00),
+              ),
             ),
-            _StatCard(
-              icon: Icons.history_outlined,
-              label: '最近扫描',
-              value: latestScanTime != null
-                  ? _compactTime(latestScanTime!)
-                  : '—',
-              color: const Color(0xFF7B1FA2),
+            SizedBox(
+              width: itemWidth,
+              child: _StatCard(
+                icon: Icons.history_outlined,
+                label: '最近扫描',
+                value: latestScanTime != null
+                    ? _compactTime(latestScanTime!)
+                    : '—',
+                color: const Color(0xFF7B1FA2),
+              ),
             ),
           ],
         );
@@ -360,48 +397,51 @@ class _StatCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Row(
-              children: [
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(4),
-                    child: Icon(icon, size: 14, color: color),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: textTheme.labelSmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 82),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Row(
+                children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Icon(icon, size: 14, color: color),
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: colorScheme.onSurface,
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: textTheme.labelSmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                value,
+                style: textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: colorScheme.onSurface,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -415,28 +455,38 @@ class _ContentLoading extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final crossCount = constraints.maxWidth >= 500 ? 4 : 2;
-        return GridView.count(
-          crossAxisCount: crossCount,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
-          mainAxisExtent: 82,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
+        final columns = constraints.maxWidth >= 860
+            ? 4
+            : constraints.maxWidth >= 520
+            ? 2
+            : 1;
+        final spacing = columns == 1 ? 0.0 : 10.0;
+        final itemWidth =
+            (constraints.maxWidth - spacing * (columns - 1)) / columns;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: 10,
           children: List.generate(
             4,
-            (_) => DecoratedBox(
-              decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Center(
-                child: SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+            (_) => SizedBox(
+              width: itemWidth,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const SizedBox(
+                  height: 82,
+                  child: Center(
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -562,10 +612,14 @@ class _RankingItem extends StatelessWidget {
                       const SizedBox(height: 2),
                       Row(
                         children: [
-                          Text(
-                            book?.author ?? '未知作者',
-                            style: textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
+                          Flexible(
+                            child: Text(
+                              book?.author ?? '未知作者',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           if (book != null) ...[
@@ -608,7 +662,10 @@ class _RankingItem extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                _buildMetrics(context),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 150),
+                  child: _buildMetrics(context),
+                ),
               ],
             ),
           ),

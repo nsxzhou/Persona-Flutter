@@ -10,8 +10,13 @@ import '../../workflow_runs/application/workflow_task_controller.dart';
 import '../application/market_recommendation_controller.dart';
 import '../application/market_scan_controller.dart';
 import '../application/market_scan_providers.dart';
+import '../domain/market_book.dart';
+import '../domain/market_scan_run.dart';
 import '../domain/recommendation_direction.dart';
+import '../domain/recommendation_generation_request.dart';
 import 'scan_data_browser.dart';
+
+enum _WorkspaceView { overview, rankings, recommendations, history }
 
 class RecommendationPage extends ConsumerStatefulWidget {
   const RecommendationPage({super.key});
@@ -21,16 +26,51 @@ class RecommendationPage extends ConsumerStatefulWidget {
 }
 
 class _RecommendationPageState extends ConsumerState<RecommendationPage> {
-  int _tabIndex = 0;
+  _WorkspaceView _activeView = _WorkspaceView.overview;
+  final TextEditingController _genreQueryController = TextEditingController();
+  MarketPlatform? _selectedPlatform;
+
+  @override
+  void dispose() {
+    _genreQueryController.dispose();
+    super.dispose();
+  }
+
+  void _setActiveView(_WorkspaceView view) {
+    if (!mounted || _activeView == view) {
+      return;
+    }
+    setState(() => _activeView = view);
+  }
 
   Future<void> _generate() async {
+    final bundle = ref.read(scanDataBundleProvider).value;
+    final platforms = _availablePlatforms(bundle);
+    final selected = _selectedPlatform;
+    final platform = selected != null && platforms.contains(selected)
+        ? selected
+        : (platforms.isEmpty ? null : platforms.first);
+    if (platform == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请先选择有扫描数据的平台。')));
+      return;
+    }
+    _setActiveView(_WorkspaceView.recommendations);
     await _runCommand(
-      () =>
-          ref.read(marketRecommendationControllerProvider.notifier).generate(),
+      () => ref
+          .read(marketRecommendationControllerProvider.notifier)
+          .generate(
+            RecommendationGenerationRequest(
+              targetPlatform: platform,
+              genreQuery: _genreQueryController.text,
+            ),
+          ),
     );
   }
 
   Future<void> _scanNow() async {
+    _setActiveView(_WorkspaceView.overview);
     await _runCommand(
       () => ref.read(marketScanControllerProvider.notifier).scanNow(),
     );
@@ -60,6 +100,10 @@ class _RecommendationPageState extends ConsumerState<RecommendationPage> {
     if (confirmed != true) {
       return;
     }
+    if (!mounted) {
+      return;
+    }
+    _setActiveView(_WorkspaceView.overview);
     await _runCommand(
       () => ref.read(marketScanControllerProvider.notifier).clearAllData(),
     );
@@ -92,150 +136,796 @@ class _RecommendationPageState extends ConsumerState<RecommendationPage> {
       marketRecommendationControllerProvider,
     );
     final bundleState = ref.watch(scanDataBundleProvider);
+    final availablePlatforms = _availablePlatforms(bundleState.value);
+    final selected = _selectedPlatform;
+    final effectivePlatform =
+        selected != null && availablePlatforms.contains(selected)
+        ? selected
+        : (availablePlatforms.isEmpty ? null : availablePlatforms.first);
     final hasData = marketScanState.value == true;
-    final isRunning = scanState.isScanning || recommendationState.isGenerating;
     final runningTaskId = scanState.isScanning
         ? scanState.workflowTaskId
-        : recommendationState.workflowTaskId;
-    final commandsDisabled = isRunning || scanState.isClearing;
+        : recommendationState.isGenerating
+        ? recommendationState.workflowTaskId
+        : null;
 
     return PersonaPage(
       eyebrow: 'AI 推荐',
       title: '创作方向推荐',
-      description: '市场扫描、数据检查、AI 推荐和创建项目集中在一个连续工作流里。',
+      description: '先审阅市场榜单和扫描质量，再基于可信数据生成创作方向。',
+      maxWidth: 1380,
       actions: [
         OutlinedButton.icon(
           onPressed: () => context.go(AppRoute.projects.path),
           icon: const Icon(Icons.arrow_back),
           label: const Text('返回项目'),
         ),
-        OutlinedButton.icon(
-          onPressed: commandsDisabled || !hasData ? null : _clearScanData,
-          icon: scanState.isClearing
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.delete_outline),
-          label: Text(scanState.isClearing ? '清空中...' : '清空扫描数据'),
-        ),
-        OutlinedButton.icon(
-          onPressed: commandsDisabled ? null : _scanNow,
-          icon: scanState.isScanning
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.radar_outlined),
-          label: Text(scanState.isScanning ? '扫描中...' : '重新扫描'),
-        ),
-        FilledButton.icon(
-          onPressed: commandsDisabled || !hasData ? null : _generate,
-          icon: recommendationState.isGenerating
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.auto_awesome),
-          label: Text(recommendationState.isGenerating ? '生成中...' : '生成推荐'),
-        ),
-        if (runningTaskId != null)
-          OutlinedButton.icon(
-            onPressed: () => _abandonTask(runningTaskId),
-            icon: const Icon(Icons.stop_circle_outlined),
-            label: const Text('放弃任务'),
-          ),
       ],
       children: [
-        _MarketRadarPanel(
+        _RecommendationWorkspace(
           hasData: marketScanState,
           bundle: bundleState,
           scanState: scanState,
           recommendationState: recommendationState,
+          hasMarketData: hasData,
+          runningTaskId: runningTaskId,
+          activeView: _activeView,
+          availablePlatforms: availablePlatforms,
+          selectedPlatform: effectivePlatform,
+          genreQueryController: _genreQueryController,
+          onPlatformChanged: (platform) =>
+              setState(() => _selectedPlatform = platform),
+          onViewChanged: _setActiveView,
+          onScanNow: _scanNow,
+          onGenerate: _generate,
+          onClearScanData: _clearScanData,
+          onAbandonTask: _abandonTask,
         ),
-        const SizedBox(height: 16),
-        if (scanState.isScanning) ...[
-          _ScanProgressPanel(scanState: scanState),
-          const SizedBox(height: 16),
-        ],
-        if (scanState.error != null) ...[
-          _WorkflowNotice(
-            icon: Icons.error_outline,
-            title: '扫描任务异常',
-            message: scanState.error!,
-            isError: true,
-          ),
-          const SizedBox(height: 16),
-        ],
-        _buildMainContent(marketScanState, scanState, recommendationState),
       ],
     );
   }
 
-  Widget _buildMainContent(
-    AsyncValue<bool> hasData,
-    MarketScanState scanState,
-    MarketRecommendationState recommendationState,
+  List<MarketPlatform> _availablePlatforms(ScanDataBundle? bundle) {
+    if (bundle == null) {
+      return const [];
+    }
+    final platforms = bundle.books.map((book) => book.platform).toSet();
+    final ordered = <MarketPlatform>[
+      MarketPlatform.qidian,
+      MarketPlatform.fanqie,
+      MarketPlatform.jinjiang,
+    ];
+    return ordered.where(platforms.contains).toList(growable: false);
+  }
+}
+
+class _RecommendationWorkspace extends StatelessWidget {
+  const _RecommendationWorkspace({
+    required this.hasData,
+    required this.bundle,
+    required this.scanState,
+    required this.recommendationState,
+    required this.hasMarketData,
+    required this.runningTaskId,
+    required this.activeView,
+    required this.availablePlatforms,
+    required this.selectedPlatform,
+    required this.genreQueryController,
+    required this.onPlatformChanged,
+    required this.onViewChanged,
+    required this.onScanNow,
+    required this.onGenerate,
+    required this.onClearScanData,
+    required this.onAbandonTask,
+  });
+
+  final AsyncValue<bool> hasData;
+  final AsyncValue<ScanDataBundle> bundle;
+  final MarketScanState scanState;
+  final MarketRecommendationState recommendationState;
+  final bool hasMarketData;
+  final String? runningTaskId;
+  final _WorkspaceView activeView;
+  final List<MarketPlatform> availablePlatforms;
+  final MarketPlatform? selectedPlatform;
+  final TextEditingController genreQueryController;
+  final ValueChanged<MarketPlatform> onPlatformChanged;
+  final ValueChanged<_WorkspaceView> onViewChanged;
+  final Future<void> Function() onScanNow;
+  final Future<void> Function() onGenerate;
+  final Future<void> Function() onClearScanData;
+  final Future<void> Function(String taskId) onAbandonTask;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final useRail = constraints.maxWidth >= 1080;
+        final genreOptions = _genreOptionsForPlatform(
+          bundle.value?.books ?? const [],
+          selectedPlatform,
+        );
+        final dataColumn = _WorkspaceMainPanel(
+          hasData: hasData,
+          bundle: bundle,
+          scanState: scanState,
+          recommendationState: recommendationState,
+          activeView: activeView,
+          onViewChanged: onViewChanged,
+          onScanNow: onScanNow,
+        );
+        final commandPanel = _TaskCommandPanel(
+          hasMarketData: hasMarketData,
+          scanState: scanState,
+          recommendationState: recommendationState,
+          availablePlatforms: availablePlatforms,
+          selectedPlatform: selectedPlatform,
+          genreOptions: genreOptions,
+          genreQueryController: genreQueryController,
+          onPlatformChanged: onPlatformChanged,
+          runningTaskId: runningTaskId,
+          onScanNow: onScanNow,
+          onGenerate: onGenerate,
+          onClearScanData: onClearScanData,
+          onAbandonTask: onAbandonTask,
+        );
+
+        if (!useRail) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [dataColumn, const SizedBox(height: 16), commandPanel],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: dataColumn),
+            const SizedBox(width: 18),
+            SizedBox(width: 348, child: commandPanel),
+          ],
+        );
+      },
+    );
+  }
+
+  List<String> _genreOptionsForPlatform(
+    List<MarketBook> books,
+    MarketPlatform? platform,
   ) {
+    if (platform == null) {
+      return const [];
+    }
+    final counts = <String, int>{};
+    for (final book in books.where((book) => book.platform == platform)) {
+      for (final tag in [...book.categories, ...book.tags]) {
+        final normalized = tag.trim();
+        if (normalized.isEmpty) {
+          continue;
+        }
+        counts[normalized] = (counts[normalized] ?? 0) + 1;
+      }
+    }
+    final entries = counts.entries.toList()
+      ..sort((a, b) {
+        final count = b.value.compareTo(a.value);
+        return count == 0 ? a.key.compareTo(b.key) : count;
+      });
+    return entries.map((entry) => entry.key).take(8).toList(growable: false);
+  }
+}
+
+class _WorkspaceMainPanel extends StatelessWidget {
+  const _WorkspaceMainPanel({
+    required this.hasData,
+    required this.bundle,
+    required this.scanState,
+    required this.recommendationState,
+    required this.activeView,
+    required this.onViewChanged,
+    required this.onScanNow,
+  });
+
+  final AsyncValue<bool> hasData;
+  final AsyncValue<ScanDataBundle> bundle;
+  final MarketScanState scanState;
+  final MarketRecommendationState recommendationState;
+  final _WorkspaceView activeView;
+  final ValueChanged<_WorkspaceView> onViewChanged;
+  final Future<void> Function() onScanNow;
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _PageTabBar(
-          selectedIndex: _tabIndex,
-          labels: const ['创作推荐', '扫描数据概览'],
-          onTap: (i) => setState(() => _tabIndex = i),
+        _MarketSummaryPanel(
+          hasData: hasData,
+          bundle: bundle,
+          scanState: scanState,
+          recommendationState: recommendationState,
         ),
-        const SizedBox(height: 20),
-        Visibility(
-          visible: _tabIndex == 0,
-          maintainState: true,
-          maintainAnimation: true,
-          maintainSize: false,
-          child: _buildRecommendationsTab(hasData, recommendationState),
-        ),
-        Visibility(
-          visible: _tabIndex == 1,
-          maintainState: true,
-          maintainAnimation: true,
-          maintainSize: false,
-          child: const ScanDataBrowser(showHeader: false),
+        const SizedBox(height: 12),
+        _WorkspaceViewSwitcher(value: activeView, onChanged: onViewChanged),
+        const SizedBox(height: 12),
+        _WorkspaceViewBody(
+          activeView: activeView,
+          hasData: hasData,
+          bundle: bundle,
+          scanState: scanState,
+          recommendationState: recommendationState,
+          onScanNow: onScanNow,
+          onViewChanged: onViewChanged,
         ),
       ],
-    );
-  }
-
-  Widget _buildRecommendationsTab(
-    AsyncValue<bool> hasData,
-    MarketRecommendationState recommendationState,
-  ) {
-    return hasData.when(
-      data: (hasMarketData) {
-        if (!hasMarketData) {
-          return _MarketDataMissing(onScanNow: _scanNow);
-        }
-        if (recommendationState.isGenerating) {
-          return const _RecommendationLoading();
-        }
-        final error = recommendationState.errorMessage;
-        if (error != null) {
-          return _RecommendationError(error: error);
-        }
-        if (recommendationState.directions.isEmpty) {
-          return const _RecommendationEmpty();
-        }
-        return _RecommendationList(directions: recommendationState.directions);
-      },
-      loading: () => const _MarketDataLoading(),
-      error: (error, _) => _MarketDataError(error: error),
     );
   }
 }
 
-class _MarketRadarPanel extends StatelessWidget {
-  const _MarketRadarPanel({
+class _WorkspaceViewBody extends StatelessWidget {
+  const _WorkspaceViewBody({
+    required this.activeView,
+    required this.hasData,
+    required this.bundle,
+    required this.scanState,
+    required this.recommendationState,
+    required this.onScanNow,
+    required this.onViewChanged,
+  });
+
+  final _WorkspaceView activeView;
+  final AsyncValue<bool> hasData;
+  final AsyncValue<ScanDataBundle> bundle;
+  final MarketScanState scanState;
+  final MarketRecommendationState recommendationState;
+  final Future<void> Function() onScanNow;
+  final ValueChanged<_WorkspaceView> onViewChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (activeView) {
+      _WorkspaceView.overview => hasData.when(
+        data: (hasMarketData) => hasMarketData
+            ? bundle.when(
+                data: (data) => _WorkspaceOverview(
+                  bundle: data,
+                  scanState: scanState,
+                  recommendationState: recommendationState,
+                  onOpenRankings: () => onViewChanged(_WorkspaceView.rankings),
+                  onOpenRecommendations: () =>
+                      onViewChanged(_WorkspaceView.recommendations),
+                ),
+                loading: () => const _MarketDataLoading(),
+                error: (error, _) => _MarketDataError(error: error),
+              )
+            : _MarketDataMissing(onScanNow: onScanNow),
+        loading: () => const _MarketDataLoading(),
+        error: (error, _) => _MarketDataError(error: error),
+      ),
+      _WorkspaceView.rankings => hasData.when(
+        data: (hasMarketData) => hasMarketData
+            ? const ScanDataBrowser(
+                showHeader: false,
+                showStats: false,
+                showHistory: false,
+              )
+            : _MarketDataMissing(onScanNow: onScanNow),
+        loading: () => const _MarketDataLoading(),
+        error: (error, _) => _MarketDataError(error: error),
+      ),
+      _WorkspaceView.recommendations => hasData.when(
+        data: (hasMarketData) => hasMarketData
+            ? _RecommendationSection(recommendationState: recommendationState)
+            : _MarketDataMissing(onScanNow: onScanNow),
+        loading: () => const _MarketDataLoading(),
+        error: (error, _) => _MarketDataError(error: error),
+      ),
+      _WorkspaceView.history => bundle.when(
+        data: (data) => _ScanHistoryWorkspace(runs: data.runs),
+        loading: () => const _MarketDataLoading(),
+        error: (error, _) => _MarketDataError(error: error),
+      ),
+    };
+  }
+}
+
+class _WorkspaceViewSwitcher extends StatelessWidget {
+  const _WorkspaceViewSwitcher({required this.value, required this.onChanged});
+
+  final _WorkspaceView value;
+  final ValueChanged<_WorkspaceView> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final view in _WorkspaceView.values)
+          _WorkspaceViewChip(
+            view: view,
+            selected: value == view,
+            onPressed: () => onChanged(view),
+          ),
+      ],
+    );
+  }
+}
+
+class _WorkspaceViewChip extends StatelessWidget {
+  const _WorkspaceViewChip({
+    required this.view,
+    required this.selected,
+    required this.onPressed,
+  });
+
+  final _WorkspaceView view;
+  final bool selected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final color = selected ? colorScheme.primary : colorScheme.outlineVariant;
+
+    return Material(
+      key: ValueKey('workspace-view-${view.name}'),
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(999),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: selected
+                ? colorScheme.primary.withValues(alpha: 0.1)
+                : colorScheme.surface,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: color),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(_viewIcon(view), size: 15, color: color),
+                const SizedBox(width: 7),
+                Text(
+                  _viewLabel(view),
+                  style: textTheme.labelMedium?.copyWith(
+                    color: selected
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WorkspaceOverview extends StatelessWidget {
+  const _WorkspaceOverview({
+    required this.bundle,
+    required this.scanState,
+    required this.recommendationState,
+    required this.onOpenRankings,
+    required this.onOpenRecommendations,
+  });
+
+  final ScanDataBundle bundle;
+  final MarketScanState scanState;
+  final MarketRecommendationState recommendationState;
+  final VoidCallback onOpenRankings;
+  final VoidCallback onOpenRecommendations;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final platformCount = bundle.books
+        .map((book) => book.platform)
+        .toSet()
+        .length;
+    final chartCount = bundle.rankings.map((r) => r.chartName).toSet().length;
+    final latestRun = bundle.runs.isNotEmpty ? bundle.runs.first : null;
+    final hasRecommendationActivity =
+        recommendationState.isGenerating ||
+        recommendationState.hasDirections ||
+        recommendationState.errorMessage != null;
+    final readinessLabel = scanState.isScanning ? '更新中' : '可生成';
+    final readinessTitle = scanState.isScanning ? '市场数据正在更新' : '市场数据已准备，可以生成推荐';
+    final readinessDescription = latestRun == null
+        ? '当前已有 ${bundle.books.length} 本书和 $chartCount 个榜单，可先审阅榜单质量。'
+        : '覆盖 $platformCount 个平台、${bundle.books.length} 本书、$chartCount 个榜单；最近扫描 ${_formatRadarTime(latestRun.startedAt)}。';
+
+    return PersonaPanel(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: Icon(
+                    scanState.isScanning
+                        ? Icons.sync_outlined
+                        : Icons.task_alt_outlined,
+                    color: colorScheme.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      readinessTitle,
+                      style: textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      readinessDescription,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        height: 1.45,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              PersonaStatusPill(
+                label: readinessLabel,
+                icon: scanState.isScanning
+                    ? Icons.sync
+                    : Icons.check_circle_outline,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: colorScheme.outlineVariant),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: _RecommendationOverviewSummary(
+                state: recommendationState,
+                onOpenRecommendations: onOpenRecommendations,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              OutlinedButton.icon(
+                onPressed: onOpenRankings,
+                icon: const Icon(Icons.leaderboard_outlined),
+                label: const Text('查看完整榜单'),
+              ),
+              if (hasRecommendationActivity)
+                FilledButton.tonalIcon(
+                  onPressed: onOpenRecommendations,
+                  icon: const Icon(Icons.auto_awesome_outlined),
+                  label: const Text('查看推荐详情'),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecommendationOverviewSummary extends StatelessWidget {
+  const _RecommendationOverviewSummary({
+    required this.state,
+    required this.onOpenRecommendations,
+  });
+
+  final MarketRecommendationState state;
+  final VoidCallback onOpenRecommendations;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    if (state.isGenerating) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '推荐正在生成',
+            style: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 10),
+          const LinearProgressIndicator(minHeight: 3),
+          const SizedBox(height: 10),
+          Text(
+            '完成后可在「推荐」视图查看完整方向卡片。',
+            style: textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (state.errorMessage != null) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.error_outline, size: 18, color: colorScheme.error),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '推荐任务失败，可切到「推荐」视图查看错误详情。',
+              style: textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                height: 1.45,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (!state.hasDirections) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.auto_awesome_outlined,
+            size: 18,
+            color: colorScheme.primary,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '尚未生成创作方向。右侧生成后，这里只保留摘要，完整结果进入「推荐」视图查看。',
+              style: textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                height: 1.45,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                '最新推荐摘要',
+                style: textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            Text(
+              '${state.directions.length} 个方向',
+              style: textTheme.labelSmall?.copyWith(
+                color: colorScheme.primary,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        for (final direction in state.directions.take(2)) ...[
+          _RecommendationPreviewRow(direction: direction),
+          const SizedBox(height: 8),
+        ],
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            onPressed: onOpenRecommendations,
+            icon: const Icon(Icons.open_in_new_outlined, size: 16),
+            label: const Text('打开完整推荐'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RecommendationPreviewRow extends StatelessWidget {
+  const _RecommendationPreviewRow({required this.direction});
+
+  final RecommendationDirection direction;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 6,
+          height: 6,
+          margin: const EdgeInsets.only(top: 7),
+          decoration: BoxDecoration(
+            color: colorScheme.primary,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                direction.suggestedTitle,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurface,
+                  fontWeight: FontWeight.w800,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (direction.genreTags.isNotEmpty)
+                Text(
+                  direction.genreTags.take(3).join(' / '),
+                  style: textTheme.labelSmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ScanHistoryWorkspace extends StatelessWidget {
+  const _ScanHistoryWorkspace({required this.runs});
+
+  final List<MarketScanRun> runs;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final visibleRuns = runs.take(12).toList(growable: false);
+
+    return PersonaPanel(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.history_outlined,
+                size: 18,
+                color: colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '扫描历史',
+                  style: textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              PersonaStatusPill(label: '${runs.length} 条', icon: Icons.list),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (runs.isEmpty)
+            Text(
+              '暂无扫描记录',
+              style: textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            )
+          else
+            for (var i = 0; i < visibleRuns.length; i++) ...[
+              _ScanHistoryWorkspaceRow(run: visibleRuns[i]),
+              if (i < visibleRuns.length - 1)
+                Divider(height: 16, color: colorScheme.outlineVariant),
+            ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ScanHistoryWorkspaceRow extends StatelessWidget {
+  const _ScanHistoryWorkspaceRow({required this.run});
+
+  final MarketScanRun run;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final statusColor = _scanRunStatusColor(run.status, colorScheme);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(_scanRunStatusIcon(run.status), size: 17, color: statusColor),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _platformDisplayName(run.platform),
+                style: textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                _formatRadarTime(run.startedAt),
+                style: textTheme.labelSmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              if (run.errorMessage != null && run.errorMessage!.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  run.errorMessage!,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: colorScheme.error,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          run.status == MarketScanRunStatus.completed
+              ? '${run.itemCount} 本'
+              : _scanRunStatusLabel(run.status),
+          style: textTheme.labelMedium?.copyWith(
+            color: statusColor,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MarketSummaryPanel extends StatelessWidget {
+  const _MarketSummaryPanel({
     required this.hasData,
     required this.bundle,
     required this.scanState,
@@ -271,9 +961,12 @@ class _MarketRadarPanel extends StatelessWidget {
         : recommendationState.hasDirections
         ? '${recommendationState.directions.length} 个方向'
         : '待生成';
+    final totalPlatformCount = scanState.platforms.isNotEmpty
+        ? scanState.platforms.length
+        : 3;
 
     return PersonaPanel(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -300,7 +993,7 @@ class _MarketRadarPanel extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '市场雷达工作台',
+                      '市场数据工作台',
                       style: textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
@@ -323,59 +1016,54 @@ class _MarketRadarPanel extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final columns = constraints.maxWidth >= 720 ? 4 : 2;
-              return GridView.count(
-                crossAxisCount: columns,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                mainAxisExtent: 82,
-                children: [
-                  _RadarMetricCell(
-                    icon: Icons.public_outlined,
-                    label: '平台覆盖',
-                    value: hasMarketData ? '$platformCount/3' : '--',
-                    detail: scanState.isScanning
-                        ? '${scanState.completedCount}/${scanState.platforms.length} 已完成'
-                        : '失败 ${scanState.failedCount + scanState.blockedCount}',
-                  ),
-                  _RadarMetricCell(
-                    icon: Icons.menu_book_outlined,
-                    label: '扫描书籍',
-                    value: hasMarketData ? '$bookCount' : '--',
-                    detail: '$chartCount 个榜单',
-                  ),
-                  _RadarMetricCell(
-                    icon: Icons.auto_awesome_outlined,
-                    label: '推荐状态',
-                    value: recommendationLabel,
-                    detail: recommendationState.generatedAt == null
-                        ? '会话内保存'
-                        : _formatRadarTime(recommendationState.generatedAt!),
-                  ),
-                  _RadarMetricCell(
-                    icon: Icons.task_alt_outlined,
-                    label: '后台任务',
-                    value:
-                        scanState.isScanning || recommendationState.isGenerating
-                        ? '运行中'
-                        : '空闲',
-                    detail:
-                        scanState.workflowTaskId ??
-                        recommendationState.workflowTaskId ??
-                        'Workflow Runs 可追踪',
-                  ),
-                ],
-              );
-            },
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _SummaryPill(
+                icon: Icons.public_outlined,
+                label: '平台',
+                value: hasMarketData
+                    ? '$platformCount/$totalPlatformCount'
+                    : '--',
+              ),
+              _SummaryPill(
+                icon: Icons.menu_book_outlined,
+                label: '书籍',
+                value: hasMarketData ? '$bookCount' : '--',
+              ),
+              _SummaryPill(
+                icon: Icons.leaderboard_outlined,
+                label: '榜单',
+                value: hasMarketData ? '$chartCount' : '--',
+              ),
+              _SummaryPill(
+                icon: Icons.auto_awesome_outlined,
+                label: '推荐',
+                value: recommendationLabel,
+              ),
+              _SummaryPill(
+                icon: Icons.history_outlined,
+                label: '最近扫描',
+                value: latestRun == null
+                    ? '--'
+                    : _formatRadarTime(latestRun.startedAt),
+              ),
+            ],
           ),
           if (scanState.platforms.isNotEmpty) ...[
             const SizedBox(height: 14),
             _PlatformCoverageStrip(platforms: scanState.platforms),
+          ],
+          if (scanState.error != null) ...[
+            const SizedBox(height: 14),
+            _WorkflowNotice(
+              icon: Icons.error_outline,
+              title: '扫描任务异常',
+              message: scanState.error!,
+              isError: true,
+            ),
           ],
           if (recommendationState.errorMessage != null) ...[
             const SizedBox(height: 14),
@@ -392,18 +1080,16 @@ class _MarketRadarPanel extends StatelessWidget {
   }
 }
 
-class _RadarMetricCell extends StatelessWidget {
-  const _RadarMetricCell({
+class _SummaryPill extends StatelessWidget {
+  const _SummaryPill({
     required this.icon,
     required this.label,
     required this.value,
-    required this.detail,
   });
 
   final IconData icon;
   final String label;
   final String value;
-  final String detail;
 
   @override
   Widget build(BuildContext context) {
@@ -412,54 +1098,423 @@ class _RadarMetricCell extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.28),
-        borderRadius: BorderRadius.circular(6),
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.34),
+        borderRadius: BorderRadius.circular(999),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                Icon(icon, size: 16, color: colorScheme.primary),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: textTheme.labelSmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w700,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
+            Icon(icon, size: 15, color: colorScheme.primary),
+            const SizedBox(width: 7),
             Text(
-              value,
-              style: textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              detail,
+              label,
               style: textTheme.labelSmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              value,
+              style: textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: colorScheme.onSurface,
+              ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _TaskCommandPanel extends StatelessWidget {
+  const _TaskCommandPanel({
+    required this.hasMarketData,
+    required this.scanState,
+    required this.recommendationState,
+    required this.availablePlatforms,
+    required this.selectedPlatform,
+    required this.genreOptions,
+    required this.genreQueryController,
+    required this.onPlatformChanged,
+    required this.runningTaskId,
+    required this.onScanNow,
+    required this.onGenerate,
+    required this.onClearScanData,
+    required this.onAbandonTask,
+  });
+
+  final bool hasMarketData;
+  final MarketScanState scanState;
+  final MarketRecommendationState recommendationState;
+  final List<MarketPlatform> availablePlatforms;
+  final MarketPlatform? selectedPlatform;
+  final List<String> genreOptions;
+  final TextEditingController genreQueryController;
+  final ValueChanged<MarketPlatform> onPlatformChanged;
+  final String? runningTaskId;
+  final Future<void> Function() onScanNow;
+  final Future<void> Function() onGenerate;
+  final Future<void> Function() onClearScanData;
+  final Future<void> Function(String taskId) onAbandonTask;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final isRunning = scanState.isScanning || recommendationState.isGenerating;
+    final commandsDisabled = isRunning || scanState.isClearing;
+    final canGenerate =
+        hasMarketData && selectedPlatform != null && !commandsDisabled;
+    final taskLabel = isRunning
+        ? '运行中'
+        : scanState.isClearing
+        ? '清空中'
+        : '空闲';
+    final recommendationLabel = recommendationState.isGenerating
+        ? '生成中'
+        : recommendationState.hasDirections
+        ? '${recommendationState.directions.length} 个方向'
+        : '待生成';
+
+    return PersonaPanel(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.tune_outlined, size: 18, color: colorScheme.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '任务控制',
+                  style: textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              PersonaStatusPill(
+                label: taskLabel,
+                icon: isRunning ? Icons.sync : Icons.task_alt_outlined,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _StatusLine(
+            icon: Icons.dataset_outlined,
+            label: '市场数据',
+            value: hasMarketData ? '可用' : '待扫描',
+          ),
+          _StatusLine(
+            icon: Icons.radar_outlined,
+            label: '扫描状态',
+            value: scanState.isScanning
+                ? '${scanState.completedCount}/${scanState.platforms.length} 已完成'
+                : '未运行',
+          ),
+          _StatusLine(
+            icon: Icons.auto_awesome_outlined,
+            label: '推荐状态',
+            value: recommendationLabel,
+          ),
+          if (hasMarketData) ...[
+            const SizedBox(height: 14),
+            Text(
+              '推荐筛选',
+              style: textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<MarketPlatform>(
+              key: ValueKey('recommendation-platform-$selectedPlatform'),
+              initialValue: selectedPlatform,
+              items: [
+                for (final platform in availablePlatforms)
+                  DropdownMenuItem(
+                    value: platform,
+                    child: Text(_platformDisplayName(platform.name)),
+                  ),
+              ],
+              onChanged: commandsDisabled
+                  ? null
+                  : (platform) {
+                      if (platform != null) {
+                        onPlatformChanged(platform);
+                      }
+                    },
+              decoration: const InputDecoration(
+                labelText: '目标平台',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: genreQueryController,
+              enabled: !commandsDisabled,
+              decoration: const InputDecoration(
+                labelText: '题材方向（可选）',
+                hintText: '例如：悬疑、无限流、古言',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            if (genreOptions.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final genre in genreOptions)
+                    ActionChip(
+                      label: Text(genre),
+                      onPressed: commandsDisabled
+                          ? null
+                          : () => genreQueryController.text = genre,
+                    ),
+                ],
+              ),
+            ],
+          ],
+          const SizedBox(height: 14),
+          if (!hasMarketData)
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: commandsDisabled ? null : onScanNow,
+                icon: scanState.isScanning
+                    ? const _ButtonSpinner()
+                    : const Icon(Icons.play_arrow_rounded),
+                label: Text(scanState.isScanning ? '扫描中...' : '扫描市场数据'),
+              ),
+            )
+          else ...[
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: canGenerate ? onGenerate : null,
+                icon: recommendationState.isGenerating
+                    ? const _ButtonSpinner()
+                    : const Icon(Icons.auto_awesome),
+                label: Text(
+                  recommendationState.isGenerating ? '生成中...' : '生成推荐',
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: commandsDisabled ? null : onScanNow,
+                icon: scanState.isScanning
+                    ? const _ButtonSpinner()
+                    : const Icon(Icons.radar_outlined),
+                label: Text(scanState.isScanning ? '扫描中...' : '重新扫描'),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: commandsDisabled ? null : onClearScanData,
+                icon: scanState.isClearing
+                    ? const _ButtonSpinner()
+                    : const Icon(Icons.delete_outline),
+                label: Text(scanState.isClearing ? '清空中...' : '清空扫描数据'),
+              ),
+            ),
+          ],
+          if (runningTaskId != null) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => onAbandonTask(runningTaskId!),
+                icon: const Icon(Icons.stop_circle_outlined),
+                label: const Text('放弃任务'),
+              ),
+            ),
+          ],
+          if (scanState.platforms.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Divider(height: 1, color: colorScheme.outlineVariant),
+            const SizedBox(height: 14),
+            Text(
+              '平台进度',
+              style: textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 10),
+            for (var i = 0; i < scanState.platforms.length; i++) ...[
+              _PlatformProgressRow(entry: scanState.platforms[i]),
+              if (i < scanState.platforms.length - 1)
+                const SizedBox(height: 10),
+            ],
+          ],
+          const SizedBox(height: 16),
+          Divider(height: 1, color: colorScheme.outlineVariant),
+          const SizedBox(height: 14),
+          _RecommendationMiniSummary(state: recommendationState),
+        ],
+      ),
+    );
+  }
+}
+
+class _ButtonSpinner extends StatelessWidget {
+  const _ButtonSpinner();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      width: 16,
+      height: 16,
+      child: CircularProgressIndicator(strokeWidth: 2),
+    );
+  }
+}
+
+class _StatusLine extends StatelessWidget {
+  const _StatusLine({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: colorScheme.onSurfaceVariant),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              style: textTheme.labelSmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: textTheme.labelSmall?.copyWith(
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecommendationMiniSummary extends StatelessWidget {
+  const _RecommendationMiniSummary({required this.state});
+
+  final MarketRecommendationState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    if (state.isGenerating) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('推荐摘要', style: textTheme.labelLarge),
+          const SizedBox(height: 10),
+          const LinearProgressIndicator(minHeight: 3),
+          const SizedBox(height: 10),
+          Text(
+            '正在基于当前市场数据生成创作方向。',
+            style: textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (!state.hasDirections) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('推荐摘要', style: textTheme.labelLarge),
+          const SizedBox(height: 8),
+          Text(
+            '生成后会在这里显示方向数量和最近结果，完整内容在「推荐」视图查看。',
+            style: textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(child: Text('推荐摘要', style: textTheme.labelLarge)),
+            Text(
+              '${state.directions.length} 个方向',
+              style: textTheme.labelSmall?.copyWith(
+                color: colorScheme.primary,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        for (final direction in state.directions.take(2)) ...[
+          Text(
+            direction.suggestedTitle,
+            style: textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurface,
+              fontWeight: FontWeight.w700,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 6),
+        ],
+        if (state.generatedAt != null)
+          Text(
+            '生成于 ${_formatRadarTime(state.generatedAt!)}',
+            style: textTheme.labelSmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        const SizedBox(height: 6),
+        Text(
+          '完整方向卡片在「推荐」视图中查看。',
+          style: textTheme.labelSmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -599,107 +1654,12 @@ class _WorkflowNotice extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Tab Bar
-// ═══════════════════════════════════════════════════════════════════
-
-class _PageTabBar extends StatelessWidget {
-  const _PageTabBar({
-    required this.selectedIndex,
-    required this.labels,
-    required this.onTap,
-  });
-
-  final int selectedIndex;
-  final List<String> labels;
-  final ValueChanged<int> onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(kButtonRadius),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(3),
-        child: Row(
-          children: [
-            for (int i = 0; i < labels.length; i++)
-              Expanded(
-                child: _TabButton(
-                  label: labels[i],
-                  isSelected: i == selectedIndex,
-                  onTap: () => onTap(i),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TabButton extends StatelessWidget {
-  const _TabButton({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(vertical: 9),
-        decoration: BoxDecoration(
-          color: isSelected ? colorScheme.surface : Colors.transparent,
-          borderRadius: BorderRadius.circular(kButtonRadius - 2),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          style: textTheme.labelMedium?.copyWith(
-            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-            color: isSelected
-                ? colorScheme.onSurface
-                : colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════
 // Market Data State Widgets
 // ═══════════════════════════════════════════════════════════════════
 
 class _MarketDataMissing extends StatelessWidget {
   const _MarketDataMissing({required this.onScanNow});
-  final VoidCallback onScanNow;
+  final Future<void> Function() onScanNow;
 
   @override
   Widget build(BuildContext context) {
@@ -760,62 +1720,6 @@ class _MarketDataMissing extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ScanProgressPanel extends StatelessWidget {
-  const _ScanProgressPanel({required this.scanState});
-  final MarketScanState scanState;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 560),
-        child: PersonaPanel(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: colorScheme.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    '正在扫描市场数据',
-                    style: textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  PersonaStatusPill(
-                    label:
-                        '${scanState.completedCount}/${scanState.platforms.length}',
-                    icon: Icons.radar_outlined,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              for (var i = 0; i < scanState.platforms.length; i++) ...[
-                _PlatformProgressRow(entry: scanState.platforms[i]),
-                if (i < scanState.platforms.length - 1)
-                  const SizedBox(height: 10),
-              ],
-            ],
           ),
         ),
       ),
@@ -945,6 +1849,65 @@ class _MarketDataError extends StatelessWidget {
 // Recommendation State Widgets
 // ═══════════════════════════════════════════════════════════════════
 
+class _RecommendationSection extends StatelessWidget {
+  const _RecommendationSection({required this.recommendationState});
+
+  final MarketRecommendationState recommendationState;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final statusLabel = recommendationState.isGenerating
+        ? '生成中'
+        : recommendationState.hasDirections
+        ? '${recommendationState.directions.length} 个方向'
+        : '待生成';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('创作方向推荐', style: textTheme.titleLarge),
+                  const SizedBox(height: 4),
+                  Text(
+                    '生成结果会保留完整摘要、市场热度和竞争判断，便于直接创建项目。',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            PersonaStatusPill(
+              label: statusLabel,
+              icon: recommendationState.isGenerating
+                  ? Icons.sync
+                  : Icons.auto_awesome_outlined,
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (recommendationState.isGenerating)
+          const _RecommendationLoading()
+        else if (recommendationState.errorMessage != null)
+          _RecommendationError(error: recommendationState.errorMessage!)
+        else if (recommendationState.directions.isEmpty)
+          const _RecommendationEmpty()
+        else
+          _RecommendationList(directions: recommendationState.directions),
+      ],
+    );
+  }
+}
+
 class _RecommendationEmpty extends StatelessWidget {
   const _RecommendationEmpty();
 
@@ -956,7 +1919,7 @@ class _RecommendationEmpty extends StatelessWidget {
         child: const PersonaEmptyStateCard(
           icon: Icons.auto_awesome_outlined,
           title: '尚未生成推荐',
-          description: '点击右上角「生成推荐」按钮，AI 将基于当前市场数据为你分析创作方向。',
+          description: '点击右侧「生成推荐」按钮，AI 将基于当前市场数据为你分析创作方向。',
           centered: true,
         ),
       ),
@@ -1009,18 +1972,18 @@ class _RecommendationLoading extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final crossCount = constraints.maxWidth >= 700 ? 2 : 1;
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossCount,
-            crossAxisSpacing: 14,
-            mainAxisSpacing: 14,
-            mainAxisExtent: 290,
-          ),
-          itemCount: 4,
-          itemBuilder: (context, _) => const _SkeletonCard(),
+        final columns = constraints.maxWidth >= 860 ? 2 : 1;
+        final spacing = columns == 1 ? 0.0 : 14.0;
+        final itemWidth =
+            (constraints.maxWidth - spacing * (columns - 1)) / columns;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: 14,
+          children: [
+            for (var i = 0; i < 4; i++)
+              SizedBox(width: itemWidth, child: const _SkeletonCard()),
+          ],
         );
       },
     );
@@ -1044,7 +2007,7 @@ class _SkeletonCard extends StatelessWidget {
           SkeletonBox(width: double.infinity, height: 12),
           SizedBox(height: 8),
           SkeletonBox(width: 400, height: 12),
-          Spacer(),
+          SizedBox(height: 22),
           Row(
             children: [
               SkeletonBox(width: 90, height: 28),
@@ -1072,35 +2035,67 @@ class _RecommendationList extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final crossCount = constraints.maxWidth >= 700 ? 2 : 1;
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossCount,
-            crossAxisSpacing: 14,
-            mainAxisSpacing: 14,
-            mainAxisExtent: 290,
-          ),
-          itemCount: directions.length,
-          itemBuilder: (context, index) =>
-              _MarketInsightCard(direction: directions[index], index: index),
+        final columns = constraints.maxWidth >= 900 ? 2 : 1;
+        final spacing = columns == 1 ? 0.0 : 14.0;
+        final itemWidth =
+            (constraints.maxWidth - spacing * (columns - 1)) / columns;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: 14,
+          children: [
+            for (var i = 0; i < directions.length; i++)
+              SizedBox(
+                width: itemWidth,
+                child: _MarketInsightCard(direction: directions[i], index: i),
+              ),
+          ],
         );
       },
     );
   }
 }
 
-class _MarketInsightCard extends StatelessWidget {
+class _MarketInsightCard extends StatefulWidget {
   const _MarketInsightCard({required this.direction, required this.index});
 
   final RecommendationDirection direction;
   final int index;
 
   @override
+  State<_MarketInsightCard> createState() => _MarketInsightCardState();
+}
+
+class _MarketInsightCardState extends State<_MarketInsightCard> {
+  late String _selectedTitle;
+
+  RecommendationDirection get direction => widget.direction;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedTitle = direction.suggestedTitle;
+  }
+
+  @override
+  void didUpdateWidget(_MarketInsightCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.direction != widget.direction) {
+      _selectedTitle = widget.direction.suggestedTitle;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    RecommendationTitleCandidate? selectedCandidate;
+    for (final candidate in direction.titleCandidates) {
+      if (candidate.title == _selectedTitle) {
+        selectedCandidate = candidate;
+        break;
+      }
+    }
 
     final heatClr = _heatColor(direction.marketHeatSummary);
     final compClr = _competitionColor(
@@ -1110,7 +2105,7 @@ class _MarketInsightCard extends StatelessWidget {
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
-      duration: Duration(milliseconds: 350 + index * 60),
+      duration: Duration(milliseconds: 350 + widget.index * 60),
       curve: Curves.easeOutCubic,
       builder: (context, v, child) {
         return Opacity(
@@ -1129,62 +2124,95 @@ class _MarketInsightCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top accent bar
               Container(
                 height: 3,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(colors: [heatClr, compClr]),
                 ),
               ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Title
-                      Text(
-                        direction.suggestedTitle,
-                        style: textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _selectedTitle,
+                      style: textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
                       ),
-                      const SizedBox(height: 6),
-
-                      // Genre tags
-                      _GenreTagRow(tags: direction.genreTags),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 6),
+                    _GenreTagRow(tags: direction.genreTags),
+                    if (direction.titleCandidates.isNotEmpty) ...[
                       const SizedBox(height: 10),
-
-                      // Synopsis
-                      Expanded(
-                        child: Text(
-                          direction.synopsis,
-                          style: textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                            height: 1.55,
-                          ),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          for (final candidate in direction.titleCandidates)
+                            ChoiceChip(
+                              label: Text(candidate.title),
+                              selected: candidate.title == _selectedTitle,
+                              onSelected: (_) => setState(
+                                () => _selectedTitle = candidate.title,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                    if (selectedCandidate != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        '${selectedCandidate.formula} · ${selectedCandidate.rationale}',
+                        style: textTheme.labelSmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                          height: 1.45,
                         ),
                       ),
-                      const SizedBox(height: 12),
-
-                      // Metrics bar
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
+                    ],
+                    const SizedBox(height: 12),
+                    Text(
+                      direction.synopsis,
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        height: 1.55,
+                      ),
+                      maxLines: 5,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 12),
+                    _InsightTextBlock(
+                      label: '核心卖点',
+                      value: direction.coreSellingPoint,
+                    ),
+                    const SizedBox(height: 8),
+                    _InsightTextBlock(
+                      label: '目标读者',
+                      value: direction.targetAudience,
+                    ),
+                    const SizedBox(height: 14),
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceContainerHighest.withValues(
+                          alpha: 0.3,
                         ),
-                        decoration: BoxDecoration(
-                          color: colorScheme.surfaceContainerHighest.withValues(
-                            alpha: 0.3,
-                          ),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
                           children: [
+                            _CardMetric(
+                              icon: Icons.public_outlined,
+                              label: '平台',
+                              value: _platformDisplayName(
+                                direction.targetPlatform.name,
+                              ),
+                            ),
                             _CardMetric(
                               icon: Icons.text_fields,
                               label: '目标字数',
@@ -1192,18 +2220,17 @@ class _MarketInsightCard extends StatelessWidget {
                                 direction.targetWordCount,
                               ),
                             ),
-                            const SizedBox(width: 14),
-                            _VerticalDivider(),
-                            const SizedBox(width: 14),
+                            _CardMetric(
+                              icon: Icons.verified_outlined,
+                              label: '可行性',
+                              value: direction.feasibility,
+                            ),
                             _CardMetric(
                               icon: Icons.local_fire_department_outlined,
                               label: '市场热度',
                               value: _heatLabel(direction.marketHeatSummary),
                               valueColor: heatClr,
                             ),
-                            const SizedBox(width: 14),
-                            _VerticalDivider(),
-                            const SizedBox(width: 14),
                             _CardMetric(
                               icon: Icons.bar_chart_outlined,
                               label: '竞争程度',
@@ -1215,50 +2242,77 @@ class _MarketInsightCard extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 12),
-
-                      // Action
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: FilledButton.icon(
-                          onPressed: () {
-                            final uri = Uri(
-                              path: '/projects/create',
-                              queryParameters: {
-                                'title': direction.suggestedTitle,
-                                'synopsis': direction.synopsis,
-                                if (direction.genreTags.isNotEmpty)
-                                  'tags': direction.genreTags.join(','),
-                                if (direction.targetWordCount > 0)
-                                  'wordCount': direction.targetWordCount
-                                      .toString(),
-                              },
-                            );
-                            context.go(uri.toString());
-                          },
-                          icon: const Icon(Icons.arrow_forward, size: 16),
-                          label: const Text('使用此方向'),
+                    ),
+                    const SizedBox(height: 8),
+                    Theme(
+                      data: Theme.of(
+                        context,
+                      ).copyWith(dividerColor: Colors.transparent),
+                      child: ExpansionTile(
+                        tilePadding: EdgeInsets.zero,
+                        childrenPadding: EdgeInsets.zero,
+                        title: Text(
+                          '市场验证与风险',
+                          style: textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
+                        children: [
+                          _InsightTextBlock(
+                            label: '市场验证',
+                            value: direction.marketValidation,
+                          ),
+                          const SizedBox(height: 8),
+                          _InsightTextBlock(
+                            label: '差异化定位',
+                            value: direction.differentiation,
+                          ),
+                          const SizedBox(height: 8),
+                          _InsightTextBlock(
+                            label: '失败风险',
+                            value: direction.failureRisk,
+                          ),
+                          const SizedBox(height: 8),
+                          _InsightTextBlock(
+                            label: '验证动作',
+                            value: direction.validationAction,
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 14),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: FilledButton.icon(
+                        key: ValueKey(
+                          'market-direction-use-${direction.suggestedTitle}',
+                        ),
+                        onPressed: () {
+                          final uri = Uri(
+                            path: '/projects/create',
+                            queryParameters: {
+                              'title': _selectedTitle,
+                              'synopsis': direction.synopsis,
+                              if (direction.genreTags.isNotEmpty)
+                                'tags': direction.genreTags.join(','),
+                              if (direction.targetWordCount > 0)
+                                'wordCount': direction.targetWordCount
+                                    .toString(),
+                            },
+                          );
+                          context.go(uri.toString());
+                        },
+                        icon: const Icon(Icons.arrow_forward, size: 16),
+                        label: const Text('使用此方向'),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-class _VerticalDivider extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 1,
-      height: 18,
-      color: Theme.of(context).colorScheme.outlineVariant,
     );
   }
 }
@@ -1282,40 +2336,71 @@ class _CardMetric extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final effectiveColor = valueColor ?? colorScheme.onSurfaceVariant;
 
-    return Expanded(
-      child: Row(
-        children: [
-          Icon(icon, size: 14, color: effectiveColor),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  label,
-                  style: textTheme.labelSmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                    fontSize: 9,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  value,
-                  style: textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: effectiveColor,
-                    fontSize: 11,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ],
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surface.withValues(alpha: 0.74),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: effectiveColor),
+            const SizedBox(width: 6),
+            Text(
+              '$label · ',
+              style: textTheme.labelSmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                fontSize: 10,
+              ),
+            ),
+            Text(
+              value,
+              style: textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: effectiveColor,
+                fontSize: 10,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InsightTextBlock extends StatelessWidget {
+  const _InsightTextBlock({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: textTheme.labelSmall?.copyWith(
+            color: colorScheme.primary,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          value,
+          style: textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+            height: 1.45,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1374,6 +2459,57 @@ class _GenreTagRow extends StatelessWidget {
       ],
     );
   }
+}
+
+String _viewLabel(_WorkspaceView view) {
+  return switch (view) {
+    _WorkspaceView.overview => '概览',
+    _WorkspaceView.rankings => '榜单',
+    _WorkspaceView.recommendations => '推荐',
+    _WorkspaceView.history => '历史',
+  };
+}
+
+IconData _viewIcon(_WorkspaceView view) {
+  return switch (view) {
+    _WorkspaceView.overview => Icons.dashboard_outlined,
+    _WorkspaceView.rankings => Icons.leaderboard_outlined,
+    _WorkspaceView.recommendations => Icons.auto_awesome_outlined,
+    _WorkspaceView.history => Icons.history_outlined,
+  };
+}
+
+String _platformDisplayName(String platform) {
+  return switch (platform) {
+    'qidian' => '起点中文网',
+    'fanqie' => '番茄小说',
+    'jinjiang' => '晋江文学城',
+    _ => platform,
+  };
+}
+
+IconData _scanRunStatusIcon(MarketScanRunStatus status) {
+  return switch (status) {
+    MarketScanRunStatus.running => Icons.sync_outlined,
+    MarketScanRunStatus.completed => Icons.check_circle_outline,
+    MarketScanRunStatus.failed => Icons.error_outline,
+  };
+}
+
+Color _scanRunStatusColor(MarketScanRunStatus status, ColorScheme colorScheme) {
+  return switch (status) {
+    MarketScanRunStatus.running => colorScheme.primary,
+    MarketScanRunStatus.completed => const Color(0xFF2E7D32),
+    MarketScanRunStatus.failed => colorScheme.error,
+  };
+}
+
+String _scanRunStatusLabel(MarketScanRunStatus status) {
+  return switch (status) {
+    MarketScanRunStatus.running => '运行中',
+    MarketScanRunStatus.completed => '已完成',
+    MarketScanRunStatus.failed => '失败',
+  };
 }
 
 String _formatWordCount(int count) {

@@ -265,8 +265,8 @@ class _ProjectCreationPageState extends ConsumerState<ProjectCreationPage> {
                   labelText: '简介 / 一句话概念',
                   hintText: '写下项目的核心设定、主线或创作目标。',
                 ),
-                minLines: 3,
-                maxLines: 5,
+                minLines: 4,
+                maxLines: 8,
               ),
               if (widget.prefillGenreTags != null &&
                   widget.prefillGenreTags!.isNotEmpty) ...[

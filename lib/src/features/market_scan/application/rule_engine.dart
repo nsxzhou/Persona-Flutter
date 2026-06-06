@@ -25,9 +25,9 @@ class RuleEngine {
   ];
 
   /// Compute all metrics from current market data.
-  Future<MarketMetrics> compute() async {
-    final books = await _repository.findBooks();
-    final rankings = await _repository.findLatestRankings();
+  Future<MarketMetrics> compute({MarketPlatform? platform}) async {
+    final books = await _repository.findBooks(platform: platform);
+    final rankings = await _repository.findLatestRankings(platform: platform);
 
     if (books.isEmpty || rankings.isEmpty) {
       return MarketMetrics(

@@ -10,6 +10,7 @@ import '../../../core/tasks/application/workflow_task_repository.dart';
 import '../../../core/tasks/domain/workflow_task.dart';
 import '../domain/market_scan_workflow.dart';
 import '../domain/recommendation_direction.dart';
+import '../domain/recommendation_generation_request.dart';
 import 'market_scan_providers.dart';
 
 part 'market_recommendation_controller.g.dart';
@@ -60,7 +61,7 @@ class MarketRecommendationController extends _$MarketRecommendationController {
   @override
   MarketRecommendationState build() => const MarketRecommendationState();
 
-  Future<void> generate() async {
+  Future<void> generate(RecommendationGenerationRequest request) async {
     if (state.isGenerating) {
       return;
     }
@@ -128,6 +129,7 @@ class MarketRecommendationController extends _$MarketRecommendationController {
 
       await updateTask(WorkflowTaskStatus.running, stage: 'generating');
       final directions = await service.generate(
+        request: request,
         provider: provider,
         cancellationToken: cancellationToken,
         promptTrace: traceRecorder.config(label: 'market_recommendation'),

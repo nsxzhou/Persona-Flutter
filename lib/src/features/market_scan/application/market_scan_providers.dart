@@ -62,6 +62,7 @@ RuleEngine ruleEngine(Ref ref) {
 RecommendationGenerationService recommendationGenerationService(Ref ref) {
   return RecommendationGenerationService(
     ruleEngine: ref.watch(ruleEngineProvider),
+    marketRepository: ref.watch(marketScanRepositoryProvider),
     completionService: ref.watch(markdownCompletionServiceProvider),
     providerRepository: ref.watch(providerConfigRepositoryProvider),
   );

@@ -1,5 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'market_book.dart';
+
 part 'recommendation_direction.freezed.dart';
 part 'recommendation_direction.g.dart';
 
@@ -9,13 +11,36 @@ part 'recommendation_direction.g.dart';
 abstract class RecommendationDirection with _$RecommendationDirection {
   const factory RecommendationDirection({
     required String suggestedTitle,
+    required List<RecommendationTitleCandidate> titleCandidates,
     required String synopsis,
     required List<String> genreTags,
     required int targetWordCount,
+    required MarketPlatform targetPlatform,
+    required String targetAudience,
+    required String coreSellingPoint,
     required String marketHeatSummary,
     required String competitionSummary,
+    required String marketValidation,
+    required String differentiation,
+    required String feasibility,
+    required String failureRisk,
+    required String validationAction,
+    required String detailMarkdown,
   }) = _RecommendationDirection;
 
   factory RecommendationDirection.fromJson(Map<String, Object?> json) =>
       _$RecommendationDirectionFromJson(json);
+}
+
+@freezed
+abstract class RecommendationTitleCandidate
+    with _$RecommendationTitleCandidate {
+  const factory RecommendationTitleCandidate({
+    required String title,
+    required String formula,
+    required String rationale,
+  }) = _RecommendationTitleCandidate;
+
+  factory RecommendationTitleCandidate.fromJson(Map<String, Object?> json) =>
+      _$RecommendationTitleCandidateFromJson(json);
 }
