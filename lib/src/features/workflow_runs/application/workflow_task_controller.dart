@@ -14,6 +14,19 @@ class WorkflowTaskController extends _$WorkflowTaskController {
   @override
   FutureOr<void> build() {}
 
+  Future<int> clearCompleted() async {
+    state = const AsyncLoading();
+    try {
+      final count =
+          await ref.read(workflowTaskRepositoryProvider).clearCompletedTasks();
+      state = const AsyncData(null);
+      return count;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      Error.throwWithStackTrace(e, st);
+    }
+  }
+
   Future<void> abandon(String taskId) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {

@@ -126,6 +126,33 @@ class DriftWorkflowTaskRepository implements WorkflowTaskRepository {
   }
 
   @override
+  Future<int> clearCompletedTasks() async {
+    return _database.transaction(() async {
+      // IDs of tasks not currently running.
+      final nonRunningIdsQuery =
+          _database.selectOnly(_database.workflowTaskRecords)
+            ..addColumns([_database.workflowTaskRecords.id])
+            ..where(_database.workflowTaskRecords.status.isNotIn(
+              [WorkflowTaskStatus.running.name],
+            ));
+
+      // Delete prompt traces for non-running tasks.
+      await (_database.delete(
+        _database.workflowPromptTraceRecords,
+      )..where(
+          (t) => t.workflowTaskId.isInQuery(nonRunningIdsQuery),
+        )).go();
+
+      // Delete non-running tasks; returns affected row count.
+      return (_database.delete(_database.workflowTaskRecords)
+            ..where(
+              (t) => t.status.isNotIn([WorkflowTaskStatus.running.name]),
+            ))
+          .go();
+    });
+  }
+
+  @override
   Future<void> dismissTaskPreview(String id) async {
     await (_database.update(_database.workflowTaskRecords)..where(
           (task) =>

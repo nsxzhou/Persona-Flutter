@@ -41,6 +41,10 @@ abstract interface class WorkflowTaskRepository {
 
   Future<void> dismissTaskPreview(String id);
 
+  /// Deletes all tasks not in [WorkflowTaskStatus.running] status,
+  /// along with their associated prompt traces.
+  Future<int> clearCompletedTasks();
+
   Stream<WorkflowPromptTrace?> watchPromptTrace(String workflowTaskId);
 
   Future<void> upsertPromptTrace({

@@ -5,6 +5,7 @@ import '../../../core/tasks/application/workflow_task_providers.dart';
 import '../../../core/tasks/domain/workflow_task.dart';
 import '../../../core/ui/persona_page.dart';
 import '../../../core/ui/skeleton_loader.dart';
+import '../application/workflow_task_controller.dart';
 import 'workflow_run_filters.dart';
 import 'workflow_run_metrics.dart';
 import 'workflow_run_row.dart';
@@ -19,6 +20,36 @@ class WorkflowRunsPage extends ConsumerStatefulWidget {
 class _WorkflowRunsPageState extends ConsumerState<WorkflowRunsPage> {
   WorkflowTaskStatus? _statusFilter;
   String? _kindFilter;
+
+  Future<void> _showClearConfirmation(int clearableCount) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('清空任务'),
+        content: Text(
+          '将删除 $clearableCount 个非运行中的任务及其 Prompt Trace，此操作不可撤销。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('确认清空'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await ref
+          .read(workflowTaskControllerProvider.notifier)
+          .clearCompleted();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +67,9 @@ class _WorkflowRunsPageState extends ConsumerState<WorkflowRunsPage> {
                     (_kindFilter == null || task.kind == _kindFilter),
               )
               .toList(growable: false);
+
+          final clearableCount =
+              tasks.where((t) => t.status != WorkflowTaskStatus.running).length;
 
           return CustomScrollView(
             slivers: [
@@ -82,6 +116,26 @@ class _WorkflowRunsPageState extends ConsumerState<WorkflowRunsPage> {
                                   ],
                                 ),
                               ),
+                              if (clearableCount > 0)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 4),
+                                  child: OutlinedButton.icon(
+                                    onPressed: () =>
+                                        _showClearConfirmation(clearableCount),
+                                    icon: const Icon(
+                                      Icons.delete_sweep_outlined,
+                                      size: 18,
+                                    ),
+                                    label: Text('清空 ($clearableCount)'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: colorScheme.error,
+                                      side: BorderSide(
+                                        color:
+                                            colorScheme.error.withValues(alpha: 0.5),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                             ],
                           ),
                           const SizedBox(height: 28),

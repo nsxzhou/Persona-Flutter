@@ -584,6 +584,9 @@ class _WorkflowRunsTestApp extends StatelessWidget {
 class _NoopWorkflowTaskController extends WorkflowTaskController {
   @override
   Future<void> abandon(String taskId) async {}
+
+  @override
+  Future<int> clearCompleted() async => 0;
 }
 
 class _FakeWorkflowTaskRepository implements WorkflowTaskRepository {
@@ -648,6 +651,9 @@ class _FakeWorkflowTaskRepository implements WorkflowTaskRepository {
 
   @override
   Future<void> abandonTask(String id) async {}
+
+  @override
+  Future<int> clearCompletedTasks() async => 0;
 
   @override
   Future<void> dismissTaskPreview(String id) async {
