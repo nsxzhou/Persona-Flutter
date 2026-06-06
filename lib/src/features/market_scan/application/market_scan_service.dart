@@ -1,5 +1,4 @@
-import 'package:flutter/foundation.dart';
-
+import '../../../core/llm/domain/llm_cancellation.dart';
 import '../domain/data_source_adapter.dart';
 import '../domain/market_book.dart';
 import '../domain/market_ranking.dart';
@@ -25,8 +24,12 @@ class MarketScanService {
 
   /// Run scraping for all platforms in parallel. Returns total items scraped.
   /// Each platform runs independently — one failure doesn't block others.
-  Future<ScanAllResult> scanAll() async {
-    final futures = adapters.map((adapter) => scanPlatform(adapter));
+  Future<ScanAllResult> scanAll({
+    LlmCancellationToken? cancellationToken,
+  }) async {
+    final futures = adapters.map(
+      (adapter) => scanPlatform(adapter, cancellationToken: cancellationToken),
+    );
     final results = await Future.wait(futures);
 
     final resultMap = <String, PlatformScanResult>{};
@@ -38,38 +41,40 @@ class MarketScanService {
       totalItems += result.itemCount;
     }
 
-    return ScanAllResult(
-      totalItems: totalItems,
-      platformResults: resultMap,
-    );
+    return ScanAllResult(totalItems: totalItems, platformResults: resultMap);
   }
 
   /// Run scraping for a single platform.
-  Future<PlatformScanResult> scanPlatform(DataSourceAdapter adapter) async {
-    debugPrint('[ScanService] scanPlatform(${adapter.displayName}) starting');
-
+  Future<PlatformScanResult> scanPlatform(
+    DataSourceAdapter adapter, {
+    LlmCancellationToken? cancellationToken,
+  }) async {
+    cancellationToken?.throwIfCancelled();
     // Auto-launch Chrome for adapters that need CDP.
     if (adapter.requiresCdp) {
-      debugPrint('[ScanService] ${adapter.displayName} requires CDP, ensuring Chrome...');
-      final cdpReady = await runner.ensureCdpReady();
-      debugPrint('[ScanService] CDP ready: $cdpReady');
+      final cdpReady = await runner.ensureCdpReady(
+        cancellationToken: cancellationToken,
+      );
       if (!cdpReady) {
         return PlatformScanResult(
           platform: adapter.displayName,
           itemCount: 0,
           success: false,
-          errorMessage: 'Chrome 未找到或无法自动启动。请手动以调试模式启动:\n'
+          errorMessage:
+              'Chrome 未找到或无法自动启动。请手动以调试模式启动:\n'
               'Google Chrome --remote-debugging-port=9222',
           cdpRequired: true,
         );
       }
     }
 
+    cancellationToken?.throwIfCancelled();
     final run = await repository.createRun(adapter.platform.name);
-    debugPrint('[ScanService] Run created with id ${run.id}');
     try {
-      final scrapedBooks = await adapter.scrapeCoreCharts();
-      debugPrint('[ScanService] ${adapter.displayName}: scraped ${scrapedBooks.length} books');
+      final scrapedBooks = await adapter.scrapeCoreCharts(
+        cancellationToken: cancellationToken,
+      );
+      cancellationToken?.throwIfCancelled();
       if (scrapedBooks.isEmpty) {
         await repository.completeRun(runId: run.id, itemCount: 0);
         return PlatformScanResult(
@@ -86,20 +91,27 @@ class MarketScanService {
         bookInputMap.putIfAbsent(key, () => _toBookInput(scraped));
       }
       await repository.upsertBooks(bookInputMap.values.toList());
+      cancellationToken?.throwIfCancelled();
 
       // Resolve book IDs for ranking insertion.
+      final platformBooks = await repository.findBooks(
+        platform: adapter.platform,
+      );
+      final bookIdByPlatformBookId = {
+        for (final book in platformBooks) book.platformBookId: book.id,
+      };
       final rankingInputs = <_PendingRanking>[];
       for (final scraped in scrapedBooks) {
-        final books = await repository.findBooks(platform: scraped.platform);
-        final book = books.firstWhere(
-          (b) => b.platformBookId == scraped.platformBookId,
-          orElse: () => throw StateError(
+        final bookId = bookIdByPlatformBookId[scraped.platformBookId];
+        if (bookId == null) {
+          throw StateError(
             'Book not found after upsert: ${scraped.platformBookId}',
-          ),
-        );
-        rankingInputs.add(_PendingRanking(bookId: book.id, scraped: scraped));
+          );
+        }
+        rankingInputs.add(_PendingRanking(bookId: bookId, scraped: scraped));
       }
 
+      cancellationToken?.throwIfCancelled();
       await repository.insertRankings(
         rankingInputs
             .map(
@@ -118,7 +130,10 @@ class MarketScanService {
             .toList(),
       );
 
-      await repository.completeRun(runId: run.id, itemCount: scrapedBooks.length);
+      await repository.completeRun(
+        runId: run.id,
+        itemCount: scrapedBooks.length,
+      );
       // Clean up old runs to prevent database bloat.
       await repository.cleanupOldRuns();
       return PlatformScanResult(
@@ -126,13 +141,12 @@ class MarketScanService {
         itemCount: scrapedBooks.length,
         success: true,
       );
+    } on LlmCancellationException {
+      await repository.failRun(runId: run.id, errorMessage: '市场扫描任务已取消。');
+      rethrow;
     } catch (e) {
-      debugPrint('[ScanService] ${adapter.displayName} failed: $e');
       final isCdpRequired = e is CdpRequiredException;
-      await repository.failRun(
-        runId: run.id,
-        errorMessage: e.toString(),
-      );
+      await repository.failRun(runId: run.id, errorMessage: e.toString());
       return PlatformScanResult(
         platform: adapter.displayName,
         itemCount: 0,
@@ -168,8 +182,7 @@ class ScanAllResult {
   final int totalItems;
   final Map<String, PlatformScanResult> platformResults;
 
-  bool get allSucceeded =>
-      platformResults.values.every((r) => r.success);
+  bool get allSucceeded => platformResults.values.every((r) => r.success);
 }
 
 class PlatformScanResult {

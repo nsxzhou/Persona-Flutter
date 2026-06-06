@@ -213,7 +213,9 @@ class PlotLabProfileDetailPage extends ConsumerWidget {
     return profile.when(
       data: (item) {
         if (item == null) {
-          return const AnalysisMissingDetail(eyebrow: 'Plot Profile Detail', backRoute: '/plot-lab', 
+          return const AnalysisMissingDetail(
+            eyebrow: 'Plot Profile Detail',
+            backRoute: '/plot-lab',
             title: 'Profile 不存在',
             description: '这个 Plot Profile 可能已被删除。',
           );
@@ -233,9 +235,16 @@ class PlotLabProfileDetailPage extends ConsumerWidget {
           ),
         );
       },
-      loading: () => const AnalysisDetailLoading(eyebrow: 'Plot Profile Detail', description: '正在读取剧情档案。'),
-      error: (error, stackTrace) =>
-          AnalysisMissingDetail(eyebrow: 'Plot Profile Detail', backRoute: '/plot-lab', title: '无法读取 Profile', description: '$error'),
+      loading: () => const AnalysisDetailLoading(
+        eyebrow: 'Plot Profile Detail',
+        description: '正在读取剧情档案。',
+      ),
+      error: (error, stackTrace) => AnalysisMissingDetail(
+        eyebrow: 'Plot Profile Detail',
+        backRoute: '/plot-lab',
+        title: '无法读取 Profile',
+        description: '$error',
+      ),
     );
   }
 }
@@ -251,7 +260,9 @@ class PlotLabTaskDetailPage extends ConsumerWidget {
     return run.when(
       data: (item) {
         if (item == null) {
-          return const AnalysisMissingDetail(eyebrow: 'Plot Profile Detail', backRoute: '/plot-lab', 
+          return const AnalysisMissingDetail(
+            eyebrow: 'Plot Profile Detail',
+            backRoute: '/plot-lab',
             title: '任务不存在',
             description: '这个 Story Engine 草稿或分析任务可能已被删除。',
           );
@@ -263,9 +274,16 @@ class PlotLabTaskDetailPage extends ConsumerWidget {
           child: _PlotTaskDetail(run: item, sample: sample),
         );
       },
-      loading: () => const AnalysisDetailLoading(eyebrow: 'Plot Profile Detail', description: '正在读取剧情档案。'),
-      error: (error, stackTrace) =>
-          AnalysisMissingDetail(eyebrow: 'Plot Profile Detail', backRoute: '/plot-lab', title: '无法读取任务', description: '$error'),
+      loading: () => const AnalysisDetailLoading(
+        eyebrow: 'Plot Profile Detail',
+        description: '正在读取剧情档案。',
+      ),
+      error: (error, stackTrace) => AnalysisMissingDetail(
+        eyebrow: 'Plot Profile Detail',
+        backRoute: '/plot-lab',
+        title: '无法读取任务',
+        description: '$error',
+      ),
     );
   }
 }
@@ -416,77 +434,77 @@ class _CreatePlotProfileDialogState
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 580),
       child: samples.when(
-            data: (sampleItems) => providers.when(
-              data: (providerItems) => projects.when(
-                data: (projectItems) {
-                  _syncDefaults(providerItems, projectItems);
-                  final selectedSample = findOrNull(
-                    sampleItems,
-                    _selectedSampleId,
-                    (item) => item.id,
-                  );
-                  final selectedProvider = findOrNull(
+        data: (sampleItems) => providers.when(
+          data: (providerItems) => projects.when(
+            data: (projectItems) {
+              _syncDefaults(providerItems, projectItems);
+              final selectedSample = findOrNull(
+                sampleItems,
+                _selectedSampleId,
+                (item) => item.id,
+              );
+              final selectedProvider = findOrNull(
+                providerItems,
+                _selectedProviderId,
+                (item) => item.id,
+              );
+              final selectedModelName =
+                  _selectedModelName ?? selectedProvider?.defaultModel;
+              final selectedProject = findOrNull(
+                projectItems,
+                _selectedProjectId,
+                (item) => item.id,
+              );
+              return _CreatePlotProfileForm(
+                providers: providerItems,
+                projects: projectItems,
+                selectedSample: selectedSample,
+                selectedProvider: selectedProvider,
+                selectedModelName: selectedModelName,
+                selectedProject: selectedProject,
+                plotNameController: _plotNameController,
+                controllerBusy: controller.isLoading,
+                onImportSample: _importSample,
+                onProviderSelected: (id) => setState(() {
+                  _selectedProviderId = id;
+                  final provider = findOrNull(
                     providerItems,
-                    _selectedProviderId,
+                    id,
                     (item) => item.id,
                   );
-                  final selectedModelName =
-                      _selectedModelName ?? selectedProvider?.defaultModel;
-                  final selectedProject = findOrNull(
-                    projectItems,
-                    _selectedProjectId,
-                    (item) => item.id,
-                  );
-                  return _CreatePlotProfileForm(
-                    providers: providerItems,
-                    projects: projectItems,
-                    selectedSample: selectedSample,
-                    selectedProvider: selectedProvider,
-                    selectedModelName: selectedModelName,
-                    selectedProject: selectedProject,
-                    plotNameController: _plotNameController,
-                    controllerBusy: controller.isLoading,
-                    onImportSample: _importSample,
-                    onProviderSelected: (id) => setState(() {
-                      _selectedProviderId = id;
-                      final provider = findOrNull(
-                        providerItems,
-                        id,
-                        (item) => item.id,
-                      );
-                      _selectedModelName = provider?.defaultModel;
-                    }),
-                    onModelSelected: (modelName) =>
-                        setState(() => _selectedModelName = modelName),
-                    onProjectSelected: (id) =>
-                        setState(() => _selectedProjectId = id),
-                    onRun: selectedSample == null || selectedProvider == null
-                        ? null
-                        : () => _createRun(
-                            selectedSample,
-                            selectedProvider,
-                            selectedModelName ?? selectedProvider.defaultModel,
-                          ),
-                  );
-                },
-                loading: () => const SizedBox(
-                  height: 260,
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                error: (error, stackTrace) => InlineError(message: '$error'),
-              ),
-              loading: () => const SizedBox(
-                height: 260,
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (error, stackTrace) => InlineError(message: '$error'),
-            ),
+                  _selectedModelName = provider?.defaultModel;
+                }),
+                onModelSelected: (modelName) =>
+                    setState(() => _selectedModelName = modelName),
+                onProjectSelected: (id) =>
+                    setState(() => _selectedProjectId = id),
+                onRun: selectedSample == null || selectedProvider == null
+                    ? null
+                    : () => _createRun(
+                        selectedSample,
+                        selectedProvider,
+                        selectedModelName ?? selectedProvider.defaultModel,
+                      ),
+              );
+            },
             loading: () => const SizedBox(
               height: 260,
               child: Center(child: CircularProgressIndicator()),
             ),
             error: (error, stackTrace) => InlineError(message: '$error'),
           ),
+          loading: () => const SizedBox(
+            height: 260,
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (error, stackTrace) => InlineError(message: '$error'),
+        ),
+        loading: () => const SizedBox(
+          height: 260,
+          child: Center(child: CircularProgressIndicator()),
+        ),
+        error: (error, stackTrace) => InlineError(message: '$error'),
+      ),
     );
   }
 
@@ -870,86 +888,92 @@ class _LibraryAssetRowState extends State<_LibraryAssetRow> {
             ),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
-              child: widget.compact ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _AssetTitle(asset: asset),
-                    const SizedBox(height: 8),
-                    Text(
-                      asset.sourceTitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+              child: widget.compact
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _AssetKindPill(kind: asset.kind),
-                        PersonaStatusPill(
-                          label: asset.status.name,
-                          icon: statusIcon(asset.status.name),
-                          color: statusColor(colorScheme, asset.status.name),
+                        _AssetTitle(asset: asset),
+                        const SizedBox(height: 8),
+                        Text(
+                          asset.sourceTitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.bodySmall,
                         ),
-                        _StoryEngineStatus(markdown: asset.storyEngineMarkdown),
-                        _AssetMoreButton(onDelete: widget.onDelete),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _AssetKindPill(kind: asset.kind),
+                            PersonaStatusPill(
+                              label: asset.status.name,
+                              icon: statusIcon(asset.status.name),
+                              color: statusColor(
+                                colorScheme,
+                                asset.status.name,
+                              ),
+                            ),
+                            _StoryEngineStatus(
+                              markdown: asset.storyEngineMarkdown,
+                            ),
+                            _AssetMoreButton(onDelete: widget.onDelete),
+                          ],
+                        ),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        Expanded(flex: 4, child: _AssetTitle(asset: asset)),
+                        Expanded(
+                          flex: 3,
+                          child: Text(
+                            asset.sourceTitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Expanded(
+                          flex: 3,
+                          child: Text(
+                            asset.providerLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: textTheme.bodySmall,
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              _AssetKindPill(kind: asset.kind),
+                              _StoryEngineStatus(
+                                markdown: asset.storyEngineMarkdown,
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(
+                          width: 104,
+                          child: Text(
+                            formatDate(asset.updatedAt),
+                            style: textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: 44,
+                          child: _AssetMoreButton(onDelete: widget.onDelete),
+                        ),
                       ],
                     ),
-                  ],
-                )
-              : Row(
-                  children: [
-                    Expanded(flex: 4, child: _AssetTitle(asset: asset)),
-                    Expanded(
-                      flex: 3,
-                      child: Text(
-                        asset.sourceTitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Expanded(
-                      flex: 3,
-                      child: Text(
-                        asset.providerLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: textTheme.bodySmall,
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: [
-                          _AssetKindPill(kind: asset.kind),
-                          _StoryEngineStatus(
-                            markdown: asset.storyEngineMarkdown,
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(
-                      width: 104,
-                      child: Text(
-                        formatDate(asset.updatedAt),
-                        style: textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      width: 44,
-                      child: _AssetMoreButton(onDelete: widget.onDelete),
-                    ),
-                  ],
-                ),
-              ),
             ),
           ),
         ),
+      ),
     );
   }
 }
@@ -1129,143 +1153,149 @@ class _ActivityRunRowState extends State<_ActivityRunRow> {
               borderRadius: BorderRadius.circular(kPanelRadius),
               border: Border.all(color: colorScheme.outlineVariant),
             ),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final compact = constraints.maxWidth < 700;
-                    final title = Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          run.plotName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            PersonaStatusPill(
-                              label: run.status.name,
-                              icon: statusIcon(run.status.name),
-                              color: statusColor(colorScheme, run.status.name),
-                            ),
-                            PersonaStatusPill(
-                              label: _stageLabel(run.stage),
-                              icon: Icons.timeline,
-                            ),
-                            PersonaStatusPill(
-                              label: _chunkProgressLabel(run),
-                              icon: Icons.grain,
-                            ),
-                          ],
-                        ),
-                      ],
-                    );
-                    final detailAction = OutlinedButton.icon(
-                      onPressed: () => context.go('/plot-lab/tasks/${run.id}'),
-                      icon: const Icon(Icons.open_in_new_outlined),
-                      label: const Text('打开详情'),
-                    );
-                    final rerunAction = OutlinedButton.icon(
-                      onPressed: run.status == PlotAnalysisStatus.failed
-                          ? widget.onRerun
-                          : null,
-                      icon: const Icon(Icons.replay_outlined),
-                      label: const Text('重跑'),
-                    );
-                    final deleteAction = IconButton.outlined(
-                      tooltip: '删除分析任务',
-                      onPressed: widget.onDelete,
-                      icon: const Icon(Icons.delete_outline),
-                    );
-                    if (compact) {
-                      return Column(
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final compact = constraints.maxWidth < 700;
+                      final title = Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          title,
-                          const SizedBox(height: 12),
+                          Text(
+                            run.plotName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 8),
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
-                            children: [detailAction, rerunAction, deleteAction],
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              PersonaStatusPill(
+                                label: run.status.name,
+                                icon: statusIcon(run.status.name),
+                                color: statusColor(
+                                  colorScheme,
+                                  run.status.name,
+                                ),
+                              ),
+                              PersonaStatusPill(
+                                label: _stageLabel(run.stage),
+                                icon: Icons.timeline,
+                              ),
+                              PersonaStatusPill(
+                                label: _chunkProgressLabel(run),
+                                icon: Icons.grain,
+                              ),
+                            ],
                           ),
                         ],
                       );
-                    }
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: title),
-                        const SizedBox(width: 12),
-                        detailAction,
-                        const SizedBox(width: 8),
-                        rerunAction,
-                        const SizedBox(width: 8),
-                        deleteAction,
-                      ],
-                    );
-                  },
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(999),
-                        child: LinearProgressIndicator(
-                          value: progressValue,
-                          minHeight: 6,
-                          color: statusColor(colorScheme, run.status.name),
-                          backgroundColor: colorScheme.outlineVariant
-                              .withValues(alpha: 0.55),
+                      final detailAction = OutlinedButton.icon(
+                        onPressed: () =>
+                            context.go('/plot-lab/tasks/${run.id}'),
+                        icon: const Icon(Icons.open_in_new_outlined),
+                        label: const Text('打开详情'),
+                      );
+                      final rerunAction = OutlinedButton.icon(
+                        onPressed: run.status == PlotAnalysisStatus.failed
+                            ? widget.onRerun
+                            : null,
+                        icon: const Icon(Icons.replay_outlined),
+                        label: const Text('重跑'),
+                      );
+                      final deleteAction = IconButton.outlined(
+                        tooltip: '删除分析任务',
+                        onPressed: widget.onDelete,
+                        icon: const Icon(Icons.delete_outline),
+                      );
+                      if (compact) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            title,
+                            const SizedBox(height: 12),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                detailAction,
+                                rerunAction,
+                                deleteAction,
+                              ],
+                            ),
+                          ],
+                        );
+                      }
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: title),
+                          const SizedBox(width: 12),
+                          detailAction,
+                          const SizedBox(width: 8),
+                          rerunAction,
+                          const SizedBox(width: 8),
+                          deleteAction,
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(999),
+                          child: LinearProgressIndicator(
+                            value: progressValue,
+                            minHeight: 6,
+                            color: statusColor(colorScheme, run.status.name),
+                            backgroundColor: colorScheme.outlineVariant
+                                .withValues(alpha: 0.55),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      progress.label,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      const SizedBox(width: 12),
+                      Text(
+                        progress.label,
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(color: colorScheme.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        summary.icon,
+                        size: 16,
                         color: colorScheme.onSurfaceVariant,
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      summary.icon,
-                      size: 16,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        summary.text,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          summary.text,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: colorScheme.onSurfaceVariant),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
-    ),
     );
   }
 }
@@ -1715,9 +1745,7 @@ class _PlotDetailBodyState extends State<_PlotDetailBody>
                     sourceTitle: widget.sourceTitle,
                   ),
                 ),
-                KeepAliveTabWrapper(
-                  child: _RunLogTab(run: widget.run),
-                ),
+                KeepAliveTabWrapper(child: _RunLogTab(run: widget.run)),
               ],
             ),
           ),
@@ -2156,8 +2184,6 @@ class _StoryEngineStatus extends StatelessWidget {
     }
   }
 }
-
-
 
 Future<bool> _confirmDeletePlotItem({
   required BuildContext context,

@@ -254,11 +254,12 @@ class _WorkflowRunDetailScaffoldState
                       controller: _tabController,
                       children: [
                         KeepAliveTabWrapper(
-                          child: _PromptTraceTab(trace: trace, mode: _traceMode),
+                          child: _PromptTraceTab(
+                            trace: trace,
+                            mode: _traceMode,
+                          ),
                         ),
-                        KeepAliveTabWrapper(
-                          child: _WorkflowLogTab(logs: logs),
-                        ),
+                        KeepAliveTabWrapper(child: _WorkflowLogTab(logs: logs)),
                       ],
                     ),
                   );

@@ -619,7 +619,12 @@ class _ChatWorkbench extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('流式对话测试', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                      Text(
+                        '流式对话测试',
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                       const SizedBox(height: 2),
                       Text(
                         '${provider.name} · $selectedModelName',
@@ -680,15 +685,24 @@ class _ChatWorkbench extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 10, 18, 0),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: colorScheme.errorContainer.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: colorScheme.error.withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: colorScheme.error.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.error_outline, color: colorScheme.error, size: 16),
+                    Icon(
+                      Icons.error_outline,
+                      color: colorScheme.error,
+                      size: 16,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -717,7 +731,9 @@ class _ChatWorkbench extends StatelessWidget {
                   decoration: InputDecoration(
                     hintText: '输入测试消息，按按钮开始流式生成。',
                     hintStyle: textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                      color: colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.5,
+                      ),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 14,
@@ -733,7 +749,10 @@ class _ChatWorkbench extends StatelessWidget {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
+                      borderSide: BorderSide(
+                        color: colorScheme.primary,
+                        width: 1.5,
+                      ),
                     ),
                   ),
                   onSubmitted: (_) => onSend(),
@@ -846,7 +865,10 @@ class _InlineControlBar extends StatelessWidget {
               ),
               items: [
                 for (final name in modelNames)
-                  DropdownMenuItem(value: name, child: Text(name, overflow: TextOverflow.ellipsis)),
+                  DropdownMenuItem(
+                    value: name,
+                    child: Text(name, overflow: TextOverflow.ellipsis),
+                  ),
               ],
               onChanged: isStreaming
                   ? null
@@ -1332,9 +1354,8 @@ class _ProviderInspectorPanel extends ConsumerWidget {
                     children: [
                       Text(
                         'Inspector',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 2),
                       Text(
@@ -1590,7 +1611,9 @@ class _ParameterInspectorTab extends StatelessWidget {
             Expanded(
               child: Text(
                 '测试参数',
-                style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                style: textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
             PersonaStatusPill(
@@ -1600,7 +1623,13 @@ class _ParameterInspectorTab extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 16),
-        Text('Model', style: textTheme.labelSmall?.copyWith(color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.w600)),
+        Text(
+          'Model',
+          style: textTheme.labelSmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
           initialValue: selectedModelName,
@@ -1608,7 +1637,11 @@ class _ParameterInspectorTab extends StatelessWidget {
             for (final modelName in modelNames)
               DropdownMenuItem(
                 value: modelName,
-                child: Text(modelName, overflow: TextOverflow.ellipsis, style: textTheme.bodySmall),
+                child: Text(
+                  modelName,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodySmall,
+                ),
               ),
           ],
           onChanged: isStreaming
@@ -1620,7 +1653,10 @@ class _ParameterInspectorTab extends StatelessWidget {
                 },
           decoration: InputDecoration(
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 10,
+            ),
             isDense: true,
           ),
           style: textTheme.bodySmall,
@@ -1628,7 +1664,13 @@ class _ParameterInspectorTab extends StatelessWidget {
         const SizedBox(height: 16),
         Row(
           children: [
-            Text('Temperature', style: textTheme.labelSmall?.copyWith(color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.w600)),
+            Text(
+              'Temperature',
+              style: textTheme.labelSmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const Spacer(),
             Text(
               temperature.toStringAsFixed(1),

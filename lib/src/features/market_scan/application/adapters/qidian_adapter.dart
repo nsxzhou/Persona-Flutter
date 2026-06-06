@@ -1,3 +1,4 @@
+import '../../../../core/llm/domain/llm_cancellation.dart';
 import '../../domain/data_source_adapter.dart';
 import '../../domain/market_book.dart';
 import '../../domain/scraped_book.dart';
@@ -15,7 +16,12 @@ class QidianAdapter extends DataSourceAdapter {
   String get displayName => '起点中文网';
 
   @override
-  Future<List<ScrapedBook>> scrapeCoreCharts() {
-    return _runner.run('qidian_scraper.js');
+  Future<List<ScrapedBook>> scrapeCoreCharts({
+    LlmCancellationToken? cancellationToken,
+  }) {
+    return _runner.run(
+      'qidian_scraper.js',
+      cancellationToken: cancellationToken,
+    );
   }
 }

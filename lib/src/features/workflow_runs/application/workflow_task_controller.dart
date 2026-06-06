@@ -17,7 +17,7 @@ class WorkflowTaskController extends _$WorkflowTaskController {
   Future<void> abandon(String taskId) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      ref.read(workflowTaskCancellationRegistryProvider).cancel(taskId);
+      await ref.read(workflowTaskCancellationRegistryProvider).cancel(taskId);
       final repository = ref.read(workflowTaskRepositoryProvider);
       final task = await repository.findTask(taskId);
       if (task == null) {

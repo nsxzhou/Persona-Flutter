@@ -1,6 +1,0 @@
-{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Check Drift schema, migrations, repositories, and generated files."}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Check backend quality and tests."}
-{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Check Projects UI composition and presentation boundaries."}
-{"file": ".trellis/spec/frontend/state-management.md", "reason": "Check Riverpod and routing state usage."}
-{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Check widget tests and route updates."}
-{"file": ".trellis/spec/frontend/visual-design-guidelines.md", "reason": "Check writing desk visual direction compliance."}

@@ -117,10 +117,7 @@ relationships:
         isA<CharacterGraphValidationException>().having(
           (error) => error.message,
           'message',
-          allOf(
-            contains('关系引用的角色不存在：司空玄'),
-            contains('关系引用的角色不存在：天魔宗'),
-          ),
+          allOf(contains('关系引用的角色不存在：司空玄'), contains('关系引用的角色不存在：天魔宗')),
         ),
       ),
     );

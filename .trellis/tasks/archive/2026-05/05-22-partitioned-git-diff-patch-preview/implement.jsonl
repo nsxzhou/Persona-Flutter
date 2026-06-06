@@ -1,3 +1,0 @@
-{"file":".trellis/spec/frontend/component-guidelines.md","reason":"Frontend widget composition and patch review preview conventions."}
-{"file":".trellis/spec/frontend/state-management.md","reason":"Riverpod and project-scoped Novel Workshop state contracts."}
-{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Required analyzer and widget test expectations for user-visible frontend changes."}

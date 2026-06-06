@@ -45,7 +45,11 @@ MarketScanService marketScanService(Ref ref) {
   final repository = ref.watch(marketScanRepositoryProvider);
   final adapters = ref.watch(dataSourceAdaptersProvider);
   final runner = ref.watch(scraperProcessRunnerProvider);
-  return MarketScanService(repository: repository, adapters: adapters, runner: runner);
+  return MarketScanService(
+    repository: repository,
+    adapters: adapters,
+    runner: runner,
+  );
 }
 
 @Riverpod(keepAlive: true)

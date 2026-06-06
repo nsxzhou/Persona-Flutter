@@ -1,3 +1,4 @@
+import '../../../core/llm/domain/llm_cancellation.dart';
 import '../domain/market_book.dart';
 import '../domain/scraped_book.dart';
 
@@ -17,5 +18,7 @@ abstract class DataSourceAdapter {
 
   /// Scrape core charts from this platform.
   /// Returns raw scraped books; the caller is responsible for persistence.
-  Future<List<ScrapedBook>> scrapeCoreCharts();
+  Future<List<ScrapedBook>> scrapeCoreCharts({
+    LlmCancellationToken? cancellationToken,
+  });
 }

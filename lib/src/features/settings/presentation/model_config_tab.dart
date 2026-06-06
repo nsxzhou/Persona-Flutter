@@ -123,10 +123,8 @@ class _LlmProviderPanel extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   FilledButton.icon(
-                    onPressed: () => showProviderDialog(
-                      context,
-                      type: ProviderType.llm,
-                    ),
+                    onPressed: () =>
+                        showProviderDialog(context, type: ProviderType.llm),
                     icon: const Icon(Icons.add, size: 18),
                     label: const Text('新增'),
                   ),
@@ -140,13 +138,10 @@ class _LlmProviderPanel extends StatelessWidget {
               child: PersonaEmptyStateCard(
                 icon: Icons.key_outlined,
                 title: '尚未配置 Provider',
-                description:
-                    '添加 Base URL、API Key 和默认模型后，可以运行真实连接测试。',
+                description: '添加 Base URL、API Key 和默认模型后，可以运行真实连接测试。',
                 action: OutlinedButton.icon(
-                  onPressed: () => showProviderDialog(
-                    context,
-                    type: ProviderType.llm,
-                  ),
+                  onPressed: () =>
+                      showProviderDialog(context, type: ProviderType.llm),
                   icon: const Icon(Icons.add),
                   label: const Text('新增 Provider'),
                 ),
@@ -208,20 +203,12 @@ class _ProviderConfigRow extends ConsumerWidget {
           child: InkWell(
             onTap: () => context.go('/settings/providers/${provider.id}'),
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 12,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final isNarrow = constraints.maxWidth < 700;
                   final info = _buildInfo(context, host, sColor);
-                  final actions = _buildActions(
-                    context,
-                    ref,
-                    isBusy,
-                    sColor,
-                  );
+                  final actions = _buildActions(context, ref, isBusy, sColor);
 
                   if (isNarrow) {
                     return Column(
@@ -448,10 +435,8 @@ class _ImageProviderPanel extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   FilledButton.icon(
-                    onPressed: () => showProviderDialog(
-                      context,
-                      type: ProviderType.image,
-                    ),
+                    onPressed: () =>
+                        showProviderDialog(context, type: ProviderType.image),
                     icon: const Icon(Icons.add, size: 18),
                     label: const Text('新增'),
                   ),
@@ -465,13 +450,10 @@ class _ImageProviderPanel extends StatelessWidget {
               child: PersonaEmptyStateCard(
                 icon: Icons.image_outlined,
                 title: '尚未配置图像 Provider',
-                description:
-                    '添加 Base URL、API Key 和默认模型后，可以运行样例文生图测试。',
+                description: '添加 Base URL、API Key 和默认模型后，可以运行样例文生图测试。',
                 action: OutlinedButton.icon(
-                  onPressed: () => showProviderDialog(
-                    context,
-                    type: ProviderType.image,
-                  ),
+                  onPressed: () =>
+                      showProviderDialog(context, type: ProviderType.image),
                   icon: const Icon(Icons.add),
                   label: const Text('新增图像 Provider'),
                 ),
@@ -531,23 +513,14 @@ class _ImageProviderConfigRow extends ConsumerWidget {
               ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.18)
               : Colors.transparent,
           child: InkWell(
-            onTap: () =>
-                context.go('/settings/image-providers/${provider.id}'),
+            onTap: () => context.go('/settings/image-providers/${provider.id}'),
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 12,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final isNarrow = constraints.maxWidth < 740;
                   final info = _buildInfo(context, host);
-                  final actions = _buildActions(
-                    context,
-                    ref,
-                    isBusy,
-                    sColor,
-                  );
+                  final actions = _buildActions(context, ref, isBusy, sColor);
 
                   if (isNarrow) {
                     return Column(

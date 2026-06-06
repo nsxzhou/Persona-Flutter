@@ -1,9 +1,11 @@
 import 'dart:convert';
 
+import '../../../core/llm/application/llm_invocation_service.dart';
 import '../../settings/domain/provider_config.dart';
 import '../../settings/domain/provider_config_repository.dart';
 import '../domain/recommendation_direction.dart';
 import '../../../core/llm/application/markdown_completion_service.dart';
+import '../../../core/llm/domain/llm_cancellation.dart';
 import 'recommendation_prompts.dart';
 import 'rule_engine.dart';
 
@@ -22,28 +24,37 @@ class RecommendationGenerationService {
   /// Generate 3-5 recommendation directions from current market data.
   ///
   /// Uses the first enabled LLM provider. Throws if no provider is available.
-  Future<List<RecommendationDirection>> generate() async {
+  Future<List<RecommendationDirection>> generate({
+    ProviderConfig? provider,
+    LlmCancellationToken? cancellationToken,
+    LlmPromptTraceConfig? promptTrace,
+  }) async {
+    cancellationToken?.throwIfCancelled();
     final metrics = await ruleEngine.compute();
+    cancellationToken?.throwIfCancelled();
     if (metrics.genreHeat.isEmpty && metrics.opportunities.isEmpty) {
       return const [];
     }
 
-    final provider = await _requireEnabledProvider();
+    final resolvedProvider = provider ?? await requireEnabledProvider();
     final prompts = const RecommendationPrompts();
     final userPrompt = prompts.buildUserPrompt(metrics);
 
     final rawOutput = await completionService.completeMarkdown(
-      provider: provider,
+      provider: resolvedProvider,
       prompt: userPrompt,
       businessSystemPrompt: prompts.systemPrompt,
       temperature: 0.65,
       maxAttempts: 2,
+      promptTrace: promptTrace,
+      cancellationToken: cancellationToken,
     );
 
+    cancellationToken?.throwIfCancelled();
     return _parseDirections(rawOutput);
   }
 
-  Future<ProviderConfig> _requireEnabledProvider() async {
+  Future<ProviderConfig> requireEnabledProvider() async {
     final providers = await providerRepository.watchProviders().first;
     final enabled = providers.where((p) => p.isEnabled).toList();
     if (enabled.isEmpty) {

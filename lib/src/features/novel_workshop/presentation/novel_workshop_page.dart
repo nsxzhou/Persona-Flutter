@@ -85,7 +85,6 @@ class NovelIllustrationLibraryPage extends ConsumerStatefulWidget {
       _NovelIllustrationLibraryPageState();
 }
 
-
 class _IllustrationImagePreview extends StatefulWidget {
   const _IllustrationImagePreview({
     required this.localPath,

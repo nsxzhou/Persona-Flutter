@@ -55,15 +55,11 @@ class _ProjectCreationPageState extends ConsumerState<ProjectCreationPage> {
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController(
-      text: widget.prefillTitle ?? '',
-    );
+    _titleController = TextEditingController(text: widget.prefillTitle ?? '');
     _descriptionController = TextEditingController(
       text: widget.prefillSynopsis ?? '',
     );
-    _languageController = TextEditingController(
-      text: defaultProjectLanguage,
-    );
+    _languageController = TextEditingController(text: defaultProjectLanguage);
     _targetLengthController = TextEditingController(
       text: defaultProjectTargetLength.toString(),
     );
@@ -117,21 +113,19 @@ class _ProjectCreationPageState extends ConsumerState<ProjectCreationPage> {
           status: ProjectStatus.active,
           defaultProviderId: providerId,
           defaultModelName: modelName,
-          styleProfileId:
-              _selectedStyleProfileId?.trim().isNotEmpty == true
-                  ? _selectedStyleProfileId
-                  : null,
-          plotProfileId:
-              _selectedPlotProfileId?.trim().isNotEmpty == true
-                  ? _selectedPlotProfileId
-                  : null,
+          styleProfileId: _selectedStyleProfileId?.trim().isNotEmpty == true
+              ? _selectedStyleProfileId
+              : null,
+          plotProfileId: _selectedPlotProfileId?.trim().isNotEmpty == true
+              ? _selectedPlotProfileId
+              : null,
           language: _languageController.text.trim(),
           targetLength:
               int.tryParse(_targetLengthController.text.trim()) ??
-                  defaultProjectTargetLength,
+              defaultProjectTargetLength,
           totalTargetLength:
               int.tryParse(_totalTargetLengthController.text.trim()) ??
-                  defaultProjectTotalTargetLength,
+              defaultProjectTotalTargetLength,
           narrativePerspective: _perspectiveController.text.trim(),
         ),
       );
@@ -166,9 +160,7 @@ class _ProjectCreationPageState extends ConsumerState<ProjectCreationPage> {
       maxWidth: 720,
       actions: [
         OutlinedButton.icon(
-          onPressed: _saving
-              ? null
-              : () => context.go(AppRoute.projects.path),
+          onPressed: _saving ? null : () => context.go(AppRoute.projects.path),
           icon: const Icon(Icons.arrow_back),
           label: const Text('返回'),
         ),
@@ -195,8 +187,7 @@ class _ProjectCreationPageState extends ConsumerState<ProjectCreationPage> {
                 InlineError(message: '无法加载 Style Profiles：$error'),
             loading: () => const _FormLoading(),
           ),
-          error: (error, _) =>
-              InlineError(message: '无法加载 Providers：$error'),
+          error: (error, _) => InlineError(message: '无法加载 Providers：$error'),
           loading: () => const _FormLoading(),
         ),
       ],
@@ -215,13 +206,15 @@ class _ProjectCreationPageState extends ConsumerState<ProjectCreationPage> {
     if (_selectedProviderId != null &&
         !providers.any((p) => p.id == _selectedProviderId)) {
       _selectedProviderId = providers.isEmpty ? null : providers.first.id;
-      _selectedModelName = providers.isEmpty ? null : providers.first.defaultModel;
+      _selectedModelName = providers.isEmpty
+          ? null
+          : providers.first.defaultModel;
     }
     // Reset model if not in current provider's model list.
     final selected = providers.cast<ProviderConfig?>().firstWhere(
-          (p) => p!.id == _selectedProviderId,
-          orElse: () => null,
-        );
+      (p) => p!.id == _selectedProviderId,
+      orElse: () => null,
+    );
     if (selected != null && !selected.modelNames.contains(_selectedModelName)) {
       _selectedModelName = selected.defaultModel;
     }
@@ -235,9 +228,9 @@ class _ProjectCreationPageState extends ConsumerState<ProjectCreationPage> {
     ColorScheme colorScheme,
   ) {
     final selectedProvider = providerItems.cast<ProviderConfig?>().firstWhere(
-          (p) => p!.id == _selectedProviderId,
-          orElse: () => null,
-        );
+      (p) => p!.id == _selectedProviderId,
+      orElse: () => null,
+    );
     final modelNames = selectedProvider?.modelNames ?? const <String>[];
     final canSave = providerItems.isNotEmpty && !_saving;
 
@@ -286,12 +279,10 @@ class _ProjectCreationPageState extends ConsumerState<ProjectCreationPage> {
                     for (final tag in widget.prefillGenreTags!)
                       DecoratedBox(
                         decoration: BoxDecoration(
-                          color:
-                              colorScheme.primary.withValues(alpha: 0.08),
+                          color: colorScheme.primary.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(999),
                           border: Border.all(
-                            color:
-                                colorScheme.primary.withValues(alpha: 0.2),
+                            color: colorScheme.primary.withValues(alpha: 0.2),
                           ),
                         ),
                         child: Padding(

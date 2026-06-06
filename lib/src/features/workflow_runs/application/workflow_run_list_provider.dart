@@ -37,55 +37,57 @@ Future<List<WorkflowRunItem>> workflowRunItems(Ref ref) async {
 
   if (tasks.isEmpty) return const <WorkflowRunItem>[];
 
-  final items = await Future.wait(tasks.map((task) async {
-    StyleAnalysisRun? styleRun;
-    PlotAnalysisRun? plotRun;
-    AssetGenerationRun? assetRun;
-    ChapterGenerationRun? chapterRun;
-    ChapterGenerationBatch? chapterBatch;
-    ChapterEnrichmentBatch? enrichmentBatch;
+  final items = await Future.wait(
+    tasks.map((task) async {
+      StyleAnalysisRun? styleRun;
+      PlotAnalysisRun? plotRun;
+      AssetGenerationRun? assetRun;
+      ChapterGenerationRun? chapterRun;
+      ChapterGenerationBatch? chapterBatch;
+      ChapterEnrichmentBatch? enrichmentBatch;
 
-    if (task.kind == styleAnalysisWorkflowTaskKind) {
-      styleRun = await ref.read(
-        styleAnalysisRunByWorkflowTaskProvider(task.id).future,
-      );
-    }
-    if (task.kind == plotAnalysisWorkflowTaskKind) {
-      plotRun = await ref.read(
-        plotAnalysisRunByWorkflowTaskProvider(task.id).future,
-      );
-    }
-    if (task.kind == assetGenerationWorkflowTaskKind) {
-      assetRun = await ref.read(
-        assetGenerationRunByWorkflowTaskProvider(task.id).future,
-      );
-    }
-    if (task.kind == chapterGenerationWorkflowTaskKind) {
-      chapterRun = await ref.read(
-        chapterGenerationRunByWorkflowTaskProvider(task.id).future,
-      );
-    }
-    if (task.kind == chapterGenerationBatchWorkflowTaskKind) {
-      chapterBatch = await ref.read(
-        chapterGenerationBatchByWorkflowTaskProvider(task.id).future,
-      );
-    }
-    if (task.kind == chapterEnrichmentWorkflowTaskKind) {
-      enrichmentBatch = await ref.read(
-        chapterEnrichmentBatchByWorkflowTaskProvider(task.id).future,
-      );
-    }
+      if (task.kind == styleAnalysisWorkflowTaskKind) {
+        styleRun = await ref.read(
+          styleAnalysisRunByWorkflowTaskProvider(task.id).future,
+        );
+      }
+      if (task.kind == plotAnalysisWorkflowTaskKind) {
+        plotRun = await ref.read(
+          plotAnalysisRunByWorkflowTaskProvider(task.id).future,
+        );
+      }
+      if (task.kind == assetGenerationWorkflowTaskKind) {
+        assetRun = await ref.read(
+          assetGenerationRunByWorkflowTaskProvider(task.id).future,
+        );
+      }
+      if (task.kind == chapterGenerationWorkflowTaskKind) {
+        chapterRun = await ref.read(
+          chapterGenerationRunByWorkflowTaskProvider(task.id).future,
+        );
+      }
+      if (task.kind == chapterGenerationBatchWorkflowTaskKind) {
+        chapterBatch = await ref.read(
+          chapterGenerationBatchByWorkflowTaskProvider(task.id).future,
+        );
+      }
+      if (task.kind == chapterEnrichmentWorkflowTaskKind) {
+        enrichmentBatch = await ref.read(
+          chapterEnrichmentBatchByWorkflowTaskProvider(task.id).future,
+        );
+      }
 
-    return WorkflowRunItem(
-      task: task,
-      styleRun: styleRun,
-      plotRun: plotRun,
-      assetRun: assetRun,
-      chapterRun: chapterRun,
-      chapterBatch: chapterBatch,
-      enrichmentBatch: enrichmentBatch,
-    );
-  }));
+      return WorkflowRunItem(
+        task: task,
+        styleRun: styleRun,
+        plotRun: plotRun,
+        assetRun: assetRun,
+        chapterRun: chapterRun,
+        chapterBatch: chapterBatch,
+        enrichmentBatch: enrichmentBatch,
+      );
+    }),
+  );
 
   return items;
 }

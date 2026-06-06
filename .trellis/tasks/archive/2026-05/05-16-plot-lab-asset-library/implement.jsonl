@@ -1,4 +1,0 @@
-{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Drift schema, migration, repository persistence rules for Plot Lab"}
-{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Long-running task log and sensitive text boundaries"}
-{"file": ".trellis/spec/frontend/state-management.md", "reason": "Riverpod provider and routing state conventions"}
-{"file": ".trellis/spec/frontend/visual-design-guidelines.md", "reason": "Plot Lab creative canvas UI constraints"}

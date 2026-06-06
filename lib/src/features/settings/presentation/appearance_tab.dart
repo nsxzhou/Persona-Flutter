@@ -113,11 +113,7 @@ class _ThemeOptionCard extends StatelessWidget {
               ),
               const Spacer(),
               if (isSelected)
-                Icon(
-                  Icons.check_circle,
-                  size: 18,
-                  color: colorScheme.primary,
-                ),
+                Icon(Icons.check_circle, size: 18, color: colorScheme.primary),
             ],
           ),
         ),

@@ -45,4 +45,7 @@ abstract interface class MarketScanRepository {
   /// Delete runs older than the most recent [retainCount] per platform,
   /// along with their associated ranking records.
   Future<void> cleanupOldRuns({int retainCount = 10});
+
+  /// Clear all scan data while preserving WorkflowTask audit records.
+  Future<void> clearAllData();
 }

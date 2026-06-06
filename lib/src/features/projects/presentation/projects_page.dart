@@ -1234,7 +1234,9 @@ class _ProjectDialogLoading extends StatelessWidget {
               children: [
                 SkeletonBox(width: 80, height: 12),
                 SizedBox(width: 14),
-                Expanded(child: SkeletonBox(width: double.infinity, height: 38)),
+                Expanded(
+                  child: SkeletonBox(width: double.infinity, height: 38),
+                ),
               ],
             ),
           ),

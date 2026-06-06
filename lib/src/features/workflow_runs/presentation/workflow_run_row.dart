@@ -57,10 +57,7 @@ class _WorkflowRunRowState extends ConsumerState<WorkflowRunRow> {
               ),
             ),
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 18,
-                vertical: 12,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
               child: Row(
                 children: [
                   SizedBox(

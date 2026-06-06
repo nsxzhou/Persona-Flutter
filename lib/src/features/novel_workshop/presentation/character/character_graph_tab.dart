@@ -82,7 +82,9 @@ class _PreGenerationFeedbackDialogState
                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
               ),
               filled: true,
-              fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+              fillColor: colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.3,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide(color: colorScheme.outlineVariant),
@@ -150,7 +152,8 @@ class CharacterGraphTab extends ConsumerStatefulWidget {
   final Future<AssetDraftReviewResult> Function(
     BuildContext context,
     AssetGenerationRun run,
-  ) onShowDraftReview;
+  )
+  onShowDraftReview;
 
   @override
   ConsumerState<CharacterGraphTab> createState() => _CharacterGraphTabState();
@@ -216,28 +219,31 @@ class _CharacterGraphTabState extends ConsumerState<CharacterGraphTab>
       const CharacterGraphParser().parse(yaml);
     } on CharacterGraphValidationException catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('YAML 格式错误：${error.message}')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('YAML 格式错误：${error.message}')));
       return;
     }
     try {
       await ref
           .read(novelWorkshopControllerProvider.notifier)
-          .applyCharactersYaml(projectId: widget.projectId, charactersYaml: yaml);
+          .applyCharactersYaml(
+            projectId: widget.projectId,
+            charactersYaml: yaml,
+          );
       if (!mounted) return;
       setState(() {
         _loadedYaml = yaml;
         _editingYaml = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('角色蓝图已保存。')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('角色蓝图已保存。')));
     } on Object catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('保存失败：$error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('保存失败：$error')));
     }
   }
 
@@ -500,10 +506,7 @@ class _CharacterGraphTabState extends ConsumerState<CharacterGraphTab>
                   ),
                 ),
               ),
-              TextButton(
-                onPressed: _cancelEditing,
-                child: const Text('取消'),
-              ),
+              TextButton(onPressed: _cancelEditing, child: const Text('取消')),
               const SizedBox(width: 8),
               FilledButton.icon(
                 onPressed: _isDirty ? _saveYaml : null,
@@ -603,12 +606,7 @@ class _CharacterGraphTabState extends ConsumerState<CharacterGraphTab>
         ).showSnackBar(const SnackBar(content: Text('角色草稿已导入。')));
       } on Object catch (error) {
         if (!context.mounted) return;
-        _showApplyErrorSheet(
-          context,
-          ref,
-          error: error.toString(),
-          run: run,
-        );
+        _showApplyErrorSheet(context, ref, error: error.toString(), run: run);
       }
     } else if (reviewResult.isRegenerate) {
       try {

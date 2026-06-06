@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../database/app_database.dart';
 import '../application/workflow_task_repository.dart';
@@ -9,6 +10,7 @@ class DriftWorkflowTaskRepository implements WorkflowTaskRepository {
   const DriftWorkflowTaskRepository(this._database);
 
   final AppDatabase _database;
+  static const _uuid = Uuid();
 
   @override
   Stream<List<WorkflowTask>> watchTasks() {
@@ -40,6 +42,57 @@ class DriftWorkflowTaskRepository implements WorkflowTaskRepository {
       ..limit(1);
     final row = await query.getSingleOrNull();
     return row == null ? null : _mapRecord(row);
+  }
+
+  @override
+  Future<WorkflowTask> createTask(WorkflowTaskInput input) async {
+    final now = DateTime.now();
+    final id = input.id ?? _uuid.v4();
+    await _database
+        .into(_database.workflowTaskRecords)
+        .insert(
+          WorkflowTaskRecordsCompanion.insert(
+            id: id,
+            kind: input.kind,
+            status: input.status.name,
+            title: input.title,
+            stage: Value(input.stage),
+            errorMessage: Value(input.errorMessage),
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+    final task = await findTask(id);
+    if (task == null) {
+      throw StateError('Workflow task was not created.');
+    }
+    return task;
+  }
+
+  @override
+  Future<WorkflowTask?> updateTaskState({
+    required String id,
+    WorkflowTaskStatus? status,
+    String? stage,
+    bool clearStage = false,
+    String? errorMessage,
+    bool clearErrorMessage = false,
+  }) async {
+    await (_database.update(
+      _database.workflowTaskRecords,
+    )..where((task) => task.id.equals(id))).write(
+      WorkflowTaskRecordsCompanion(
+        status: status == null ? const Value.absent() : Value(status.name),
+        stage: stage == null && !clearStage
+            ? const Value.absent()
+            : Value(stage),
+        errorMessage: errorMessage == null && !clearErrorMessage
+            ? const Value.absent()
+            : Value(errorMessage),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+    return findTask(id);
   }
 
   @override

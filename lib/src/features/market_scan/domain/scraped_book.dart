@@ -50,13 +50,13 @@ class ScrapedBook {
       title: json['title'] as String? ?? '',
       author: json['author'] as String? ?? '',
       description: json['description'] as String? ?? '',
-      categories: (json['categories'] as List<dynamic>?)
+      categories:
+          (json['categories'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           const [],
-      tags: (json['tags'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
+      tags:
+          (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
           const [],
       totalWordCount: (json['totalWordCount'] as num?)?.toInt() ?? 0,
       status: _parseStatus(json['status'] as String?),

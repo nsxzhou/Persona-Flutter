@@ -604,6 +604,49 @@ class _FakeWorkflowTaskRepository implements WorkflowTaskRepository {
       tasks.where((item) => item.id == id).firstOrNull;
 
   @override
+  Future<WorkflowTask> createTask(WorkflowTaskInput input) async {
+    final now = DateTime.now();
+    final task = WorkflowTask(
+      id: input.id ?? 'task-${tasks.length + 1}',
+      kind: input.kind,
+      status: input.status,
+      title: input.title,
+      stage: input.stage,
+      errorMessage: input.errorMessage,
+      createdAt: now,
+      updatedAt: now,
+    );
+    tasks.add(task);
+    return task;
+  }
+
+  @override
+  Future<WorkflowTask?> updateTaskState({
+    required String id,
+    WorkflowTaskStatus? status,
+    String? stage,
+    bool clearStage = false,
+    String? errorMessage,
+    bool clearErrorMessage = false,
+  }) async {
+    final index = tasks.indexWhere((item) => item.id == id);
+    if (index == -1) {
+      return null;
+    }
+    final existing = tasks[index];
+    final updated = existing.copyWith(
+      status: status ?? existing.status,
+      stage: clearStage ? null : stage ?? existing.stage,
+      errorMessage: clearErrorMessage
+          ? null
+          : errorMessage ?? existing.errorMessage,
+      updatedAt: DateTime.now(),
+    );
+    tasks[index] = updated;
+    return updated;
+  }
+
+  @override
   Future<void> abandonTask(String id) async {}
 
   @override

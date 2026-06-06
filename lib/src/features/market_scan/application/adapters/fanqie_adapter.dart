@@ -1,3 +1,4 @@
+import '../../../../core/llm/domain/llm_cancellation.dart';
 import '../../domain/data_source_adapter.dart';
 import '../../domain/market_book.dart';
 import '../../domain/scraped_book.dart';
@@ -18,7 +19,12 @@ class FanqieAdapter extends DataSourceAdapter {
   bool get requiresCdp => true;
 
   @override
-  Future<List<ScrapedBook>> scrapeCoreCharts() {
-    return _runner.run('fanqie_scraper.js');
+  Future<List<ScrapedBook>> scrapeCoreCharts({
+    LlmCancellationToken? cancellationToken,
+  }) {
+    return _runner.run(
+      'fanqie_scraper.js',
+      cancellationToken: cancellationToken,
+    );
   }
 }

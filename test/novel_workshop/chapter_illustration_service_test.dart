@@ -70,7 +70,9 @@ void main() {
         repository: repository,
         imageGenerationService: ImageGenerationService(
           client: _StaticImageClient(
-            const GeneratedImage(url: 'https://images.example.test/generated.jpg'),
+            const GeneratedImage(
+              url: 'https://images.example.test/generated.jpg',
+            ),
           ),
         ),
         httpClient: MockClient(

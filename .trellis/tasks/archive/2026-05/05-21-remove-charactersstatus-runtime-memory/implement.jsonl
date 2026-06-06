@@ -1,5 +1,0 @@
-{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Drift schema and migration contract changes are central to removing persisted columns."}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Repository/domain/generated code boundaries must stay intact while removing fields."}
-{"file": ".trellis/spec/frontend/state-management.md", "reason": "Novel Workshop runtime memory UI consumes repository state through Riverpod providers."}
-{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Runtime Memory page copy and widgets need to keep existing presentation patterns."}
-{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "The field removal crosses database, domain, repository, prompt assembly, UI, and tests."}

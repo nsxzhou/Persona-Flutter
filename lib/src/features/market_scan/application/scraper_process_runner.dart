@@ -1,10 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import '../../../core/llm/domain/llm_cancellation.dart';
 import '../domain/scraped_book.dart';
 
 /// Manages Node.js subprocess execution for Puppeteer-based scraper scripts.
@@ -16,11 +17,9 @@ import '../domain/scraped_book.dart';
 ///   `Bundle.main.resourcePath`.
 /// - **Production (Windows)**: Bundled in `data/` next to the executable.
 class ScraperProcessRunner {
-  ScraperProcessRunner({
-    String? nodeExecutable,
-    String? scrapersDir,
-  })  : _nodeExecutableOverride = nodeExecutable,
-        _scrapersDirOverride = scrapersDir;
+  ScraperProcessRunner({String? nodeExecutable, String? scrapersDir})
+    : _nodeExecutableOverride = nodeExecutable,
+      _scrapersDirOverride = scrapersDir;
 
   final String? _nodeExecutableOverride;
   final String? _scrapersDirOverride;
@@ -33,7 +32,6 @@ class ScraperProcessRunner {
     if (_resolvedNodePath != null) return;
     _resolvedNodePath = await _resolveNodeExecutable();
     _resolvedScrapersDir = await _resolveScrapersDir();
-    debugPrint('[Scraper] Node: $_resolvedNodePath, Scrapers dir: $_resolvedScrapersDir');
   }
 
   /// Run a scraper script and return parsed [ScrapedBook] results.
@@ -47,13 +45,13 @@ class ScraperProcessRunner {
     String scriptName, {
     List<String> args = const [],
     Duration timeout = const Duration(minutes: 5),
+    LlmCancellationToken? cancellationToken,
   }) async {
     await ensureInitialized();
+    cancellationToken?.throwIfCancelled();
 
     final nodePath = _resolvedNodePath!;
     final scriptPath = p.join(_resolvedScrapersDir!, scriptName);
-
-    debugPrint('[Scraper] Running: $nodePath $scriptPath');
 
     if (!File(scriptPath).existsSync()) {
       throw ScraperException('Scraper script not found: $scriptPath');
@@ -62,40 +60,74 @@ class ScraperProcessRunner {
     // Set NODE_PATH so require() finds node_modules even when scripts
     // run from flutter_assets/ (which doesn't contain node_modules).
     final nodeModulesDir = await _resolveNodeModulesDir();
-    final env = <String, String>{
-      ...Platform.environment,
-      if (nodeModulesDir != null) 'NODE_PATH': nodeModulesDir,
-    };
+    final env = <String, String>{...Platform.environment};
+    if (nodeModulesDir != null) {
+      env['NODE_PATH'] = nodeModulesDir;
+    }
 
-    final result = await Process.run(
-      nodePath,
-      [scriptPath, ...args],
-      environment: env,
-      stdoutEncoding: utf8,
-      stderrEncoding: utf8,
-    ).timeout(timeout, onTimeout: () {
-      throw ScraperException(
-        'Scraper $scriptName timed out after ${timeout.inMinutes} minutes.',
+    final process = await Process.start(nodePath, [
+      scriptPath,
+      ...args,
+    ], environment: env);
+
+    final stdoutFuture = process.stdout.transform(utf8.decoder).join();
+    final stderrFuture = process.stderr.transform(utf8.decoder).join();
+
+    final timeoutCompleter = Completer<int>();
+    final timeoutTimer = Timer(timeout, () {
+      process.kill();
+      timeoutCompleter.completeError(
+        ScraperException(
+          'Scraper $scriptName timed out after ${timeout.inMinutes} minutes.',
+        ),
       );
     });
 
+    StreamSubscription<void>? cancellationSubscription;
+    Future<int>? cancellationFuture;
+    if (cancellationToken != null) {
+      final cancellationCompleter = Completer<int>();
+      cancellationSubscription = cancellationToken.onCancel.listen((_) {
+        process.kill();
+        if (!cancellationCompleter.isCompleted) {
+          cancellationCompleter.completeError(
+            const LlmCancellationException('市场扫描任务已取消。'),
+          );
+        }
+      });
+      cancellationFuture = cancellationCompleter.future;
+    }
+
+    late final int exitCode;
+    try {
+      exitCode = await Future.any([
+        process.exitCode,
+        timeoutCompleter.future,
+        ?cancellationFuture,
+      ]);
+    } on Object {
+      await _drainAfterKill(process, stdoutFuture, stderrFuture);
+      rethrow;
+    } finally {
+      timeoutTimer.cancel();
+      await cancellationSubscription?.cancel();
+    }
+
+    final stdout = (await stdoutFuture).trim();
+    final stderr = (await stderrFuture).trim();
+
     // Exit code 2 = CDP not available (set by cdp-helper.js).
-    if (result.exitCode == 2) {
-      throw CdpRequiredException(
-        (result.stderr as String).trim(),
-      );
+    if (exitCode == 2) {
+      throw CdpRequiredException(stderr);
     }
 
-    if (result.exitCode != 0) {
-      final stderr = (result.stderr as String).trim();
-      debugPrint('[Scraper] $scriptName failed (exit ${result.exitCode}): $stderr');
+    if (exitCode != 0) {
       throw ScraperException(
-        'Scraper $scriptName exited with code ${result.exitCode}: $stderr',
+        'Scraper $scriptName exited with code $exitCode: $stderr',
       );
     }
 
-    final stdout = (result.stdout as String).trim();
-    debugPrint('[Scraper] $scriptName succeeded, stdout length: ${stdout.length}');
+    cancellationToken?.throwIfCancelled();
     if (stdout.isEmpty) {
       return const [];
     }
@@ -110,9 +142,7 @@ class ScraperProcessRunner {
     try {
       final client = HttpClient();
       client.connectionTimeout = const Duration(seconds: 3);
-      final request = await client.getUrl(
-        Uri.parse('$endpoint/json/version'),
-      );
+      final request = await client.getUrl(Uri.parse('$endpoint/json/version'));
       final response = await request.close();
       client.close();
       return response.statusCode == 200;
@@ -129,47 +159,41 @@ class ScraperProcessRunner {
   Future<bool> ensureCdpReady({
     int port = 9222,
     Duration launchTimeout = const Duration(seconds: 15),
+    LlmCancellationToken? cancellationToken,
   }) async {
+    cancellationToken?.throwIfCancelled();
     // Already available — nothing to do.
     if (await checkCdpAvailable()) return true;
 
     final chromePath = _findChromeBinary();
     if (chromePath == null) {
-      debugPrint('[Scraper] Chrome binary not found, cannot auto-launch CDP.');
       return false;
     }
 
-    debugPrint('[Scraper] Auto-launching Chrome for CDP: $chromePath');
     try {
-      await Process.start(
-        chromePath,
-        [
-          '--headless=new',
-          '--remote-debugging-port=$port',
-          '--no-first-run',
-          '--no-default-browser-check',
-          '--disable-extensions',
-          '--disable-gpu',
-          '--user-data-dir=${await _chromeUserDataDir()}',
-        ],
-        mode: ProcessStartMode.detached,
-      );
+      await Process.start(chromePath, [
+        '--headless=new',
+        '--remote-debugging-port=$port',
+        '--no-first-run',
+        '--no-default-browser-check',
+        '--disable-extensions',
+        '--disable-gpu',
+        '--user-data-dir=${await _chromeUserDataDir()}',
+      ], mode: ProcessStartMode.detached);
     } catch (e) {
-      debugPrint('[Scraper] Failed to launch Chrome: $e');
       return false;
     }
 
     // Poll until CDP is ready or timeout.
     final deadline = DateTime.now().add(launchTimeout);
     while (DateTime.now().isBefore(deadline)) {
+      cancellationToken?.throwIfCancelled();
       await Future<void>.delayed(const Duration(milliseconds: 500));
       if (await checkCdpAvailable()) {
-        debugPrint('[Scraper] Chrome CDP ready on port $port');
         return true;
       }
     }
 
-    debugPrint('[Scraper] Chrome CDP did not become ready within ${launchTimeout.inSeconds}s');
     return false;
   }
 
@@ -186,25 +210,42 @@ class ScraperProcessRunner {
       }
       // Try `mdfind` as a last resort.
       try {
-        final result = Process.runSync(
-          'mdfind',
-          ['kMDItemCFBundleIdentifier == "com.google.Chrome"'],
-        );
+        final result = Process.runSync('mdfind', [
+          'kMDItemCFBundleIdentifier == "com.google.Chrome"',
+        ]);
         if (result.exitCode == 0) {
-          final appPath = (result.stdout as String).trim().split('\n').first.trim();
+          final appPath = (result.stdout as String)
+              .trim()
+              .split('\n')
+              .first
+              .trim();
           if (appPath.isNotEmpty) {
-            final binary = p.join(appPath, 'Contents', 'MacOS', 'Google Chrome');
+            final binary = p.join(
+              appPath,
+              'Contents',
+              'MacOS',
+              'Google Chrome',
+            );
             if (File(binary).existsSync()) return binary;
           }
         }
       } catch (_) {}
     } else if (Platform.isWindows) {
-      final programFiles = Platform.environment['ProgramFiles'] ?? r'C:\Program Files';
-      final programFilesX86 = Platform.environment['ProgramFiles(x86)'] ?? r'C:\Program Files (x86)';
+      final programFiles =
+          Platform.environment['ProgramFiles'] ?? r'C:\Program Files';
+      final programFilesX86 =
+          Platform.environment['ProgramFiles(x86)'] ??
+          r'C:\Program Files (x86)';
       final localAppData = Platform.environment['LOCALAPPDATA'] ?? '';
       final candidates = [
         p.join(programFiles, 'Google', 'Chrome', 'Application', 'chrome.exe'),
-        p.join(programFilesX86, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+        p.join(
+          programFilesX86,
+          'Google',
+          'Chrome',
+          'Application',
+          'chrome.exe',
+        ),
         if (localAppData.isNotEmpty)
           p.join(localAppData, 'Google', 'Chrome', 'Application', 'chrome.exe'),
       ];
@@ -275,12 +316,7 @@ class ScraperProcessRunner {
       }
       // Also check inside .app bundle.
       final executableDir = p.dirname(Platform.resolvedExecutable);
-      final appBundleNode = p.join(
-        executableDir,
-        '..',
-        'Resources',
-        'node',
-      );
+      final appBundleNode = p.join(executableDir, '..', 'Resources', 'node');
       final normalized = p.normalize(appBundleNode);
       if (File(normalized).existsSync()) {
         return normalized;
@@ -298,10 +334,9 @@ class ScraperProcessRunner {
   Future<String?> _findSystemNode() async {
     // 1. Try `which node` (works when running from terminal with PATH set).
     try {
-      final result = await Process.run(
-        Platform.isWindows ? 'where' : 'which',
-        ['node'],
-      );
+      final result = await Process.run(Platform.isWindows ? 'where' : 'which', [
+        'node',
+      ]);
       if (result.exitCode == 0) {
         final path = (result.stdout as String).trim().split('\n').first.trim();
         if (path.isNotEmpty && File(path).existsSync()) {
@@ -317,9 +352,7 @@ class ScraperProcessRunner {
       final directPaths = [
         '/opt/homebrew/bin/node',
         '/usr/local/bin/node',
-        if (home.isNotEmpty) ...[
-          '$home/.volta/bin/node',
-        ],
+        if (home.isNotEmpty) ...['$home/.volta/bin/node'],
       ];
       for (final path in directPaths) {
         if (File(path).existsSync()) return path;
@@ -427,11 +460,35 @@ class ScraperProcessRunner {
     // 2. Project's assets/scrapers/node_modules (when scripts run from flutter_assets).
     final projectRoot = await _findProjectRoot();
     if (projectRoot != null) {
-      final projectModules = p.join(projectRoot, 'assets', 'scrapers', 'node_modules');
+      final projectModules = p.join(
+        projectRoot,
+        'assets',
+        'scrapers',
+        'node_modules',
+      );
       if (Directory(projectModules).existsSync()) return projectModules;
     }
 
     return null;
+  }
+
+  Future<void> _drainAfterKill(
+    Process process,
+    Future<String> stdoutFuture,
+    Future<String> stderrFuture,
+  ) async {
+    try {
+      await process.exitCode.timeout(
+        const Duration(seconds: 2),
+        onTimeout: () => -1,
+      );
+      await Future.wait([
+        stdoutFuture.catchError((_) => ''),
+        stderrFuture.catchError((_) => ''),
+      ]);
+    } on Object {
+      // Best-effort cleanup after a cancelled or timed-out subprocess.
+    }
   }
 }
 

@@ -1,6 +1,0 @@
-{"file":".trellis/spec/backend/error-handling.md","reason":"Async repository/controller errors surface through Riverpod AsyncValue."}
-{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Application and persistence boundaries for repository/provider changes."}
-{"file":".trellis/spec/backend/logging-guidelines.md","reason":"Workflow task lifecycle log wording and constraints."}
-{"file":".trellis/spec/frontend/hook-guidelines.md","reason":"Riverpod provider invalidation and generated provider conventions."}
-{"file":".trellis/spec/frontend/state-management.md","reason":"Project-scoped Novel Workshop Runtime Memory state contract."}
-{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Patch application crosses repository, provider, and presentation refresh boundaries."}

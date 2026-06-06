@@ -1,3 +1,0 @@
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Verify YAML+MD contract, tests, and quality commands."}
-{"file": ".trellis/spec/backend/error-handling.md", "reason": "Verify failure paths still surface useful domain context."}
-{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Verify prompt, parser, pipeline, trace, and tests remain aligned."}

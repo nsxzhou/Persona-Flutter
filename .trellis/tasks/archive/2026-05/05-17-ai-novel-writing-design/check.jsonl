@@ -1,6 +1,0 @@
-{"file": ".trellis/spec/frontend/index.md", "reason": "Quality review must verify UI, state, provider, and visual design compliance for any Novel Workshop screens."}
-{"file": ".trellis/spec/backend/index.md", "reason": "Quality review must verify Drift migrations, repositories, error handling, and application-layer boundaries."}
-{"file": ".trellis/spec/guides/index.md", "reason": "Review should check cross-layer data flow and reuse decisions because the feature spans multiple app layers."}
-{"file": ".trellis/tasks/05-17-ai-novel-writing-design/prd.md", "reason": "Review should confirm implementation matches MVP scope and does not include deferred features."}
-{"file": ".trellis/tasks/05-17-ai-novel-writing-design/research/github-ai-novel-systems.md", "reason": "Review should compare implemented workflow against researched patterns: staged runs, acceptance gate, and projection memory."}
-{"file": ".trellis/tasks/05-17-ai-novel-writing-design/research/architecture.md", "reason": "Review should verify implementation follows existing Riverpod, Drift, LLM, prompt trace, route, and test conventions."}

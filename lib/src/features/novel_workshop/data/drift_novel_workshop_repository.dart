@@ -670,12 +670,15 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     if (id != null) {
       existing = await _findChapterVolume(id);
     } else {
-      final row = await (_database.select(_database.chapterVolumeRecords)
-            ..where((v) =>
-                v.projectId.equals(input.projectId) &
-                v.volumeIndex.equals(input.volumeIndex))
-            ..limit(1))
-          .getSingleOrNull();
+      final row =
+          await (_database.select(_database.chapterVolumeRecords)
+                ..where(
+                  (v) =>
+                      v.projectId.equals(input.projectId) &
+                      v.volumeIndex.equals(input.volumeIndex),
+                )
+                ..limit(1))
+              .getSingleOrNull();
       if (row != null) {
         existing = _mapVolume(row);
       }
@@ -868,12 +871,14 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
             );
       }
       // 删除不在文档中的已有分卷
-      final keptVolumeIndexes = {for (final v in document.volumes) v.volumeIndex};
+      final keptVolumeIndexes = {
+        for (final v in document.volumes) v.volumeIndex,
+      };
       for (final existing in existingVolumes) {
         if (!keptVolumeIndexes.contains(existing.volumeIndex)) {
-          await (_database.delete(_database.chapterVolumeRecords)
-                ..where((v) => v.id.equals(existing.id)))
-              .go();
+          await (_database.delete(
+            _database.chapterVolumeRecords,
+          )..where((v) => v.id.equals(existing.id))).go();
         }
       }
 
@@ -917,12 +922,14 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
             );
       }
       // 删除不在文档中的已有章节
-      final keptChapterIndexes = {for (final c in document.chapters) c.chapterIndex};
+      final keptChapterIndexes = {
+        for (final c in document.chapters) c.chapterIndex,
+      };
       for (final existing in existingPlans) {
         if (!keptChapterIndexes.contains(existing.chapterIndex)) {
-          await (_database.delete(_database.chapterPlanRecords)
-                ..where((p) => p.id.equals(existing.id)))
-              .go();
+          await (_database.delete(
+            _database.chapterPlanRecords,
+          )..where((p) => p.id.equals(existing.id))).go();
         }
       }
     });
@@ -1289,9 +1296,9 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       final keptCharacterNames = {for (final c in document.characters) c.name};
       for (final row in existingRows) {
         if (!keptCharacterNames.contains(row.name)) {
-          await (_database.delete(_database.novelCharacterRecords)
-                ..where((r) => r.id.equals(row.id)))
-              .go();
+          await (_database.delete(
+            _database.novelCharacterRecords,
+          )..where((r) => r.id.equals(row.id))).go();
         }
       }
 
@@ -1314,9 +1321,9 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
         if (fromName != null &&
             toName != null &&
             !keptRelationshipKeys.contains('$fromName|$toName')) {
-          await (_database.delete(_database.novelRelationshipRecords)
-                ..where((r) => r.id.equals(rel.id)))
-              .go();
+          await (_database.delete(
+            _database.novelRelationshipRecords,
+          )..where((r) => r.id.equals(rel.id))).go();
         }
       }
     });
@@ -2184,7 +2191,10 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       ],
     );
     final outlineYaml = _outlineDetailYamlFromDocument(outlineDoc);
-    return saveOutlineDetailYaml(projectId: projectId, outlineDetailYaml: outlineYaml);
+    return saveOutlineDetailYaml(
+      projectId: projectId,
+      outlineDetailYaml: outlineYaml,
+    );
   }
 
   @override

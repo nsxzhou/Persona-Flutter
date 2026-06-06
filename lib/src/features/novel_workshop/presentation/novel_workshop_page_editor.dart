@@ -26,10 +26,10 @@ class _NovelWorkshopPageState extends ConsumerState<NovelWorkshopPage> {
         data: (rels) => ref
             .read(novelWorkshopRepositoryProvider)
             .charactersToYaml(characters: chars, relationships: rels),
-        error: (_, __) => '',
+        error: (error, stackTrace) => '',
         loading: () => '',
       ),
-      error: (_, __) => '',
+      error: (error, stackTrace) => '',
       loading: () => '',
     );
 
@@ -2707,15 +2707,17 @@ class _BibleMarkdownEditorTabState
     var currentRun = run;
     while (mounted) {
       if (!mounted) return;
-      final result = await showGlassDialog<AssetDraftReviewResult>(
-        context: context,
-        maxWidth: 860,
-        builder: (context) => _AssetDraftReviewDialog(
-          title: '${widget.title}草稿',
-          run: currentRun,
-          hasExistingContent: currentMarkdown.trim().isNotEmpty,
-        ),
-      ) ?? const AssetDraftReviewResult.cancelled();
+      final result =
+          await showGlassDialog<AssetDraftReviewResult>(
+            context: context,
+            maxWidth: 860,
+            builder: (context) => _AssetDraftReviewDialog(
+              title: '${widget.title}草稿',
+              run: currentRun,
+              hasExistingContent: currentMarkdown.trim().isNotEmpty,
+            ),
+          ) ??
+          const AssetDraftReviewResult.cancelled();
       if (result.isCancelled) return;
       if (result.isRegenerate) {
         try {
@@ -3990,15 +3992,17 @@ class _ChapterPlanningTabState extends ConsumerState<_ChapterPlanningTab>
       var currentRun = result.run;
       while (context.mounted) {
         if (!context.mounted) return;
-        final reviewResult = await showGlassDialog<AssetDraftReviewResult>(
-          context: context,
-          maxWidth: 860,
-          builder: (context) => _AssetDraftReviewDialog(
-            title: '${volume.title}章节细纲草稿',
-            run: currentRun,
-            hasExistingContent: widget.outlineDetailYaml.trim().isNotEmpty,
-          ),
-        ) ?? const AssetDraftReviewResult.cancelled();
+        final reviewResult =
+            await showGlassDialog<AssetDraftReviewResult>(
+              context: context,
+              maxWidth: 860,
+              builder: (context) => _AssetDraftReviewDialog(
+                title: '${volume.title}章节细纲草稿',
+                run: currentRun,
+                hasExistingContent: widget.outlineDetailYaml.trim().isNotEmpty,
+              ),
+            ) ??
+            const AssetDraftReviewResult.cancelled();
         if (reviewResult.isCancelled) break;
         if (reviewResult.isRegenerate) {
           try {
@@ -4347,15 +4351,17 @@ class _OutlineAssetGenerationButtonBodyState
     var currentRun = run;
     while (context.mounted) {
       if (!context.mounted) return;
-      final result = await showGlassDialog<AssetDraftReviewResult>(
-        context: context,
-        maxWidth: 860,
-        builder: (context) => _AssetDraftReviewDialog(
-          title: '分卷规划草稿',
-          run: currentRun,
-          hasExistingContent: widget.outlineDetailYaml.trim().isNotEmpty,
-        ),
-      ) ?? const AssetDraftReviewResult.cancelled();
+      final result =
+          await showGlassDialog<AssetDraftReviewResult>(
+            context: context,
+            maxWidth: 860,
+            builder: (context) => _AssetDraftReviewDialog(
+              title: '分卷规划草稿',
+              run: currentRun,
+              hasExistingContent: widget.outlineDetailYaml.trim().isNotEmpty,
+            ),
+          ) ??
+          const AssetDraftReviewResult.cancelled();
       if (result.isCancelled) return;
       if (result.isRegenerate) {
         try {
@@ -9683,7 +9689,9 @@ class _PreGenerationFeedbackDialogState
                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
               ),
               filled: true,
-              fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+              fillColor: colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.3,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide(color: colorScheme.outlineVariant),
@@ -9770,7 +9778,8 @@ class _AssetDraftReviewDialogState extends State<_AssetDraftReviewDialog> {
             ],
           ),
           // Validation warning banner.
-          if (validationWarning != null && validationWarning.trim().isNotEmpty) ...[
+          if (validationWarning != null &&
+              validationWarning.trim().isNotEmpty) ...[
             const SizedBox(height: 12),
             DecoratedBox(
               decoration: BoxDecoration(
@@ -9785,7 +9794,10 @@ class _AssetDraftReviewDialogState extends State<_AssetDraftReviewDialog> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.warning_amber_outlined, color: colorScheme.error),
+                    Icon(
+                      Icons.warning_amber_outlined,
+                      color: colorScheme.error,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: SelectableText(
@@ -9865,9 +9877,9 @@ class _AssetDraftReviewDialogState extends State<_AssetDraftReviewDialog> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               TextButton(
-                onPressed: () => Navigator.of(context).pop(
-                  const AssetDraftReviewResult.cancelled(),
-                ),
+                onPressed: () => Navigator.of(
+                  context,
+                ).pop(const AssetDraftReviewResult.cancelled()),
                 child: const Text('取消'),
               ),
               const SizedBox(width: 8),
@@ -9887,13 +9899,11 @@ class _AssetDraftReviewDialogState extends State<_AssetDraftReviewDialog> {
               FilledButton.icon(
                 onPressed: widget.run.draftMarkdown.trim().isEmpty
                     ? null
-                    : () => Navigator.of(context).pop(
-                          const AssetDraftReviewResult.apply(),
-                        ),
+                    : () => Navigator.of(
+                        context,
+                      ).pop(const AssetDraftReviewResult.apply()),
                 icon: const Icon(Icons.check_outlined, size: 18),
-                label: Text(
-                  widget.hasExistingContent ? '合并并应用' : '应用草稿',
-                ),
+                label: Text(widget.hasExistingContent ? '合并并应用' : '应用草稿'),
               ),
             ],
           ),
@@ -10304,4 +10314,3 @@ class _ChapterVolumeDialogState extends ConsumerState<_ChapterVolumeDialog> {
     }
   }
 }
-

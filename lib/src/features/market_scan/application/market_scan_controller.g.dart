@@ -23,7 +23,7 @@ final class MarketScanControllerProvider
         argument: null,
         retry: null,
         name: r'marketScanControllerProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -45,7 +45,7 @@ final class MarketScanControllerProvider
 }
 
 String _$marketScanControllerHash() =>
-    r'e870db5fade13b008db28bf3c4e488b7286e3054';
+    r'0edee8995ce78c31e4bf39881da46fbc78628422';
 
 /// Controller that manages manual scan operations with real-time progress.
 

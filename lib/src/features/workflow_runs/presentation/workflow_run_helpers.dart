@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/tasks/domain/workflow_task.dart';
+import '../../market_scan/domain/market_scan_workflow.dart';
 import '../../novel_workshop/domain/novel_workshop.dart';
 import '../../plot_lab/domain/plot_analysis_run.dart';
 import '../../style_lab/domain/style_analysis_run.dart';
@@ -45,6 +46,8 @@ String kindLabel(String kind) {
     chapterGenerationBatchWorkflowTaskKind => '批量草稿',
     chapterEnrichmentWorkflowTaskKind => '章节加料',
     chapterIllustrationGenerationWorkflowTaskKind => '插图生成',
+    marketScanWorkflowTaskKind => '市场扫描',
+    marketRecommendationWorkflowTaskKind => '创作推荐',
     _ => kind,
   };
 }

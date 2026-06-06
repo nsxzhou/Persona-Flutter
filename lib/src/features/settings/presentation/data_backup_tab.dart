@@ -76,15 +76,13 @@ class DataBackupTab extends ConsumerWidget {
                       error: backupState.error,
                     ),
                   ),
-                  SizedBox(
-                    width: isNarrow ? 0 : 16,
-                    height: isNarrow ? 14 : 0,
-                  ),
+                  SizedBox(width: isNarrow ? 0 : 16, height: isNarrow ? 14 : 0),
                   Wrap(
                     spacing: 10,
                     runSpacing: 10,
-                    alignment:
-                        isNarrow ? WrapAlignment.start : WrapAlignment.end,
+                    alignment: isNarrow
+                        ? WrapAlignment.start
+                        : WrapAlignment.end,
                     children: actions,
                   ),
                 ],

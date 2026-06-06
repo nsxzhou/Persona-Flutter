@@ -26,7 +26,6 @@ class _AppShellState extends ConsumerState<AppShell> {
   bool _isExpanded = true;
   String? _lastRoutePath;
 
-
   @override
   Widget build(BuildContext context) {
     final selectedIndex = widget.navigationShell.currentIndex;

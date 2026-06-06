@@ -56,7 +56,12 @@ enum AssetGenerationStatus {
   abandoned,
 }
 
-enum AssetGenerationStage { preparingContext, generatingDraft, repairingDraft, savingDraft }
+enum AssetGenerationStage {
+  preparingContext,
+  generatingDraft,
+  repairingDraft,
+  savingDraft,
+}
 
 enum ChapterEnrichmentBatchStatus {
   pending,

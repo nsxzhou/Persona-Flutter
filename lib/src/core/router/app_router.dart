@@ -32,16 +32,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: 'recommend',
-                    builder: (context, state) =>
-                        const RecommendationPage(),
+                    builder: (context, state) => const RecommendationPage(),
                   ),
                   GoRoute(
                     path: 'create',
                     builder: (context, state) {
                       final uri = state.uri;
                       final tagsParam = uri.queryParameters['tags'];
-                      final wordCountParam =
-                          uri.queryParameters['wordCount'];
+                      final wordCountParam = uri.queryParameters['wordCount'];
                       return ProjectCreationPage(
                         prefillTitle: uri.queryParameters['title'],
                         prefillSynopsis: uri.queryParameters['synopsis'],

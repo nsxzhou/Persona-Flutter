@@ -82,16 +82,18 @@ class RuleEngine {
     if (genreStats.isEmpty) return const [];
 
     // Find max for normalization.
-    final maxAppearances =
-        genreStats.values.map((a) => a.appearanceCount).reduce(math.max);
+    final maxAppearances = genreStats.values
+        .map((a) => a.appearanceCount)
+        .reduce(math.max);
     final maxAvgRank = genreStats.values
         .map((a) => a.appearanceCount > 0 ? a.rankSum / a.appearanceCount : 0.0)
         .reduce(math.max);
 
     final entries = genreStats.entries.map((e) {
       final acc = e.value;
-      final avgRank =
-          acc.appearanceCount > 0 ? acc.rankSum / acc.appearanceCount : 0.0;
+      final avgRank = acc.appearanceCount > 0
+          ? acc.rankSum / acc.appearanceCount
+          : 0.0;
       // Heat = normalized(appearances) * 0.6 + normalized(1/avgRank) * 0.4
       final normAppear = maxAppearances > 0
           ? acc.appearanceCount / maxAppearances
@@ -123,8 +125,7 @@ class RuleEngine {
       final count = booksWithWords
           .where(
             (b) =>
-                b.totalWordCount >= bucket.min &&
-                b.totalWordCount < bucket.max,
+                b.totalWordCount >= bucket.min && b.totalWordCount < bucket.max,
           )
           .length;
       return FrequencyBucket(
@@ -150,7 +151,8 @@ class RuleEngine {
     // Books published within the recency window.
     final recentBooks = books
         .where(
-          (b) => b.firstPublishDate != null && b.firstPublishDate!.isAfter(cutoff),
+          (b) =>
+              b.firstPublishDate != null && b.firstPublishDate!.isAfter(cutoff),
         )
         .toList();
 
@@ -183,7 +185,8 @@ class RuleEngine {
       // A genre with 100 new books and 10 on chart is denser than 2 new / 1 on chart.
       final ratio = newCount > 0 ? onChart / newCount : 0.0;
       final volumeFactor =
-          (math.log(newCount + 1) / math.log(genreNewCount.values.reduce(math.max) + 1));
+          (math.log(newCount + 1) /
+          math.log(genreNewCount.values.reduce(math.max) + 1));
       final densityScore = (ratio * 0.5 + volumeFactor * 0.5).clamp(0.0, 1.0);
 
       return CompetitionDensityEntry(
@@ -205,7 +208,9 @@ class RuleEngine {
     List<CompetitionDensityEntry> competition,
   ) {
     final heatByGenre = {for (final h in genreHeat) h.genre: h.heatScore};
-    final densityByGenre = {for (final c in competition) c.genre: c.densityScore};
+    final densityByGenre = {
+      for (final c in competition) c.genre: c.densityScore,
+    };
 
     // Union of all genres from both lists.
     final allGenres = {...heatByGenre.keys, ...densityByGenre.keys};

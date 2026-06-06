@@ -38,23 +38,25 @@ class DriftMarketScanRepository implements MarketScanRepository {
     final now = DateTime.now();
     final id = existing?.id ?? _uuid.v4();
 
-    await _database.into(_database.marketBookRecords).insertOnConflictUpdate(
-      MarketBookRecordsCompanion(
-        id: Value(id),
-        platform: Value(input.platform.name),
-        platformBookId: Value(input.platformBookId),
-        title: Value(input.title.trim()),
-        author: Value(input.author.trim()),
-        description: Value(input.description.trim()),
-        categories: Value(jsonEncode(input.categories)),
-        tags: Value(jsonEncode(input.tags)),
-        totalWordCount: Value(input.totalWordCount),
-        status: Value(input.status.name),
-        firstPublishDate: Value(input.firstPublishDate),
-        createdAt: Value(existing?.createdAt ?? now),
-        updatedAt: Value(now),
-      ),
-    );
+    await _database
+        .into(_database.marketBookRecords)
+        .insertOnConflictUpdate(
+          MarketBookRecordsCompanion(
+            id: Value(id),
+            platform: Value(input.platform.name),
+            platformBookId: Value(input.platformBookId),
+            title: Value(input.title.trim()),
+            author: Value(input.author.trim()),
+            description: Value(input.description.trim()),
+            categories: Value(jsonEncode(input.categories)),
+            tags: Value(jsonEncode(input.tags)),
+            totalWordCount: Value(input.totalWordCount),
+            status: Value(input.status.name),
+            firstPublishDate: Value(input.firstPublishDate),
+            createdAt: Value(existing?.createdAt ?? now),
+            updatedAt: Value(now),
+          ),
+        );
 
     final saved = await _findBookByPlatformId(
       input.platform,
@@ -138,22 +140,24 @@ class DriftMarketScanRepository implements MarketScanRepository {
   Future<void> insertRankings(List<MarketRankingInput> inputs) async {
     await _database.transaction(() async {
       for (final input in inputs) {
-        await _database.into(_database.marketRankingRecords).insert(
-          MarketRankingRecordsCompanion(
-            id: Value(_uuid.v4()),
-            bookId: Value(input.bookId),
-            chartName: Value(input.chartName),
-            rank: Value(input.rank),
-            runId: Value(input.runId),
-            favorites: Value(input.favorites),
-            recommendVotes: Value(input.recommendVotes),
-            monthlyTickets: Value(input.monthlyTickets),
-            commentCount: Value(input.commentCount),
-            scrapedAt: Value(input.scrapedAt),
-            createdAt: Value(DateTime.now()),
-            updatedAt: Value(DateTime.now()),
-          ),
-        );
+        await _database
+            .into(_database.marketRankingRecords)
+            .insert(
+              MarketRankingRecordsCompanion(
+                id: Value(_uuid.v4()),
+                bookId: Value(input.bookId),
+                chartName: Value(input.chartName),
+                rank: Value(input.rank),
+                runId: Value(input.runId),
+                favorites: Value(input.favorites),
+                recommendVotes: Value(input.recommendVotes),
+                monthlyTickets: Value(input.monthlyTickets),
+                commentCount: Value(input.commentCount),
+                scrapedAt: Value(input.scrapedAt),
+                createdAt: Value(DateTime.now()),
+                updatedAt: Value(DateTime.now()),
+              ),
+            );
       }
     });
   }
@@ -173,8 +177,9 @@ class DriftMarketScanRepository implements MarketScanRepository {
 
   @override
   Future<Map<String, MarketScanRun>> findLatestCompletedRuns() async {
-    final rows = await _database.customSelect(
-      '''
+    final rows = await _database
+        .customSelect(
+          '''
       SELECT r.*
       FROM market_scan_run_records r
       INNER JOIN (
@@ -186,8 +191,9 @@ class DriftMarketScanRepository implements MarketScanRepository {
               AND r.completed_at = latest.max_completed
               AND r.status = 'completed'
       ''',
-      readsFrom: {_database.marketScanRunRecords},
-    ).get();
+          readsFrom: {_database.marketScanRunRecords},
+        )
+        .get();
 
     final result = <String, MarketScanRun>{};
     for (final row in rows) {
@@ -202,16 +208,18 @@ class DriftMarketScanRepository implements MarketScanRepository {
     final now = DateTime.now();
     final id = _uuid.v4();
 
-    await _database.into(_database.marketScanRunRecords).insert(
-      MarketScanRunRecordsCompanion(
-        id: Value(id),
-        platform: Value(platform),
-        status: Value(MarketScanRunStatus.running.name),
-        startedAt: Value(now),
-        createdAt: Value(now),
-        updatedAt: Value(now),
-      ),
-    );
+    await _database
+        .into(_database.marketScanRunRecords)
+        .insert(
+          MarketScanRunRecordsCompanion(
+            id: Value(id),
+            platform: Value(platform),
+            status: Value(MarketScanRunStatus.running.name),
+            startedAt: Value(now),
+            createdAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
 
     final query = _database.select(_database.marketScanRunRecords)
       ..where((t) => t.id.equals(id))
@@ -226,9 +234,9 @@ class DriftMarketScanRepository implements MarketScanRepository {
     required int itemCount,
   }) async {
     final now = DateTime.now();
-    await (_database.update(_database.marketScanRunRecords)
-          ..where((t) => t.id.equals(runId)))
-        .write(
+    await (_database.update(
+      _database.marketScanRunRecords,
+    )..where((t) => t.id.equals(runId))).write(
       MarketScanRunRecordsCompanion(
         status: Value(MarketScanRunStatus.completed.name),
         completedAt: Value(now),
@@ -244,9 +252,9 @@ class DriftMarketScanRepository implements MarketScanRepository {
     required String errorMessage,
   }) async {
     final now = DateTime.now();
-    await (_database.update(_database.marketScanRunRecords)
-          ..where((t) => t.id.equals(runId)))
-        .write(
+    await (_database.update(
+      _database.marketScanRunRecords,
+    )..where((t) => t.id.equals(runId))).write(
       MarketScanRunRecordsCompanion(
         status: Value(MarketScanRunStatus.failed.name),
         completedAt: Value(now),
@@ -286,13 +294,22 @@ class DriftMarketScanRepository implements MarketScanRepository {
 
     await _database.transaction(() async {
       // Delete associated rankings first.
-      await (_database.delete(_database.marketRankingRecords)
-            ..where((t) => t.runId.isIn(idsToDelete)))
-          .go();
+      await (_database.delete(
+        _database.marketRankingRecords,
+      )..where((t) => t.runId.isIn(idsToDelete))).go();
       // Then delete the runs.
-      await (_database.delete(_database.marketScanRunRecords)
-            ..where((t) => t.id.isIn(idsToDelete)))
-          .go();
+      await (_database.delete(
+        _database.marketScanRunRecords,
+      )..where((t) => t.id.isIn(idsToDelete))).go();
+    });
+  }
+
+  @override
+  Future<void> clearAllData() async {
+    await _database.transaction(() async {
+      await _database.delete(_database.marketRankingRecords).go();
+      await _database.delete(_database.marketScanRunRecords).go();
+      await _database.delete(_database.marketBookRecords).go();
     });
   }
 

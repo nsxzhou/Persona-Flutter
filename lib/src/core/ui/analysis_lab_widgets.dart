@@ -184,10 +184,7 @@ class AnalysisDetailLoading extends StatelessWidget {
             children: [
               for (var i = 0; i < 5; i++)
                 const Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 14,
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
                   child: Row(
                     children: [
                       SkeletonBox(width: 100, height: 28, borderRadius: 999),

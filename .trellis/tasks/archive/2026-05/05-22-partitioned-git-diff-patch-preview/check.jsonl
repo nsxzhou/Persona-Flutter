@@ -1,3 +1,0 @@
-{"file":".trellis/spec/frontend/component-guidelines.md","reason":"Verify frontend patch review UI follows feature presentation conventions."}
-{"file":".trellis/spec/frontend/state-management.md","reason":"Verify async provider state is consumed without bypassing repository contracts."}
-{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Verify analyzer and focused widget tests cover user-visible behavior."}

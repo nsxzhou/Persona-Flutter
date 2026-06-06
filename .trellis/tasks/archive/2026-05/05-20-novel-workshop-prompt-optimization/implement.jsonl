@@ -1,2 +1,0 @@
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Application-layer LLM prompt artifact contracts and verification expectations."}
-{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Prompt constants are being modified; search/reuse guidance applies."}

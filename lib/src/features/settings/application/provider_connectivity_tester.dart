@@ -66,7 +66,6 @@ class ProviderConnectivityTester {
 
     return Uri.parse('$withoutCompletions/models');
   }
-
 }
 
 class ProviderConnectivityResult {

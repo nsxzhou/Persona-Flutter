@@ -92,8 +92,8 @@ class _FilterMetric extends StatelessWidget {
     final borderColor = isSelected
         ? accentColor
         : isActive
-            ? accentColor.withValues(alpha: 0.35)
-            : colorScheme.outlineVariant;
+        ? accentColor.withValues(alpha: 0.35)
+        : colorScheme.outlineVariant;
 
     return Material(
       color: Colors.transparent,
@@ -131,8 +131,8 @@ class _FilterMetric extends StatelessWidget {
                     color: isSelected
                         ? accentColor
                         : isActive
-                            ? accentColor
-                            : colorScheme.onSurface,
+                        ? accentColor
+                        : colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 6),

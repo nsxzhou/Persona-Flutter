@@ -52,18 +52,21 @@ class _ScanDataBrowserState extends ConsumerState<ScanDataBrowser> {
             borderRadius: BorderRadius.circular(kPanelRadius),
             onTap: () => setState(() => _expanded = !_expanded),
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 children: [
-                  Icon(Icons.dataset_outlined,
-                      size: 18, color: colorScheme.primary),
+                  Icon(
+                    Icons.dataset_outlined,
+                    size: 18,
+                    color: colorScheme.primary,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       '扫描数据概览',
-                      style: textTheme.titleSmall
-                          ?.copyWith(fontWeight: FontWeight.w600),
+                      style: textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                   Icon(
@@ -95,12 +98,14 @@ class _ScanDataBrowserState extends ConsumerState<ScanDataBrowser> {
           children: [
             _StatCardsRow(
               totalBooks: bundle.books.length,
-              platformCount:
-                  bundle.books.map((b) => b.platform).toSet().length,
-              chartCount:
-                  bundle.rankings.map((r) => r.chartName).toSet().length,
-              latestScanTime:
-                  bundle.runs.isNotEmpty ? bundle.runs.first.startedAt : null,
+              platformCount: bundle.books.map((b) => b.platform).toSet().length,
+              chartCount: bundle.rankings
+                  .map((r) => r.chartName)
+                  .toSet()
+                  .length,
+              latestScanTime: bundle.runs.isNotEmpty
+                  ? bundle.runs.first.startedAt
+                  : null,
             ),
             const SizedBox(height: 20),
             _buildPlatformFilter(bundle.books),
@@ -111,14 +116,11 @@ class _ScanDataBrowserState extends ConsumerState<ScanDataBrowser> {
           ],
         ),
       ),
-      loading: () => const Padding(
-        padding: EdgeInsets.all(16),
-        child: _ContentLoading(),
-      ),
+      loading: () =>
+          const Padding(padding: EdgeInsets.all(16), child: _ContentLoading()),
       error: (e, _) => Padding(
         padding: const EdgeInsets.all(16),
-        child: Text('加载失败: $e',
-            style: Theme.of(context).textTheme.bodySmall),
+        child: Text('加载失败: $e', style: Theme.of(context).textTheme.bodySmall),
       ),
     );
   }
@@ -131,8 +133,7 @@ class _ScanDataBrowserState extends ConsumerState<ScanDataBrowser> {
 
     final platformCounts = <MarketPlatform, int>{};
     for (final book in books) {
-      platformCounts[book.platform] =
-          (platformCounts[book.platform] ?? 0) + 1;
+      platformCounts[book.platform] = (platformCounts[book.platform] ?? 0) + 1;
     }
 
     final filters = <MarketPlatform?>[null, ...MarketPlatform.values];
@@ -140,17 +141,17 @@ class _ScanDataBrowserState extends ConsumerState<ScanDataBrowser> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('排行榜数据',
-            style:
-                textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600)),
+        Text(
+          '排行榜数据',
+          style: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 10),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: filters.map((p) {
             final selected = _platformFilter == p;
-            final count =
-                p == null ? books.length : (platformCounts[p] ?? 0);
+            final count = p == null ? books.length : (platformCounts[p] ?? 0);
             final label = p == null ? '全部' : _platformLabel(p.name);
 
             return ChoiceChip(
@@ -201,38 +202,77 @@ class _ScanDataBrowserState extends ConsumerState<ScanDataBrowser> {
       return const _EmptyRankingsPlaceholder();
     }
 
-    final sections = grouped.entries.toList();
+    final rows = <_RankingListRow>[];
+    for (final entry in grouped.entries) {
+      final firstBook = entry.value.isNotEmpty
+          ? bookMap[entry.value.first.bookId]
+          : null;
+      rows.add(
+        _RankingHeaderListRow(
+          chartName: entry.key,
+          count: entry.value.length,
+          platform: firstBook?.platform,
+        ),
+      );
+      for (final ranking in entry.value) {
+        rows.add(_RankingBookListRow(ranking: ranking));
+      }
+    }
 
-    // Use ListView.builder for virtualized rendering.
+    // Keep the inner list bounded so ListView.builder can virtualize rows
+    // instead of forcing every ranking item to build in the outer scroll view.
     return SizedBox(
-      height: _estimateListHeight(sections, bookMap),
-      child: ListView.builder(
-        itemCount: sections.length,
-        physics: const NeverScrollableScrollPhysics(),
-        itemBuilder: (context, index) {
-          final entry = sections[index];
-          return _ChartSection(
-            chartName: entry.key,
-            rankings: entry.value,
-            bookMap: bookMap,
-          );
-        },
+      height: 620,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+        ),
+        child: ListView.builder(
+          itemCount: rows.length,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          itemBuilder: (context, index) {
+            final row = rows[index];
+            return switch (row) {
+              _RankingHeaderListRow() => _RankingListHeader(row: row),
+              _RankingBookListRow() => _RankingItem(
+                ranking: row.ranking,
+                book: bookMap[row.ranking.bookId],
+                isLast:
+                    index == rows.length - 1 ||
+                    rows[index + 1] is _RankingHeaderListRow,
+              ),
+            };
+          },
+        ),
       ),
     );
   }
+}
 
-  /// Rough height estimate to avoid unbounded ListView inside Column.
-  double _estimateListHeight(
-    List<MapEntry<String, List<MarketRanking>>> sections,
-    Map<String, MarketBook> bookMap,
-  ) {
-    var total = 0.0;
-    for (final section in sections) {
-      // Header ~48px + divider 1px + items * ~64px + padding 16px
-      total += 49 + section.value.length * 64.0 + 16;
-    }
-    return total;
-  }
+sealed class _RankingListRow {
+  const _RankingListRow();
+}
+
+class _RankingHeaderListRow extends _RankingListRow {
+  const _RankingHeaderListRow({
+    required this.chartName,
+    required this.count,
+    required this.platform,
+  });
+
+  final String chartName;
+  final int count;
+  final MarketPlatform? platform;
+}
+
+class _RankingBookListRow extends _RankingListRow {
+  const _RankingBookListRow({required this.ranking});
+
+  final MarketRanking ranking;
 }
 
 // ── Stat Cards Row ────────────────────────────────────────────────────
@@ -387,10 +427,9 @@ class _ContentLoading extends StatelessWidget {
             4,
             (_) => DecoratedBox(
               decoration: BoxDecoration(
-                color: Theme.of(context)
-                    .colorScheme
-                    .surfaceContainerHighest
-                    .withValues(alpha: 0.3),
+                color: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Center(
@@ -408,92 +447,66 @@ class _ContentLoading extends StatelessWidget {
   }
 }
 
-// ── Chart Section ─────────────────────────────────────────────────────
+// ── Ranking List Header ───────────────────────────────────────────────
 
-class _ChartSection extends StatelessWidget {
-  const _ChartSection({
-    required this.chartName,
-    required this.rankings,
-    required this.bookMap,
-  });
+class _RankingListHeader extends StatelessWidget {
+  const _RankingListHeader({required this.row});
 
-  final String chartName;
-  final List<MarketRanking> rankings;
-  final Map<String, MarketBook> bookMap;
+  final _RankingHeaderListRow row;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-
-    final firstBook =
-        rankings.isNotEmpty ? bookMap[rankings.first.bookId] : null;
-    final platform = firstBook?.platform;
-    final platformClr = platform != null
-        ? _platformColor(platform, colorScheme)
+    final platformClr = row.platform != null
+        ? _platformColor(row.platform!, colorScheme)
         : colorScheme.primary;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: colorScheme.outlineVariant),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.28),
+        border: Border(
+          top: BorderSide(color: colorScheme.outlineVariant),
+          bottom: BorderSide(color: colorScheme.outlineVariant),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
+        child: Row(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
-              child: Row(
-                children: [
-                  Container(
-                    width: 3,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      color: platformClr,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      chartName,
-                      style: textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: platformClr.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      child: Text(
-                        '${rankings.length} 本',
-                        style: textTheme.labelSmall?.copyWith(
-                          color: platformClr,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+            Container(
+              width: 3,
+              height: 16,
+              decoration: BoxDecoration(
+                color: platformClr,
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const Divider(height: 1),
-            ...rankings.asMap().entries.map((entry) {
-              final book = bookMap[entry.value.bookId];
-              return _RankingItem(
-                ranking: entry.value,
-                book: book,
-                isLast: entry.key == rankings.length - 1,
-              );
-            }),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                row.chartName,
+                style: textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: platformClr.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                child: Text(
+                  '${row.count} 本',
+                  style: textTheme.labelSmall?.copyWith(
+                    color: platformClr,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -519,81 +532,94 @@ class _RankingItem extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return InkWell(
-      onTap: book != null
-          ? () => _showBookDetail(context, book!, ranking)
-          : null,
-      borderRadius: BorderRadius.circular(6),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _RankBadge(rank: ranking.rank),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    book?.title ?? '未知书籍',
-                    style: textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: colorScheme.onSurface,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
+    return Column(
+      children: [
+        InkWell(
+          onTap: book != null
+              ? () => _showBookDetail(context, book!, ranking)
+              : null,
+          borderRadius: BorderRadius.circular(6),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _RankBadge(rank: ranking.rank),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        book?.author ?? '未知作者',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
+                        book?.title ?? '未知书籍',
+                        style: textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: colorScheme.onSurface,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      if (book != null) ...[
-                        const SizedBox(width: 8),
-                        _PlatformDot(platform: book!.platform),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Text(
+                            book?.author ?? '未知作者',
+                            style: textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          if (book != null) ...[
+                            const SizedBox(width: 8),
+                            _PlatformDot(platform: book!.platform),
+                          ],
+                        ],
+                      ),
+                      if (book != null && book!.categories.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 4,
+                          runSpacing: 3,
+                          children: book!.categories.take(3).map((c) {
+                            return DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: colorScheme.primary.withValues(
+                                  alpha: 0.07,
+                                ),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                child: Text(
+                                  c,
+                                  style: textTheme.labelSmall?.copyWith(
+                                    fontSize: 10,
+                                    color: colorScheme.primary,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
                       ],
                     ],
                   ),
-                  if (book != null && book!.categories.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 4,
-                      runSpacing: 3,
-                      children: book!.categories.take(3).map((c) {
-                        return DecoratedBox(
-                          decoration: BoxDecoration(
-                            color:
-                                colorScheme.primary.withValues(alpha: 0.07),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            child: Text(
-                              c,
-                              style: textTheme.labelSmall?.copyWith(
-                                fontSize: 10,
-                                color: colorScheme.primary,
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ],
-                ],
-              ),
+                ),
+                const SizedBox(width: 8),
+                _buildMetrics(context),
+              ],
             ),
-            const SizedBox(width: 8),
-            _buildMetrics(context),
-          ],
+          ),
         ),
-      ),
+        if (!isLast)
+          Divider(
+            height: 1,
+            indent: 60,
+            color: colorScheme.outlineVariant.withValues(alpha: 0.7),
+          ),
+      ],
     );
   }
 
@@ -603,32 +629,40 @@ class _RankingItem extends StatelessWidget {
 
     final metrics = <Widget>[];
     if (ranking.favorites != null && ranking.favorites! > 0) {
-      metrics.add(_MiniMetric(
-        icon: Icons.favorite_border,
-        value: _formatCount(ranking.favorites!),
-        color: const Color(0xFFE53935),
-      ));
+      metrics.add(
+        _MiniMetric(
+          icon: Icons.favorite_border,
+          value: _formatCount(ranking.favorites!),
+          color: const Color(0xFFE53935),
+        ),
+      );
     }
     if (ranking.recommendVotes != null && ranking.recommendVotes! > 0) {
-      metrics.add(_MiniMetric(
-        icon: Icons.thumb_up_outlined,
-        value: _formatCount(ranking.recommendVotes!),
-        color: const Color(0xFF1E88E5),
-      ));
+      metrics.add(
+        _MiniMetric(
+          icon: Icons.thumb_up_outlined,
+          value: _formatCount(ranking.recommendVotes!),
+          color: const Color(0xFF1E88E5),
+        ),
+      );
     }
     if (ranking.monthlyTickets != null && ranking.monthlyTickets! > 0) {
-      metrics.add(_MiniMetric(
-        icon: Icons.confirmation_number_outlined,
-        value: _formatCount(ranking.monthlyTickets!),
-        color: const Color(0xFFF9A825),
-      ));
+      metrics.add(
+        _MiniMetric(
+          icon: Icons.confirmation_number_outlined,
+          value: _formatCount(ranking.monthlyTickets!),
+          color: const Color(0xFFF9A825),
+        ),
+      );
     }
     if (ranking.commentCount != null && ranking.commentCount! > 0) {
-      metrics.add(_MiniMetric(
-        icon: Icons.chat_bubble_outline,
-        value: _formatCount(ranking.commentCount!),
-        color: colorScheme.onSurfaceVariant,
-      ));
+      metrics.add(
+        _MiniMetric(
+          icon: Icons.chat_bubble_outline,
+          value: _formatCount(ranking.commentCount!),
+          color: colorScheme.onSurfaceVariant,
+        ),
+      );
     }
 
     return Column(
@@ -772,10 +806,7 @@ class _PlatformDot extends StatelessWidget {
         Container(
           width: 6,
           height: 6,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 4),
         Text(
@@ -804,9 +835,10 @@ class _ScanHistorySection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('扫描历史',
-            style:
-                textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600)),
+        Text(
+          '扫描历史',
+          style: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 10),
         if (runs.isEmpty)
           Text('暂无扫描记录', style: textTheme.bodySmall)
@@ -829,39 +861,39 @@ class _ScanHistoryRow extends StatelessWidget {
 
     final (icon, statusColor, trailing) = switch (run.status) {
       MarketScanRunStatus.completed => (
-          Icons.check_circle_outline,
-          const Color(0xFF2E7D32),
-          Text(
-            '${run.itemCount} 本',
-            style: textTheme.labelSmall?.copyWith(
-              color: const Color(0xFF2E7D32),
-              fontWeight: FontWeight.w600,
-            ),
+        Icons.check_circle_outline,
+        const Color(0xFF2E7D32),
+        Text(
+          '${run.itemCount} 本',
+          style: textTheme.labelSmall?.copyWith(
+            color: const Color(0xFF2E7D32),
+            fontWeight: FontWeight.w600,
           ),
         ),
+      ),
       MarketScanRunStatus.failed => (
-          Icons.error_outline,
-          colorScheme.error,
-          Text(
-            '失败',
-            style: textTheme.labelSmall?.copyWith(
-              color: colorScheme.error,
-              fontWeight: FontWeight.w600,
-            ),
+        Icons.error_outline,
+        colorScheme.error,
+        Text(
+          '失败',
+          style: textTheme.labelSmall?.copyWith(
+            color: colorScheme.error,
+            fontWeight: FontWeight.w600,
           ),
         ),
+      ),
       MarketScanRunStatus.running => (
-          Icons.sync_outlined,
-          colorScheme.primary,
-          SizedBox(
-            width: 12,
-            height: 12,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: colorScheme.primary,
-            ),
+        Icons.sync_outlined,
+        colorScheme.primary,
+        SizedBox(
+          width: 12,
+          height: 12,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: colorScheme.primary,
           ),
         ),
+      ),
     };
 
     return Padding(
@@ -872,8 +904,7 @@ class _ScanHistoryRow extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             _platformLabel(run.platform),
-            style:
-                textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+            style: textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(width: 10),
           Text(
@@ -928,7 +959,10 @@ class _EmptyRankingsPlaceholder extends StatelessWidget {
 // ── Book Detail Dialog ────────────────────────────────────────────────
 
 void _showBookDetail(
-    BuildContext context, MarketBook book, MarketRanking ranking) {
+  BuildContext context,
+  MarketBook book,
+  MarketRanking ranking,
+) {
   final colorScheme = Theme.of(context).colorScheme;
   final textTheme = Theme.of(context).textTheme;
   final platformClr = _platformColor(book.platform, colorScheme);
@@ -938,13 +972,11 @@ void _showBookDetail(
     builder: (context) {
       return Dialog(
         backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(
-            horizontal: 24, vertical: 24),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
         child: PersonaPanel(
           padding: EdgeInsets.zero,
           child: ConstrainedBox(
-            constraints:
-                const BoxConstraints(maxWidth: 540, maxHeight: 600),
+            constraints: const BoxConstraints(maxWidth: 540, maxHeight: 600),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -954,7 +986,8 @@ void _showBookDetail(
                   decoration: BoxDecoration(
                     color: platformClr,
                     borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(kPanelRadius)),
+                      top: Radius.circular(kPanelRadius),
+                    ),
                   ),
                 ),
                 Padding(
@@ -974,7 +1007,9 @@ void _showBookDetail(
                             ),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
                               child: Text(
                                 ranking.chartName,
                                 style: textTheme.labelSmall?.copyWith(
@@ -1043,21 +1078,24 @@ void _showBookDetail(
                             children: book.categories.map((c) {
                               return DecoratedBox(
                                 decoration: BoxDecoration(
-                                  color: colorScheme.primary
-                                      .withValues(alpha: 0.08),
+                                  color: colorScheme.primary.withValues(
+                                    alpha: 0.08,
+                                  ),
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
-                                    color: colorScheme.primary
-                                        .withValues(alpha: 0.18),
+                                    color: colorScheme.primary.withValues(
+                                      alpha: 0.18,
+                                    ),
                                   ),
                                 ),
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 4),
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
                                   child: Text(
                                     c,
-                                    style:
-                                        textTheme.labelSmall?.copyWith(
+                                    style: textTheme.labelSmall?.copyWith(
                                       color: colorScheme.primary,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -1082,20 +1120,19 @@ void _showBookDetail(
                             children: book.tags.take(8).map((t) {
                               return DecoratedBox(
                                 decoration: BoxDecoration(
-                                  color: colorScheme
-                                      .surfaceContainerHighest
+                                  color: colorScheme.surfaceContainerHighest
                                       .withValues(alpha: 0.5),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 3),
+                                    horizontal: 8,
+                                    vertical: 3,
+                                  ),
                                   child: Text(
                                     t,
-                                    style:
-                                        textTheme.labelSmall?.copyWith(
-                                      color:
-                                          colorScheme.onSurfaceVariant,
+                                    style: textTheme.labelSmall?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                 ),
@@ -1264,8 +1301,11 @@ class _DialogInfoRow extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.text_fields,
-                  size: 14, color: colorScheme.onSurfaceVariant),
+              Icon(
+                Icons.text_fields,
+                size: 14,
+                color: colorScheme.onSurfaceVariant,
+              ),
               const SizedBox(width: 6),
               Text(
                 _formatWordCount(wordCount),
@@ -1290,8 +1330,7 @@ class _DialogInfoRow extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               status == BookStatus.completed ? '已完结' : '连载中',
-              style:
-                  textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+              style: textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -1299,13 +1338,17 @@ class _DialogInfoRow extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.calendar_today_outlined,
-                  size: 14, color: colorScheme.onSurfaceVariant),
+              Icon(
+                Icons.calendar_today_outlined,
+                size: 14,
+                color: colorScheme.onSurfaceVariant,
+              ),
               const SizedBox(width: 6),
               Text(
                 '${publishDate!.year}-${publishDate!.month.toString().padLeft(2, '0')}-${publishDate!.day.toString().padLeft(2, '0')}',
-                style: textTheme.bodySmall
-                    ?.copyWith(fontWeight: FontWeight.w600),
+                style: textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),

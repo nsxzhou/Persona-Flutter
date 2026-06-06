@@ -1,3 +1,0 @@
-{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Quality check must verify run/task state sync, migration behavior, and prompt trace storage contracts."}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Quality check must include build_runner, formatting, analyzer, and focused/full tests."}
-{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "The feature crosses database, repository, application service, LLM, and workflow task layers."}

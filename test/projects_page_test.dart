@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:persona_flutter/src/features/projects/application/project_providers.dart';
 import 'package:persona_flutter/src/features/projects/domain/project_repository.dart';
 import 'package:persona_flutter/src/features/projects/domain/writing_project.dart';
+import 'package:persona_flutter/src/features/projects/presentation/project_creation_page.dart';
 import 'package:persona_flutter/src/features/projects/presentation/projects_page.dart';
 import 'package:persona_flutter/src/features/settings/application/provider_config_providers.dart';
 import 'package:persona_flutter/src/features/settings/domain/provider_config.dart';
@@ -35,7 +36,7 @@ void main() {
             (ref) => Stream<List<PlotProfile>>.value(const []),
           ),
         ],
-        child: const MaterialApp(home: ProjectsPage()),
+        child: MaterialApp.router(routerConfig: _projectsRouter()),
       ),
     );
 
@@ -245,7 +246,7 @@ void main() {
             (ref) => Stream<List<PlotProfile>>.value([_plotProfile()]),
           ),
         ],
-        child: const MaterialApp(home: ProjectsPage()),
+        child: MaterialApp.router(routerConfig: _projectsRouter()),
       ),
     );
 
@@ -257,8 +258,9 @@ void main() {
     expect(find.text('写作参数'), findsOneWidget);
     expect(find.text('默认 Provider'), findsOneWidget);
     expect(find.text('默认模型'), findsOneWidget);
-    expect(find.text('Style Profile（可选）'), findsOneWidget);
-    expect(find.text('Plot Profile（可选）'), findsOneWidget);
+    expect(find.text('Profile 挂载（可选）'), findsOneWidget);
+    expect(find.text('Style Profile'), findsOneWidget);
+    expect(find.text('Plot Profile'), findsOneWidget);
   });
 
   testWidgets('project dialog blocks save without provider configuration', (
@@ -280,7 +282,7 @@ void main() {
             (ref) => Stream<List<PlotProfile>>.value(const []),
           ),
         ],
-        child: const MaterialApp(home: ProjectsPage()),
+        child: MaterialApp.router(routerConfig: _projectsRouter()),
       ),
     );
 
@@ -290,7 +292,7 @@ void main() {
 
     expect(find.textContaining('请先在 Settings 配置 Provider'), findsWidgets);
     final saveButton = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, '保存').last,
+      find.widgetWithText(FilledButton, '创建项目').last,
     );
     expect(saveButton.onPressed, isNull);
   });
@@ -333,6 +335,29 @@ ProviderConfig _provider() {
     testStatus: ProviderTestStatus.untested,
     createdAt: DateTime(2026, 5, 16, 9),
     updatedAt: DateTime(2026, 5, 16, 10),
+  );
+}
+
+GoRouter _projectsRouter() {
+  return GoRouter(
+    initialLocation: '/projects',
+    routes: [
+      GoRoute(
+        path: '/projects',
+        builder: (context, state) => const ProjectsPage(),
+        routes: [
+          GoRoute(
+            path: 'create',
+            builder: (context, state) =>
+                const Scaffold(body: ProjectCreationPage()),
+          ),
+          GoRoute(
+            path: 'recommend',
+            builder: (context, state) => const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    ],
   );
 }
 

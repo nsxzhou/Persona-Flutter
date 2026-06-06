@@ -217,9 +217,7 @@ class AssetGenerationPipeline {
               ? 0.35
               : 0.55,
           modelName: modelName,
-          promptTrace: traceRecorder.config(
-            label: 'repair_${kind.name}',
-          ),
+          promptTrace: traceRecorder.config(label: 'repair_${kind.name}'),
           cancellationToken: cancellationToken,
         );
         cancellationToken.throwIfCancelled();
@@ -296,10 +294,9 @@ class AssetGenerationPipeline {
     String? targetVolumeId,
   }) async {
     final normalizedVolumeId = targetVolumeId?.trim();
-    final scopedKind =
-        normalizedVolumeId == null || normalizedVolumeId.isEmpty
-            ? kind
-            : AssetGenerationKind.outlineDetailYaml;
+    final scopedKind = normalizedVolumeId == null || normalizedVolumeId.isEmpty
+        ? kind
+        : AssetGenerationKind.outlineDetailYaml;
     if (await _repository.hasRunningAssetGeneration(
       projectId: projectId,
       kind: scopedKind,
@@ -409,13 +406,11 @@ class AssetGenerationPipeline {
         prompt: prompt,
         temperature:
             kind == AssetGenerationKind.outlineDetailYaml ||
-                    kind == AssetGenerationKind.volumeBlueprintYaml
-                ? 0.35
-                : 0.55,
+                kind == AssetGenerationKind.volumeBlueprintYaml
+            ? 0.35
+            : 0.55,
         modelName: modelName,
-        promptTrace: traceRecorder.config(
-          label: 'regenerate_${kind.name}',
-        ),
+        promptTrace: traceRecorder.config(label: 'regenerate_${kind.name}'),
         cancellationToken: cancellationToken,
       );
       cancellationToken.throwIfCancelled();
@@ -448,13 +443,11 @@ class AssetGenerationPipeline {
           prompt: repairPrompt,
           temperature:
               kind == AssetGenerationKind.outlineDetailYaml ||
-                      kind == AssetGenerationKind.volumeBlueprintYaml
-                  ? 0.35
-                  : 0.55,
+                  kind == AssetGenerationKind.volumeBlueprintYaml
+              ? 0.35
+              : 0.55,
           modelName: modelName,
-          promptTrace: traceRecorder.config(
-            label: 'repair_${kind.name}',
-          ),
+          promptTrace: traceRecorder.config(label: 'repair_${kind.name}'),
           cancellationToken: cancellationToken,
         );
         cancellationToken.throwIfCancelled();

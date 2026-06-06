@@ -28,160 +28,155 @@ class _WorkflowRunsPageState extends ConsumerState<WorkflowRunsPage> {
 
     return Scaffold(
       body: tasksAsync.when(
-          data: (tasks) {
-            final filteredTasks = tasks
-                .where(
-                  (task) =>
-                      (_statusFilter == null ||
-                          task.status == _statusFilter) &&
-                      (_kindFilter == null || task.kind == _kindFilter),
-                )
-                .toList(growable: false);
+        data: (tasks) {
+          final filteredTasks = tasks
+              .where(
+                (task) =>
+                    (_statusFilter == null || task.status == _statusFilter) &&
+                    (_kindFilter == null || task.kind == _kindFilter),
+              )
+              .toList(growable: false);
 
-            return CustomScrollView(
-              slivers: [
-                // Header
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(32, 28, 32, 0),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 1240),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '运维控制台'.toUpperCase(),
-                                        style: textTheme.labelMedium?.copyWith(
-                                          color: colorScheme.primary,
+          return CustomScrollView(
+            slivers: [
+              // Header
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(32, 28, 32, 0),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1240),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '运维控制台'.toUpperCase(),
+                                      style: textTheme.labelMedium?.copyWith(
+                                        color: colorScheme.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      '工作流任务',
+                                      style: textTheme.headlineMedium,
+                                    ),
+                                    const SizedBox(height: 10),
+                                    ConstrainedBox(
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 700,
+                                      ),
+                                      child: Text(
+                                        '查看本地长任务的持久化状态，包括队列、失败原因和可恢复任务。',
+                                        style: textTheme.bodyLarge?.copyWith(
+                                          color: colorScheme.onSurfaceVariant,
                                         ),
                                       ),
-                                      const SizedBox(height: 10),
-                                      Text(
-                                        '工作流任务',
-                                        style: textTheme.headlineMedium,
-                                      ),
-                                      const SizedBox(height: 10),
-                                      ConstrainedBox(
-                                        constraints: const BoxConstraints(
-                                          maxWidth: 700,
-                                        ),
-                                        child: Text(
-                                          '查看本地长任务的持久化状态，包括队列、失败原因和可恢复任务。',
-                                          style: textTheme.bodyLarge?.copyWith(
-                                            color:
-                                                colorScheme.onSurfaceVariant,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 28),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Metrics (also acts as status filter)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(32, 0, 32, 0),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 1240),
-                        child: WorkflowRunMetrics(
-                          items: tasks,
-                          selectedStatus: _statusFilter,
-                          onStatusChanged: (value) =>
-                              setState(() => _statusFilter = value),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Filters
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(32, 18, 32, 0),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 1240),
-                        child: WorkflowRunFilters(
-                          items: tasks,
-                          kindFilter: _kindFilter,
-                          onKindChanged: (value) =>
-                              setState(() => _kindFilter = value),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Empty state
-                if (tasks.isEmpty || filteredTasks.isEmpty)
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(32, 18, 32, 0),
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 1240),
-                          child: tasks.isEmpty
-                              ? const _EmptyWorkflowRuns()
-                              : const _EmptyFilteredWorkflowRuns(),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                // Virtual list rows
-                if (filteredTasks.isNotEmpty)
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(32, 18, 32, 0),
-                    sliver: SliverList.builder(
-                      itemCount: filteredTasks.length,
-                      itemBuilder: (context, index) => Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 1240),
-                          child: WorkflowRunRow(
-                            key: ValueKey(filteredTasks[index].id),
-                            task: filteredTasks[index],
+                              ),
+                            ],
                           ),
+                          const SizedBox(height: 28),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Metrics (also acts as status filter)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(32, 0, 32, 0),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1240),
+                      child: WorkflowRunMetrics(
+                        items: tasks,
+                        selectedStatus: _statusFilter,
+                        onStatusChanged: (value) =>
+                            setState(() => _statusFilter = value),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Filters
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(32, 18, 32, 0),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1240),
+                      child: WorkflowRunFilters(
+                        items: tasks,
+                        kindFilter: _kindFilter,
+                        onKindChanged: (value) =>
+                            setState(() => _kindFilter = value),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Empty state
+              if (tasks.isEmpty || filteredTasks.isEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(32, 18, 32, 0),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1240),
+                        child: tasks.isEmpty
+                            ? const _EmptyWorkflowRuns()
+                            : const _EmptyFilteredWorkflowRuns(),
+                      ),
+                    ),
+                  ),
+                ),
+
+              // Virtual list rows
+              if (filteredTasks.isNotEmpty)
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(32, 18, 32, 0),
+                  sliver: SliverList.builder(
+                    itemCount: filteredTasks.length,
+                    itemBuilder: (context, index) => Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1240),
+                        child: WorkflowRunRow(
+                          key: ValueKey(filteredTasks[index].id),
+                          task: filteredTasks[index],
                         ),
                       ),
                     ),
                   ),
-
-                // Bottom padding
-                const SliverToBoxAdapter(
-                  child: SizedBox(height: 40),
                 ),
-              ],
-            );
-          },
-          error: (error, stackTrace) => Center(
-            child: PersonaPanel(
-              child: Text(
-                '无法加载工作流任务：$error',
-                style: TextStyle(color: colorScheme.error),
-              ),
+
+              // Bottom padding
+              const SliverToBoxAdapter(child: SizedBox(height: 40)),
+            ],
+          );
+        },
+        error: (error, stackTrace) => Center(
+          child: PersonaPanel(
+            child: Text(
+              '无法加载工作流任务：$error',
+              style: TextStyle(color: colorScheme.error),
             ),
           ),
-          loading: () => const _SkeletonLoading(),
         ),
+        loading: () => const _SkeletonLoading(),
+      ),
     );
   }
 }
