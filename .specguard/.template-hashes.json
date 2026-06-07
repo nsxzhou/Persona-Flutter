@@ -1,0 +1,20 @@
+{
+  "__version": 2,
+  "hashes": {
+    "AGENTS.md": "52ad7493d40493140cdab96ec71c1fae57906916dc43ac02b695e92d7ea9588f",
+    ".agents/skills/specguard-before-dev/SKILL.md": "eff48ce9a9d3f4b61fd7fb3382787ee673e2982f1270129ad1c1df88e9d8b463",
+    ".agents/skills/specguard-check/SKILL.md": "8a8073e8118fd444d808f5c38539a3d5376247a49d5fcea37c838d231da77021",
+    ".agents/skills/specguard-finish/SKILL.md": "a683353a65231a79c214d96a5303526d83521a3c7aa82b840d3d82179e277e19",
+    ".claude/commands/specguard/before-dev.md": "a9436a2a897abc461f9561e06666e227aa33877eecda0aa2370baa9e01e2b025",
+    ".claude/commands/specguard/check.md": "d5e2972ba2b60b8ac436357e57fcbbcedf3a06bf49f2b2c695c3d3ca46ad9fe9",
+    ".claude/commands/specguard/finish.md": "ef9194bec866162d80f2a354715a85588a62777cb18913bea75045b9c06addbb",
+    ".claude/skills/specguard-before-dev/SKILL.md": "eff48ce9a9d3f4b61fd7fb3382787ee673e2982f1270129ad1c1df88e9d8b463",
+    ".claude/skills/specguard-check/SKILL.md": "8a8073e8118fd444d808f5c38539a3d5376247a49d5fcea37c838d231da77021",
+    ".claude/skills/specguard-finish/SKILL.md": "a683353a65231a79c214d96a5303526d83521a3c7aa82b840d3d82179e277e19",
+    ".claude/hooks/specguard-context.py": "987b4243df36bfa935f7d317dcd349790626f3a4b0e33a94caba4ed84ee6c66d",
+    ".codex/hooks/specguard-context.py": "987b4243df36bfa935f7d317dcd349790626f3a4b0e33a94caba4ed84ee6c66d",
+    ".codex/hooks.json": "06b7f378702dc03c951775573e877cb27eef7a726e4d4c24f72879bb727cdef0",
+    ".codex/config.toml": "63ad7fed0f1ab7ddd87e2f131d246b1b7eca7fbffe577738a561c89e58d048cc",
+    ".specguard/config.yaml": "efa06d0ff26b525ea9d9b220a996f98bccbbcfa5027148dca768e8d63ccd5c7f"
+  }
+}
