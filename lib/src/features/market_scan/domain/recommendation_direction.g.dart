@@ -57,7 +57,6 @@ Map<String, dynamic> _$RecommendationDirectionToJson(
 const _$MarketPlatformEnumMap = {
   MarketPlatform.qidian: 'qidian',
   MarketPlatform.fanqie: 'fanqie',
-  MarketPlatform.jinjiang: 'jinjiang',
 };
 
 _RecommendationTitleCandidate _$RecommendationTitleCandidateFromJson(

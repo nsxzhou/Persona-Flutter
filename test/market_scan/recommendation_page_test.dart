@@ -34,24 +34,59 @@ void main() {
       expect(find.text('查看完整榜单'), findsOneWidget);
       expect(find.text('生成推荐'), findsOneWidget);
       expect(find.text('排行榜数据'), findsNothing);
-      expect(find.text('天官赐福'), findsNothing);
+      expect(find.text('欢迎进入梦魇直播间'), findsNothing);
 
       await _tapWorkspaceView(tester, 'rankings');
 
       expect(find.text('排行榜数据'), findsOneWidget);
-      expect(find.text('天官赐福'), findsOneWidget);
+      expect(find.text('全球高考'), findsOneWidget);
 
-      await tester.tap(find.text('晋江文学城 (1)'));
+      await tester.tap(find.text('番茄小说 (1)'));
       await tester.pumpAndSettle();
-      expect(find.text('天官赐福'), findsOneWidget);
+      expect(find.text('欢迎进入梦魇直播间'), findsOneWidget);
+      expect(find.text('全球高考'), findsNothing);
 
-      await tester.tap(find.text('天官赐福').first);
+      await tester.tap(find.text('欢迎进入梦魇直播间').first);
       await tester.pumpAndSettle();
       expect(find.byType(Dialog), findsOneWidget);
       expect(find.text('分类'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('ranking platform filters keep stable chip dimensions', (
+    tester,
+  ) async {
+    await _setSurface(tester, const Size(1440, 900));
+    final fixture = await _MarketScanFixture.withData();
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(_RecommendationTestApp(repository: fixture.repo));
+    await tester.pumpAndSettle();
+
+    await _tapWorkspaceView(tester, 'rankings');
+
+    final allFilter = find.byKey(const ValueKey('ranking-platform-filter-all'));
+    final qidianFilter = find.byKey(
+      const ValueKey('ranking-platform-filter-qidian'),
+    );
+    final fanqieFilter = find.byKey(
+      const ValueKey('ranking-platform-filter-fanqie'),
+    );
+    final allSize = tester.getSize(allFilter);
+    final qidianSize = tester.getSize(qidianFilter);
+    final fanqieSize = tester.getSize(fanqieFilter);
+
+    await tester.tap(fanqieFilter);
+    await tester.pumpAndSettle();
+
+    expect(tester.getSize(allFilter), allSize);
+    expect(tester.getSize(qidianFilter), qidianSize);
+    expect(tester.getSize(fanqieFilter), fanqieSize);
+    expect(find.text('欢迎进入梦魇直播间'), findsOneWidget);
+    expect(find.text('全球高考'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('recommendation page keeps compact layout overflow-free', (
     tester,
@@ -137,12 +172,6 @@ void main() {
                 displayName: '番茄小说',
                 status: PlatformScanStatus.scanning,
               ),
-              PlatformScanEntry(
-                platform: 'jinjiang',
-                displayName: '晋江文学城',
-                status: PlatformScanStatus.completed,
-                itemCount: 500,
-              ),
             ],
           ),
         ),
@@ -151,7 +180,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.text('平台进度'), findsOneWidget);
-      expect(find.text('2/3 已完成'), findsOneWidget);
+      expect(find.text('1/2 已完成'), findsOneWidget);
       expect(find.text('放弃任务'), findsOneWidget);
       expect(find.text('番茄小说'), findsWidgets);
       expect(tester.takeException(), isNull);
@@ -346,14 +375,6 @@ class _MarketScanFixture {
       author: '桑沃',
       categories: const ['悬疑', '无限流'],
       favorites: 4110000,
-    );
-    await _seedPlatform(
-      platform: MarketPlatform.jinjiang,
-      chartName: '收藏榜',
-      title: '天官赐福',
-      author: '墨香铜臭',
-      categories: const ['纯爱', '架空历史', '爱情'],
-      favorites: 1090000,
     );
   }
 

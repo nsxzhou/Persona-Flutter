@@ -240,8 +240,6 @@ $invalidOutput
         '- 起点：轻度反差 + 金手指/能力 + 主线目标 + 爽点暗示。不要文艺空泛，内容必须贴合书名承诺。',
       MarketPlatform.fanqie =>
         '- 番茄：噱头优先、强标签、快节奏、强情绪或强脑洞。书名要直接吸量，简介要快速给安全感和爽点。',
-      MarketPlatform.jinjiang =>
-        '- 晋江：人物主体性、关系张力、情感安全感和细腻人设优先。书名不要只堆设定，简介要明确情感钩子与人物选择。',
     };
   }
 
@@ -249,7 +247,6 @@ $invalidOutput
     return switch (platform) {
       MarketPlatform.qidian => '起点中文网',
       MarketPlatform.fanqie => '番茄小说',
-      MarketPlatform.jinjiang => '晋江文学城',
     };
   }
 

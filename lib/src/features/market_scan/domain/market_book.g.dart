@@ -52,7 +52,6 @@ Map<String, dynamic> _$MarketBookToJson(_MarketBook instance) =>
 const _$MarketPlatformEnumMap = {
   MarketPlatform.qidian: 'qidian',
   MarketPlatform.fanqie: 'fanqie',
-  MarketPlatform.jinjiang: 'jinjiang',
 };
 
 const _$BookStatusEnumMap = {

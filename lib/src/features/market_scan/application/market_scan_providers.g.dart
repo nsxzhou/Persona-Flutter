@@ -151,7 +151,7 @@ final class DataSourceAdaptersProvider
 }
 
 String _$dataSourceAdaptersHash() =>
-    r'87565500bb7149360b12de5302f5a9e50c34c2bc';
+    r'314c21244efce50280d7058702ca5c425734888e';
 
 @ProviderFor(marketScanService)
 final marketScanServiceProvider = MarketScanServiceProvider._();

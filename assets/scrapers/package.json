@@ -5,8 +5,7 @@
   "description": "Market data scrapers for Persona",
   "scripts": {
     "scrape:qidian": "node qidian_scraper.js",
-    "scrape:fanqie": "node fanqie_scraper.js",
-    "scrape:jinjiang": "node jinjiang_scraper.js"
+    "scrape:fanqie": "node fanqie_scraper.js"
   },
   "dependencies": {
     "puppeteer-core": "^24.0.0"

@@ -765,7 +765,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 32;
+  int get schemaVersion => 33;
 
   @override
   MigrationStrategy get migration {
@@ -1217,8 +1217,46 @@ class AppDatabase extends _$AppDatabase {
             await migrator.createTable(marketRankingRecords);
           }
         }
+        if (from < 33) {
+          await _removeJinjiangMarketScanData();
+        }
       },
     );
+  }
+
+  Future<void> _removeJinjiangMarketScanData() async {
+    final hasRankings = await _tableExists('market_ranking_records');
+    final hasBooks = await _tableExists('market_book_records');
+    final hasRuns = await _tableExists('market_scan_run_records');
+
+    if (hasRankings && hasBooks) {
+      await customStatement('''
+        DELETE FROM market_ranking_records
+        WHERE book_id IN (
+          SELECT id FROM market_book_records WHERE platform = 'jinjiang'
+        )
+      ''');
+    }
+    if (hasRankings && hasRuns) {
+      await customStatement('''
+        DELETE FROM market_ranking_records
+        WHERE run_id IN (
+          SELECT id FROM market_scan_run_records WHERE platform = 'jinjiang'
+        )
+      ''');
+    }
+    if (hasBooks) {
+      await customStatement('''
+        DELETE FROM market_book_records
+        WHERE platform = 'jinjiang'
+      ''');
+    }
+    if (hasRuns) {
+      await customStatement('''
+        DELETE FROM market_scan_run_records
+        WHERE platform = 'jinjiang'
+      ''');
+    }
   }
 
   Future<void> _migrateWorkshopProjectBibleAndVolumes(Migrator migrator) async {

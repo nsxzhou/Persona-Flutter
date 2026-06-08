@@ -8,7 +8,6 @@ import '../domain/market_ranking.dart';
 import '../domain/market_scan_repository.dart';
 import '../domain/market_scan_run.dart';
 import 'adapters/fanqie_adapter.dart';
-import 'adapters/jinjiang_adapter.dart';
 import 'adapters/qidian_adapter.dart';
 import '../../settings/application/provider_config_providers.dart';
 import '../../style_lab/application/style_lab_providers.dart';
@@ -33,11 +32,7 @@ ScraperProcessRunner scraperProcessRunner(Ref ref) {
 @Riverpod(keepAlive: true)
 List<DataSourceAdapter> dataSourceAdapters(Ref ref) {
   final runner = ref.watch(scraperProcessRunnerProvider);
-  return [
-    QidianAdapter(runner),
-    FanqieAdapter(runner),
-    JinjiangAdapter(runner),
-  ];
+  return [QidianAdapter(runner), FanqieAdapter(runner)];
 }
 
 @Riverpod(keepAlive: true)

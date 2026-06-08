@@ -3,7 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'market_book.freezed.dart';
 part 'market_book.g.dart';
 
-enum MarketPlatform { qidian, fanqie, jinjiang }
+enum MarketPlatform { qidian, fanqie }
 
 enum BookStatus { ongoing, completed }
 

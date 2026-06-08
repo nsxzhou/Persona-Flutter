@@ -168,25 +168,15 @@ class _ScanDataBrowserState extends ConsumerState<ScanDataBrowser> {
             final count = p == null ? books.length : (platformCounts[p] ?? 0);
             final label = p == null ? '全部' : _platformLabel(p.name);
 
-            return ChoiceChip(
-              label: Text('$label ($count)'),
+            return _PlatformFilterChip(
+              key: ValueKey('ranking-platform-filter-${p?.name ?? 'all'}'),
+              label: '$label ($count)',
+              icon: p == null ? Icons.library_books_outlined : _platformIcon(p),
+              color: p == null
+                  ? colorScheme.onSurfaceVariant
+                  : _platformColor(p, colorScheme),
               selected: selected,
-              onSelected: (_) => setState(() => _platformFilter = p),
-              visualDensity: VisualDensity.compact,
-              avatar: p != null
-                  ? Icon(
-                      _platformIcon(p),
-                      size: 14,
-                      color: selected
-                          ? colorScheme.onPrimary
-                          : _platformColor(p, colorScheme),
-                    )
-                  : null,
-              labelStyle: textTheme.labelSmall?.copyWith(
-                color: selected
-                    ? colorScheme.onPrimary
-                    : colorScheme.onSurfaceVariant,
-              ),
+              onPressed: () => setState(() => _platformFilter = p),
             );
           }).toList(),
         ),
@@ -294,6 +284,72 @@ class _RankingBookListRow extends _RankingListRow {
   const _RankingBookListRow({required this.ranking});
 
   final MarketRanking ranking;
+}
+
+class _PlatformFilterChip extends StatelessWidget {
+  const _PlatformFilterChip({
+    super.key,
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.selected,
+    required this.onPressed,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color color;
+  final bool selected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final backgroundColor = selected
+        ? color.withValues(alpha: 0.14)
+        : colorScheme.surfaceContainerHighest.withValues(alpha: 0.45);
+    final borderColor = selected
+        ? color.withValues(alpha: 0.55)
+        : colorScheme.outlineVariant;
+    final contentColor = selected ? color : colorScheme.onSurfaceVariant;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          height: 32,
+          constraints: const BoxConstraints(minWidth: 76),
+          padding: const EdgeInsets.symmetric(horizontal: 11),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: borderColor),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: Icon(icon, size: 14, color: contentColor),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: textTheme.labelSmall?.copyWith(
+                  color: contentColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // ── Stat Cards Row ────────────────────────────────────────────────────
@@ -1458,7 +1514,6 @@ String _platformLabel(String platform) {
   return switch (platform) {
     'qidian' => '起点中文网',
     'fanqie' => '番茄小说',
-    'jinjiang' => '晋江文学城',
     _ => platform,
   };
 }
@@ -1467,7 +1522,6 @@ String _platformShortLabel(MarketPlatform platform) {
   return switch (platform) {
     MarketPlatform.qidian => '起点',
     MarketPlatform.fanqie => '番茄',
-    MarketPlatform.jinjiang => '晋江',
   };
 }
 
@@ -1475,7 +1529,6 @@ Color _platformColor(MarketPlatform platform, ColorScheme colorScheme) {
   return switch (platform) {
     MarketPlatform.qidian => const Color(0xFF2758D9),
     MarketPlatform.fanqie => const Color(0xFFE64A19),
-    MarketPlatform.jinjiang => const Color(0xFFAD1457),
   };
 }
 
@@ -1483,7 +1536,6 @@ IconData _platformIcon(MarketPlatform platform) {
   return switch (platform) {
     MarketPlatform.qidian => Icons.auto_stories_outlined,
     MarketPlatform.fanqie => Icons.local_cafe_outlined,
-    MarketPlatform.jinjiang => Icons.local_florist_outlined,
   };
 }
 

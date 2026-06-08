@@ -1,1 +1,3 @@
 project_doc_fallback_filenames = ["AGENTS.md"]
+
+approval_policy = "on-request"

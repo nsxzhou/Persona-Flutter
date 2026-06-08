@@ -15,6 +15,7 @@ import 'package:persona_flutter/src/features/market_scan/domain/market_scan_repo
 import 'package:persona_flutter/src/features/market_scan/domain/market_scan_run.dart';
 import 'package:persona_flutter/src/features/market_scan/domain/market_scan_workflow.dart';
 import 'package:persona_flutter/src/features/market_scan/domain/scraped_book.dart';
+import 'package:sqlite3/sqlite3.dart' as sqlite3;
 
 void main() {
   test(
@@ -111,6 +112,33 @@ void main() {
     },
   );
 
+  test('schema 33 migration removes Jinjiang market data only', () async {
+    final sqlite = sqlite3.sqlite3.openInMemory();
+    addTearDown(sqlite.dispose);
+    final now = DateTime.utc(2026, 6, 6).millisecondsSinceEpoch;
+    _createSchema32MarketScanTables(sqlite);
+    _insertLegacyMarketRows(sqlite, now: now);
+    sqlite.execute('PRAGMA user_version = 32');
+
+    final database = AppDatabase(
+      NativeDatabase.opened(sqlite, closeUnderlyingOnClose: false),
+    );
+    addTearDown(database.close);
+    final repository = DriftMarketScanRepository(database);
+
+    final books = await repository.findBooks();
+    final rankings = await repository.findLatestRankings();
+    final runs = await repository.findRuns();
+
+    expect(books, hasLength(1));
+    expect(books.single.platform, MarketPlatform.qidian);
+    expect(books.single.title, '起点样本');
+    expect(rankings, hasLength(1));
+    expect(rankings.single.bookId, 'qidian-book');
+    expect(runs, hasLength(1));
+    expect(runs.single.platform, MarketPlatform.qidian.name);
+  });
+
   test('scanPlatform resolves platform books once after bulk upsert', () async {
     final repository = _FakeMarketScanRepository();
     final service = MarketScanService(
@@ -133,6 +161,110 @@ void main() {
     expect(repository.rankings, hasLength(3));
     expect(repository.completedRuns.single.itemCount, 3);
   });
+}
+
+void _createSchema32MarketScanTables(sqlite3.Database sqlite) {
+  sqlite.execute('''
+    CREATE TABLE market_scan_run_records (
+      id TEXT NOT NULL PRIMARY KEY,
+      platform TEXT NOT NULL,
+      status TEXT NOT NULL,
+      started_at INTEGER NOT NULL,
+      completed_at INTEGER,
+      item_count INTEGER NOT NULL DEFAULT 0,
+      error_message TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    )
+  ''');
+  sqlite.execute('''
+    CREATE TABLE market_book_records (
+      id TEXT NOT NULL PRIMARY KEY,
+      platform TEXT NOT NULL,
+      platform_book_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      author TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      categories TEXT NOT NULL DEFAULT '[]',
+      tags TEXT NOT NULL DEFAULT '[]',
+      total_word_count INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'ongoing',
+      first_publish_date INTEGER,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      UNIQUE(platform, platform_book_id)
+    )
+  ''');
+  sqlite.execute('''
+    CREATE TABLE market_ranking_records (
+      id TEXT NOT NULL PRIMARY KEY,
+      book_id TEXT NOT NULL REFERENCES market_book_records(id),
+      chart_name TEXT NOT NULL,
+      rank INTEGER NOT NULL,
+      run_id TEXT NOT NULL REFERENCES market_scan_run_records(id),
+      favorites INTEGER,
+      recommend_votes INTEGER,
+      monthly_tickets INTEGER,
+      comment_count INTEGER,
+      scraped_at INTEGER NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    )
+  ''');
+}
+
+void _insertLegacyMarketRows(sqlite3.Database sqlite, {required int now}) {
+  for (final row in const [
+    (id: 'qidian-run', platform: 'qidian', itemCount: 1),
+    (id: 'jinjiang-run', platform: 'jinjiang', itemCount: 1),
+  ]) {
+    sqlite.execute(
+      '''
+      INSERT INTO market_scan_run_records (
+        id, platform, status, started_at, completed_at, item_count,
+        created_at, updated_at
+      ) VALUES (?, ?, 'completed', ?, ?, ?, ?, ?)
+      ''',
+      [row.id, row.platform, now, now, row.itemCount, now, now],
+    );
+  }
+
+  for (final row in const [
+    (
+      id: 'qidian-book',
+      platform: 'qidian',
+      platformBookId: 'qidian-1',
+      title: '起点样本',
+      runId: 'qidian-run',
+    ),
+    (
+      id: 'jinjiang-book',
+      platform: 'jinjiang',
+      platformBookId: 'jinjiang-1',
+      title: '晋江样本',
+      runId: 'jinjiang-run',
+    ),
+  ]) {
+    sqlite.execute(
+      '''
+      INSERT INTO market_book_records (
+        id, platform, platform_book_id, title, author, description,
+        categories, tags, total_word_count, status, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, '作者', '', '["悬疑"]', '[]', 100000,
+        'ongoing', ?, ?)
+      ''',
+      [row.id, row.platform, row.platformBookId, row.title, now, now],
+    );
+    sqlite.execute(
+      '''
+      INSERT INTO market_ranking_records (
+        id, book_id, chart_name, rank, run_id, scraped_at, created_at,
+        updated_at
+      ) VALUES (?, ?, '月榜', 1, ?, ?, ?, ?)
+      ''',
+      ['ranking-${row.id}', row.id, row.runId, now, now, now],
+    );
+  }
 }
 
 ScrapedBook _scraped(

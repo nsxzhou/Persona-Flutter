@@ -193,7 +193,6 @@ class _RecommendationPageState extends ConsumerState<RecommendationPage> {
     final ordered = <MarketPlatform>[
       MarketPlatform.qidian,
       MarketPlatform.fanqie,
-      MarketPlatform.jinjiang,
     ];
     return ordered.where(platforms.contains).toList(growable: false);
   }
@@ -1706,7 +1705,7 @@ class _MarketDataMissing extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'AI 推荐需要市场扫描数据作为基础。点击下方按钮立即采集起点、番茄、晋江三大平台的榜单数据。',
+                  'AI 推荐需要市场扫描数据作为基础。点击下方按钮立即采集起点、番茄平台的榜单数据。',
                   textAlign: TextAlign.center,
                   style: textTheme.bodyMedium?.copyWith(
                     color: colorScheme.onSurfaceVariant,
@@ -2483,7 +2482,6 @@ String _platformDisplayName(String platform) {
   return switch (platform) {
     'qidian' => '起点中文网',
     'fanqie' => '番茄小说',
-    'jinjiang' => '晋江文学城',
     _ => platform,
   };
 }
