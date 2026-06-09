@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$RecommendationDirection {
 
- String get suggestedTitle; List<RecommendationTitleCandidate> get titleCandidates; String get synopsis; List<String> get genreTags; int get targetWordCount; MarketPlatform get targetPlatform; String get targetAudience; String get coreSellingPoint; String get marketHeatSummary; String get competitionSummary; String get marketValidation; String get differentiation; String get feasibility; String get failureRisk; String get validationAction; String get detailMarkdown;
+ String get directionRole; String get suggestedTitle; List<RecommendationTitleCandidate> get titleCandidates; String get synopsis; String get protagonist; String get coreMechanism; String get firstThreeChaptersHook; String get mainConflict; String get firstPayoff; List<String> get genreTags; int get targetWordCount; MarketPlatform get targetPlatform; String get targetAudience; String get coreSellingPoint; String get marketHeatSummary; String get competitionSummary; String get marketValidation; String get differentiation; String get feasibility; String get failureRisk; String get serialRisk; String get validationAction; String get detailMarkdown;
 /// Create a copy of RecommendationDirection
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $RecommendationDirectionCopyWith<RecommendationDirection> get copyWith => _$Reco
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is RecommendationDirection&&(identical(other.suggestedTitle, suggestedTitle) || other.suggestedTitle == suggestedTitle)&&const DeepCollectionEquality().equals(other.titleCandidates, titleCandidates)&&(identical(other.synopsis, synopsis) || other.synopsis == synopsis)&&const DeepCollectionEquality().equals(other.genreTags, genreTags)&&(identical(other.targetWordCount, targetWordCount) || other.targetWordCount == targetWordCount)&&(identical(other.targetPlatform, targetPlatform) || other.targetPlatform == targetPlatform)&&(identical(other.targetAudience, targetAudience) || other.targetAudience == targetAudience)&&(identical(other.coreSellingPoint, coreSellingPoint) || other.coreSellingPoint == coreSellingPoint)&&(identical(other.marketHeatSummary, marketHeatSummary) || other.marketHeatSummary == marketHeatSummary)&&(identical(other.competitionSummary, competitionSummary) || other.competitionSummary == competitionSummary)&&(identical(other.marketValidation, marketValidation) || other.marketValidation == marketValidation)&&(identical(other.differentiation, differentiation) || other.differentiation == differentiation)&&(identical(other.feasibility, feasibility) || other.feasibility == feasibility)&&(identical(other.failureRisk, failureRisk) || other.failureRisk == failureRisk)&&(identical(other.validationAction, validationAction) || other.validationAction == validationAction)&&(identical(other.detailMarkdown, detailMarkdown) || other.detailMarkdown == detailMarkdown));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is RecommendationDirection&&(identical(other.directionRole, directionRole) || other.directionRole == directionRole)&&(identical(other.suggestedTitle, suggestedTitle) || other.suggestedTitle == suggestedTitle)&&const DeepCollectionEquality().equals(other.titleCandidates, titleCandidates)&&(identical(other.synopsis, synopsis) || other.synopsis == synopsis)&&(identical(other.protagonist, protagonist) || other.protagonist == protagonist)&&(identical(other.coreMechanism, coreMechanism) || other.coreMechanism == coreMechanism)&&(identical(other.firstThreeChaptersHook, firstThreeChaptersHook) || other.firstThreeChaptersHook == firstThreeChaptersHook)&&(identical(other.mainConflict, mainConflict) || other.mainConflict == mainConflict)&&(identical(other.firstPayoff, firstPayoff) || other.firstPayoff == firstPayoff)&&const DeepCollectionEquality().equals(other.genreTags, genreTags)&&(identical(other.targetWordCount, targetWordCount) || other.targetWordCount == targetWordCount)&&(identical(other.targetPlatform, targetPlatform) || other.targetPlatform == targetPlatform)&&(identical(other.targetAudience, targetAudience) || other.targetAudience == targetAudience)&&(identical(other.coreSellingPoint, coreSellingPoint) || other.coreSellingPoint == coreSellingPoint)&&(identical(other.marketHeatSummary, marketHeatSummary) || other.marketHeatSummary == marketHeatSummary)&&(identical(other.competitionSummary, competitionSummary) || other.competitionSummary == competitionSummary)&&(identical(other.marketValidation, marketValidation) || other.marketValidation == marketValidation)&&(identical(other.differentiation, differentiation) || other.differentiation == differentiation)&&(identical(other.feasibility, feasibility) || other.feasibility == feasibility)&&(identical(other.failureRisk, failureRisk) || other.failureRisk == failureRisk)&&(identical(other.serialRisk, serialRisk) || other.serialRisk == serialRisk)&&(identical(other.validationAction, validationAction) || other.validationAction == validationAction)&&(identical(other.detailMarkdown, detailMarkdown) || other.detailMarkdown == detailMarkdown));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,suggestedTitle,const DeepCollectionEquality().hash(titleCandidates),synopsis,const DeepCollectionEquality().hash(genreTags),targetWordCount,targetPlatform,targetAudience,coreSellingPoint,marketHeatSummary,competitionSummary,marketValidation,differentiation,feasibility,failureRisk,validationAction,detailMarkdown);
+int get hashCode => Object.hashAll([runtimeType,directionRole,suggestedTitle,const DeepCollectionEquality().hash(titleCandidates),synopsis,protagonist,coreMechanism,firstThreeChaptersHook,mainConflict,firstPayoff,const DeepCollectionEquality().hash(genreTags),targetWordCount,targetPlatform,targetAudience,coreSellingPoint,marketHeatSummary,competitionSummary,marketValidation,differentiation,feasibility,failureRisk,serialRisk,validationAction,detailMarkdown]);
 
 @override
 String toString() {
-  return 'RecommendationDirection(suggestedTitle: $suggestedTitle, titleCandidates: $titleCandidates, synopsis: $synopsis, genreTags: $genreTags, targetWordCount: $targetWordCount, targetPlatform: $targetPlatform, targetAudience: $targetAudience, coreSellingPoint: $coreSellingPoint, marketHeatSummary: $marketHeatSummary, competitionSummary: $competitionSummary, marketValidation: $marketValidation, differentiation: $differentiation, feasibility: $feasibility, failureRisk: $failureRisk, validationAction: $validationAction, detailMarkdown: $detailMarkdown)';
+  return 'RecommendationDirection(directionRole: $directionRole, suggestedTitle: $suggestedTitle, titleCandidates: $titleCandidates, synopsis: $synopsis, protagonist: $protagonist, coreMechanism: $coreMechanism, firstThreeChaptersHook: $firstThreeChaptersHook, mainConflict: $mainConflict, firstPayoff: $firstPayoff, genreTags: $genreTags, targetWordCount: $targetWordCount, targetPlatform: $targetPlatform, targetAudience: $targetAudience, coreSellingPoint: $coreSellingPoint, marketHeatSummary: $marketHeatSummary, competitionSummary: $competitionSummary, marketValidation: $marketValidation, differentiation: $differentiation, feasibility: $feasibility, failureRisk: $failureRisk, serialRisk: $serialRisk, validationAction: $validationAction, detailMarkdown: $detailMarkdown)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $RecommendationDirectionCopyWith<$Res>  {
   factory $RecommendationDirectionCopyWith(RecommendationDirection value, $Res Function(RecommendationDirection) _then) = _$RecommendationDirectionCopyWithImpl;
 @useResult
 $Res call({
- String suggestedTitle, List<RecommendationTitleCandidate> titleCandidates, String synopsis, List<String> genreTags, int targetWordCount, MarketPlatform targetPlatform, String targetAudience, String coreSellingPoint, String marketHeatSummary, String competitionSummary, String marketValidation, String differentiation, String feasibility, String failureRisk, String validationAction, String detailMarkdown
+ String directionRole, String suggestedTitle, List<RecommendationTitleCandidate> titleCandidates, String synopsis, String protagonist, String coreMechanism, String firstThreeChaptersHook, String mainConflict, String firstPayoff, List<String> genreTags, int targetWordCount, MarketPlatform targetPlatform, String targetAudience, String coreSellingPoint, String marketHeatSummary, String competitionSummary, String marketValidation, String differentiation, String feasibility, String failureRisk, String serialRisk, String validationAction, String detailMarkdown
 });
 
 
@@ -65,11 +65,17 @@ class _$RecommendationDirectionCopyWithImpl<$Res>
 
 /// Create a copy of RecommendationDirection
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? suggestedTitle = null,Object? titleCandidates = null,Object? synopsis = null,Object? genreTags = null,Object? targetWordCount = null,Object? targetPlatform = null,Object? targetAudience = null,Object? coreSellingPoint = null,Object? marketHeatSummary = null,Object? competitionSummary = null,Object? marketValidation = null,Object? differentiation = null,Object? feasibility = null,Object? failureRisk = null,Object? validationAction = null,Object? detailMarkdown = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? directionRole = null,Object? suggestedTitle = null,Object? titleCandidates = null,Object? synopsis = null,Object? protagonist = null,Object? coreMechanism = null,Object? firstThreeChaptersHook = null,Object? mainConflict = null,Object? firstPayoff = null,Object? genreTags = null,Object? targetWordCount = null,Object? targetPlatform = null,Object? targetAudience = null,Object? coreSellingPoint = null,Object? marketHeatSummary = null,Object? competitionSummary = null,Object? marketValidation = null,Object? differentiation = null,Object? feasibility = null,Object? failureRisk = null,Object? serialRisk = null,Object? validationAction = null,Object? detailMarkdown = null,}) {
   return _then(_self.copyWith(
-suggestedTitle: null == suggestedTitle ? _self.suggestedTitle : suggestedTitle // ignore: cast_nullable_to_non_nullable
+directionRole: null == directionRole ? _self.directionRole : directionRole // ignore: cast_nullable_to_non_nullable
+as String,suggestedTitle: null == suggestedTitle ? _self.suggestedTitle : suggestedTitle // ignore: cast_nullable_to_non_nullable
 as String,titleCandidates: null == titleCandidates ? _self.titleCandidates : titleCandidates // ignore: cast_nullable_to_non_nullable
 as List<RecommendationTitleCandidate>,synopsis: null == synopsis ? _self.synopsis : synopsis // ignore: cast_nullable_to_non_nullable
+as String,protagonist: null == protagonist ? _self.protagonist : protagonist // ignore: cast_nullable_to_non_nullable
+as String,coreMechanism: null == coreMechanism ? _self.coreMechanism : coreMechanism // ignore: cast_nullable_to_non_nullable
+as String,firstThreeChaptersHook: null == firstThreeChaptersHook ? _self.firstThreeChaptersHook : firstThreeChaptersHook // ignore: cast_nullable_to_non_nullable
+as String,mainConflict: null == mainConflict ? _self.mainConflict : mainConflict // ignore: cast_nullable_to_non_nullable
+as String,firstPayoff: null == firstPayoff ? _self.firstPayoff : firstPayoff // ignore: cast_nullable_to_non_nullable
 as String,genreTags: null == genreTags ? _self.genreTags : genreTags // ignore: cast_nullable_to_non_nullable
 as List<String>,targetWordCount: null == targetWordCount ? _self.targetWordCount : targetWordCount // ignore: cast_nullable_to_non_nullable
 as int,targetPlatform: null == targetPlatform ? _self.targetPlatform : targetPlatform // ignore: cast_nullable_to_non_nullable
@@ -81,6 +87,7 @@ as String,marketValidation: null == marketValidation ? _self.marketValidation : 
 as String,differentiation: null == differentiation ? _self.differentiation : differentiation // ignore: cast_nullable_to_non_nullable
 as String,feasibility: null == feasibility ? _self.feasibility : feasibility // ignore: cast_nullable_to_non_nullable
 as String,failureRisk: null == failureRisk ? _self.failureRisk : failureRisk // ignore: cast_nullable_to_non_nullable
+as String,serialRisk: null == serialRisk ? _self.serialRisk : serialRisk // ignore: cast_nullable_to_non_nullable
 as String,validationAction: null == validationAction ? _self.validationAction : validationAction // ignore: cast_nullable_to_non_nullable
 as String,detailMarkdown: null == detailMarkdown ? _self.detailMarkdown : detailMarkdown // ignore: cast_nullable_to_non_nullable
 as String,
@@ -168,10 +175,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String suggestedTitle,  List<RecommendationTitleCandidate> titleCandidates,  String synopsis,  List<String> genreTags,  int targetWordCount,  MarketPlatform targetPlatform,  String targetAudience,  String coreSellingPoint,  String marketHeatSummary,  String competitionSummary,  String marketValidation,  String differentiation,  String feasibility,  String failureRisk,  String validationAction,  String detailMarkdown)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String directionRole,  String suggestedTitle,  List<RecommendationTitleCandidate> titleCandidates,  String synopsis,  String protagonist,  String coreMechanism,  String firstThreeChaptersHook,  String mainConflict,  String firstPayoff,  List<String> genreTags,  int targetWordCount,  MarketPlatform targetPlatform,  String targetAudience,  String coreSellingPoint,  String marketHeatSummary,  String competitionSummary,  String marketValidation,  String differentiation,  String feasibility,  String failureRisk,  String serialRisk,  String validationAction,  String detailMarkdown)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _RecommendationDirection() when $default != null:
-return $default(_that.suggestedTitle,_that.titleCandidates,_that.synopsis,_that.genreTags,_that.targetWordCount,_that.targetPlatform,_that.targetAudience,_that.coreSellingPoint,_that.marketHeatSummary,_that.competitionSummary,_that.marketValidation,_that.differentiation,_that.feasibility,_that.failureRisk,_that.validationAction,_that.detailMarkdown);case _:
+return $default(_that.directionRole,_that.suggestedTitle,_that.titleCandidates,_that.synopsis,_that.protagonist,_that.coreMechanism,_that.firstThreeChaptersHook,_that.mainConflict,_that.firstPayoff,_that.genreTags,_that.targetWordCount,_that.targetPlatform,_that.targetAudience,_that.coreSellingPoint,_that.marketHeatSummary,_that.competitionSummary,_that.marketValidation,_that.differentiation,_that.feasibility,_that.failureRisk,_that.serialRisk,_that.validationAction,_that.detailMarkdown);case _:
   return orElse();
 
 }
@@ -189,10 +196,10 @@ return $default(_that.suggestedTitle,_that.titleCandidates,_that.synopsis,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String suggestedTitle,  List<RecommendationTitleCandidate> titleCandidates,  String synopsis,  List<String> genreTags,  int targetWordCount,  MarketPlatform targetPlatform,  String targetAudience,  String coreSellingPoint,  String marketHeatSummary,  String competitionSummary,  String marketValidation,  String differentiation,  String feasibility,  String failureRisk,  String validationAction,  String detailMarkdown)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String directionRole,  String suggestedTitle,  List<RecommendationTitleCandidate> titleCandidates,  String synopsis,  String protagonist,  String coreMechanism,  String firstThreeChaptersHook,  String mainConflict,  String firstPayoff,  List<String> genreTags,  int targetWordCount,  MarketPlatform targetPlatform,  String targetAudience,  String coreSellingPoint,  String marketHeatSummary,  String competitionSummary,  String marketValidation,  String differentiation,  String feasibility,  String failureRisk,  String serialRisk,  String validationAction,  String detailMarkdown)  $default,) {final _that = this;
 switch (_that) {
 case _RecommendationDirection():
-return $default(_that.suggestedTitle,_that.titleCandidates,_that.synopsis,_that.genreTags,_that.targetWordCount,_that.targetPlatform,_that.targetAudience,_that.coreSellingPoint,_that.marketHeatSummary,_that.competitionSummary,_that.marketValidation,_that.differentiation,_that.feasibility,_that.failureRisk,_that.validationAction,_that.detailMarkdown);case _:
+return $default(_that.directionRole,_that.suggestedTitle,_that.titleCandidates,_that.synopsis,_that.protagonist,_that.coreMechanism,_that.firstThreeChaptersHook,_that.mainConflict,_that.firstPayoff,_that.genreTags,_that.targetWordCount,_that.targetPlatform,_that.targetAudience,_that.coreSellingPoint,_that.marketHeatSummary,_that.competitionSummary,_that.marketValidation,_that.differentiation,_that.feasibility,_that.failureRisk,_that.serialRisk,_that.validationAction,_that.detailMarkdown);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -209,10 +216,10 @@ return $default(_that.suggestedTitle,_that.titleCandidates,_that.synopsis,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String suggestedTitle,  List<RecommendationTitleCandidate> titleCandidates,  String synopsis,  List<String> genreTags,  int targetWordCount,  MarketPlatform targetPlatform,  String targetAudience,  String coreSellingPoint,  String marketHeatSummary,  String competitionSummary,  String marketValidation,  String differentiation,  String feasibility,  String failureRisk,  String validationAction,  String detailMarkdown)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String directionRole,  String suggestedTitle,  List<RecommendationTitleCandidate> titleCandidates,  String synopsis,  String protagonist,  String coreMechanism,  String firstThreeChaptersHook,  String mainConflict,  String firstPayoff,  List<String> genreTags,  int targetWordCount,  MarketPlatform targetPlatform,  String targetAudience,  String coreSellingPoint,  String marketHeatSummary,  String competitionSummary,  String marketValidation,  String differentiation,  String feasibility,  String failureRisk,  String serialRisk,  String validationAction,  String detailMarkdown)?  $default,) {final _that = this;
 switch (_that) {
 case _RecommendationDirection() when $default != null:
-return $default(_that.suggestedTitle,_that.titleCandidates,_that.synopsis,_that.genreTags,_that.targetWordCount,_that.targetPlatform,_that.targetAudience,_that.coreSellingPoint,_that.marketHeatSummary,_that.competitionSummary,_that.marketValidation,_that.differentiation,_that.feasibility,_that.failureRisk,_that.validationAction,_that.detailMarkdown);case _:
+return $default(_that.directionRole,_that.suggestedTitle,_that.titleCandidates,_that.synopsis,_that.protagonist,_that.coreMechanism,_that.firstThreeChaptersHook,_that.mainConflict,_that.firstPayoff,_that.genreTags,_that.targetWordCount,_that.targetPlatform,_that.targetAudience,_that.coreSellingPoint,_that.marketHeatSummary,_that.competitionSummary,_that.marketValidation,_that.differentiation,_that.feasibility,_that.failureRisk,_that.serialRisk,_that.validationAction,_that.detailMarkdown);case _:
   return null;
 
 }
@@ -224,9 +231,10 @@ return $default(_that.suggestedTitle,_that.titleCandidates,_that.synopsis,_that.
 @JsonSerializable()
 
 class _RecommendationDirection implements RecommendationDirection {
-  const _RecommendationDirection({required this.suggestedTitle, required final  List<RecommendationTitleCandidate> titleCandidates, required this.synopsis, required final  List<String> genreTags, required this.targetWordCount, required this.targetPlatform, required this.targetAudience, required this.coreSellingPoint, required this.marketHeatSummary, required this.competitionSummary, required this.marketValidation, required this.differentiation, required this.feasibility, required this.failureRisk, required this.validationAction, required this.detailMarkdown}): _titleCandidates = titleCandidates,_genreTags = genreTags;
+  const _RecommendationDirection({required this.directionRole, required this.suggestedTitle, required final  List<RecommendationTitleCandidate> titleCandidates, required this.synopsis, required this.protagonist, required this.coreMechanism, required this.firstThreeChaptersHook, required this.mainConflict, required this.firstPayoff, required final  List<String> genreTags, required this.targetWordCount, required this.targetPlatform, required this.targetAudience, required this.coreSellingPoint, required this.marketHeatSummary, required this.competitionSummary, required this.marketValidation, required this.differentiation, required this.feasibility, required this.failureRisk, required this.serialRisk, required this.validationAction, required this.detailMarkdown}): _titleCandidates = titleCandidates,_genreTags = genreTags;
   factory _RecommendationDirection.fromJson(Map<String, dynamic> json) => _$RecommendationDirectionFromJson(json);
 
+@override final  String directionRole;
 @override final  String suggestedTitle;
  final  List<RecommendationTitleCandidate> _titleCandidates;
 @override List<RecommendationTitleCandidate> get titleCandidates {
@@ -236,6 +244,11 @@ class _RecommendationDirection implements RecommendationDirection {
 }
 
 @override final  String synopsis;
+@override final  String protagonist;
+@override final  String coreMechanism;
+@override final  String firstThreeChaptersHook;
+@override final  String mainConflict;
+@override final  String firstPayoff;
  final  List<String> _genreTags;
 @override List<String> get genreTags {
   if (_genreTags is EqualUnmodifiableListView) return _genreTags;
@@ -253,6 +266,7 @@ class _RecommendationDirection implements RecommendationDirection {
 @override final  String differentiation;
 @override final  String feasibility;
 @override final  String failureRisk;
+@override final  String serialRisk;
 @override final  String validationAction;
 @override final  String detailMarkdown;
 
@@ -269,16 +283,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _RecommendationDirection&&(identical(other.suggestedTitle, suggestedTitle) || other.suggestedTitle == suggestedTitle)&&const DeepCollectionEquality().equals(other._titleCandidates, _titleCandidates)&&(identical(other.synopsis, synopsis) || other.synopsis == synopsis)&&const DeepCollectionEquality().equals(other._genreTags, _genreTags)&&(identical(other.targetWordCount, targetWordCount) || other.targetWordCount == targetWordCount)&&(identical(other.targetPlatform, targetPlatform) || other.targetPlatform == targetPlatform)&&(identical(other.targetAudience, targetAudience) || other.targetAudience == targetAudience)&&(identical(other.coreSellingPoint, coreSellingPoint) || other.coreSellingPoint == coreSellingPoint)&&(identical(other.marketHeatSummary, marketHeatSummary) || other.marketHeatSummary == marketHeatSummary)&&(identical(other.competitionSummary, competitionSummary) || other.competitionSummary == competitionSummary)&&(identical(other.marketValidation, marketValidation) || other.marketValidation == marketValidation)&&(identical(other.differentiation, differentiation) || other.differentiation == differentiation)&&(identical(other.feasibility, feasibility) || other.feasibility == feasibility)&&(identical(other.failureRisk, failureRisk) || other.failureRisk == failureRisk)&&(identical(other.validationAction, validationAction) || other.validationAction == validationAction)&&(identical(other.detailMarkdown, detailMarkdown) || other.detailMarkdown == detailMarkdown));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _RecommendationDirection&&(identical(other.directionRole, directionRole) || other.directionRole == directionRole)&&(identical(other.suggestedTitle, suggestedTitle) || other.suggestedTitle == suggestedTitle)&&const DeepCollectionEquality().equals(other._titleCandidates, _titleCandidates)&&(identical(other.synopsis, synopsis) || other.synopsis == synopsis)&&(identical(other.protagonist, protagonist) || other.protagonist == protagonist)&&(identical(other.coreMechanism, coreMechanism) || other.coreMechanism == coreMechanism)&&(identical(other.firstThreeChaptersHook, firstThreeChaptersHook) || other.firstThreeChaptersHook == firstThreeChaptersHook)&&(identical(other.mainConflict, mainConflict) || other.mainConflict == mainConflict)&&(identical(other.firstPayoff, firstPayoff) || other.firstPayoff == firstPayoff)&&const DeepCollectionEquality().equals(other._genreTags, _genreTags)&&(identical(other.targetWordCount, targetWordCount) || other.targetWordCount == targetWordCount)&&(identical(other.targetPlatform, targetPlatform) || other.targetPlatform == targetPlatform)&&(identical(other.targetAudience, targetAudience) || other.targetAudience == targetAudience)&&(identical(other.coreSellingPoint, coreSellingPoint) || other.coreSellingPoint == coreSellingPoint)&&(identical(other.marketHeatSummary, marketHeatSummary) || other.marketHeatSummary == marketHeatSummary)&&(identical(other.competitionSummary, competitionSummary) || other.competitionSummary == competitionSummary)&&(identical(other.marketValidation, marketValidation) || other.marketValidation == marketValidation)&&(identical(other.differentiation, differentiation) || other.differentiation == differentiation)&&(identical(other.feasibility, feasibility) || other.feasibility == feasibility)&&(identical(other.failureRisk, failureRisk) || other.failureRisk == failureRisk)&&(identical(other.serialRisk, serialRisk) || other.serialRisk == serialRisk)&&(identical(other.validationAction, validationAction) || other.validationAction == validationAction)&&(identical(other.detailMarkdown, detailMarkdown) || other.detailMarkdown == detailMarkdown));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,suggestedTitle,const DeepCollectionEquality().hash(_titleCandidates),synopsis,const DeepCollectionEquality().hash(_genreTags),targetWordCount,targetPlatform,targetAudience,coreSellingPoint,marketHeatSummary,competitionSummary,marketValidation,differentiation,feasibility,failureRisk,validationAction,detailMarkdown);
+int get hashCode => Object.hashAll([runtimeType,directionRole,suggestedTitle,const DeepCollectionEquality().hash(_titleCandidates),synopsis,protagonist,coreMechanism,firstThreeChaptersHook,mainConflict,firstPayoff,const DeepCollectionEquality().hash(_genreTags),targetWordCount,targetPlatform,targetAudience,coreSellingPoint,marketHeatSummary,competitionSummary,marketValidation,differentiation,feasibility,failureRisk,serialRisk,validationAction,detailMarkdown]);
 
 @override
 String toString() {
-  return 'RecommendationDirection(suggestedTitle: $suggestedTitle, titleCandidates: $titleCandidates, synopsis: $synopsis, genreTags: $genreTags, targetWordCount: $targetWordCount, targetPlatform: $targetPlatform, targetAudience: $targetAudience, coreSellingPoint: $coreSellingPoint, marketHeatSummary: $marketHeatSummary, competitionSummary: $competitionSummary, marketValidation: $marketValidation, differentiation: $differentiation, feasibility: $feasibility, failureRisk: $failureRisk, validationAction: $validationAction, detailMarkdown: $detailMarkdown)';
+  return 'RecommendationDirection(directionRole: $directionRole, suggestedTitle: $suggestedTitle, titleCandidates: $titleCandidates, synopsis: $synopsis, protagonist: $protagonist, coreMechanism: $coreMechanism, firstThreeChaptersHook: $firstThreeChaptersHook, mainConflict: $mainConflict, firstPayoff: $firstPayoff, genreTags: $genreTags, targetWordCount: $targetWordCount, targetPlatform: $targetPlatform, targetAudience: $targetAudience, coreSellingPoint: $coreSellingPoint, marketHeatSummary: $marketHeatSummary, competitionSummary: $competitionSummary, marketValidation: $marketValidation, differentiation: $differentiation, feasibility: $feasibility, failureRisk: $failureRisk, serialRisk: $serialRisk, validationAction: $validationAction, detailMarkdown: $detailMarkdown)';
 }
 
 
@@ -289,7 +303,7 @@ abstract mixin class _$RecommendationDirectionCopyWith<$Res> implements $Recomme
   factory _$RecommendationDirectionCopyWith(_RecommendationDirection value, $Res Function(_RecommendationDirection) _then) = __$RecommendationDirectionCopyWithImpl;
 @override @useResult
 $Res call({
- String suggestedTitle, List<RecommendationTitleCandidate> titleCandidates, String synopsis, List<String> genreTags, int targetWordCount, MarketPlatform targetPlatform, String targetAudience, String coreSellingPoint, String marketHeatSummary, String competitionSummary, String marketValidation, String differentiation, String feasibility, String failureRisk, String validationAction, String detailMarkdown
+ String directionRole, String suggestedTitle, List<RecommendationTitleCandidate> titleCandidates, String synopsis, String protagonist, String coreMechanism, String firstThreeChaptersHook, String mainConflict, String firstPayoff, List<String> genreTags, int targetWordCount, MarketPlatform targetPlatform, String targetAudience, String coreSellingPoint, String marketHeatSummary, String competitionSummary, String marketValidation, String differentiation, String feasibility, String failureRisk, String serialRisk, String validationAction, String detailMarkdown
 });
 
 
@@ -306,11 +320,17 @@ class __$RecommendationDirectionCopyWithImpl<$Res>
 
 /// Create a copy of RecommendationDirection
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? suggestedTitle = null,Object? titleCandidates = null,Object? synopsis = null,Object? genreTags = null,Object? targetWordCount = null,Object? targetPlatform = null,Object? targetAudience = null,Object? coreSellingPoint = null,Object? marketHeatSummary = null,Object? competitionSummary = null,Object? marketValidation = null,Object? differentiation = null,Object? feasibility = null,Object? failureRisk = null,Object? validationAction = null,Object? detailMarkdown = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? directionRole = null,Object? suggestedTitle = null,Object? titleCandidates = null,Object? synopsis = null,Object? protagonist = null,Object? coreMechanism = null,Object? firstThreeChaptersHook = null,Object? mainConflict = null,Object? firstPayoff = null,Object? genreTags = null,Object? targetWordCount = null,Object? targetPlatform = null,Object? targetAudience = null,Object? coreSellingPoint = null,Object? marketHeatSummary = null,Object? competitionSummary = null,Object? marketValidation = null,Object? differentiation = null,Object? feasibility = null,Object? failureRisk = null,Object? serialRisk = null,Object? validationAction = null,Object? detailMarkdown = null,}) {
   return _then(_RecommendationDirection(
-suggestedTitle: null == suggestedTitle ? _self.suggestedTitle : suggestedTitle // ignore: cast_nullable_to_non_nullable
+directionRole: null == directionRole ? _self.directionRole : directionRole // ignore: cast_nullable_to_non_nullable
+as String,suggestedTitle: null == suggestedTitle ? _self.suggestedTitle : suggestedTitle // ignore: cast_nullable_to_non_nullable
 as String,titleCandidates: null == titleCandidates ? _self._titleCandidates : titleCandidates // ignore: cast_nullable_to_non_nullable
 as List<RecommendationTitleCandidate>,synopsis: null == synopsis ? _self.synopsis : synopsis // ignore: cast_nullable_to_non_nullable
+as String,protagonist: null == protagonist ? _self.protagonist : protagonist // ignore: cast_nullable_to_non_nullable
+as String,coreMechanism: null == coreMechanism ? _self.coreMechanism : coreMechanism // ignore: cast_nullable_to_non_nullable
+as String,firstThreeChaptersHook: null == firstThreeChaptersHook ? _self.firstThreeChaptersHook : firstThreeChaptersHook // ignore: cast_nullable_to_non_nullable
+as String,mainConflict: null == mainConflict ? _self.mainConflict : mainConflict // ignore: cast_nullable_to_non_nullable
+as String,firstPayoff: null == firstPayoff ? _self.firstPayoff : firstPayoff // ignore: cast_nullable_to_non_nullable
 as String,genreTags: null == genreTags ? _self._genreTags : genreTags // ignore: cast_nullable_to_non_nullable
 as List<String>,targetWordCount: null == targetWordCount ? _self.targetWordCount : targetWordCount // ignore: cast_nullable_to_non_nullable
 as int,targetPlatform: null == targetPlatform ? _self.targetPlatform : targetPlatform // ignore: cast_nullable_to_non_nullable
@@ -322,6 +342,7 @@ as String,marketValidation: null == marketValidation ? _self.marketValidation : 
 as String,differentiation: null == differentiation ? _self.differentiation : differentiation // ignore: cast_nullable_to_non_nullable
 as String,feasibility: null == feasibility ? _self.feasibility : feasibility // ignore: cast_nullable_to_non_nullable
 as String,failureRisk: null == failureRisk ? _self.failureRisk : failureRisk // ignore: cast_nullable_to_non_nullable
+as String,serialRisk: null == serialRisk ? _self.serialRisk : serialRisk // ignore: cast_nullable_to_non_nullable
 as String,validationAction: null == validationAction ? _self.validationAction : validationAction // ignore: cast_nullable_to_non_nullable
 as String,detailMarkdown: null == detailMarkdown ? _self.detailMarkdown : detailMarkdown // ignore: cast_nullable_to_non_nullable
 as String,

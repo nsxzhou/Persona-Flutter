@@ -208,10 +208,19 @@ void main() {
       await _tapWorkspaceView(tester, 'recommendations');
       await tester.tap(find.text('旧港档案'));
       await tester.pumpAndSettle();
+      expect(find.text('开书方案'), findsWidgets);
+      expect(find.text('前三章钩子'), findsOneWidget);
+      expect(find.text('连载风险'), findsNothing);
+
       await _tapUseDirection(tester);
       await tester.pumpAndSettle();
 
-      expect(find.text('create:旧港档案|860000|科幻,悬疑'), findsOneWidget);
+      final createText = tester
+          .widget<Text>(find.textContaining('create:'))
+          .data!;
+      expect(createText, contains('create:旧港档案|860000|科幻,悬疑'));
+      expect(createText, contains('openBook:true'));
+      expect(createText, contains('payoff:true'));
       expect(tester.takeException(), isNull);
     },
   );
@@ -275,14 +284,9 @@ Future<void> _tapWorkspaceView(WidgetTester tester, String view) async {
 }
 
 Future<void> _tapUseDirection(WidgetTester tester) async {
-  final elements = find
-      .byKey(const ValueKey('market-direction-use-时序遗产'))
-      .evaluate()
-      .toList(growable: false);
-  expect(elements, isNotEmpty);
-  final box = elements.last.renderObject! as RenderBox;
-  final center = box.localToGlobal(box.size.center(Offset.zero));
-  await tester.tapAt(center);
+  final finder = find.byKey(const ValueKey('market-direction-use-时序遗产')).last;
+  await tester.ensureVisible(finder);
+  await tester.tap(finder);
 }
 
 class _RecommendationTestApp extends StatelessWidget {
@@ -326,9 +330,12 @@ class _RecommendationTestApp extends StatelessWidget {
                   path: 'create',
                   builder: (context, state) {
                     final query = state.uri.queryParameters;
+                    final synopsis = query['synopsis'] ?? '';
                     return Scaffold(
                       body: Text(
-                        'create:${query['title']}|${query['wordCount']}|${query['tags']}',
+                        'create:${query['title']}|${query['wordCount']}|'
+                        '${query['tags']}|openBook:${synopsis.contains('## 开书方案')}|'
+                        'payoff:${synopsis.contains('第一个爽点')}',
                       ),
                     );
                   },
@@ -416,6 +423,7 @@ class _MarketScanFixture {
 
 RecommendationDirection _direction() {
   return const RecommendationDirection(
+    directionRole: '稳妥热题',
     suggestedTitle: '时序遗产',
     titleCandidates: [
       RecommendationTitleCandidate(
@@ -436,6 +444,11 @@ RecommendationDirection _direction() {
     ],
     synopsis:
         '旧城区的时间档案忽然被改写，退役调查员被迫重回十年前的失踪案现场，发现每个嫌疑人都能利用记忆偏移隐藏证据。他唯一的能力是在改写前读取三分钟残留真相，于是从第一份被抹掉的证词开始反击，并必须赶在下一轮全城失忆前找回真实案件。 ',
+    protagonist: '退役调查员林砚，被十年前失踪案拖回旧城区，只想证明自己没有办错案。',
+    coreMechanism: '主角能读取时间档案改写前三分钟的残留真相，但每次使用都会留下追踪痕迹。',
+    firstThreeChaptersHook: '第一章证词被改写，第二章残留真相指向旧港，第三章主角救下被栽赃的证人。',
+    mainConflict: '主角必须在全城记忆再次归零前，拆穿操控时间档案的幕后组织。',
+    firstPayoff: '第三章主角用残留真相救出证人，并当场反制伪造证词的人。',
     genreTags: ['科幻', '悬疑'],
     targetWordCount: 860000,
     targetPlatform: MarketPlatform.qidian,
@@ -447,6 +460,7 @@ RecommendationDirection _direction() {
     differentiation: '不做普通刑侦，用时间档案机制制造连续反转。',
     feasibility: '中',
     failureRisk: '设定解释过多会拖慢前三章。',
+    serialRisk: '时间改写规则如果持续加码，容易削弱推理公平性。',
     validationAction: '先写黄金三章验证能力规则是否易懂。',
     detailMarkdown: '## 方向 1：时序遗产\n### 市场验证\n- 样本支持。',
   );

@@ -10,9 +10,15 @@ part 'recommendation_direction.g.dart';
 @freezed
 abstract class RecommendationDirection with _$RecommendationDirection {
   const factory RecommendationDirection({
+    required String directionRole,
     required String suggestedTitle,
     required List<RecommendationTitleCandidate> titleCandidates,
     required String synopsis,
+    required String protagonist,
+    required String coreMechanism,
+    required String firstThreeChaptersHook,
+    required String mainConflict,
+    required String firstPayoff,
     required List<String> genreTags,
     required int targetWordCount,
     required MarketPlatform targetPlatform,
@@ -24,6 +30,7 @@ abstract class RecommendationDirection with _$RecommendationDirection {
     required String differentiation,
     required String feasibility,
     required String failureRisk,
+    required String serialRisk,
     required String validationAction,
     required String detailMarkdown,
   }) = _RecommendationDirection;

@@ -9,6 +9,7 @@ part of 'recommendation_direction.dart';
 _RecommendationDirection _$RecommendationDirectionFromJson(
   Map<String, dynamic> json,
 ) => _RecommendationDirection(
+  directionRole: json['directionRole'] as String,
   suggestedTitle: json['suggestedTitle'] as String,
   titleCandidates: (json['titleCandidates'] as List<dynamic>)
       .map(
@@ -16,6 +17,11 @@ _RecommendationDirection _$RecommendationDirectionFromJson(
       )
       .toList(),
   synopsis: json['synopsis'] as String,
+  protagonist: json['protagonist'] as String,
+  coreMechanism: json['coreMechanism'] as String,
+  firstThreeChaptersHook: json['firstThreeChaptersHook'] as String,
+  mainConflict: json['mainConflict'] as String,
+  firstPayoff: json['firstPayoff'] as String,
   genreTags: (json['genreTags'] as List<dynamic>)
       .map((e) => e as String)
       .toList(),
@@ -29,6 +35,7 @@ _RecommendationDirection _$RecommendationDirectionFromJson(
   differentiation: json['differentiation'] as String,
   feasibility: json['feasibility'] as String,
   failureRisk: json['failureRisk'] as String,
+  serialRisk: json['serialRisk'] as String,
   validationAction: json['validationAction'] as String,
   detailMarkdown: json['detailMarkdown'] as String,
 );
@@ -36,9 +43,15 @@ _RecommendationDirection _$RecommendationDirectionFromJson(
 Map<String, dynamic> _$RecommendationDirectionToJson(
   _RecommendationDirection instance,
 ) => <String, dynamic>{
+  'directionRole': instance.directionRole,
   'suggestedTitle': instance.suggestedTitle,
   'titleCandidates': instance.titleCandidates,
   'synopsis': instance.synopsis,
+  'protagonist': instance.protagonist,
+  'coreMechanism': instance.coreMechanism,
+  'firstThreeChaptersHook': instance.firstThreeChaptersHook,
+  'mainConflict': instance.mainConflict,
+  'firstPayoff': instance.firstPayoff,
   'genreTags': instance.genreTags,
   'targetWordCount': instance.targetWordCount,
   'targetPlatform': _$MarketPlatformEnumMap[instance.targetPlatform]!,
@@ -50,6 +63,7 @@ Map<String, dynamic> _$RecommendationDirectionToJson(
   'differentiation': instance.differentiation,
   'feasibility': instance.feasibility,
   'failureRisk': instance.failureRisk,
+  'serialRisk': instance.serialRisk,
   'validationAction': instance.validationAction,
   'detailMarkdown': instance.detailMarkdown,
 };

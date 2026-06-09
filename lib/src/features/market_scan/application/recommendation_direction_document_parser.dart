@@ -10,15 +10,22 @@ class RecommendationDirectionDocumentParser {
   static const titleCandidateCount = 3;
   static const minSynopsisCharacters = 120;
   static const maxSynopsisCharacters = 220;
+  static const directionRoles = ['稳妥热题', '相邻变体', '高风险高收益'];
   static const _allowedTopLevelFields = {
     'format',
     'target_platform',
     'directions',
   };
   static const _allowedDirectionFields = {
+    'direction_role',
     'suggested_title',
     'title_candidates',
     'synopsis',
+    'protagonist',
+    'core_mechanism',
+    'first_three_chapters_hook',
+    'main_conflict',
+    'first_payoff',
     'genre_tags',
     'target_word_count',
     'target_platform',
@@ -30,6 +37,7 @@ class RecommendationDirectionDocumentParser {
     'differentiation',
     'feasibility',
     'failure_risk',
+    'serial_risk',
     'validation_action',
   };
   static const _allowedTitleCandidateFields = {'title', 'formula', 'rationale'};
@@ -145,6 +153,13 @@ class RecommendationDirectionDocumentParser {
       allowed: _allowedDirectionFields,
       scope: scope,
     );
+    final directionRole = _requiredString(fields, 'direction_role', scope);
+    final expectedRole = directionRoles[index];
+    if (directionRole != expectedRole) {
+      throw RecommendationDirectionValidationException(
+        '$scope 的 direction_role 必须是 $expectedRole。',
+      );
+    }
 
     final titleCandidates = _parseTitleCandidates(
       fields['title_candidates'],
@@ -190,9 +205,19 @@ class RecommendationDirectionDocumentParser {
     }
 
     return RecommendationDirection(
+      directionRole: directionRole,
       suggestedTitle: suggestedTitle,
       titleCandidates: titleCandidates,
       synopsis: synopsis,
+      protagonist: _requiredString(fields, 'protagonist', scope),
+      coreMechanism: _requiredString(fields, 'core_mechanism', scope),
+      firstThreeChaptersHook: _requiredString(
+        fields,
+        'first_three_chapters_hook',
+        scope,
+      ),
+      mainConflict: _requiredString(fields, 'main_conflict', scope),
+      firstPayoff: _requiredString(fields, 'first_payoff', scope),
       genreTags: _requiredStringList(fields, 'genre_tags', scope),
       targetWordCount: _requiredPositiveInt(fields, 'target_word_count', scope),
       targetPlatform: platform,
@@ -204,6 +229,7 @@ class RecommendationDirectionDocumentParser {
       differentiation: _requiredString(fields, 'differentiation', scope),
       feasibility: feasibility,
       failureRisk: _requiredString(fields, 'failure_risk', scope),
+      serialRisk: _requiredString(fields, 'serial_risk', scope),
       validationAction: _requiredString(fields, 'validation_action', scope),
       detailMarkdown: _extractDirectionMarkdown(
         body: body,
