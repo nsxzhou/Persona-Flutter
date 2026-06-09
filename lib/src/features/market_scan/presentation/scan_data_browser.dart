@@ -35,6 +35,15 @@ class ScanDataBrowser extends ConsumerStatefulWidget {
 class _ScanDataBrowserState extends ConsumerState<ScanDataBrowser> {
   bool _expanded = false;
   MarketPlatform? _platformFilter;
+  String? _selectedChartKey;
+  final TextEditingController _searchController = TextEditingController();
+  _RankingSort _sort = _RankingSort.rank;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -105,24 +114,17 @@ class _ScanDataBrowserState extends ConsumerState<ScanDataBrowser> {
           children: [
             if (widget.showStats) ...[
               _StatCardsRow(
-                totalBooks: bundle.books.length,
-                platformCount: bundle.books
-                    .map((b) => b.platform)
-                    .toSet()
-                    .length,
-                chartCount: bundle.rankings
-                    .map((r) => r.chartName)
-                    .toSet()
-                    .length,
+                totalBooks: bundle.totalBookCount,
+                rankingEntries: bundle.totalRankingEntryCount,
+                platformCount: bundle.availablePlatforms.length,
+                chartCount: bundle.chartCount,
                 latestScanTime: bundle.runs.isNotEmpty
                     ? bundle.runs.first.startedAt
                     : null,
               ),
               const SizedBox(height: 20),
             ],
-            _buildPlatformFilter(bundle.books),
-            const SizedBox(height: 20),
-            _buildRankingsList(bundle),
+            _buildRankingsWorkspace(bundle),
             if (widget.showHistory) ...[
               const SizedBox(height: 20),
               _ScanHistorySection(runs: bundle.runs),
@@ -139,25 +141,48 @@ class _ScanDataBrowserState extends ConsumerState<ScanDataBrowser> {
     );
   }
 
-  // ── Platform Filter ────────────────────────────────────────────
+  // ── Rankings Workspace ─────────────────────────────────────────
 
-  Widget _buildPlatformFilter(List<MarketBook> books) {
+  Widget _buildRankingsWorkspace(ScanDataBundle bundle) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-
-    final platformCounts = <MarketPlatform, int>{};
-    for (final book in books) {
-      platformCounts[book.platform] = (platformCounts[book.platform] ?? 0) + 1;
-    }
-
+    final bookMap = bundle.bookById;
     final filters = <MarketPlatform?>[null, ...MarketPlatform.values];
+    final groups = _buildChartGroups(bundle);
+    final selectedGroup = groups.isEmpty ? null : _selectedGroup(groups);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          '排行榜数据',
-          style: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '排行榜数据',
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '按平台和榜单阅览 ${bundle.totalRankingEntryCount} 条榜单记录；书籍样本 ${bundle.totalBookCount} 本。',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            PersonaStatusPill(
+              label: '${bundle.chartCount} 个榜单',
+              icon: Icons.leaderboard_outlined,
+            ),
+          ],
         ),
         const SizedBox(height: 10),
         Wrap(
@@ -165,30 +190,93 @@ class _ScanDataBrowserState extends ConsumerState<ScanDataBrowser> {
           runSpacing: 8,
           children: filters.map((p) {
             final selected = _platformFilter == p;
-            final count = p == null ? books.length : (platformCounts[p] ?? 0);
+            final count = p == null
+                ? bundle.totalRankingEntryCount
+                : bundle.rankingEntryCountForPlatform(p);
             final label = p == null ? '全部' : _platformLabel(p.name);
 
             return _PlatformFilterChip(
               key: ValueKey('ranking-platform-filter-${p?.name ?? 'all'}'),
-              label: '$label ($count)',
+              label: '$label $count条',
               icon: p == null ? Icons.library_books_outlined : _platformIcon(p),
               color: p == null
                   ? colorScheme.onSurfaceVariant
                   : _platformColor(p, colorScheme),
               selected: selected,
-              onPressed: () => setState(() => _platformFilter = p),
+              onPressed: () => setState(() {
+                _platformFilter = p;
+                _selectedChartKey = null;
+              }),
             );
           }).toList(),
         ),
+        const SizedBox(height: 12),
+        _RankingToolbar(
+          searchController: _searchController,
+          sort: _sort,
+          onSearchChanged: (_) => setState(() {}),
+          onSortChanged: (sort) => setState(() => _sort = sort),
+        ),
+        const SizedBox(height: 12),
+        if (groups.isEmpty)
+          const _EmptyRankingsPlaceholder()
+        else
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 820;
+              final group = selectedGroup!;
+              if (compact) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _MobileChartSelector(
+                      groups: groups,
+                      selectedKey: group.key,
+                      onChanged: (key) =>
+                          setState(() => _selectedChartKey = key),
+                    ),
+                    const SizedBox(height: 12),
+                    _RankingDetailList(
+                      group: group,
+                      bookMap: bookMap,
+                      searchQuery: _searchController.text,
+                      sort: _sort,
+                    ),
+                  ],
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 282,
+                    child: _RankingChartDirectory(
+                      groups: groups,
+                      selectedKey: group.key,
+                      onSelected: (key) =>
+                          setState(() => _selectedChartKey = key),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: _RankingDetailList(
+                      group: group,
+                      bookMap: bookMap,
+                      searchQuery: _searchController.text,
+                      sort: _sort,
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
       ],
     );
   }
 
-  // ── Rankings List (virtualized) ──────────────────────────────
-
-  Widget _buildRankingsList(ScanDataBundle bundle) {
-    final bookMap = {for (final b in bundle.books) b.id: b};
-
+  List<_RankingChartGroup> _buildChartGroups(ScanDataBundle bundle) {
+    final bookMap = bundle.bookById;
     var filtered = bundle.rankings;
     if (_platformFilter != null) {
       filtered = bundle.rankings.where((r) {
@@ -197,93 +285,84 @@ class _ScanDataBrowserState extends ConsumerState<ScanDataBrowser> {
       }).toList();
     }
 
-    final grouped = <String, List<MarketRanking>>{};
-    for (final r in filtered) {
-      grouped.putIfAbsent(r.chartName, () => []).add(r);
-    }
-
-    if (grouped.isEmpty) {
-      return const _EmptyRankingsPlaceholder();
-    }
-
-    final rows = <_RankingListRow>[];
-    for (final entry in grouped.entries) {
-      final firstBook = entry.value.isNotEmpty
-          ? bookMap[entry.value.first.bookId]
-          : null;
-      rows.add(
-        _RankingHeaderListRow(
-          chartName: entry.key,
-          count: entry.value.length,
-          platform: firstBook?.platform,
+    final grouped = <String, _MutableRankingChartGroup>{};
+    for (final ranking in filtered) {
+      final platform = bookMap[ranking.bookId]?.platform;
+      if (platform == null) {
+        continue;
+      }
+      final key = _chartKey(platform, ranking.chartName);
+      grouped.putIfAbsent(
+        key,
+        () => _MutableRankingChartGroup(
+          key: key,
+          platform: platform,
+          chartName: ranking.chartName,
         ),
       );
-      for (final ranking in entry.value) {
-        rows.add(_RankingBookListRow(ranking: ranking));
-      }
+      grouped[key]!.rankings.add(ranking);
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final viewportHeight = MediaQuery.sizeOf(context).height;
-        final listHeight = (viewportHeight * 0.56).clamp(360.0, 720.0);
-
-        // Keep the inner list bounded so ListView.builder can virtualize rows
-        // instead of forcing every ranking item to build in the outer scroll view.
-        return SizedBox(
-          height: listHeight,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outlineVariant,
-              ),
-            ),
-            child: ListView.builder(
-              itemCount: rows.length,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemBuilder: (context, index) {
-                final row = rows[index];
-                return switch (row) {
-                  _RankingHeaderListRow() => _RankingListHeader(row: row),
-                  _RankingBookListRow() => _RankingItem(
-                    ranking: row.ranking,
-                    book: bookMap[row.ranking.bookId],
-                    isLast:
-                        index == rows.length - 1 ||
-                        rows[index + 1] is _RankingHeaderListRow,
-                  ),
-                };
-              },
-            ),
+    final groups = grouped.values
+        .map(
+          (group) => _RankingChartGroup(
+            key: group.key,
+            platform: group.platform,
+            chartName: group.chartName,
+            rankings: group.rankings..sort((a, b) => a.rank.compareTo(b.rank)),
           ),
-        );
-      },
-    );
+        )
+        .toList();
+    groups.sort((a, b) {
+      final platform = a.platform.index.compareTo(b.platform.index);
+      if (platform != 0) return platform;
+      return a.chartName.compareTo(b.chartName);
+    });
+    return groups;
+  }
+
+  _RankingChartGroup _selectedGroup(List<_RankingChartGroup> groups) {
+    final selectedKey = _selectedChartKey;
+    if (selectedKey != null) {
+      for (final group in groups) {
+        if (group.key == selectedKey) {
+          return group;
+        }
+      }
+    }
+    return groups.first;
   }
 }
 
-sealed class _RankingListRow {
-  const _RankingListRow();
+String _chartKey(MarketPlatform platform, String chartName) {
+  return '${platform.name}::$chartName';
 }
 
-class _RankingHeaderListRow extends _RankingListRow {
-  const _RankingHeaderListRow({
-    required this.chartName,
-    required this.count,
+class _MutableRankingChartGroup {
+  _MutableRankingChartGroup({
+    required this.key,
     required this.platform,
+    required this.chartName,
   });
 
+  final String key;
+  final MarketPlatform platform;
   final String chartName;
-  final int count;
-  final MarketPlatform? platform;
+  final List<MarketRanking> rankings = [];
 }
 
-class _RankingBookListRow extends _RankingListRow {
-  const _RankingBookListRow({required this.ranking});
+class _RankingChartGroup {
+  const _RankingChartGroup({
+    required this.key,
+    required this.platform,
+    required this.chartName,
+    required this.rankings,
+  });
 
-  final MarketRanking ranking;
+  final String key;
+  final MarketPlatform platform;
+  final String chartName;
+  final List<MarketRanking> rankings;
 }
 
 class _PlatformFilterChip extends StatelessWidget {
@@ -357,12 +436,14 @@ class _PlatformFilterChip extends StatelessWidget {
 class _StatCardsRow extends StatelessWidget {
   const _StatCardsRow({
     required this.totalBooks,
+    required this.rankingEntries,
     required this.platformCount,
     required this.chartCount,
     this.latestScanTime,
   });
 
   final int totalBooks;
+  final int rankingEntries;
   final int platformCount;
   final int chartCount;
   final DateTime? latestScanTime;
@@ -371,7 +452,9 @@ class _StatCardsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 860
+        final columns = constraints.maxWidth >= 980
+            ? 5
+            : constraints.maxWidth >= 860
             ? 4
             : constraints.maxWidth >= 520
             ? 2
@@ -388,9 +471,18 @@ class _StatCardsRow extends StatelessWidget {
               width: itemWidth,
               child: _StatCard(
                 icon: Icons.menu_book_outlined,
-                label: '扫描书籍',
-                value: '$totalBooks',
+                label: '书籍样本',
+                value: '$totalBooks 本',
                 color: const Color(0xFF2758D9),
+              ),
+            ),
+            SizedBox(
+              width: itemWidth,
+              child: _StatCard(
+                icon: Icons.list_alt_outlined,
+                label: '榜单条目',
+                value: '$rankingEntries 条',
+                color: const Color(0xFFE64A19),
               ),
             ),
             SizedBox(
@@ -553,71 +645,430 @@ class _ContentLoading extends StatelessWidget {
   }
 }
 
-// ── Ranking List Header ───────────────────────────────────────────────
+// ── Ranking Browser ───────────────────────────────────────────────────
 
-class _RankingListHeader extends StatelessWidget {
-  const _RankingListHeader({required this.row});
+enum _RankingSort {
+  rank,
+  wordCount,
+  favorites,
+  recommendVotes,
+  monthlyTickets,
+  comments,
+}
 
-  final _RankingHeaderListRow row;
+class _RankingToolbar extends StatelessWidget {
+  const _RankingToolbar({
+    required this.searchController,
+    required this.sort,
+    required this.onSearchChanged,
+    required this.onSortChanged,
+  });
+
+  final TextEditingController searchController;
+  final _RankingSort sort;
+  final ValueChanged<String> onSearchChanged;
+  final ValueChanged<_RankingSort> onSortChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 680;
+        final searchField = TextField(
+          key: const ValueKey('ranking-search-field'),
+          controller: searchController,
+          onChanged: onSearchChanged,
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.search, size: 18),
+            suffixIcon: searchController.text.isEmpty
+                ? null
+                : IconButton(
+                    tooltip: '清空搜索',
+                    onPressed: () {
+                      searchController.clear();
+                      onSearchChanged('');
+                    },
+                    icon: const Icon(Icons.close, size: 18),
+                  ),
+            labelText: '搜索书名 / 作者',
+            border: const OutlineInputBorder(),
+          ),
+        );
+        final sortField = DropdownButtonFormField<_RankingSort>(
+          key: const ValueKey('ranking-sort-menu'),
+          initialValue: sort,
+          decoration: const InputDecoration(
+            labelText: '排序',
+            border: OutlineInputBorder(),
+          ),
+          items: [
+            for (final value in _RankingSort.values)
+              DropdownMenuItem(value: value, child: Text(_sortLabel(value))),
+          ],
+          onChanged: (value) {
+            if (value != null) {
+              onSortChanged(value);
+            }
+          },
+        );
+
+        if (compact) {
+          return Column(
+            children: [searchField, const SizedBox(height: 10), sortField],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(child: searchField),
+            const SizedBox(width: 10),
+            SizedBox(width: 180, child: sortField),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _RankingChartDirectory extends StatelessWidget {
+  const _RankingChartDirectory({
+    required this.groups,
+    required this.selectedKey,
+    required this.onSelected,
+  });
+
+  final List<_RankingChartGroup> groups;
+  final String selectedKey;
+  final ValueChanged<String> onSelected;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final platformClr = row.platform != null
-        ? _platformColor(row.platform!, colorScheme)
-        : colorScheme.primary;
+    final viewportHeight = MediaQuery.sizeOf(context).height;
+    final listHeight = (viewportHeight * 0.58).clamp(380.0, 680.0);
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.28),
-        border: Border(
-          top: BorderSide(color: colorScheme.outlineVariant),
-          bottom: BorderSide(color: colorScheme.outlineVariant),
-        ),
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
-        child: Row(
+      child: SizedBox(
+        height: listHeight,
+        child: ListView(
+          padding: const EdgeInsets.all(8),
           children: [
-            Container(
-              width: 3,
-              height: 16,
-              decoration: BoxDecoration(
-                color: platformClr,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
               child: Text(
-                row.chartName,
-                style: textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
+                '榜单目录',
+                style: textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: platformClr.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                child: Text(
-                  '${row.count} 本',
-                  style: textTheme.labelSmall?.copyWith(
-                    color: platformClr,
-                    fontWeight: FontWeight.w600,
+            for (final platform in MarketPlatform.values) ...[
+              if (groups.any((group) => group.platform == platform)) ...[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 12, 8, 6),
+                  child: Text(
+                    _platformLabel(platform.name),
+                    style: textTheme.labelSmall?.copyWith(
+                      color: _platformColor(platform, colorScheme),
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
+                for (final group in groups.where(
+                  (group) => group.platform == platform,
+                ))
+                  _RankingChartTile(
+                    group: group,
+                    selected: group.key == selectedKey,
+                    onSelected: onSelected,
+                  ),
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RankingChartTile extends StatelessWidget {
+  const _RankingChartTile({
+    required this.group,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final _RankingChartGroup group;
+  final bool selected;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final platformColor = _platformColor(group.platform, colorScheme);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          key: ValueKey('ranking-chart-${group.key}'),
+          onTap: () => onSelected(group.key),
+          borderRadius: BorderRadius.circular(8),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: selected
+                  ? platformColor.withValues(alpha: 0.1)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: selected
+                    ? platformColor.withValues(alpha: 0.38)
+                    : Colors.transparent,
               ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              child: Row(
+                children: [
+                  Container(
+                    width: 3,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: platformColor,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: Text(
+                      group.chartName,
+                      style: textTheme.labelMedium?.copyWith(
+                        color: selected
+                            ? colorScheme.onSurface
+                            : colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w800,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${group.rankings.length}条',
+                    style: textTheme.labelSmall?.copyWith(
+                      color: selected
+                          ? platformColor
+                          : colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MobileChartSelector extends StatelessWidget {
+  const _MobileChartSelector({
+    required this.groups,
+    required this.selectedKey,
+    required this.onChanged,
+  });
+
+  final List<_RankingChartGroup> groups;
+  final String selectedKey;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<String>(
+      key: const ValueKey('ranking-chart-selector'),
+      initialValue: selectedKey,
+      decoration: const InputDecoration(
+        labelText: '榜单',
+        border: OutlineInputBorder(),
+      ),
+      items: [
+        for (final group in groups)
+          DropdownMenuItem(
+            value: group.key,
+            child: Text(
+              '${_platformShortLabel(group.platform)} · ${group.chartName} · ${group.rankings.length}条',
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+      ],
+      onChanged: (value) {
+        if (value != null) {
+          onChanged(value);
+        }
+      },
+    );
+  }
+}
+
+class _RankingDetailList extends StatelessWidget {
+  const _RankingDetailList({
+    required this.group,
+    required this.bookMap,
+    required this.searchQuery,
+    required this.sort,
+  });
+
+  final _RankingChartGroup group;
+  final Map<String, MarketBook> bookMap;
+  final String searchQuery;
+  final _RankingSort sort;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final platformColor = _platformColor(group.platform, colorScheme);
+    final rankings = _filteredRankings();
+    final viewportHeight = MediaQuery.sizeOf(context).height;
+    final listHeight = (viewportHeight * 0.58).clamp(380.0, 680.0);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: SizedBox(
+        height: listHeight,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+              child: Row(
+                children: [
+                  _PlatformBadge(platform: group.platform),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      group.chartName,
+                      style: textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: platformColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      child: Text(
+                        '${rankings.length}/${group.rankings.length} 条',
+                        style: textTheme.labelSmall?.copyWith(
+                          color: platformColor,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Divider(height: 1, color: colorScheme.outlineVariant),
+            Expanded(
+              child: rankings.isEmpty
+                  ? const _EmptyRankingsPlaceholder()
+                  : ListView.builder(
+                      key: ValueKey('ranking-detail-${group.key}'),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: rankings.length,
+                      itemBuilder: (context, index) {
+                        final ranking = rankings[index];
+                        return _RankingItem(
+                          ranking: ranking,
+                          book: bookMap[ranking.bookId],
+                          isLast: index == rankings.length - 1,
+                        );
+                      },
+                    ),
             ),
           ],
         ),
       ),
     );
   }
+
+  List<MarketRanking> _filteredRankings() {
+    final query = searchQuery.trim().toLowerCase();
+    var rankings = group.rankings.where((ranking) {
+      if (query.isEmpty) {
+        return true;
+      }
+      final book = bookMap[ranking.bookId];
+      final title = book?.title.toLowerCase() ?? '';
+      final author = book?.author.toLowerCase() ?? '';
+      return title.contains(query) || author.contains(query);
+    }).toList();
+
+    rankings.sort((a, b) {
+      final metric = switch (sort) {
+        _RankingSort.rank => a.rank.compareTo(b.rank),
+        _RankingSort.wordCount => _metricCompare(
+          bookMap[a.bookId]?.totalWordCount ?? 0,
+          bookMap[b.bookId]?.totalWordCount ?? 0,
+        ),
+        _RankingSort.favorites => _metricCompare(
+          a.favorites ?? 0,
+          b.favorites ?? 0,
+        ),
+        _RankingSort.recommendVotes => _metricCompare(
+          a.recommendVotes ?? 0,
+          b.recommendVotes ?? 0,
+        ),
+        _RankingSort.monthlyTickets => _metricCompare(
+          a.monthlyTickets ?? 0,
+          b.monthlyTickets ?? 0,
+        ),
+        _RankingSort.comments => _metricCompare(
+          a.commentCount ?? 0,
+          b.commentCount ?? 0,
+        ),
+      };
+      return metric == 0 ? a.rank.compareTo(b.rank) : metric;
+    });
+    return rankings;
+  }
+}
+
+int _metricCompare(int a, int b) {
+  return b.compareTo(a);
+}
+
+String _sortLabel(_RankingSort sort) {
+  return switch (sort) {
+    _RankingSort.rank => '排行顺序',
+    _RankingSort.wordCount => '字数优先',
+    _RankingSort.favorites => '收藏优先',
+    _RankingSort.recommendVotes => '推荐票优先',
+    _RankingSort.monthlyTickets => '月票优先',
+    _RankingSort.comments => '评论优先',
+  };
 }
 
 // ── Ranking Item ──────────────────────────────────────────────────────
@@ -977,7 +1428,7 @@ class _ScanHistoryRow extends StatelessWidget {
         Icons.check_circle_outline,
         const Color(0xFF2E7D32),
         Text(
-          '${run.itemCount} 本',
+          '${run.itemCount} 条',
           style: textTheme.labelSmall?.copyWith(
             color: const Color(0xFF2E7D32),
             fontWeight: FontWeight.w600,

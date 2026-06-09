@@ -189,12 +189,7 @@ class _RecommendationPageState extends ConsumerState<RecommendationPage> {
     if (bundle == null) {
       return const [];
     }
-    final platforms = bundle.books.map((book) => book.platform).toSet();
-    final ordered = <MarketPlatform>[
-      MarketPlatform.qidian,
-      MarketPlatform.fanqie,
-    ];
-    return ordered.where(platforms.contains).toList(growable: false);
+    return bundle.availablePlatforms;
   }
 }
 
@@ -526,11 +521,7 @@ class _WorkspaceOverview extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final platformCount = bundle.books
-        .map((book) => book.platform)
-        .toSet()
-        .length;
-    final chartCount = bundle.rankings.map((r) => r.chartName).toSet().length;
+    final platformCount = bundle.availablePlatforms.length;
     final latestRun = bundle.runs.isNotEmpty ? bundle.runs.first : null;
     final hasRecommendationActivity =
         recommendationState.isGenerating ||
@@ -539,8 +530,8 @@ class _WorkspaceOverview extends StatelessWidget {
     final readinessLabel = scanState.isScanning ? '更新中' : '可生成';
     final readinessTitle = scanState.isScanning ? '市场数据正在更新' : '市场数据已准备，可以生成推荐';
     final readinessDescription = latestRun == null
-        ? '当前已有 ${bundle.books.length} 本书和 $chartCount 个榜单，可先审阅榜单质量。'
-        : '覆盖 $platformCount 个平台、${bundle.books.length} 本书、$chartCount 个榜单；最近扫描 ${_formatRadarTime(latestRun.startedAt)}。';
+        ? '当前已有 ${bundle.totalBookCount} 本书籍样本和 ${bundle.totalRankingEntryCount} 条榜单记录，可先审阅榜单质量。'
+        : '覆盖 $platformCount 个平台、${bundle.totalBookCount} 本书籍样本、${bundle.totalRankingEntryCount} 条榜单记录；最近扫描 ${_formatRadarTime(latestRun.startedAt)}。';
 
     return PersonaPanel(
       padding: const EdgeInsets.all(18),
@@ -911,7 +902,7 @@ class _ScanHistoryWorkspaceRow extends StatelessWidget {
         const SizedBox(width: 12),
         Text(
           run.status == MarketScanRunStatus.completed
-              ? '${run.itemCount} 本'
+              ? '${run.itemCount} 条'
               : _scanRunStatusLabel(run.status),
           style: textTheme.labelMedium?.copyWith(
             color: statusColor,
@@ -941,11 +932,10 @@ class _MarketSummaryPanel extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final data = bundle.value;
-    final platformCount =
-        data?.books.map((book) => book.platform).toSet().length ?? 0;
-    final chartCount =
-        data?.rankings.map((r) => r.chartName).toSet().length ?? 0;
-    final bookCount = data?.books.length ?? 0;
+    final platformCount = data?.availablePlatforms.length ?? 0;
+    final chartCount = data?.chartCount ?? 0;
+    final bookCount = data?.totalBookCount ?? 0;
+    final rankingEntryCount = data?.totalRankingEntryCount ?? 0;
     final latestRun = data?.runs.isNotEmpty == true ? data!.runs.first : null;
     final hasMarketData = hasData.value == true;
     final scanLabel = scanState.isScanning
@@ -1029,13 +1019,18 @@ class _MarketSummaryPanel extends StatelessWidget {
               ),
               _SummaryPill(
                 icon: Icons.menu_book_outlined,
-                label: '书籍',
-                value: hasMarketData ? '$bookCount' : '--',
+                label: '书籍样本',
+                value: hasMarketData ? '$bookCount 本' : '--',
+              ),
+              _SummaryPill(
+                icon: Icons.list_alt_outlined,
+                label: '榜单条目',
+                value: hasMarketData ? '$rankingEntryCount 条' : '--',
               ),
               _SummaryPill(
                 icon: Icons.leaderboard_outlined,
                 label: '榜单',
-                value: hasMarketData ? '$chartCount' : '--',
+                value: hasMarketData ? '$chartCount 个' : '--',
               ),
               _SummaryPill(
                 icon: Icons.auto_awesome_outlined,
@@ -1051,9 +1046,9 @@ class _MarketSummaryPanel extends StatelessWidget {
               ),
             ],
           ),
-          if (scanState.platforms.isNotEmpty) ...[
+          if (hasMarketData && data != null) ...[
             const SizedBox(height: 14),
-            _PlatformCoverageStrip(platforms: scanState.platforms),
+            _PlatformDataCoverageStrip(bundle: data),
           ],
           if (scanState.error != null) ...[
             const SizedBox(height: 14),
@@ -1518,10 +1513,10 @@ class _RecommendationMiniSummary extends StatelessWidget {
   }
 }
 
-class _PlatformCoverageStrip extends StatelessWidget {
-  const _PlatformCoverageStrip({required this.platforms});
+class _PlatformDataCoverageStrip extends StatelessWidget {
+  const _PlatformDataCoverageStrip({required this.bundle});
 
-  final List<PlatformScanEntry> platforms;
+  final ScanDataBundle bundle;
 
   @override
   Widget build(BuildContext context) {
@@ -1529,44 +1524,29 @@ class _PlatformCoverageStrip extends StatelessWidget {
       spacing: 8,
       runSpacing: 8,
       children: [
-        for (final entry in platforms) _PlatformCoverageChip(entry: entry),
+        for (final platform in bundle.availablePlatforms)
+          _PlatformDataCoverageChip(stats: bundle.statsForPlatform(platform)),
       ],
     );
   }
 }
 
-class _PlatformCoverageChip extends StatelessWidget {
-  const _PlatformCoverageChip({required this.entry});
+class _PlatformDataCoverageChip extends StatelessWidget {
+  const _PlatformDataCoverageChip({required this.stats});
 
-  final PlatformScanEntry entry;
+  final PlatformScanDataStats stats;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final color = switch (entry.status) {
-      PlatformScanStatus.completed => const Color(0xFF16825D),
-      PlatformScanStatus.failed => colorScheme.error,
-      PlatformScanStatus.cdpRequired => colorScheme.tertiary,
-      PlatformScanStatus.scanning => colorScheme.primary,
-      PlatformScanStatus.abandoned => colorScheme.onSurfaceVariant,
-      PlatformScanStatus.pending => colorScheme.onSurfaceVariant,
-    };
-    final label = switch (entry.status) {
-      PlatformScanStatus.completed =>
-        entry.itemCount > 0 ? '${entry.itemCount} 本' : '无数据',
-      PlatformScanStatus.failed => '失败',
-      PlatformScanStatus.cdpRequired => '需 Chrome',
-      PlatformScanStatus.scanning => '扫描中',
-      PlatformScanStatus.abandoned => '已放弃',
-      PlatformScanStatus.pending => '等待',
-    };
+    final color = _platformColor(stats.platform, colorScheme);
 
     return DecoratedBox(
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.18)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -1580,10 +1560,10 @@ class _PlatformCoverageChip extends StatelessWidget {
             ),
             const SizedBox(width: 6),
             Text(
-              '${entry.displayName} $label',
+              '${_platformDisplayName(stats.platform.name)} ${stats.bookCount}本 / ${stats.rankingEntryCount}条',
               style: textTheme.labelSmall?.copyWith(
                 color: color,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ],
@@ -1759,7 +1739,7 @@ class _PlatformProgressRow extends StatelessWidget {
         Icons.check_circle_outline,
         const Color(0xFF2E7D32),
         Text(
-          entry.itemCount > 0 ? '${entry.itemCount} 本' : '无新数据',
+          entry.itemCount > 0 ? '${entry.itemCount} 条' : '无新数据',
           style: textTheme.labelMedium?.copyWith(
             color: const Color(0xFF2E7D32),
           ),
@@ -2589,6 +2569,13 @@ String _platformDisplayName(String platform) {
     'qidian' => '起点中文网',
     'fanqie' => '番茄小说',
     _ => platform,
+  };
+}
+
+Color _platformColor(MarketPlatform platform, ColorScheme colorScheme) {
+  return switch (platform) {
+    MarketPlatform.qidian => const Color(0xFF2758D9),
+    MarketPlatform.fanqie => const Color(0xFFE64A19),
   };
 }
 

@@ -41,7 +41,7 @@ void main() {
       expect(find.text('排行榜数据'), findsOneWidget);
       expect(find.text('全球高考'), findsOneWidget);
 
-      await tester.tap(find.text('番茄小说 (1)'));
+      await tester.tap(find.text('番茄小说 1条'));
       await tester.pumpAndSettle();
       expect(find.text('欢迎进入梦魇直播间'), findsOneWidget);
       expect(find.text('全球高考'), findsNothing);
@@ -85,6 +85,72 @@ void main() {
     expect(tester.getSize(fanqieFilter), fanqieSize);
     expect(find.text('欢迎进入梦魇直播间'), findsOneWidget);
     expect(find.text('全球高考'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('market summary separates book and ranking entry counts', (
+    tester,
+  ) async {
+    await _setSurface(tester, const Size(1440, 900));
+    final fixture = await _MarketScanFixture.withData();
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(_RecommendationTestApp(repository: fixture.repo));
+    await tester.pumpAndSettle();
+
+    expect(find.text('书籍样本'), findsOneWidget);
+    expect(find.text('3 本'), findsOneWidget);
+    expect(find.text('榜单条目'), findsOneWidget);
+    expect(find.text('4 条'), findsOneWidget);
+    expect(find.text('起点中文网 2本 / 3条'), findsOneWidget);
+    expect(find.text('番茄小说 1本 / 1条'), findsOneWidget);
+
+    await _tapWorkspaceView(tester, 'rankings');
+
+    expect(find.text('全部 4条'), findsOneWidget);
+    expect(find.text('起点中文网 3条'), findsOneWidget);
+    expect(find.text('番茄小说 1条'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('ranking browser supports chart selection search and sorting', (
+    tester,
+  ) async {
+    await _setSurface(tester, const Size(1440, 900));
+    final fixture = await _MarketScanFixture.withData();
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(_RecommendationTestApp(repository: fixture.repo));
+    await tester.pumpAndSettle();
+
+    await _tapWorkspaceView(tester, 'rankings');
+    await tester.tap(find.byKey(const ValueKey('ranking-chart-qidian::月榜')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('全球高考'), findsOneWidget);
+    expect(find.text('深海电台'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('ranking-search-field')),
+      '深海',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('深海电台'), findsOneWidget);
+    expect(find.text('全球高考'), findsNothing);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('ranking-search-field')),
+      '',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('ranking-sort-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('收藏优先').last);
+    await tester.pumpAndSettle();
+
+    final deepTop = tester.getTopLeft(find.text('深海电台')).dy;
+    final globalTop = tester.getTopLeft(find.text('全球高考')).dy;
+    expect(deepTop, lessThan(globalTop));
     expect(tester.takeException(), isNull);
   });
 
@@ -367,14 +433,57 @@ class _MarketScanFixture {
   }
 
   Future<void> _seed() async {
-    await _seedPlatform(
-      platform: MarketPlatform.qidian,
-      chartName: '月榜',
-      title: '全球高考',
-      author: '木苏里',
-      categories: const ['纯爱', '近代现代', '剧情'],
-      favorites: 600000,
+    final qidianRun = await repo.createRun(MarketPlatform.qidian.name);
+    final globalExam = await repo.upsertBook(
+      const MarketBookInput(
+        platform: MarketPlatform.qidian,
+        platformBookId: 'qidian-global-exam',
+        title: '全球高考',
+        author: '木苏里',
+        categories: ['纯爱', '近代现代', '剧情'],
+        tags: ['热度样本'],
+        totalWordCount: 860000,
+      ),
     );
+    final deepRadio = await repo.upsertBook(
+      const MarketBookInput(
+        platform: MarketPlatform.qidian,
+        platformBookId: 'qidian-deep-radio',
+        title: '深海电台',
+        author: '北城听潮',
+        categories: ['科幻', '悬疑'],
+        tags: ['热度样本'],
+        totalWordCount: 720000,
+      ),
+    );
+    await repo.insertRankings([
+      MarketRankingInput(
+        bookId: globalExam.id,
+        chartName: '月榜',
+        rank: 1,
+        runId: qidianRun.id,
+        favorites: 600000,
+        scrapedAt: DateTime(2026, 6, 6, 11, 20),
+      ),
+      MarketRankingInput(
+        bookId: deepRadio.id,
+        chartName: '月榜',
+        rank: 2,
+        runId: qidianRun.id,
+        favorites: 700000,
+        scrapedAt: DateTime(2026, 6, 6, 11, 20),
+      ),
+      MarketRankingInput(
+        bookId: globalExam.id,
+        chartName: '新书榜',
+        rank: 1,
+        runId: qidianRun.id,
+        favorites: 580000,
+        scrapedAt: DateTime(2026, 6, 6, 11, 20),
+      ),
+    ]);
+    await repo.completeRun(runId: qidianRun.id, itemCount: 3);
+
     await _seedPlatform(
       platform: MarketPlatform.fanqie,
       chartName: '热读榜',
