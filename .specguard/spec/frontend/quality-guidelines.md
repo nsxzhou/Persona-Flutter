@@ -32,7 +32,17 @@ Questions to answer:
 
 <!-- Patterns that must always be used -->
 
-(To be filled by the team)
+### Market Scan Count Semantics
+
+Market Scan UI must keep book and ranking-entry counts separate:
+
+- `MarketBook` counts are de-duplicated book samples and should be labeled as
+  `本` or `书籍样本`.
+- `MarketRanking` counts and `MarketScanRun.itemCount` are ranking/scrape
+  entries and should be labeled as `条` or `榜单条目`.
+- Platform filters, list result counts, and visible list contents must use the
+  same metric. When changing these counts, include a duplicate-ranking fixture
+  in `test/market_scan/recommendation_page_test.dart`.
 
 ---
 
