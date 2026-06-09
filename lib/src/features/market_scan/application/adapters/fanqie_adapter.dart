@@ -16,7 +16,7 @@ class FanqieAdapter extends DataSourceAdapter {
   String get displayName => '番茄小说';
 
   @override
-  bool get requiresCdp => true;
+  bool get requiresCdp => false;
 
   @override
   Future<List<ScrapedBook>> scrapeCoreCharts({

@@ -1,209 +1,394 @@
-// Fanqie (番茄小说) scraper via CDP.
-// Rank pages use font anti-scraping, so we extract book IDs from rank page
-// links then visit detail pages for clean data (system fonts, no encoding).
-//
-// Detail page selectors:
-//   title:    .info-name > h1
-//   status:   .info-label-yellow
-//   cats:     .info-label-grey (multiple)
-//   wordCnt:  .info-count-word
-//   author:   .author-name-text
-//   desc:     text after .page-abstract-header
+// Fanqie (番茄小说) market scanner.
+// Uses public HTTP endpoints only. Category rank lists can contain font-mapped
+// text, so they are treated as ranking occurrences and book IDs; clean book
+// details are fetched from /api/book/info before emitting ScrapedBook JSON.
 
-const { connectCdp, sleep } = require('./cdp-helper');
+const BASE_URL = 'https://fanqienovel.com';
+const UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ' +
+  'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
 
-// One representative category per chart.
-// Each chart has many sub-categories; we pick the first/top one.
-const CHARTS = [
-  { name: '男频阅读榜', url: 'https://fanqienovel.com/rank/1_2_1141' },
-  { name: '男频新书榜', url: 'https://fanqienovel.com/rank/1_1_1141' },
-  { name: '女频阅读榜', url: 'https://fanqienovel.com/rank/0_2_1139' },
-  { name: '女频新书榜', url: 'https://fanqienovel.com/rank/0_1_1139' },
+const RANK_MOLDS = [
+  { mold: 2, label: '阅读榜' },
+  { mold: 1, label: '新书榜' },
 ];
 
-const MAX_BOOKS_PER_CHART = 20;
-const DETAIL_CONCURRENCY = 3;
+const RECOMMEND_TYPES = [0, 1, 2, 3];
 
-async function extractBookIds(browser, chart) {
-  const page = await browser.newPage();
-  try {
-    await page.goto(chart.url, { waitUntil: 'networkidle2', timeout: 30000 });
-    await sleep(5000);
+const MAX_BOOKS_PER_CHART = readPositiveInt('FANQIE_MAX_BOOKS_PER_CHART', 20);
+const MAX_CATEGORIES = readPositiveInt('FANQIE_MAX_CATEGORIES', 0);
+const TOP_LIST_LIMIT = readPositiveInt('FANQIE_TOP_LIMIT', 200);
+const RECOMMEND_LIMIT = readPositiveInt('FANQIE_RECOMMEND_LIMIT', 20);
+const FETCH_CONCURRENCY = readPositiveInt('FANQIE_FETCH_CONCURRENCY', 6);
+const DETAIL_CONCURRENCY = readPositiveInt('FANQIE_DETAIL_CONCURRENCY', 8);
+const FETCH_TIMEOUT_MS = readPositiveInt('FANQIE_FETCH_TIMEOUT_MS', 15000);
 
-    const bookIds = await page.evaluate(() => {
-      const ids = new Set();
-      document.querySelectorAll('a[href*="/page/"]').forEach((a) => {
-        const m = a.getAttribute('href')?.match(/\/page\/(\d{10,})/);
-        if (m) ids.add(m[1]);
+function readPositiveInt(name, fallback) {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  const value = Number.parseInt(raw, 10);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+async function fetchJson(pathOrUrl, { retries = 2 } = {}) {
+  const url = pathOrUrl.startsWith('http')
+    ? pathOrUrl
+    : `${BASE_URL}${pathOrUrl}`;
+  let lastError;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      const resp = await fetch(url, {
+        headers: {
+          'User-Agent': UA,
+          Accept: 'application/json,text/plain,*/*',
+          Referer: `${BASE_URL}/`,
+        },
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       });
-      return [...ids];
-    });
-
-    process.stderr.write(
-      `[fanqie] ${chart.name}: found ${bookIds.length} book IDs\n`
-    );
-    return bookIds.slice(0, MAX_BOOKS_PER_CHART);
-  } finally {
-    await page.close();
+      if (!resp.ok) {
+        throw new Error(`HTTP ${resp.status}`);
+      }
+      return await resp.json();
+    } catch (error) {
+      lastError = error;
+      if (attempt < retries) {
+        await sleep(350 * (attempt + 1));
+      }
+    }
   }
+
+  throw new Error(`${lastError?.message || 'request failed'} for ${url}`);
 }
 
-async function fetchBookDetail(browser, bookId) {
-  const page = await browser.newPage();
-  try {
-    await page.goto(`https://fanqienovel.com/page/${bookId}`, {
-      waitUntil: 'networkidle2',
-      timeout: 20000,
-    });
-    await sleep(1500);
-
-    const data = await page.evaluate(() => {
-      const title =
-        document.querySelector('.info-name h1')?.textContent?.trim() ||
-        document.querySelector('h1')?.textContent?.trim() ||
-        '';
-
-      // Fallback: parse from <title> tag.
-      let backupTitle = '';
-      if (!title) {
-        const m = document.title?.match(/^(.+?)(?:完整版|小说|_)/);
-        backupTitle = m ? m[1] : '';
-      }
-
-      // Status: .info-label-yellow
-      const statusEl = document.querySelector('.info-label-yellow');
-      const statusText = statusEl?.textContent?.trim() || '';
-      const bookStatus =
-        statusText.includes('完结') ? 'completed' : 'ongoing';
-
-      // Categories: .info-label-grey (multiple spans)
-      const categories = [
-        ...document.querySelectorAll('.info-label-grey'),
-      ]
-        .map((el) => el.textContent?.trim())
-        .filter(Boolean);
-
-      // Word count: .info-count-word or parse from body
-      let totalWordCount = 0;
-      const wcEl = document.querySelector('.info-count-word');
-      if (wcEl) {
-        const m = wcEl.textContent?.match(/([\d.]+)\s*万/);
-        if (m) totalWordCount = Math.round(parseFloat(m[1]) * 10000);
-      }
-
-      // Author: .author-name-text
-      const author =
-        document.querySelector('.author-name-text')?.textContent?.trim() || '';
-
-      // Description: first paragraph after .page-abstract-header
-      let description = '';
-      const abstractHeader = document.querySelector(
-        '.page-abstract-header'
-      );
-      if (abstractHeader) {
-        const next = abstractHeader.nextElementSibling;
-        if (next) {
-          description = next.textContent?.trim() || '';
-        }
-      }
-
-      return {
-        title: title || backupTitle,
-        author,
-        categories,
-        status: bookStatus,
-        totalWordCount,
-        description,
-      };
-    });
-
-    if (!data.title) return null;
-
-    return {
-      platform: 'fanqie',
-      platformBookId: bookId,
-      title: data.title,
-      author: data.author,
-      description: data.description,
-      categories: data.categories,
-      tags: [],
-      totalWordCount: data.totalWordCount,
-      status: data.status,
-      firstPublishDate: null,
-      favorites: null,
-      recommendVotes: null,
-      monthlyTickets: null,
-      commentCount: null,
-      scrapedAt: new Date().toISOString(),
-    };
-  } finally {
-    await page.close();
-  }
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function scrapeChart(browser, chart) {
-  const bookIds = await extractBookIds(browser, chart);
-  if (bookIds.length === 0) return [];
+async function runLimited(items, concurrency, worker) {
+  const results = new Array(items.length);
+  let cursor = 0;
 
-  const items = [];
-  for (let i = 0; i < bookIds.length; i += DETAIL_CONCURRENCY) {
-    const batch = bookIds.slice(i, i + DETAIL_CONCURRENCY);
-    const results = await Promise.allSettled(
-      batch.map((id) => fetchBookDetail(browser, id))
-    );
-
-    results.forEach((r, j) => {
-      if (r.status === 'fulfilled' && r.value) {
-        items.push({ ...r.value, chartName: chart.name, rank: i + j + 1 });
-      } else if (r.status === 'rejected') {
-        process.stderr.write(
-          `[fanqie] Detail failed ${batch[j]}: ${r.reason?.message}\n`
-        );
+  async function runWorker() {
+    while (cursor < items.length) {
+      const index = cursor;
+      cursor += 1;
+      try {
+        results[index] = { ok: true, value: await worker(items[index], index) };
+      } catch (error) {
+        results[index] = { ok: false, error };
       }
-    });
-
-    if (i + DETAIL_CONCURRENCY < bookIds.length) await sleep(500);
+    }
   }
 
-  process.stderr.write(
-    `[fanqie] ${chart.name}: ${items.length} books with clean data\n`
+  const workerCount = Math.min(Math.max(concurrency, 1), items.length);
+  await Promise.all(
+    Array.from({ length: workerCount }, () => runWorker())
   );
-  return items;
+  return results;
+}
+
+async function fetchCategories() {
+  const json = await fetchJson(
+    '/api/config/list?config_key=serial_rank_category_list_common'
+  );
+  const list = Array.isArray(json?.data?.list) ? json.data.list : [];
+  const categories = [];
+
+  for (const item of list) {
+    const groups = Array.isArray(item.group) ? item.group : [];
+    const id = stringValue(item.id);
+    const name = stringValue(item.name);
+    if (!id || !name) continue;
+
+    if (groups.includes('male')) {
+      categories.push({ id, name, gender: 1, genderLabel: '男频' });
+    }
+    if (groups.includes('female')) {
+      categories.push({ id, name, gender: 0, genderLabel: '女频' });
+    }
+  }
+
+  if (MAX_CATEGORIES > 0) {
+    return categories.slice(0, MAX_CATEGORIES);
+  }
+  return categories;
+}
+
+async function fetchCategoryRank(category, rankMold) {
+  const params = new URLSearchParams({
+    app_id: '2503',
+    rank_list_type: '3',
+    offset: '0',
+    limit: String(MAX_BOOKS_PER_CHART),
+    category_id: category.id,
+    rank_version: '',
+    gender: String(category.gender),
+    rankMold: String(rankMold.mold),
+  });
+  const chartName = `${category.genderLabel}${rankMold.label}-${category.name}`;
+
+  try {
+    const json = await fetchJson(`/api/rank/category/list?${params}`);
+    const list = Array.isArray(json?.data?.book_list)
+      ? json.data.book_list
+      : [];
+    return list
+      .map((book, index) =>
+        occurrenceFromItem(book, {
+          chartName,
+          rank: numberValue(book.currentPos) || index + 1,
+          fallbackCategory: category.name,
+        })
+      )
+      .filter(Boolean);
+  } catch (error) {
+    process.stderr.write(
+      `[fanqie] Failed ${chartName}: ${error.message}\n`
+    );
+    return [];
+  }
+}
+
+async function fetchTopList() {
+  try {
+    const json = await fetchJson(
+      `/api/author/misc/top_book_list/v1/?limit=${TOP_LIST_LIMIT}&offset=0`
+    );
+    const list = Array.isArray(json?.book_list) ? json.book_list : [];
+    return list
+      .map((book, index) =>
+        occurrenceFromItem(book, {
+          chartName: '番茄巅峰榜',
+          rank: index + 1,
+          fallbackCategory: stringValue(book.category),
+        })
+      )
+      .filter(Boolean);
+  } catch (error) {
+    process.stderr.write(`[fanqie] Failed 番茄巅峰榜: ${error.message}\n`);
+    return [];
+  }
+}
+
+async function fetchRecommendSlot(type) {
+  const chartName = `首页推荐位-样本${type}`;
+  try {
+    const json = await fetchJson(
+      `/api/rank/recommend/list?type=${type}&limit=${RECOMMEND_LIMIT}&offset=0`
+    );
+    const list = Array.isArray(json?.data?.list) ? json.data.list : [];
+    return list
+      .map((book, index) =>
+        occurrenceFromItem(book, {
+          chartName,
+          rank: index + 1,
+          fallbackCategory: stringValue(book.category),
+        })
+      )
+      .filter(Boolean);
+  } catch (error) {
+    process.stderr.write(`[fanqie] Failed ${chartName}: ${error.message}\n`);
+    return [];
+  }
+}
+
+function occurrenceFromItem(item, { chartName, rank, fallbackCategory }) {
+  const bookId = stringValue(item.bookId || item.book_id || item.media_id);
+  if (!bookId) return null;
+
+  return {
+    bookId,
+    chartName,
+    rank,
+    fallback: {
+      title: stringValue(item.bookName || item.book_name),
+      author: stringValue(item.author || item.authorName || item.author_name),
+      description: stringValue(item.abstract || item.description),
+      category: fallbackCategory || stringValue(item.category),
+      totalWordCount: numberValue(item.wordNumber || item.word_number),
+      creationStatus:
+        item.creationStatus ?? item.creation_status ?? item.status ?? null,
+    },
+  };
+}
+
+async function fetchBookDetail(bookId) {
+  const json = await fetchJson(`/api/book/info?bookId=${bookId}`);
+  return json?.data || {};
+}
+
+function detailToScrapedBook(occurrence, detail, scrapedAt) {
+  const fallback = occurrence.fallback;
+  const categories = parseCategories(detail.categoryV2);
+  if (categories.length === 0 && fallback.category) {
+    categories.push(fallback.category);
+  }
+
+  const title = stringValue(detail.bookName || detail.book_name || fallback.title);
+  const author = stringValue(
+    detail.authorName || detail.author || detail.author_name || fallback.author
+  );
+  const description = stringValue(
+    detail.abstract || detail.description || fallback.description
+  );
+  const totalWordCount =
+    numberValue(detail.wordNumber || detail.word_number) ||
+    fallback.totalWordCount ||
+    0;
+  const creationStatus =
+    detail.creationStatus ?? detail.creation_status ?? fallback.creationStatus;
+
+  return {
+    platform: 'fanqie',
+    platformBookId: occurrence.bookId,
+    title,
+    author,
+    description,
+    categories: uniqueNonEmpty(categories),
+    tags: [],
+    totalWordCount,
+    status: isCompleted(creationStatus, detail) ? 'completed' : 'ongoing',
+    firstPublishDate: null,
+    chartName: occurrence.chartName,
+    rank: occurrence.rank,
+    favorites: null,
+    recommendVotes: null,
+    monthlyTickets: null,
+    commentCount: null,
+    scrapedAt,
+  };
+}
+
+function parseCategories(raw) {
+  if (!raw) return [];
+  let value = raw;
+  if (typeof raw === 'string') {
+    try {
+      value = JSON.parse(raw);
+    } catch {
+      return [raw];
+    }
+  }
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => stringValue(item?.Name || item?.name || item?.category))
+    .filter(Boolean);
+}
+
+function isCompleted(creationStatus, detail) {
+  const status = stringValue(creationStatus).toLowerCase();
+  if (status === '0' || status === 'completed') return true;
+  if (status === '1' || status === 'ongoing') return false;
+  const lastChapter = stringValue(detail?.lastChapterTitle);
+  return lastChapter.includes('完结') || lastChapter.includes('完本');
+}
+
+function uniqueNonEmpty(values) {
+  const seen = new Set();
+  const result = [];
+  for (const value of values) {
+    const cleaned = stringValue(value).trim();
+    if (!cleaned || seen.has(cleaned)) continue;
+    seen.add(cleaned);
+    result.push(cleaned);
+  }
+  return result;
+}
+
+function stringValue(value) {
+  if (value == null) return '';
+  return String(value).trim();
+}
+
+function numberValue(value) {
+  if (value == null || value === '') return 0;
+  const parsed = Number.parseInt(String(value).replace(/[^\d]/g, ''), 10);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function dedupeOccurrences(occurrences) {
+  const seen = new Set();
+  const result = [];
+  for (const occurrence of occurrences) {
+    const key = `${occurrence.chartName}:${occurrence.bookId}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(occurrence);
+  }
+  return result;
 }
 
 async function main() {
-  const browser = await connectCdp();
-  const allItems = [];
+  const categories = await fetchCategories();
+  process.stderr.write(`[fanqie] Categories: ${categories.length}\n`);
 
-  try {
-    for (const chart of CHARTS) {
-      try {
-        const items = await scrapeChart(browser, chart);
-        allItems.push(...items);
-      } catch (e) {
-        process.stderr.write(`[fanqie] ${chart.name} failed: ${e.message}\n`);
-      }
+  const categoryTasks = [];
+  for (const category of categories) {
+    for (const rankMold of RANK_MOLDS) {
+      categoryTasks.push({ category, rankMold });
     }
-
-    const valid = allItems.filter(
-      (item) =>
-        item.title &&
-        item.platformBookId &&
-        item.platformBookId !== '0' &&
-        item.title.length >= 2
-    );
-
-    process.stderr.write(
-      `[fanqie] Total: ${valid.length} valid / ${allItems.length} raw\n`
-    );
-    process.stdout.write(JSON.stringify(valid));
-  } finally {
-    // disconnect() keeps Chrome alive; close() would kill it.
-    await browser.disconnect();
   }
+
+  const categoryResults = await runLimited(
+    categoryTasks,
+    FETCH_CONCURRENCY,
+    ({ category, rankMold }) => fetchCategoryRank(category, rankMold)
+  );
+
+  const occurrences = [];
+  for (const result of categoryResults) {
+    if (result.ok) occurrences.push(...result.value);
+  }
+
+  const extraResults = await Promise.allSettled([
+    fetchTopList(),
+    ...RECOMMEND_TYPES.map((type) => fetchRecommendSlot(type)),
+  ]);
+  for (const result of extraResults) {
+    if (result.status === 'fulfilled') {
+      occurrences.push(...result.value);
+    }
+  }
+
+  const deduped = dedupeOccurrences(occurrences);
+  const bookIds = [...new Set(deduped.map((item) => item.bookId))];
+  process.stderr.write(
+    `[fanqie] Ranking occurrences: ${deduped.length}, books: ${bookIds.length}\n`
+  );
+
+  const detailResults = await runLimited(
+    bookIds,
+    DETAIL_CONCURRENCY,
+    fetchBookDetail
+  );
+  const detailById = new Map();
+  for (let i = 0; i < bookIds.length; i += 1) {
+    const result = detailResults[i];
+    if (result?.ok) {
+      detailById.set(bookIds[i], result.value);
+    } else {
+      process.stderr.write(
+        `[fanqie] Failed detail ${bookIds[i]}: ${result?.error?.message || 'unknown'}\n`
+      );
+    }
+  }
+
+  const scrapedAt = new Date().toISOString();
+  const output = deduped
+    .map((occurrence) =>
+      detailToScrapedBook(
+        occurrence,
+        detailById.get(occurrence.bookId) || {},
+        scrapedAt
+      )
+    )
+    .filter((item) => item.title && item.author && item.title !== item.author);
+
+  process.stdout.write(JSON.stringify(output));
 }
 
-main().catch((e) => {
-  process.stderr.write(`[fanqie] Fatal: ${e.message}\n`);
+main().catch((error) => {
+  process.stderr.write(`[fanqie] Fatal: ${error.message}\n`);
   process.exit(1);
 });
