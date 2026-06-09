@@ -80,6 +80,72 @@ class ScanDataBundle {
   final List<MarketBook> books;
   final List<MarketRanking> rankings;
   final List<MarketScanRun> runs;
+
+  int get totalBookCount => books.length;
+
+  int get totalRankingEntryCount => rankings.length;
+
+  int get chartCount =>
+      rankings.map((ranking) => ranking.chartName).toSet().length;
+
+  Map<String, MarketBook> get bookById => {
+    for (final book in books) book.id: book,
+  };
+
+  List<MarketPlatform> get availablePlatforms {
+    final booksById = bookById;
+    final platforms = <MarketPlatform>{
+      ...books.map((book) => book.platform),
+      ...rankings
+          .map((ranking) => booksById[ranking.bookId]?.platform)
+          .nonNulls,
+    };
+    const ordered = [MarketPlatform.qidian, MarketPlatform.fanqie];
+    return ordered.where(platforms.contains).toList(growable: false);
+  }
+
+  int bookCountForPlatform(MarketPlatform platform) {
+    return books.where((book) => book.platform == platform).length;
+  }
+
+  int rankingEntryCountForPlatform(MarketPlatform platform) {
+    final booksById = bookById;
+    return rankings.where((ranking) {
+      return booksById[ranking.bookId]?.platform == platform;
+    }).length;
+  }
+
+  int chartCountForPlatform(MarketPlatform platform) {
+    final booksById = bookById;
+    return rankings
+        .where((ranking) => booksById[ranking.bookId]?.platform == platform)
+        .map((ranking) => ranking.chartName)
+        .toSet()
+        .length;
+  }
+
+  PlatformScanDataStats statsForPlatform(MarketPlatform platform) {
+    return PlatformScanDataStats(
+      platform: platform,
+      bookCount: bookCountForPlatform(platform),
+      rankingEntryCount: rankingEntryCountForPlatform(platform),
+      chartCount: chartCountForPlatform(platform),
+    );
+  }
+}
+
+class PlatformScanDataStats {
+  const PlatformScanDataStats({
+    required this.platform,
+    required this.bookCount,
+    required this.rankingEntryCount,
+    required this.chartCount,
+  });
+
+  final MarketPlatform platform;
+  final int bookCount;
+  final int rankingEntryCount;
+  final int chartCount;
 }
 
 @riverpod
