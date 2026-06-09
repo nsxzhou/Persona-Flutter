@@ -65,11 +65,20 @@ class RecommendationGenerationService {
     );
 
     cancellationToken?.throwIfCancelled();
-    return _parseOrRepair(
+    final parsed = await _parseOrRepair(
       rawOutput: rawOutput,
       prompts: prompts,
       provider: resolvedProvider,
       request: request,
+      promptTrace: promptTrace,
+      cancellationToken: cancellationToken,
+    );
+    return _validateQualityOrRewrite(
+      parsed: parsed,
+      prompts: prompts,
+      provider: resolvedProvider,
+      request: request,
+      context: context,
       promptTrace: promptTrace,
       cancellationToken: cancellationToken,
     );
@@ -84,7 +93,7 @@ class RecommendationGenerationService {
     return enabled.first;
   }
 
-  Future<List<RecommendationDirection>> _parseOrRepair({
+  Future<_ParsedRecommendationDocument> _parseOrRepair({
     required String rawOutput,
     required RecommendationPrompts prompts,
     required ProviderConfig provider,
@@ -93,9 +102,12 @@ class RecommendationGenerationService {
     required LlmCancellationToken? cancellationToken,
   }) async {
     try {
-      return documentParser.parse(
+      return _ParsedRecommendationDocument(
         markdown: rawOutput,
-        expectedPlatform: request.targetPlatform,
+        directions: documentParser.parse(
+          markdown: rawOutput,
+          expectedPlatform: request.targetPlatform,
+        ),
       );
     } on Object catch (parseError) {
       cancellationToken?.throwIfCancelled();
@@ -114,9 +126,12 @@ class RecommendationGenerationService {
           cancellationToken: cancellationToken,
         );
         cancellationToken?.throwIfCancelled();
-        return documentParser.parse(
+        return _ParsedRecommendationDocument(
           markdown: repaired,
-          expectedPlatform: request.targetPlatform,
+          directions: documentParser.parse(
+            markdown: repaired,
+            expectedPlatform: request.targetPlatform,
+          ),
         );
       } on Object catch (repairError) {
         throw StateError(
@@ -128,12 +143,126 @@ class RecommendationGenerationService {
     }
   }
 
+  Future<List<RecommendationDirection>> _validateQualityOrRewrite({
+    required _ParsedRecommendationDocument parsed,
+    required RecommendationPrompts prompts,
+    required ProviderConfig provider,
+    required RecommendationGenerationRequest request,
+    required RecommendationPromptContext context,
+    required LlmPromptTraceConfig? promptTrace,
+    required LlmCancellationToken? cancellationToken,
+  }) async {
+    final qualityErrors = _qualityErrors(parsed.directions, context);
+    if (qualityErrors.isEmpty) {
+      return parsed.directions;
+    }
+
+    cancellationToken?.throwIfCancelled();
+    final rewritten = await completionService.completeMarkdown(
+      provider: provider,
+      prompt: prompts.buildQualityRepairPrompt(
+        invalidOutput: parsed.markdown,
+        qualityErrors: qualityErrors,
+        context: context,
+      ),
+      businessSystemPrompt: prompts.systemPrompt,
+      temperature: 0.2,
+      maxAttempts: 1,
+      promptTrace: _qualityRepairTrace(promptTrace),
+      cancellationToken: cancellationToken,
+    );
+    cancellationToken?.throwIfCancelled();
+
+    final repaired = await _parseOrRepair(
+      rawOutput: rewritten,
+      prompts: prompts,
+      provider: provider,
+      request: request,
+      promptTrace: _qualityRepairTrace(promptTrace),
+      cancellationToken: cancellationToken,
+    );
+    final remainingErrors = _qualityErrors(repaired.directions, context);
+    if (remainingErrors.isNotEmpty) {
+      throw StateError('推荐结果未通过质量校验：${remainingErrors.join('；')}');
+    }
+    return repaired.directions;
+  }
+
+  List<String> _qualityErrors(
+    List<RecommendationDirection> directions,
+    RecommendationPromptContext context,
+  ) {
+    final errors = <String>[];
+    for (var index = 0; index < directions.length; index += 1) {
+      final direction = directions[index];
+      final scope = '方向 ${index + 1}（${direction.directionRole}）';
+      final openBookFields = {
+        '主角': direction.protagonist,
+        '核心机制': direction.coreMechanism,
+        '前三章钩子': direction.firstThreeChaptersHook,
+        '主冲突': direction.mainConflict,
+        '第一个爽点': direction.firstPayoff,
+        '连载风险': direction.serialRisk,
+      };
+      for (final entry in openBookFields.entries) {
+        if (_isLowInformation(entry.value)) {
+          errors.add('$scope 的${entry.key}过于空泛。');
+        }
+      }
+
+      if (context.samples.isNotEmpty) {
+        final evidenceCount = _targetEvidenceCount(
+          direction.marketValidation,
+          context,
+        );
+        if (evidenceCount < 2) {
+          errors.add('$scope 的 market_validation 少于 2 个目标平台证据信号。');
+        }
+      }
+    }
+    return errors;
+  }
+
+  bool _isLowInformation(String value) {
+    final normalized = value.replaceAll(RegExp(r'\s+'), '');
+    if (normalized.runes.length < 6) {
+      return true;
+    }
+    const placeholders = ['待定', '暂无', '不确定', '根据市场决定', '后续补充'];
+    return placeholders.any(normalized.contains);
+  }
+
+  int _targetEvidenceCount(
+    String marketValidation,
+    RecommendationPromptContext context,
+  ) {
+    final matched = <String>{};
+    final text = marketValidation.replaceAll(RegExp(r'\s+'), '');
+    for (final token in context.targetEvidenceTokens) {
+      final normalized = token.replaceAll(RegExp(r'\s+'), '');
+      if (normalized.length >= 2 && text.contains(normalized)) {
+        matched.add(normalized);
+      }
+    }
+    return matched.length;
+  }
+
   LlmPromptTraceConfig? _repairTrace(LlmPromptTraceConfig? promptTrace) {
     if (promptTrace == null) {
       return null;
     }
     return LlmPromptTraceConfig(
       label: '${promptTrace.label}_repair',
+      onComplete: promptTrace.onComplete,
+    );
+  }
+
+  LlmPromptTraceConfig? _qualityRepairTrace(LlmPromptTraceConfig? promptTrace) {
+    if (promptTrace == null) {
+      return null;
+    }
+    return LlmPromptTraceConfig(
+      label: '${promptTrace.label}_quality_repair',
       onComplete: promptTrace.onComplete,
     );
   }
@@ -148,17 +277,36 @@ class RecommendationGenerationService {
       platform: request.targetPlatform,
     );
     final bookById = {for (final book in books) book.id: book};
+    final allBooks = await marketRepository.findBooks();
+    final allRankings = await marketRepository.findLatestRankings();
+    final allBookById = {for (final book in allBooks) book.id: book};
+    final auxiliaryBooks = allBooks
+        .where((book) => book.platform != request.targetPlatform)
+        .toList(growable: false);
+    final auxiliaryBookIds = auxiliaryBooks.map((book) => book.id).toSet();
+    final auxiliaryRankings = allRankings
+        .where((ranking) => auxiliaryBookIds.contains(ranking.bookId))
+        .toList(growable: false);
     final samples = _representativeSamples(
       rankings: rankings,
       bookById: bookById,
       genreQuery: request.normalizedGenreQuery,
+    );
+    final auxiliarySamples = _representativeSamples(
+      rankings: auxiliaryRankings,
+      bookById: allBookById,
+      genreQuery: request.normalizedGenreQuery,
+      maxSamples: 8,
     );
     return RecommendationPromptContext(
       targetPlatform: request.targetPlatform,
       genreQuery: request.normalizedGenreQuery,
       platformBookCount: books.length,
       platformRankingCount: rankings.length,
+      auxiliaryPlatformBookCount: auxiliaryBooks.length,
+      auxiliaryPlatformRankingCount: auxiliaryRankings.length,
       samples: samples,
+      auxiliarySamples: auxiliarySamples,
     );
   }
 
@@ -166,42 +314,52 @@ class RecommendationGenerationService {
     required List<MarketRanking> rankings,
     required Map<String, MarketBook> bookById,
     required String? genreQuery,
+    int maxSamples = 24,
   }) {
-    final sortedRankings = [...rankings]
-      ..sort((a, b) {
-        final chart = a.chartName.compareTo(b.chartName);
-        return chart == 0 ? a.rank.compareTo(b.rank) : chart;
-      });
-    final filtered = _sampleCandidates(
-      rankings: sortedRankings,
+    final filtered = _selectRepresentativeSamples(
+      rankings: rankings,
       bookById: bookById,
       genreQuery: genreQuery,
+      maxSamples: maxSamples,
     );
-    final candidates = filtered.isEmpty && genreQuery != null
-        ? _sampleCandidates(
-            rankings: sortedRankings,
-            bookById: bookById,
-            genreQuery: null,
-          )
-        : filtered;
-    return candidates.take(12).toList(growable: false);
+    if (filtered.isNotEmpty || genreQuery == null) {
+      return filtered;
+    }
+    return _selectRepresentativeSamples(
+      rankings: rankings,
+      bookById: bookById,
+      genreQuery: null,
+      maxSamples: maxSamples,
+    );
   }
 
-  Iterable<RecommendationPromptSample> _sampleCandidates({
+  List<RecommendationPromptSample> _selectRepresentativeSamples({
     required List<MarketRanking> rankings,
     required Map<String, MarketBook> bookById,
     required String? genreQuery,
-  }) sync* {
-    final seenBooks = <String>{};
-    for (final ranking in rankings) {
+    required int maxSamples,
+  }) {
+    final sortedRankings = [...rankings]
+      ..sort((a, b) {
+        final priority = _chartPriority(
+          a.chartName,
+        ).compareTo(_chartPriority(b.chartName));
+        if (priority != 0) return priority;
+        final chart = a.chartName.compareTo(b.chartName);
+        return chart == 0 ? a.rank.compareTo(b.rank) : chart;
+      });
+
+    final groups = <String, List<RecommendationPromptSample>>{};
+    for (final ranking in sortedRankings) {
       final book = bookById[ranking.bookId];
-      if (book == null || !seenBooks.add(book.id)) {
+      if (book == null) {
         continue;
       }
       if (genreQuery != null && !_matchesGenreQuery(book, genreQuery)) {
         continue;
       }
-      yield RecommendationPromptSample(
+      final sample = RecommendationPromptSample(
+        platform: book.platform,
         title: book.title,
         author: book.author,
         categories: book.categories,
@@ -211,7 +369,119 @@ class RecommendationGenerationService {
         chartName: ranking.chartName,
         rank: ranking.rank,
       );
+      groups.putIfAbsent(ranking.chartName, () => []).add(sample);
     }
+
+    final output = <RecommendationPromptSample>[];
+    final seenBooks = <String>{};
+    void addSample(RecommendationPromptSample sample) {
+      if (output.length >= maxSamples || !seenBooks.add(sample.title)) {
+        return;
+      }
+      output.add(sample);
+    }
+
+    final familyQuotas = <_ChartFamily, int>{
+      _ChartFamily.peak: 4,
+      _ChartFamily.main: 8,
+      _ChartFamily.newBook: 6,
+      _ChartFamily.recommendSlot: 3,
+      _ChartFamily.other: 3,
+    };
+    for (final entry in familyQuotas.entries) {
+      _roundRobinAdd(
+        groups: groups,
+        family: entry.key,
+        quota: entry.value,
+        addSample: addSample,
+      );
+    }
+
+    while (output.length < maxSamples) {
+      final before = output.length;
+      for (final family in _ChartFamily.values) {
+        _roundRobinAdd(
+          groups: groups,
+          family: family,
+          quota: 1,
+          addSample: addSample,
+        );
+        if (output.length >= maxSamples) {
+          break;
+        }
+      }
+      if (output.length == before) {
+        break;
+      }
+    }
+
+    return output;
+  }
+
+  void _roundRobinAdd({
+    required Map<String, List<RecommendationPromptSample>> groups,
+    required _ChartFamily family,
+    required int quota,
+    required void Function(RecommendationPromptSample sample) addSample,
+  }) {
+    final chartNames =
+        groups.keys
+            .where((chartName) => _chartFamily(chartName) == family)
+            .toList()
+          ..sort((a, b) {
+            final priority = _chartPriority(a).compareTo(_chartPriority(b));
+            return priority == 0 ? a.compareTo(b) : priority;
+          });
+    if (chartNames.isEmpty) {
+      return;
+    }
+
+    var added = 0;
+    var row = 0;
+    while (added < quota) {
+      var addedThisRow = false;
+      for (final chartName in chartNames) {
+        final items = groups[chartName]!;
+        if (row >= items.length) {
+          continue;
+        }
+        addSample(items[row]);
+        added += 1;
+        addedThisRow = true;
+        if (added >= quota) {
+          break;
+        }
+      }
+      if (!addedThisRow) {
+        break;
+      }
+      row += 1;
+    }
+  }
+
+  _ChartFamily _chartFamily(String chartName) {
+    if (chartName.contains('巅峰')) return _ChartFamily.peak;
+    if (chartName.contains('推荐位')) return _ChartFamily.recommendSlot;
+    if (chartName.contains('新书') || chartName.contains('新人')) {
+      return _ChartFamily.newBook;
+    }
+    if (chartName.contains('阅读') ||
+        chartName.contains('畅销') ||
+        chartName.contains('月票') ||
+        chartName.contains('热读')) {
+      return _ChartFamily.main;
+    }
+    return _ChartFamily.other;
+  }
+
+  int _chartPriority(String chartName) {
+    return switch (_chartFamily(chartName)) {
+      _ChartFamily.peak => 0,
+      _ChartFamily.main => 1,
+      _ChartFamily.newBook => 2,
+      _ChartFamily.other => 3,
+      _ChartFamily.recommendSlot => 4,
+    };
   }
 
   bool _matchesGenreQuery(MarketBook book, String genreQuery) {
@@ -227,4 +497,16 @@ class RecommendationGenerationService {
     ].join('\n');
     return searchable.contains(query);
   }
+}
+
+enum _ChartFamily { peak, main, newBook, recommendSlot, other }
+
+class _ParsedRecommendationDocument {
+  const _ParsedRecommendationDocument({
+    required this.markdown,
+    required this.directions,
+  });
+
+  final String markdown;
+  final List<RecommendationDirection> directions;
 }

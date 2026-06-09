@@ -2143,7 +2143,15 @@ class _MarketInsightCardState extends State<_MarketInsightCard> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 6),
-                    _GenreTagRow(tags: direction.genreTags),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        _DirectionRolePill(role: direction.directionRole),
+                        _GenreTagRow(tags: direction.genreTags),
+                      ],
+                    ),
                     if (direction.titleCandidates.isNotEmpty) ...[
                       const SizedBox(height: 10),
                       Wrap(
@@ -2181,6 +2189,8 @@ class _MarketInsightCardState extends State<_MarketInsightCard> {
                       maxLines: 5,
                       overflow: TextOverflow.ellipsis,
                     ),
+                    const SizedBox(height: 12),
+                    _OpenBookPlanBlock(direction: direction),
                     const SizedBox(height: 12),
                     _InsightTextBlock(
                       label: '核心卖点',
@@ -2273,6 +2283,11 @@ class _MarketInsightCardState extends State<_MarketInsightCard> {
                           ),
                           const SizedBox(height: 8),
                           _InsightTextBlock(
+                            label: '连载风险',
+                            value: direction.serialRisk,
+                          ),
+                          const SizedBox(height: 8),
+                          _InsightTextBlock(
                             label: '验证动作',
                             value: direction.validationAction,
                           ),
@@ -2291,7 +2306,9 @@ class _MarketInsightCardState extends State<_MarketInsightCard> {
                             path: '/projects/create',
                             queryParameters: {
                               'title': _selectedTitle,
-                              'synopsis': direction.synopsis,
+                              'synopsis': _projectSynopsisForDirection(
+                                direction,
+                              ),
                               if (direction.genreTags.isNotEmpty)
                                 'tags': direction.genreTags.join(','),
                               if (direction.targetWordCount > 0)
@@ -2310,6 +2327,95 @@ class _MarketInsightCardState extends State<_MarketInsightCard> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DirectionRolePill extends StatelessWidget {
+  const _DirectionRolePill({required this.role});
+
+  final String role;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.secondaryContainer.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: colorScheme.secondary.withValues(alpha: 0.22),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+        child: Text(
+          role,
+          style: textTheme.labelSmall?.copyWith(
+            color: colorScheme.onSecondaryContainer,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OpenBookPlanBlock extends StatelessWidget {
+  const _OpenBookPlanBlock({required this.direction});
+
+  final RecommendationDirection direction;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.24),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.menu_book_outlined,
+                  size: 16,
+                  color: colorScheme.primary,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '开书方案',
+                  style: textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            _InsightTextBlock(label: '主角', value: direction.protagonist),
+            const SizedBox(height: 8),
+            _InsightTextBlock(label: '核心机制', value: direction.coreMechanism),
+            const SizedBox(height: 8),
+            _InsightTextBlock(
+              label: '前三章钩子',
+              value: direction.firstThreeChaptersHook,
+            ),
+            const SizedBox(height: 8),
+            _InsightTextBlock(label: '主冲突', value: direction.mainConflict),
+            const SizedBox(height: 8),
+            _InsightTextBlock(label: '第一个爽点', value: direction.firstPayoff),
+          ],
         ),
       ),
     );
@@ -2484,6 +2590,32 @@ String _platformDisplayName(String platform) {
     'fanqie' => '番茄小说',
     _ => platform,
   };
+}
+
+String _projectSynopsisForDirection(RecommendationDirection direction) {
+  final buffer = StringBuffer()
+    ..writeln(direction.synopsis.trim())
+    ..writeln()
+    ..writeln('## 开书方案')
+    ..writeln('- 方向角色：${direction.directionRole}')
+    ..writeln('- 主角：${direction.protagonist}')
+    ..writeln('- 核心机制：${direction.coreMechanism}')
+    ..writeln('- 前三章钩子：${direction.firstThreeChaptersHook}')
+    ..writeln('- 主冲突：${direction.mainConflict}')
+    ..writeln('- 第一个爽点：${direction.firstPayoff}')
+    ..writeln()
+    ..writeln('## 市场定位')
+    ..writeln('- 目标平台：${_platformDisplayName(direction.targetPlatform.name)}')
+    ..writeln('- 目标读者：${direction.targetAudience}')
+    ..writeln('- 核心卖点：${direction.coreSellingPoint}')
+    ..writeln('- 市场验证：${direction.marketValidation}')
+    ..writeln('- 差异化：${direction.differentiation}')
+    ..writeln()
+    ..writeln('## 风险与验证')
+    ..writeln('- 失败风险：${direction.failureRisk}')
+    ..writeln('- 连载风险：${direction.serialRisk}')
+    ..writeln('- 验证动作：${direction.validationAction}');
+  return buffer.toString().trim();
 }
 
 IconData _scanRunStatusIcon(MarketScanRunStatus status) {

@@ -29,11 +29,18 @@ void main() {
 
     expect(directions, hasLength(3));
     expect(directions.first.suggestedTitle, '雾港回声');
+    expect(directions.first.directionRole, '稳妥热题');
     expect(directions.first.titleCandidates, hasLength(3));
     expect(directions.first.targetPlatform, MarketPlatform.qidian);
     expect(directions.first.synopsis.runes.length, greaterThanOrEqualTo(120));
     expect(directions.first.synopsis.runes.length, lessThanOrEqualTo(220));
-    expect(directions.first.detailMarkdown, startsWith('## 方向 1：雾港回声'));
+    expect(directions.first.protagonist, contains('林砚'));
+    expect(directions.first.coreMechanism, contains('三分钟真相'));
+    expect(directions.first.firstThreeChaptersHook, contains('第三章'));
+    expect(directions.first.mainConflict, contains('幕后组织'));
+    expect(directions.first.firstPayoff, contains('女孩'));
+    expect(directions.first.serialRisk, contains('公平性'));
+    expect(directions.first.detailMarkdown, startsWith('## 方向 1：稳妥热题｜雾港回声'));
 
     final systemPrompt = harness.client.requests.first.messages
         .singleWhere((message) => message.role == LlmMessageRole.system)
@@ -42,6 +49,10 @@ void main() {
     expect(systemPrompt, contains('禁止 JSON'));
     expect(systemPrompt, contains('120-220 字'));
     expect(systemPrompt, contains('3 个候选书名'));
+    expect(systemPrompt, contains('稳妥热题'));
+    expect(systemPrompt, contains('相邻变体'));
+    expect(systemPrompt, contains('高风险高收益'));
+    expect(systemPrompt, contains('first_three_chapters_hook'));
     expect(systemPrompt, isNot(contains('JSON 数组')));
     expect(systemPrompt, isNot(contains('20-40字')));
   });
@@ -65,6 +76,23 @@ void main() {
       harness.client.requests.last.messages.last.content,
       contains('禁止 JSON'),
     );
+  });
+
+  test('generate rewrites parsed output when quality gate fails', () async {
+    final harness = _buildHarness([_lowQualityDocument(), _validDocument()]);
+
+    final directions = await harness.service.generate(
+      request: const RecommendationGenerationRequest(
+        targetPlatform: MarketPlatform.qidian,
+      ),
+    );
+
+    expect(directions, hasLength(3));
+    expect(harness.client.requests, hasLength(2));
+    final repairPrompt = harness.client.requests.last.messages.last.content;
+    expect(repairPrompt, contains('质量问题'));
+    expect(repairPrompt, contains('market_validation'));
+    expect(repairPrompt, contains('稳妥热题'));
   });
 
   test('parser rejects missing YAML delimiter', () {
@@ -104,6 +132,25 @@ void main() {
           (error) =>
               error is RecommendationDirectionValidationException &&
               error.toString().contains('suggested_title 必须来自'),
+        ),
+      ),
+    );
+  });
+
+  test('parser rejects direction role out of order', () {
+    expect(
+      () => const RecommendationDirectionDocumentParser().parse(
+        markdown: _validDocument().replaceFirst(
+          'direction_role: 稳妥热题',
+          'direction_role: 高风险高收益',
+        ),
+        expectedPlatform: MarketPlatform.qidian,
+      ),
+      throwsA(
+        predicate(
+          (error) =>
+              error is RecommendationDirectionValidationException &&
+              error.toString().contains('direction_role 必须是 稳妥热题'),
         ),
       ),
     );
@@ -404,7 +451,8 @@ String _validDocument({
 format: persona.market_recommendations
 target_platform: qidian
 directions:
-  - suggested_title: $suggestedTitleOverride
+  - direction_role: 稳妥热题
+    suggested_title: $suggestedTitleOverride
     title_candidates:
       - title: $titleOverride
         formula: 意境地名+悬疑钩子
@@ -416,6 +464,11 @@ directions:
         formula: 反义词+案件证据
         rationale: 暗示记忆被清空，保留悬念。
     synopsis: $synopsis
+    protagonist: 退役调查员林砚，被旧港十年前失踪案拖回现场，只想证明自己没有办错案。
+    core_mechanism: 主角能读取每次记忆改写前残留的三分钟真相，但每次读取都会暴露自己的位置。
+    first_three_chapters_hook: 第一章旧案证词变空白，第二章码头残影指出新受害者，第三章主角反用残影救人后被系统标记。
+    main_conflict: 主角必须在全城记忆被重置前，拆穿控制档案系统的幕后组织。
+    first_payoff: 第一名被栽赃的女孩在第三章获救，主角当场反杀伪造证词的人。
     genre_tags: [都市悬疑, 时间诡计, 强剧情]
     target_word_count: 860000
     target_platform: qidian
@@ -423,12 +476,14 @@ directions:
     core_selling_point: 主角用三分钟残留真相对抗会改写记忆的档案系统。
     market_heat_summary: 悬疑和都市标签在样本中重复出现，强剧情样本排名靠前。
     competition_summary: 同类新书密度适中，时间诡计可以提供差异化。
-    market_validation: 当前平台样本中悬疑、都市、记忆改写反复出现，榜单排名稳定。
+    market_validation: 当前平台月榜样本《旧港谜案录》和《档案归零》都带悬疑信号，都市、强剧情、记忆改写标签重复出现。
     differentiation: 不做纯刑侦，改用记忆档案系统制造连续反转。
     feasibility: 中
     failure_risk: 设定解释过多会拖慢前三章爽点。
+    serial_risk: 记忆改写规则如果不断加码，容易让案件推理失去公平性。
     validation_action: 先写黄金三章，测试读者是否能在第一章理解能力规则。
-  - suggested_title: 星桥债主
+  - direction_role: 相邻变体
+    suggested_title: 星桥债主
     title_candidates:
       - title: 星桥债主
         formula: 奇观物件+身份反差
@@ -440,6 +495,11 @@ directions:
         formula: 夸张利益点+悬念
         rationale: 吸量强，但更偏番茄风。
     synopsis: 失业修理工周泊在废弃天文馆接到一张跨世界欠条，发现每座星桥都记录着被诸天势力赖掉的旧债。他能把欠条兑换成一次临时天赋，于是从追回第一笔机甲船票开始，连续拆穿宗门、财阀和异界商会的账本骗局，在读者熟悉的升级节奏里不断获得资源，并要证明自己不是被星桥选中的替罪羊。
+    protagonist: 失业修理工周泊，欠债缠身但熟悉旧设备维修，第一目标是拿回被赖掉的工资。
+    core_mechanism: 每张跨世界欠条都能兑换一次临时天赋，讨回债务后转化为长期升级资源。
+    first_three_chapters_hook: 第一章发现星桥欠条，第二章用临时天赋修好废机甲，第三章讨回第一笔船票债并解锁债务名单。
+    main_conflict: 主角要追完诸天旧债，同时查清星桥为何把他设成唯一债权人。
+    first_payoff: 主角用一张欠条逆转追债现场，从被赶走的修理工变成掌握机甲启动权的人。
     genre_tags: [科幻玄幻, 经营升级, 万界]
     target_word_count: 1200000
     target_platform: qidian
@@ -447,12 +507,14 @@ directions:
     core_selling_point: 欠条兑换天赋，把讨债写成升级和资源争夺。
     market_heat_summary: 科幻、玄幻和都市能力样本均有热度，可组合成轻奇观。
     competition_summary: 万界题材竞争高，需要用讨债机制区别于普通系统文。
-    market_validation: 样本中能力成长和强剧情标签稳定出现，适合长线展开。
+    market_validation: 当前平台月榜里《旧港谜案录》的强剧情和《档案归零》的记忆改写证明机制型悬念可跑长线，科幻标签也有样本支撑。
     differentiation: 主角目标不是救世，而是逐笔追债，单元目标清晰。
     feasibility: 中
     failure_risk: 讨债单元容易重复，后期需要更强主线债务。
+    serial_risk: 债务单元如果只有换地图，会削弱升级线和主线债主身份的粘性。
     validation_action: 先设计前三个债务单元，检查每个单元是否有不同爽点。
-  - suggested_title: 夜巡名单
+  - direction_role: 高风险高收益
+    suggested_title: 夜巡名单
     title_candidates:
       - title: 夜巡名单
         formula: 职业行动+危险名单
@@ -464,6 +526,11 @@ directions:
         formula: 具体物件+悬念
         rationale: 有画面感，适合悬疑线索。
     synopsis: 外卖夜班骑手许让意外进入一份只在凌晨更新的夜巡名单，名单上的地点会在天亮前发生被掩盖的罪案。他能提前看见一分钟后的现场残影，于是从救下第一位被栽赃的女孩开始，把城中村、写字楼和医院的夜间秘密串成主线，用每晚一案的快节奏兑现爽点，并逐步逼近名单创造者的真实目的。
+    protagonist: 夜班骑手许让，熟悉城市暗巷和楼宇动线，只想还清母亲住院费。
+    core_mechanism: 凌晨名单会刷新将要出事的地点，主角能看到一分钟后的现场残影。
+    first_three_chapters_hook: 第一章名单点亮城中村，第二章残影显示女孩被栽赃，第三章主角用送餐路线提前截住真凶。
+    main_conflict: 主角要在每晚名单刷新中救人，同时查清名单创造者为什么选择他。
+    first_payoff: 第三章主角利用一分钟残影救下受害者，并拿到第一条指向幕后人的线索。
     genre_tags: [都市异能, 单元案件, 悬疑]
     target_word_count: 980000
     target_platform: qidian
@@ -471,15 +538,20 @@ directions:
     core_selling_point: 夜班骑手用一分钟残影提前介入城市罪案。
     market_heat_summary: 都市、异能、悬疑标签可形成稳定读者预期。
     competition_summary: 都市异能拥挤，夜巡名单和骑手职业能提供入口差异。
-    market_validation: 样本里都市与调查员相关标签重复，说明读者接受现实入口。
+    market_validation: 当前平台月榜样本《旧港谜案录》包含都市、悬疑、强剧情信号，《夜巡者名单》也验证调查员式现实入口可读。
     differentiation: 用夜班职业串联案件，不从警察或侦探身份切入。
     feasibility: 中
     failure_risk: 单元案件如果和主线弱关联，会变成流水账。
+    serial_risk: 每晚一案容易变成重复救场，必须每三章推进名单真相。
     validation_action: 先写案件列表和主线线索表，确保每三章推进一次名单真相。
 ---
 # AI 推荐选题
 
-## 方向 1：雾港回声
+## 方向 1：稳妥热题｜雾港回声
+### 开书方案
+- 主角：退役调查员林砚。
+- 核心机制：三分钟残留真相。
+- 前三章钩子：证词清空、码头残影、救人反杀。
 ### 能爆的原因
 - 时间档案改写把悬疑案件和轻科幻爽点绑定。
 ### 市场验证
@@ -489,7 +561,11 @@ directions:
 ### 风险与验证动作
 - 先写黄金三章测试规则理解度。
 
-## 方向 2：星桥债主
+## 方向 2：相邻变体｜星桥债主
+### 开书方案
+- 主角：失业修理工周泊。
+- 核心机制：欠条兑换临时天赋。
+- 前三章钩子：欠条、机甲、第一笔债。
 ### 能爆的原因
 - 讨债机制天然提供升级目标。
 ### 市场验证
@@ -499,7 +575,11 @@ directions:
 ### 风险与验证动作
 - 先验证前三个单元不重复。
 
-## 方向 3：夜巡名单
+## 方向 3：高风险高收益｜夜巡名单
+### 开书方案
+- 主角：夜班骑手许让。
+- 核心机制：凌晨名单和一分钟残影。
+- 前三章钩子：名单刷新、残影救人、幕后线索。
 ### 能爆的原因
 - 夜班职业和城市罪案提供现实代入。
 ### 市场验证
@@ -509,4 +589,11 @@ directions:
 ### 风险与验证动作
 - 先做主线线索表，避免单元流水账。
 ''';
+}
+
+String _lowQualityDocument() {
+  return _validDocument().replaceAll(
+    RegExp(r'market_validation: .+'),
+    'market_validation: 样本支持，值得尝试。',
+  );
 }
