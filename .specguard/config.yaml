@@ -1,4 +1,0 @@
-# SpecGuard configuration
-spec:
-  root: .specguard/spec
-  update_policy: auto-clear-only
