@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:persona_flutter/src/core/database/app_database.dart';
 import 'package:persona_flutter/src/core/theme/app_theme.dart';
+import 'package:persona_flutter/src/core/ui/skeleton_loader.dart';
 import 'package:persona_flutter/src/features/market_scan/application/market_recommendation_controller.dart';
 import 'package:persona_flutter/src/features/market_scan/application/market_scan_controller.dart';
 import 'package:persona_flutter/src/features/market_scan/application/market_scan_providers.dart';
@@ -16,43 +17,42 @@ import 'package:persona_flutter/src/features/market_scan/domain/recommendation_d
 import 'package:persona_flutter/src/features/market_scan/presentation/recommendation_page.dart';
 
 void main() {
-  testWidgets(
-    'recommendation page keeps rankings behind workspace view switcher',
-    (tester) async {
-      await _setSurface(tester, const Size(1440, 900));
-      final fixture = await _MarketScanFixture.withData();
-      addTearDown(fixture.dispose);
+  testWidgets('recommendation page keeps rankings behind tabbed workbench', (
+    tester,
+  ) async {
+    await _setSurface(tester, const Size(1440, 900));
+    final fixture = await _MarketScanFixture.withData();
+    addTearDown(fixture.dispose);
 
-      await tester.pumpWidget(_RecommendationTestApp(repository: fixture.repo));
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(_RecommendationTestApp(repository: fixture.repo));
+    await tester.pumpAndSettle();
 
-      expect(find.text('市场数据工作台'), findsOneWidget);
-      expect(find.text('任务控制'), findsOneWidget);
-      expect(find.text('市场数据已准备，可以生成推荐'), findsOneWidget);
-      expect(find.text('目标平台'), findsOneWidget);
-      expect(find.text('题材方向（可选）'), findsOneWidget);
-      expect(find.text('查看完整榜单'), findsOneWidget);
-      expect(find.text('生成推荐'), findsOneWidget);
-      expect(find.text('排行榜数据'), findsNothing);
-      expect(find.text('欢迎进入梦魇直播间'), findsNothing);
+    expect(find.text('工作台概览'), findsOneWidget);
+    expect(find.text('工作台命令'), findsOneWidget);
+    expect(find.text('市场数据健康'), findsOneWidget);
+    expect(find.text('目标平台'), findsOneWidget);
+    expect(find.text('题材方向（可选）'), findsOneWidget);
+    expect(find.text('查看排行榜'), findsOneWidget);
+    expect(find.text('生成推荐'), findsOneWidget);
+    expect(find.text('排行榜数据'), findsNothing);
+    expect(find.text('欢迎进入梦魇直播间'), findsNothing);
 
-      await _tapWorkspaceView(tester, 'rankings');
+    await _tapWorkspaceView(tester, 'rankings');
 
-      expect(find.text('排行榜数据'), findsOneWidget);
-      expect(find.text('全球高考'), findsOneWidget);
+    expect(find.text('排行榜数据'), findsOneWidget);
+    expect(find.text('全球高考'), findsOneWidget);
 
-      await tester.tap(find.text('番茄小说 1条'));
-      await tester.pumpAndSettle();
-      expect(find.text('欢迎进入梦魇直播间'), findsOneWidget);
-      expect(find.text('全球高考'), findsNothing);
+    await tester.tap(find.text('番茄小说 1条'));
+    await tester.pumpAndSettle();
+    expect(find.text('欢迎进入梦魇直播间'), findsOneWidget);
+    expect(find.text('全球高考'), findsNothing);
 
-      await tester.tap(find.text('欢迎进入梦魇直播间').first);
-      await tester.pumpAndSettle();
-      expect(find.byType(Dialog), findsOneWidget);
-      expect(find.text('分类'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    },
-  );
+    await tester.tap(find.text('欢迎进入梦魇直播间').first);
+    await tester.pumpAndSettle();
+    expect(find.byType(Dialog), findsOneWidget);
+    expect(find.text('分类'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('ranking platform filters keep stable chip dimensions', (
     tester,
@@ -124,7 +124,9 @@ void main() {
     await tester.pumpAndSettle();
 
     await _tapWorkspaceView(tester, 'rankings');
-    await tester.tap(find.byKey(const ValueKey('ranking-chart-qidian::月榜')));
+    final monthlyChart = find.byKey(const ValueKey('ranking-chart-qidian::月榜'));
+    await tester.ensureVisible(monthlyChart);
+    await tester.tap(monthlyChart);
     await tester.pumpAndSettle();
 
     expect(find.text('全球高考'), findsOneWidget);
@@ -172,8 +174,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('市场数据工作台'), findsOneWidget);
-    expect(find.text('任务控制'), findsOneWidget);
+    expect(find.text('工作台命令'), findsOneWidget);
+    expect(find.text('创作方向推荐 · 三方向对照'), findsOneWidget);
     await _dragPageDown(tester);
     expect(find.text('时序遗产'), findsWidgets);
     expect(tester.takeException(), isNull);
@@ -197,7 +199,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('市场数据工作台'), findsOneWidget);
+    expect(find.text('工作台命令'), findsOneWidget);
+    expect(find.text('创作方向推荐 · 三方向对照'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     await _tapWorkspaceView(tester, 'rankings');
@@ -209,7 +212,7 @@ void main() {
     expect(tester.takeException(), isNull);
 
     await _tapWorkspaceView(tester, 'recommendations');
-    expect(find.text('创作方向推荐'), findsWidgets);
+    expect(find.text('创作方向推荐 · 三方向对照'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -245,13 +248,47 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('平台进度'), findsOneWidget);
       expect(find.text('1/2 已完成'), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.more_horiz).last);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('放弃任务'), findsOneWidget);
+      await tester.tapAt(const Offset(12, 12));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await _tapWorkspaceView(tester, 'marketData');
+      expect(find.text('扫描进度'), findsOneWidget);
       expect(find.text('番茄小说'), findsWidgets);
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('recommendation page renders generation progress state', (
+    tester,
+  ) async {
+    await _setSurface(tester, const Size(1320, 860));
+    final fixture = await _MarketScanFixture.withData();
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(
+      _RecommendationTestApp(
+        repository: fixture.repo,
+        recommendationState: const MarketRecommendationState(
+          isGenerating: true,
+          workflowTaskId: 'recommendation-task-1',
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('工作台命令'), findsOneWidget);
+    expect(find.text('生成中...'), findsOneWidget);
+    expect(find.text('创作方向推荐 · 三方向对照'), findsOneWidget);
+    expect(find.byType(SkeletonBox), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
     'recommendation result navigates to project creation with prefill',
@@ -272,11 +309,16 @@ void main() {
       await tester.pumpAndSettle();
 
       await _tapWorkspaceView(tester, 'recommendations');
+      expect(find.text('创作方向推荐 · 三方向对照'), findsOneWidget);
+      expect(find.text('市场'), findsWidgets);
+      expect(find.text('竞争'), findsWidgets);
+      expect(find.text('可行'), findsWidgets);
+      expect(find.text('风险提示'), findsOneWidget);
       await tester.tap(find.text('旧港档案'));
       await tester.pumpAndSettle();
       expect(find.text('开书方案'), findsWidgets);
       expect(find.text('前三章钩子'), findsOneWidget);
-      expect(find.text('连载风险'), findsNothing);
+      expect(find.text('连载风险'), findsOneWidget);
 
       await _tapUseDirection(tester);
       await tester.pumpAndSettle();
@@ -323,7 +365,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('推荐任务失败'), findsOneWidget);
+    expect(find.text('生成推荐失败'), findsOneWidget);
+    expect(find.text('模型返回为空。'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
@@ -338,7 +381,14 @@ Future<void> _setSurface(WidgetTester tester, Size size) async {
 }
 
 Future<void> _dragPageDown(WidgetTester tester) async {
-  await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -900));
+  final verticalScrollView = find
+      .byWidgetPredicate(
+        (widget) =>
+            widget is SingleChildScrollView &&
+            widget.scrollDirection == Axis.vertical,
+      )
+      .first;
+  await tester.drag(verticalScrollView, const Offset(0, -900));
   await tester.pumpAndSettle();
 }
 
@@ -346,7 +396,8 @@ Future<void> _tapWorkspaceView(WidgetTester tester, String view) async {
   final finder = find.byKey(ValueKey('workspace-view-$view'));
   await tester.ensureVisible(finder);
   await tester.tap(finder);
-  await tester.pumpAndSettle();
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 600));
 }
 
 Future<void> _tapUseDirection(WidgetTester tester) async {

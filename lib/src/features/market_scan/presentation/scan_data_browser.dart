@@ -108,7 +108,7 @@ class _ScanDataBrowserState extends ConsumerState<ScanDataBrowser> {
 
     return bundleAsync.when(
       data: (bundle) => Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(widget.showHeader ? 16 : 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -746,7 +746,7 @@ class _RankingChartDirectory extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final viewportHeight = MediaQuery.sizeOf(context).height;
-    final listHeight = (viewportHeight * 0.58).clamp(380.0, 680.0);
+    final listHeight = (viewportHeight * 0.5).clamp(320.0, 560.0);
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -939,7 +939,7 @@ class _RankingDetailList extends StatelessWidget {
     final platformColor = _platformColor(group.platform, colorScheme);
     final rankings = _filteredRankings();
     final viewportHeight = MediaQuery.sizeOf(context).height;
-    final listHeight = (viewportHeight * 0.58).clamp(380.0, 680.0);
+    final listHeight = (viewportHeight * 0.5).clamp(320.0, 560.0);
 
     return DecoratedBox(
       decoration: BoxDecoration(
