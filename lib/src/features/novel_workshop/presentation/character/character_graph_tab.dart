@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/ui/glass_container.dart';
 import '../../../../core/ui/persona_page.dart';
 import '../../application/character_graph_parser.dart';
 import '../../application/novel_workshop_providers.dart';
@@ -567,7 +568,7 @@ class _CharacterGraphTabState extends ConsumerState<CharacterGraphTab>
 
   Future<void> _generateCharacters(BuildContext context, WidgetRef ref) async {
     // Show feedback dialog before generation.
-    final feedback = await showDialog<String>(
+    final feedback = await showGlassDialog<String>(
       context: context,
       builder: (context) => const _PreGenerationFeedbackDialog(),
     );
