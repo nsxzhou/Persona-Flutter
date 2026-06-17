@@ -36,20 +36,24 @@ class RecommendationGenerationService {
     ProviderConfig? provider,
     LlmCancellationToken? cancellationToken,
     LlmPromptTraceConfig? promptTrace,
+    Future<void> Function(String stage)? onStageChanged,
   }) async {
     cancellationToken?.throwIfCancelled();
+    await onStageChanged?.call('building_context');
     final context = await _buildPromptContext(request);
     cancellationToken?.throwIfCancelled();
     if (context.platformBookCount == 0 || context.platformRankingCount == 0) {
       return const [];
     }
 
+    await onStageChanged?.call('computing_metrics');
     final metrics = await ruleEngine.compute(platform: request.targetPlatform);
     cancellationToken?.throwIfCancelled();
     if (metrics.genreHeat.isEmpty && metrics.opportunities.isEmpty) {
       return const [];
     }
 
+    await onStageChanged?.call('calling_llm');
     final resolvedProvider = provider ?? await requireEnabledProvider();
     final prompts = const RecommendationPrompts();
     final userPrompt = prompts.buildUserPrompt(metrics, context: context);
@@ -65,6 +69,7 @@ class RecommendationGenerationService {
     );
 
     cancellationToken?.throwIfCancelled();
+    await onStageChanged?.call('parsing_output');
     final parsed = await _parseOrRepair(
       rawOutput: rawOutput,
       prompts: prompts,
@@ -73,6 +78,7 @@ class RecommendationGenerationService {
       promptTrace: promptTrace,
       cancellationToken: cancellationToken,
     );
+    await onStageChanged?.call('validating_quality');
     return _validateQualityOrRewrite(
       parsed: parsed,
       prompts: prompts,

@@ -22,7 +22,7 @@ void main() {
 
     final directions = await harness.service.generate(
       request: const RecommendationGenerationRequest(
-        targetPlatform: MarketPlatform.qidian,
+        targetPlatforms: [MarketPlatform.qidian],
         genreQuery: '悬疑',
       ),
     );
@@ -62,7 +62,7 @@ void main() {
 
     final directions = await harness.service.generate(
       request: const RecommendationGenerationRequest(
-        targetPlatform: MarketPlatform.qidian,
+        targetPlatforms: [MarketPlatform.qidian],
       ),
     );
 
@@ -83,7 +83,7 @@ void main() {
 
     final directions = await harness.service.generate(
       request: const RecommendationGenerationRequest(
-        targetPlatform: MarketPlatform.qidian,
+        targetPlatforms: [MarketPlatform.qidian],
       ),
     );
 
