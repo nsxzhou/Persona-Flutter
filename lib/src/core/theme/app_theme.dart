@@ -1,36 +1,31 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-const kPanelRadius = 12.0;
-const kButtonRadius = 10.0;
-const kInputRadius = 10.0;
+import 'app_tokens.dart';
+export 'app_tokens.dart'
+    show kPanelRadius, kButtonRadius, kInputRadius, kDisplayFontFamily, kMonoFontFamily;
 
 ThemeData buildPersonaTheme(Brightness brightness) {
   final isDark = brightness == Brightness.dark;
   final scheme = ColorScheme.fromSeed(
-    seedColor: const Color(0xFF2758D9),
+    seedColor: AppColors.primary,
     brightness: brightness,
-    primary: const Color(0xFF2758D9),
-    surface: isDark ? const Color(0xFF15171D) : const Color(0xFFFAFBFD),
+    primary: AppColors.primary,
+    surface: isDark ? AppColors.darkSurface : AppColors.lightSurface,
     surfaceContainerHighest: isDark
-        ? const Color(0xFF252933)
-        : const Color(0xFFE8ECF3),
+        ? AppColors.darkSurfaceHigh
+        : AppColors.lightSurfaceHigh,
   );
 
-  final textColor = isDark ? const Color(0xFFE9EDF5) : const Color(0xFF171A21);
-  final mutedTextColor = isDark
-      ? const Color(0xFF9AA4B5)
-      : const Color(0xFF596273);
-  final borderColor = isDark
-      ? const Color(0xFF303644)
-      : const Color(0xFFD7DDE8);
+  final textColor = isDark ? AppColors.darkText : AppColors.lightText;
+  final mutedTextColor = isDark ? AppColors.darkMuted : AppColors.lightMuted;
+  final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
 
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
     scaffoldBackgroundColor: isDark
-        ? const Color(0xFF101217)
-        : const Color(0xFFF4F6FA),
+        ? AppColors.darkScaffold
+        : AppColors.lightScaffold,
     visualDensity: VisualDensity.standard,
     dividerTheme: DividerThemeData(color: borderColor, thickness: 1),
     textTheme: _buildTextTheme(textColor, mutedTextColor),
@@ -38,7 +33,7 @@ ThemeData buildPersonaTheme(Brightness brightness) {
       style: FilledButton.styleFrom(
         minimumSize: const Size(0, 40),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(kButtonRadius),
+          borderRadius: BorderRadius.circular(AppRadii.button),
         ),
         textStyle: const TextStyle(fontWeight: FontWeight.w700),
       ),
@@ -48,7 +43,7 @@ ThemeData buildPersonaTheme(Brightness brightness) {
         minimumSize: const Size(0, 40),
         side: BorderSide(color: borderColor),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(kButtonRadius),
+          borderRadius: BorderRadius.circular(AppRadii.button),
         ),
         textStyle: const TextStyle(fontWeight: FontWeight.w700),
       ),
@@ -58,9 +53,10 @@ ThemeData buildPersonaTheme(Brightness brightness) {
       selectedColor: scheme.primary.withValues(alpha: 0.12),
       side: BorderSide(color: borderColor),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(kButtonRadius),
+        borderRadius: BorderRadius.circular(AppRadii.button),
       ),
-      labelStyle: TextStyle(color: mutedTextColor, fontWeight: FontWeight.w600),
+      labelStyle:
+          TextStyle(color: mutedTextColor, fontWeight: FontWeight.w600),
     ),
     navigationRailTheme: NavigationRailThemeData(
       selectedIconTheme: IconThemeData(color: scheme.primary),
@@ -74,13 +70,14 @@ ThemeData buildPersonaTheme(Brightness brightness) {
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: const BorderRadius.all(Radius.circular(kPanelRadius)),
+        borderRadius:
+            const BorderRadius.all(Radius.circular(AppRadii.panel)),
         side: BorderSide(color: borderColor),
       ),
     ),
     listTileTheme: ListTileThemeData(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(kPanelRadius),
+        borderRadius: BorderRadius.circular(AppRadii.panel),
       ),
       titleTextStyle: TextStyle(
         color: textColor,
@@ -91,20 +88,21 @@ ThemeData buildPersonaTheme(Brightness brightness) {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: isDark ? const Color(0xFF1A1D25) : const Color(0xFFF0F2F7),
+      fillColor: isDark ? AppColors.darkInputFill : AppColors.lightInputFill,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(kInputRadius),
+        borderRadius: BorderRadius.circular(AppRadii.input),
         borderSide: BorderSide(color: borderColor),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(kInputRadius),
+        borderRadius: BorderRadius.circular(AppRadii.input),
         borderSide: BorderSide(color: borderColor),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(kInputRadius),
+        borderRadius: BorderRadius.circular(AppRadii.input),
         borderSide: BorderSide(color: scheme.primary, width: 1.5),
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       labelStyle: TextStyle(color: mutedTextColor, fontSize: 13),
       hintStyle: TextStyle(
         color: mutedTextColor.withValues(alpha: 0.6),
@@ -113,12 +111,41 @@ ThemeData buildPersonaTheme(Brightness brightness) {
     ),
     dialogTheme: DialogThemeData(
       backgroundColor: isDark
-          ? const Color(0xFF1A1D25).withValues(alpha: 0.92)
+          ? AppColors.darkInputFill.withValues(alpha: 0.92)
           : Colors.white.withValues(alpha: 0.92),
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(kPanelRadius),
+        borderRadius: BorderRadius.circular(AppRadii.panel),
         side: BorderSide(color: borderColor),
+      ),
+    ),
+    tabBarTheme: TabBarThemeData(
+      labelColor: textColor,
+      unselectedLabelColor: mutedTextColor,
+      indicatorColor: scheme.primary,
+      indicatorSize: TabBarIndicatorSize.label,
+      labelStyle: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0,
+      ),
+      unselectedLabelStyle: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0,
+      ),
+      overlayColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.hovered)) {
+          return isDark
+              ? AppColors.darkTabHover
+              : AppColors.lightTabHover;
+        }
+        return Colors.transparent;
+      }),
+      dividerColor: Colors.transparent,
+      indicator: UnderlineTabIndicator(
+        borderSide: BorderSide(color: scheme.primary, width: 2),
+        insets: const EdgeInsets.symmetric(horizontal: 16),
       ),
     ),
   );
@@ -128,56 +155,54 @@ final ThemeData personaLightTheme = buildPersonaTheme(Brightness.light);
 final ThemeData personaDarkTheme = buildPersonaTheme(Brightness.dark);
 
 TextTheme _buildTextTheme(Color textColor, Color mutedTextColor) {
-  final fontFamily = GoogleFonts.inter().fontFamily;
-
   return TextTheme(
     headlineLarge: TextStyle(
       color: textColor,
-      fontFamily: fontFamily,
+      fontFamily: AppFonts.uiFamily,
       fontSize: 34,
       fontWeight: FontWeight.w800,
       height: 1.05,
     ),
     headlineMedium: TextStyle(
       color: textColor,
-      fontFamily: fontFamily,
+      fontFamily: AppFonts.uiFamily,
       fontSize: 28,
       fontWeight: FontWeight.w800,
       height: 1.12,
     ),
     titleLarge: TextStyle(
       color: textColor,
-      fontFamily: fontFamily,
+      fontFamily: AppFonts.uiFamily,
       fontSize: 18,
       fontWeight: FontWeight.w800,
     ),
     titleMedium: TextStyle(
       color: textColor,
-      fontFamily: fontFamily,
+      fontFamily: AppFonts.uiFamily,
       fontSize: 15,
       fontWeight: FontWeight.w700,
     ),
     bodyLarge: TextStyle(
       color: textColor,
-      fontFamily: fontFamily,
+      fontFamily: AppFonts.uiFamily,
       fontSize: 15,
       height: 1.45,
     ),
     bodyMedium: TextStyle(
       color: mutedTextColor,
-      fontFamily: fontFamily,
+      fontFamily: AppFonts.uiFamily,
       fontSize: 13,
       height: 1.45,
     ),
     labelLarge: TextStyle(
       color: textColor,
-      fontFamily: fontFamily,
+      fontFamily: AppFonts.uiFamily,
       fontSize: 13,
       fontWeight: FontWeight.w800,
     ),
     labelMedium: TextStyle(
       color: mutedTextColor,
-      fontFamily: fontFamily,
+      fontFamily: AppFonts.uiFamily,
       fontSize: 11,
       fontWeight: FontWeight.w800,
     ),

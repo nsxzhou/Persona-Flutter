@@ -2,10 +2,12 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../theme/app_tokens.dart';
+
 class GlassContainer extends StatelessWidget {
   const GlassContainer({
     required this.child,
-    this.borderRadius = 12.0,
+    this.borderRadius = AppRadii.panel,
     this.blurSigma = 18.0,
     this.tint,
     this.border,
@@ -24,7 +26,7 @@ class GlassContainer extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final defaultTint = isDark
-        ? const Color(0xFF15171D).withValues(alpha: 0.78)
+        ? AppColors.darkSurface.withValues(alpha: 0.78)
         : Colors.white.withValues(alpha: 0.72);
 
     return ClipRRect(
@@ -59,10 +61,10 @@ Future<T?> showGlassDialog<T>({
   double maxWidth = 560,
   double? maxHeight,
   EdgeInsets insetPadding = const EdgeInsets.symmetric(
-    horizontal: 24,
-    vertical: 24,
+    horizontal: AppSpacing.xl,
+    vertical: AppSpacing.xl,
   ),
-  EdgeInsetsGeometry padding = const EdgeInsets.all(24),
+  EdgeInsetsGeometry padding = const EdgeInsets.all(AppSpacing.xl),
 }) {
   return showDialog<T>(
     context: context,
@@ -76,7 +78,7 @@ Future<T?> showGlassDialog<T>({
           elevation: 0,
           insetPadding: insetPadding,
           child: GlassContainer(
-            borderRadius: 12,
+            borderRadius: AppRadii.panel,
             blurSigma: 24,
             padding: padding,
             child: ConstrainedBox(

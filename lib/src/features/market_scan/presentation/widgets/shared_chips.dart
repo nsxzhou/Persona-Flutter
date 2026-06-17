@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/ui/persona_page.dart';
 import '../../application/market_scan_controller.dart';
 
 class CommandStateChip extends StatelessWidget {

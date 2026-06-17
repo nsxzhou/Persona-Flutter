@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../theme/app_theme.dart';
+import '../theme/app_tokens.dart';
 import 'persona_page.dart';
 import 'skeleton_loader.dart';
 
@@ -54,7 +54,7 @@ Color statusColor(ColorScheme colorScheme, String status) {
   return switch (status) {
     'pending' => colorScheme.tertiary,
     'running' => colorScheme.primary,
-    'succeeded' => const Color(0xFF16825D),
+    'succeeded' => AppColors.success,
     'failed' => colorScheme.error,
     _ => colorScheme.onSurfaceVariant,
   };
@@ -77,12 +77,12 @@ class CodeBlock extends StatelessWidget {
     final content = DecoratedBox(
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.34),
-        borderRadius: BorderRadius.circular(kPanelRadius),
+        borderRadius: BorderRadius.circular(AppRadii.panel),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: expand
           ? SingleChildScrollView(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(AppSpacing.md),
               child: SelectableText(
                 text,
                 style: const TextStyle(fontFamily: 'monospace', fontSize: 12.5),
@@ -91,7 +91,7 @@ class CodeBlock extends StatelessWidget {
           : ConstrainedBox(
               constraints: const BoxConstraints(minHeight: 220, maxHeight: 520),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(AppSpacing.md),
                 child: SelectableText(
                   text,
                   style: const TextStyle(
@@ -118,7 +118,7 @@ class InlineError extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: colorScheme.error.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(kPanelRadius),
+        borderRadius: BorderRadius.circular(AppRadii.panel),
         border: Border.all(color: colorScheme.error.withValues(alpha: 0.24)),
       ),
       child: Padding(
@@ -126,7 +126,7 @@ class InlineError extends StatelessWidget {
         child: Row(
           children: [
             Icon(Icons.error_outline, color: colorScheme.error, size: 18),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Text(message, style: TextStyle(color: colorScheme.error)),
             ),
@@ -148,7 +148,7 @@ class StageStepPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final (icon, color) = switch (state) {
-      StageStepState.done => (Icons.check, const Color(0xFF16825D)),
+      StageStepState.done => (Icons.check, AppColors.success),
       StageStepState.active => (Icons.sync, colorScheme.primary),
       StageStepState.failed => (Icons.error_outline, colorScheme.error),
       StageStepState.waiting => (
@@ -188,7 +188,7 @@ class AnalysisDetailLoading extends StatelessWidget {
                   child: Row(
                     children: [
                       SkeletonBox(width: 100, height: 28, borderRadius: 999),
-                      SizedBox(width: 16),
+                      SizedBox(width: AppSpacing.lg),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -199,7 +199,7 @@ class AnalysisDetailLoading extends StatelessWidget {
                           ],
                         ),
                       ),
-                      SizedBox(width: 12),
+                      SizedBox(width: AppSpacing.md),
                       SkeletonBox(width: 80, height: 12),
                     ],
                   ),
@@ -240,10 +240,10 @@ class AnalysisMissingDetail extends StatelessWidget {
           label: const Text('返回档案库'),
         ),
       ],
-      children: const [
+      children: [
         PersonaPanel(
-          child: PersonaEmptyStateCard(
-            icon: Icons.search_off_outlined,
+          child: WorkbenchEmptyState(
+            sectionLabel: eyebrow,
             title: '没有找到内容',
             description: '返回档案库选择其他 Profile。',
           ),

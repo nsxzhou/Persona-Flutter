@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../router/app_route.dart';
-import '../theme/app_theme.dart';
+import '../theme/app_tokens.dart';
 import '../theme/theme_mode_provider.dart';
 import 'glass_container.dart';
 
@@ -281,7 +281,7 @@ class _SidebarDestination extends StatelessWidget {
     const expandedContentWidth =
         _expandedSidebarWidth - _sidebarHorizontalPadding - 24;
     final destination = InkWell(
-      borderRadius: BorderRadius.circular(kPanelRadius),
+      borderRadius: BorderRadius.circular(AppRadii.panel),
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
@@ -294,7 +294,7 @@ class _SidebarDestination extends StatelessWidget {
           color: isSelected
               ? colorScheme.primary.withValues(alpha: 0.1)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(kPanelRadius),
+          borderRadius: BorderRadius.circular(AppRadii.panel),
           border: Border.all(
             color: isSelected ? colorScheme.primary : Colors.transparent,
           ),
@@ -384,7 +384,7 @@ class _SidebarLogo extends StatelessWidget {
       height: 40,
       decoration: BoxDecoration(
         color: colorScheme.primary,
-        borderRadius: BorderRadius.circular(kPanelRadius),
+        borderRadius: BorderRadius.circular(AppRadii.panel),
       ),
       child: Icon(Icons.auto_stories, color: colorScheme.onPrimary),
     );

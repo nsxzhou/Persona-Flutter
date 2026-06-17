@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_tokens.dart';
+
 class SkeletonBox extends StatefulWidget {
   const SkeletonBox({
     this.width = double.infinity,
@@ -39,11 +41,11 @@ class _SkeletonBoxState extends State<SkeletonBox>
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final baseColor = isDark
-        ? const Color(0xFF252933)
-        : const Color(0xFFE8ECF3);
+        ? AppColors.darkSurfaceHigh
+        : AppColors.lightSurfaceHigh;
     final highlightColor = isDark
-        ? const Color(0xFF303644)
-        : const Color(0xFFF0F2F7);
+        ? AppColors.darkBorder
+        : AppColors.lightInputFill;
 
     return AnimatedBuilder(
       animation: _controller,

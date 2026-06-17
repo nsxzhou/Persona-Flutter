@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_theme.dart';
+import '../theme/app_tokens.dart';
+import 'app_gap.dart';
 import 'hoverable_widget.dart';
 
 class PersonaPage extends StatelessWidget {
@@ -36,7 +37,12 @@ class PersonaPage extends StatelessWidget {
     return ColoredBox(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(32, 28, 32, 40),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.pageHPadding,
+          AppSpacing.pageVPadding,
+          AppSpacing.pageHPadding,
+          AppSpacing.pageBottom,
+        ),
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: maxWidth),
@@ -53,17 +59,22 @@ class PersonaPage extends StatelessWidget {
                           children: [
                             if (eyebrow.isNotEmpty)
                               Text(
-                                eyebrow.toUpperCase(),
-                                style: textTheme.labelMedium?.copyWith(
+                                eyebrow,
+                                style: textTheme.bodyMedium?.copyWith(
+                                  fontFamily: AppFonts.displayFamily,
+                                  fontStyle: FontStyle.italic,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
                                   color: colorScheme.primary,
+                                  letterSpacing: 0.8,
                                 ),
                               ),
                             if (eyebrow.isNotEmpty && title.isNotEmpty)
-                              const SizedBox(height: 10),
+                              const AppGap.xs(),
                             if (title.isNotEmpty)
                               Text(title, style: textTheme.headlineMedium),
                             if (title.isNotEmpty && description.isNotEmpty)
-                              const SizedBox(height: 10),
+                              const AppGap.sm(),
                             if (description.isNotEmpty)
                               ConstrainedBox(
                                 constraints: const BoxConstraints(
@@ -71,8 +82,9 @@ class PersonaPage extends StatelessWidget {
                                 ),
                                 child: Text(
                                   description,
-                                  style: textTheme.bodyLarge?.copyWith(
+                                  style: textTheme.bodyMedium?.copyWith(
                                     color: colorScheme.onSurfaceVariant,
+                                    height: 1.6,
                                   ),
                                 ),
                               ),
@@ -80,12 +92,12 @@ class PersonaPage extends StatelessWidget {
                         ),
                       ),
                       if (actions.isNotEmpty) ...[
-                        const SizedBox(width: 24),
-                        Wrap(spacing: 10, runSpacing: 10, children: actions),
+                        const AppGap.hXl(),
+                        Wrap(spacing: 6, runSpacing: 6, children: actions),
                       ],
                     ],
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 22),
                 ],
                 _StaggeredList(animate: animateChildren, children: children),
               ],
@@ -100,7 +112,7 @@ class PersonaPage extends StatelessWidget {
 class PersonaPanel extends StatelessWidget {
   const PersonaPanel({
     required this.child,
-    this.padding = const EdgeInsets.all(20),
+    this.padding = const EdgeInsets.all(AppSpacing.panelInner),
     this.backgroundColor,
     this.hoverable = false,
     super.key,
@@ -120,15 +132,9 @@ class PersonaPanel extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: backgroundColor ?? colorScheme.surface,
-          borderRadius: BorderRadius.circular(kPanelRadius),
+          borderRadius: BorderRadius.circular(AppRadii.panel),
           border: Border.all(color: colorScheme.outlineVariant),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.035),
-              offset: const Offset(0, 10),
-              blurRadius: 24,
-            ),
-          ],
+          boxShadow: AppShadows.panelRest,
         ),
         child: Padding(padding: padding, child: child),
       ),
@@ -139,62 +145,17 @@ class PersonaPanel extends StatelessWidget {
     return HoverableWidget(
       builder: (context, isHovered, child) {
         return AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
+          duration: const Duration(milliseconds: 160),
           curve: Curves.easeOutCubic,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(kPanelRadius),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isHovered ? 0.08 : 0.035),
-                offset: Offset(0, isHovered ? 14 : 10),
-                blurRadius: isHovered ? 32 : 24,
-              ),
-            ],
+            borderRadius: BorderRadius.circular(AppRadii.panel),
+            boxShadow: isHovered
+                ? AppShadows.panelHover
+                : AppShadows.panelRest,
           ),
           child: panel,
         );
       },
-    );
-  }
-}
-
-class PersonaSectionHeader extends StatelessWidget {
-  const PersonaSectionHeader({
-    required this.title,
-    required this.description,
-    this.trailing,
-    super.key,
-  });
-
-  final String title;
-  final String description;
-  final Widget? trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: textTheme.titleLarge),
-              const SizedBox(height: 4),
-              Text(
-                description,
-                style: textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (trailing != null) ...[const SizedBox(width: 16), trailing!],
-      ],
     );
   }
 }
@@ -204,12 +165,14 @@ class PersonaMetric extends StatelessWidget {
     required this.label,
     required this.value,
     required this.detail,
+    this.progressFraction,
     super.key,
   });
 
   final String label;
   final String value;
   final String detail;
+  final double? progressFraction;
 
   @override
   Widget build(BuildContext context) {
@@ -217,21 +180,55 @@ class PersonaMetric extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return PersonaPanel(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.lg,
+        14,
+      ),
       hoverable: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label.toUpperCase(), style: textTheme.labelMedium),
+          Text(
+            label.toUpperCase(),
+            style: TextStyle(
+              fontFamily: AppFonts.monoFamily,
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+              color: colorScheme.onSurfaceVariant,
+              letterSpacing: 0.8,
+            ),
+          ),
           const SizedBox(height: 14),
           Text(
             value,
             style: textTheme.headlineMedium?.copyWith(
               color: colorScheme.onSurface,
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.5,
             ),
           ),
-          const SizedBox(height: 6),
-          Text(detail, style: textTheme.bodyMedium),
+          const AppGap.xs(),
+          Text(
+            detail,
+            style: textTheme.bodyMedium?.copyWith(fontSize: 11.5),
+          ),
+          if (progressFraction != null) ...[
+            const SizedBox(height: 14),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: LinearProgressIndicator(
+                value: progressFraction!.clamp(0.0, 1.0),
+                minHeight: 3,
+                backgroundColor:
+                    colorScheme.primary.withValues(alpha: 0.08),
+                valueColor:
+                    AlwaysStoppedAnimation<Color>(colorScheme.primary),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -292,120 +289,6 @@ class _StaggeredListState extends State<_StaggeredList> {
   }
 }
 
-class PersonaEmptyStateCard extends StatelessWidget {
-  const PersonaEmptyStateCard({
-    required this.icon,
-    required this.title,
-    required this.description,
-    this.action,
-    this.centered = false,
-    this.maxWidth,
-    super.key,
-  });
-
-  final IconData icon;
-  final String title;
-  final String description;
-  final Widget? action;
-  final bool centered;
-  final double? maxWidth;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    final content = DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(kPanelRadius),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(centered ? 28 : 22),
-        child: centered
-            ? Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _EmptyStateIcon(icon: icon),
-                  const SizedBox(height: 18),
-                  Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    style: textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    description,
-                    textAlign: TextAlign.center,
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  if (action != null) ...[const SizedBox(height: 22), action!],
-                ],
-              )
-            : Row(
-                children: [
-                  _EmptyStateIcon(icon: icon, compact: true),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(title, style: textTheme.titleLarge),
-                        const SizedBox(height: 6),
-                        Text(
-                          description,
-                          style: textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (action != null) ...[const SizedBox(width: 16), action!],
-                ],
-              ),
-      ),
-    );
-
-    if (maxWidth == null) return content;
-
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxWidth: maxWidth!),
-      child: content,
-    );
-  }
-}
-
-class _EmptyStateIcon extends StatelessWidget {
-  const _EmptyStateIcon({required this.icon, this.compact = false});
-
-  final IconData icon;
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final size = compact ? 44.0 : 72.0;
-    final iconSize = compact ? 28.0 : 34.0;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.primary.withValues(alpha: 0.09),
-        borderRadius: BorderRadius.circular(compact ? 10 : 14),
-        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.18)),
-      ),
-      child: SizedBox(
-        width: size,
-        height: size,
-        child: Icon(icon, color: colorScheme.primary, size: iconSize),
-      ),
-    );
-  }
-}
-
 class PersonaStatusPill extends StatelessWidget {
   const PersonaStatusPill({
     required this.label,
@@ -426,17 +309,20 @@ class PersonaStatusPill extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: effectiveColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppRadii.pill),
         border: Border.all(color: effectiveColor.withValues(alpha: 0.26)),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 10,
+          vertical: 6,
+        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
               Icon(icon, size: 14, color: effectiveColor),
-              const SizedBox(width: 6),
+              const AppGap.hSm(),
             ],
             Text(
               label,
@@ -447,6 +333,330 @@ class PersonaStatusPill extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// A minimalist tab bar designed for the workbench context.
+///
+/// Displays tabs in a horizontal scrollable row with a subtle animated
+/// underline indicator. Supports optional [dividers] — a set of tab
+/// indices *after* which a thin vertical divider line is inserted
+/// (used to visually group related tabs).
+class WorkbenchTabBar extends StatelessWidget {
+  const WorkbenchTabBar({
+    required this.controller,
+    required this.tabs,
+    this.dividers = const <int>{},
+    super.key,
+  });
+
+  final TabController controller;
+  final List<String> tabs;
+  final Set<int> dividers;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            children: [
+              for (int i = 0; i < tabs.length; i++) ...[
+                _WorkbenchTab(
+                  label: tabs[i],
+                  isSelected: controller.index == i,
+                  onTap: () => controller.animateTo(i),
+                  labelStyle: textTheme.bodyMedium?.copyWith(
+                    color: controller.index == i
+                        ? colorScheme.onSurface
+                        : colorScheme.onSurfaceVariant
+                            .withValues(alpha: 0.7),
+                    fontWeight: controller.index == i
+                        ? FontWeight.w600
+                        : FontWeight.w400,
+                    fontSize: 12.5,
+                  ),
+                  indicatorColor: colorScheme.primary,
+                  hoverColor:
+                      colorScheme.onSurface.withValues(alpha: 0.03),
+                ),
+                if (dividers.contains(i))
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: SizedBox(
+                      width: 1,
+                      height: 18,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: colorScheme.outlineVariant
+                              .withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _WorkbenchTab extends StatelessWidget {
+  const _WorkbenchTab({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+    required this.labelStyle,
+    required this.indicatorColor,
+    required this.hoverColor,
+  });
+
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final TextStyle? labelStyle;
+  final Color indicatorColor;
+  final Color hoverColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: isSelected ? indicatorColor : Colors.transparent,
+                width: 2,
+              ),
+            ),
+          ),
+          child: AnimatedDefaultTextStyle(
+            style: labelStyle ?? const TextStyle(),
+            duration: const Duration(milliseconds: 150),
+            child: Text(label),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A minimal monospace section label used in workbench-style pages.
+///
+/// Renders an uppercase label in a muted monospace font with a short
+/// decorative dash prefix. Designed to sit above content sections in
+/// editorial / dashboard layouts.
+///
+/// Use [major] = true for primary section headers on pages (e.g. the
+/// main header of a PersonaPanel). This renders a slightly larger font
+/// and wider dash to give proper visual weight.
+class WorkbenchSectionLabel extends StatelessWidget {
+  const WorkbenchSectionLabel(
+    this.label, {
+    this.major = false,
+    super.key,
+  });
+
+  final String label;
+  final bool major;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: EdgeInsets.only(bottom: major ? 14 : 10),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: major ? 24 : 10,
+            height: major ? 2 : 1,
+            color: major
+                ? colorScheme.onSurface.withValues(alpha: 0.5)
+                : colorScheme.outlineVariant.withValues(alpha: 0.6),
+          ),
+          const AppGap.hSm(),
+          Text(
+            label.toUpperCase(),
+            style: TextStyle(
+              fontFamily: AppFonts.monoFamily,
+              fontSize: major ? 18 : 10,
+              fontWeight: major ? FontWeight.w600 : FontWeight.w500,
+              color: major
+                  ? colorScheme.onSurface
+                  : colorScheme.onSurfaceVariant,
+              letterSpacing: major ? 1.8 : 1.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Empty state card for workbench tabs using the inline layout pattern.
+///
+/// Shows a [WorkbenchSectionLabel] with a left accent border, description
+/// text on the left, and action buttons on the right — matching the tab
+/// header design language.
+///
+/// When [icon] is provided, a subtle icon container appears inside the
+/// left-border area, giving the empty state more visual weight — useful
+/// for prominent empty pages where text alone looks too sparse.
+class WorkbenchEmptyState extends StatelessWidget {
+  const WorkbenchEmptyState({
+    required this.sectionLabel,
+    required this.title,
+    required this.description,
+    this.icon,
+    this.actions,
+    this.hint,
+    super.key,
+  });
+
+  final String sectionLabel;
+  final String title;
+  final String description;
+  final IconData? icon;
+  final Widget? actions;
+  final String? hint;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        WorkbenchSectionLabel(sectionLabel),
+        Container(
+          padding: const EdgeInsets.only(left: AppSpacing.lg),
+          decoration: BoxDecoration(
+            border: Border(
+              left: BorderSide(
+                color: colorScheme.primary.withValues(alpha: 0.35),
+                width: 2,
+              ),
+            ),
+          ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 600;
+              final descBlock = Flexible(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (icon != null) ...[
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary.withValues(alpha: 0.08),
+                          borderRadius:
+                              BorderRadius.circular(AppRadii.badge),
+                          border: Border.all(
+                            color: colorScheme.primary
+                                .withValues(alpha: 0.16),
+                          ),
+                        ),
+                        child: SizedBox(
+                          width: 36,
+                          height: 36,
+                          child: Icon(
+                            icon,
+                            size: 20,
+                            color: colorScheme.primary
+                                .withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ),
+                      const AppGap.hMd(),
+                    ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(title, style: textTheme.titleMedium),
+                          const SizedBox(height: 6),
+                          Text(
+                            description,
+                            style: textTheme.bodyMedium?.copyWith(
+                              height: 1.7,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+              if (actions == null) {
+                return Row(children: [descBlock]);
+              }
+              if (compact) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    descBlock,
+                    const AppGap.md(),
+                    actions!,
+                  ],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  descBlock,
+                  const SizedBox(width: 20),
+                  actions!,
+                ],
+              );
+            },
+          ),
+        ),
+        if (hint != null) ...[
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.only(left: 18),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 14,
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                ),
+                const AppGap.hSm(),
+                Expanded(
+                  child: Text(
+                    hint!,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant
+                          .withValues(alpha: 0.6),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
