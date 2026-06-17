@@ -60,3 +60,5 @@ storage/
 backups/
 
 .playwright-cli
+
+.cursor/
