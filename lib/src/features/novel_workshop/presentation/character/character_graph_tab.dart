@@ -291,21 +291,41 @@ class _CharacterGraphTabState extends ConsumerState<CharacterGraphTab>
               .firstOrNull;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(24, 22, 24, 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Action bar.
+          // --- Description with editorial accent + inline actions ---
           LayoutBuilder(
             builder: (context, constraints) {
-              final compact = constraints.maxWidth < 760;
-              final description = Text(
-                '结构化角色卡片和有向关系边会进入章节生成上下文。点击节点查看详情，或打开角色面板进行编辑。',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+              final compact = constraints.maxWidth < 720;
+              final descBlock = Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const WorkbenchSectionLabel('描述'),
+                    Container(
+                      padding: const EdgeInsets.only(left: 16),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          left: BorderSide(
+                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                      child: Text(
+                        '结构化角色卡片和有向关系边会进入章节生成上下文。点击节点查看详情，或打开角色面板进行编辑。',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          height: 1.7,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               );
-              final actions = Wrap(
+              final actionBar = Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 alignment: WrapAlignment.end,
@@ -355,48 +375,56 @@ class _CharacterGraphTabState extends ConsumerState<CharacterGraphTab>
                     ),
                 ],
               );
-
               if (compact) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [description, const SizedBox(height: 12), actions],
+                  children: [descBlock, const SizedBox(height: 12), actionBar],
                 );
               }
-
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: description),
-                  const SizedBox(width: 20),
-                  actions,
-                ],
+                children: [descBlock, const SizedBox(width: 20), actionBar],
               );
             },
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
+
+          // --- Graph section ---
+          const WorkbenchSectionLabel('关系图谱'),
+          const SizedBox(height: 10),
           // Graph canvas with optional sliding detail panel, or empty state.
           if (characterItems.isEmpty)
             SizedBox(
               height: 520,
               child: Center(
-                child: PersonaEmptyStateCard(
-                  icon: Icons.people_outline,
+                child: WorkbenchEmptyState(
+                  sectionLabel: '角色索引',
                   title: '暂无结构化角色',
                   description: '生成角色草稿后，角色卡片和关系边会在此展示；导入后可在关系图中选择角色并编辑。',
-                  centered: true,
-                  maxWidth: 620,
-                  action: OutlinedButton.icon(
-                    onPressed: _generating
-                        ? null
-                        : () => _generateCharacters(context, ref),
-                    icon: _generating
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.auto_fix_high_outlined, size: 18),
-                    label: Text(_generating ? '生成中' : '生成角色草稿'),
+                  actions: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.end,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: _startEditing,
+                        icon: const Icon(Icons.code_outlined, size: 18),
+                        label: const Text('编辑 YAML'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: _generating
+                            ? null
+                            : () => _generateCharacters(context, ref),
+                        icon: _generating
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.auto_fix_high_outlined, size: 18),
+                        label: Text(_generating ? '生成中' : '生成角色草稿'),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -457,9 +485,12 @@ class _CharacterGraphTabState extends ConsumerState<CharacterGraphTab>
           // Legacy markdown reference.
           if (widget.legacyMarkdown.trim().isNotEmpty) ...[
             const SizedBox(height: 18),
-            const PersonaSectionHeader(
-              title: '旧角色索引参考',
-              description: '历史 Markdown 不自动迁移，仅供对照。',
+            const WorkbenchSectionLabel('旧角色索引参考', major: true),
+            Text(
+              '历史 Markdown 不自动迁移，仅供对照。',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 10),
             DecoratedBox(
