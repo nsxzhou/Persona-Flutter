@@ -83,7 +83,7 @@ void main() {
     expect(worldPrompt, contains('核心DNA'));
     expect(worldPrompt, contains('物理维度'));
     expect(worldPrompt, contains('社会维度'));
-    expect(worldPrompt, contains('隐喻维度'));
+    expect(worldPrompt, isNot(contains('隐喻维度')));
     expect(charactersPrompt, contains('只输出 YAML'));
     expect(charactersPrompt, contains('根节点允许 `characters` 和 `relationships`'));
     expect(charactersPrompt, contains('三级驱动力'));
