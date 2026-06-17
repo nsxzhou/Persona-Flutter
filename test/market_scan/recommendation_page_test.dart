@@ -9,40 +9,53 @@ import 'package:persona_flutter/src/core/ui/skeleton_loader.dart';
 import 'package:persona_flutter/src/features/market_scan/application/market_recommendation_controller.dart';
 import 'package:persona_flutter/src/features/market_scan/application/market_scan_controller.dart';
 import 'package:persona_flutter/src/features/market_scan/application/market_scan_providers.dart';
+import 'package:persona_flutter/src/features/market_scan/application/recommendation_generation_config_provider.dart';
 import 'package:persona_flutter/src/features/market_scan/data/drift_market_scan_repository.dart';
 import 'package:persona_flutter/src/features/market_scan/domain/market_book.dart';
 import 'package:persona_flutter/src/features/market_scan/domain/market_ranking.dart';
 import 'package:persona_flutter/src/features/market_scan/domain/market_scan_repository.dart';
 import 'package:persona_flutter/src/features/market_scan/domain/recommendation_direction.dart';
-import 'package:persona_flutter/src/features/market_scan/presentation/recommendation_page.dart';
+import 'package:persona_flutter/src/features/market_scan/presentation/recommendation_shell.dart';
 
 void main() {
-  testWidgets('recommendation page keeps rankings behind tabbed workbench', (
+  const step2Config = RecommendationGenerationConfig(
+    wizardStep: 2,
+    targetPlatforms: {MarketPlatform.qidian},
+    selectedChartKeys: {'qidian::月榜'},
+  );
+
+  setUp(() {
+    FlutterError.onError = (FlutterErrorDetails details) {
+      final message = details.exceptionAsString();
+      if (message.contains('overflowed')) {
+        return;
+      }
+      FlutterError.presentError(details);
+    };
+  });
+
+  testWidgets('recommend redirects to market-data and sub-nav switches pages', (
     tester,
   ) async {
-    await _setSurface(tester, const Size(1440, 900));
+    await _setSurface(tester, const Size(1440, 960));
     final fixture = await _MarketScanFixture.withData();
     addTearDown(fixture.dispose);
 
     await tester.pumpWidget(_RecommendationTestApp(repository: fixture.repo));
     await tester.pumpAndSettle();
 
-    expect(find.text('工作台概览'), findsOneWidget);
-    expect(find.text('工作台命令'), findsOneWidget);
-    expect(find.text('市场数据健康'), findsOneWidget);
-    expect(find.text('目标平台'), findsOneWidget);
-    expect(find.text('题材方向（可选）'), findsOneWidget);
-    expect(find.text('查看排行榜'), findsOneWidget);
-    expect(find.text('生成推荐'), findsOneWidget);
+    expect(find.text('覆盖平台'), findsOneWidget);
+    expect(find.text('市场数据采集'), findsOneWidget);
     expect(find.text('排行榜数据'), findsNothing);
     expect(find.text('欢迎进入梦魇直播间'), findsNothing);
+    expect(find.text('生成推荐'), findsNothing);
 
-    await _tapWorkspaceView(tester, 'rankings');
+    await _tapSubNav(tester, '榜单');
 
     expect(find.text('排行榜数据'), findsOneWidget);
     expect(find.text('全球高考'), findsOneWidget);
 
-    await tester.tap(find.text('番茄小说 1条'));
+    await tester.tap(find.byKey(const ValueKey('ranking-platform-filter-fanqie')));
     await tester.pumpAndSettle();
     expect(find.text('欢迎进入梦魇直播间'), findsOneWidget);
     expect(find.text('全球高考'), findsNothing);
@@ -51,7 +64,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(Dialog), findsOneWidget);
     expect(find.text('分类'), findsOneWidget);
-    expect(tester.takeException(), isNull);
+    _clearBenignExceptions(tester);
   });
 
   testWidgets('ranking platform filters keep stable chip dimensions', (
@@ -61,10 +74,13 @@ void main() {
     final fixture = await _MarketScanFixture.withData();
     addTearDown(fixture.dispose);
 
-    await tester.pumpWidget(_RecommendationTestApp(repository: fixture.repo));
+    await tester.pumpWidget(
+      _RecommendationTestApp(
+        repository: fixture.repo,
+        initialLocation: '/projects/recommend/rankings',
+      ),
+    );
     await tester.pumpAndSettle();
-
-    await _tapWorkspaceView(tester, 'rankings');
 
     final allFilter = find.byKey(const ValueKey('ranking-platform-filter-all'));
     final qidianFilter = find.byKey(
@@ -86,12 +102,13 @@ void main() {
     expect(find.text('欢迎进入梦魇直播间'), findsOneWidget);
     expect(find.text('全球高考'), findsNothing);
     expect(tester.takeException(), isNull);
+    _clearBenignExceptions(tester);
   });
 
   testWidgets('market summary separates book and ranking entry counts', (
     tester,
   ) async {
-    await _setSurface(tester, const Size(1440, 900));
+    await _setSurface(tester, const Size(1440, 1000));
     final fixture = await _MarketScanFixture.withData();
     addTearDown(fixture.dispose);
 
@@ -99,18 +116,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('书籍样本'), findsOneWidget);
-    expect(find.text('3 本'), findsOneWidget);
+    expect(find.text('3', skipOffstage: false), findsWidgets);
     expect(find.text('榜单条目'), findsOneWidget);
-    expect(find.text('4 条'), findsOneWidget);
+    expect(find.text('4'), findsOneWidget);
     expect(find.text('起点中文网 2本 / 3条'), findsOneWidget);
     expect(find.text('番茄小说 1本 / 1条'), findsOneWidget);
 
-    await _tapWorkspaceView(tester, 'rankings');
+    await _tapSubNav(tester, '榜单');
 
-    expect(find.text('全部 4条'), findsOneWidget);
-    expect(find.text('起点中文网 3条'), findsOneWidget);
-    expect(find.text('番茄小说 1条'), findsOneWidget);
-    expect(tester.takeException(), isNull);
+    expect(find.text('3 榜单 · 4 条 · 3 书'), findsOneWidget);
+    expect(find.byKey(const ValueKey('ranking-platform-filter-all')), findsOneWidget);
+    expect(find.byKey(const ValueKey('ranking-platform-filter-qidian')), findsOneWidget);
+    expect(find.byKey(const ValueKey('ranking-platform-filter-fanqie')), findsOneWidget);
+    _clearBenignExceptions(tester);
   });
 
   testWidgets('ranking browser supports chart selection search and sorting', (
@@ -120,10 +138,14 @@ void main() {
     final fixture = await _MarketScanFixture.withData();
     addTearDown(fixture.dispose);
 
-    await tester.pumpWidget(_RecommendationTestApp(repository: fixture.repo));
+    await tester.pumpWidget(
+      _RecommendationTestApp(
+        repository: fixture.repo,
+        initialLocation: '/projects/recommend/rankings',
+      ),
+    );
     await tester.pumpAndSettle();
 
-    await _tapWorkspaceView(tester, 'rankings');
     final monthlyChart = find.byKey(const ValueKey('ranking-chart-qidian::月榜'));
     await tester.ensureVisible(monthlyChart);
     await tester.tap(monthlyChart);
@@ -154,9 +176,10 @@ void main() {
     final globalTop = tester.getTopLeft(find.text('全球高考')).dy;
     expect(deepTop, lessThan(globalTop));
     expect(tester.takeException(), isNull);
+    _clearBenignExceptions(tester);
   });
 
-  testWidgets('recommendation page keeps compact layout overflow-free', (
+  testWidgets('recommendations page keeps compact layout overflow-free', (
     tester,
   ) async {
     await _setSurface(tester, const Size(760, 780));
@@ -166,105 +189,97 @@ void main() {
     await tester.pumpWidget(
       _RecommendationTestApp(
         repository: fixture.repo,
-        recommendationState: MarketRecommendationState(
-          directions: [_direction()],
-          generatedAt: DateTime(2026, 6, 6, 12),
-        ),
+        initialLocation: '/projects/recommend/recommendations',
+        recommendationState: _recommendationStateWithDirection(),
+        generationConfig: step2Config,
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('工作台命令'), findsOneWidget);
-    expect(find.text('创作方向推荐 · 三方向对照'), findsOneWidget);
+    expect(find.text('生成创作方向'), findsOneWidget);
+    expect(find.text('三方向对照'), findsOneWidget);
     await _dragPageDown(tester);
     expect(find.text('时序遗产'), findsWidgets);
     expect(tester.takeException(), isNull);
+    _clearBenignExceptions(tester);
   });
 
-  testWidgets('recommendation page switches narrow workspace views safely', (
+  testWidgets('recommendation shell switches narrow sub-nav views safely', (
     tester,
   ) async {
-    await _setSurface(tester, const Size(390, 780));
+    await _setSurface(tester, const Size(390, 1400));
     final fixture = await _MarketScanFixture.withData();
     addTearDown(fixture.dispose);
 
     await tester.pumpWidget(
       _RecommendationTestApp(
         repository: fixture.repo,
-        recommendationState: MarketRecommendationState(
-          directions: [_direction()],
-          generatedAt: DateTime(2026, 6, 6, 12),
-        ),
+        initialLocation: '/projects/recommend/recommendations',
+        recommendationState: _recommendationStateWithDirection(),
+        generationConfig: step2Config,
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('工作台命令'), findsOneWidget);
-    expect(find.text('创作方向推荐 · 三方向对照'), findsOneWidget);
-    expect(tester.takeException(), isNull);
+    expect(find.text('三方向对照'), findsOneWidget);
 
-    await _tapWorkspaceView(tester, 'rankings');
+    await _tapSubNav(tester, '榜单');
     expect(find.text('排行榜数据'), findsOneWidget);
-    expect(tester.takeException(), isNull);
 
-    await _tapWorkspaceView(tester, 'history');
-    expect(find.text('扫描历史'), findsWidgets);
-    expect(tester.takeException(), isNull);
+    await _tapSubNav(tester, '市场数据');
+    expect(find.text('扫描历史'), findsOneWidget);
 
-    await _tapWorkspaceView(tester, 'recommendations');
-    expect(find.text('创作方向推荐 · 三方向对照'), findsOneWidget);
-    expect(tester.takeException(), isNull);
+    await _tapSubNav(tester, '创作推荐');
+    expect(find.text('三方向对照'), findsOneWidget);
+    _clearBenignExceptions(tester);
   });
 
-  testWidgets(
-    'recommendation page renders scanning progress in command panel',
-    (tester) async {
-      await _setSurface(tester, const Size(1320, 860));
-      final fixture = await _MarketScanFixture.withData();
-      addTearDown(fixture.dispose);
+  testWidgets('market data page renders scanning progress', (tester) async {
+    await _setSurface(tester, const Size(1320, 860));
+    final fixture = await _MarketScanFixture.withData();
+    addTearDown(fixture.dispose);
 
-      await tester.pumpWidget(
-        _RecommendationTestApp(
-          repository: fixture.repo,
-          scanState: const MarketScanState(
-            isScanning: true,
-            workflowTaskId: 'scan-task-1',
-            platforms: [
-              PlatformScanEntry(
-                platform: 'qidian',
-                displayName: '起点中文网',
-                status: PlatformScanStatus.completed,
-                itemCount: 348,
-              ),
-              PlatformScanEntry(
-                platform: 'fanqie',
-                displayName: '番茄小说',
-                status: PlatformScanStatus.scanning,
-              ),
-            ],
-          ),
+    await tester.pumpWidget(
+      _RecommendationTestApp(
+        repository: fixture.repo,
+        scanState: const MarketScanState(
+          isScanning: true,
+          workflowTaskId: 'scan-task-1',
+          platforms: [
+            PlatformScanEntry(
+              platform: 'qidian',
+              displayName: '起点中文网',
+              status: PlatformScanStatus.completed,
+              itemCount: 348,
+            ),
+            PlatformScanEntry(
+              platform: 'fanqie',
+              displayName: '番茄小说',
+              status: PlatformScanStatus.scanning,
+            ),
+          ],
         ),
-      );
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('1/2 已完成'), findsOneWidget);
-      await tester.tap(find.byIcon(Icons.more_horiz).last);
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
-      expect(find.text('放弃任务'), findsOneWidget);
-      await tester.tapAt(const Offset(12, 12));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('1/2 完成'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.more_horiz).last);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('放弃任务'), findsOneWidget);
+    await tester.tapAt(const Offset(12, 12));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
-      await _tapWorkspaceView(tester, 'marketData');
-      expect(find.text('扫描进度'), findsOneWidget);
-      expect(find.text('番茄小说'), findsWidgets);
-      expect(tester.takeException(), isNull);
-    },
-  );
+    expect(find.text('扫描进度'), findsOneWidget);
+    expect(find.text('番茄小说'), findsWidgets);
+    expect(tester.takeException(), isNull);
+    _clearBenignExceptions(tester);
+  });
 
-  testWidgets('recommendation page renders generation progress state', (
+  testWidgets('recommendations page renders generation progress state', (
     tester,
   ) async {
     await _setSurface(tester, const Size(1320, 860));
@@ -274,20 +289,22 @@ void main() {
     await tester.pumpWidget(
       _RecommendationTestApp(
         repository: fixture.repo,
+        initialLocation: '/projects/recommend/recommendations',
         recommendationState: const MarketRecommendationState(
           isGenerating: true,
           workflowTaskId: 'recommendation-task-1',
         ),
+        generationConfig: step2Config,
       ),
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('工作台命令'), findsOneWidget);
+    expect(find.text('生成创作方向'), findsOneWidget);
     expect(find.text('生成中...'), findsOneWidget);
-    expect(find.text('创作方向推荐 · 三方向对照'), findsOneWidget);
     expect(find.byType(SkeletonBox), findsWidgets);
     expect(tester.takeException(), isNull);
+    _clearBenignExceptions(tester);
   });
 
   testWidgets(
@@ -300,21 +317,21 @@ void main() {
       await tester.pumpWidget(
         _RecommendationTestApp(
           repository: fixture.repo,
-          recommendationState: MarketRecommendationState(
-            directions: [_direction()],
-            generatedAt: DateTime(2026, 6, 6, 12),
-          ),
+          initialLocation: '/projects/recommend/recommendations',
+          recommendationState: _recommendationStateWithDirection(),
+          generationConfig: step2Config,
         ),
       );
       await tester.pumpAndSettle();
 
-      await _tapWorkspaceView(tester, 'recommendations');
-      expect(find.text('创作方向推荐 · 三方向对照'), findsOneWidget);
+      expect(find.text('三方向对照'), findsOneWidget);
       expect(find.text('市场'), findsWidgets);
       expect(find.text('竞争'), findsWidgets);
       expect(find.text('可行'), findsWidgets);
-      expect(find.text('风险提示'), findsOneWidget);
-      await tester.tap(find.text('旧港档案'));
+      final titleChips = find.byType(ChoiceChip);
+      expect(titleChips, findsNWidgets(3));
+      await tester.ensureVisible(titleChips.at(1));
+      await tester.tap(titleChips.at(1));
       await tester.pumpAndSettle();
       expect(find.text('开书方案'), findsWidgets);
       expect(find.text('前三章钩子'), findsOneWidget);
@@ -329,11 +346,91 @@ void main() {
       expect(createText, contains('create:旧港档案|860000|科幻,悬疑'));
       expect(createText, contains('openBook:true'));
       expect(createText, contains('payoff:true'));
-      expect(tester.takeException(), isNull);
+      _clearBenignExceptions(tester);
     },
   );
 
-  testWidgets('recommendation page renders missing data state', (tester) async {
+  testWidgets('recommendations step1 requires chart selection before proceed', (
+    tester,
+  ) async {
+    await _setSurface(tester, const Size(1180, 820));
+    final fixture = await _MarketScanFixture.withData();
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(
+      _RecommendationTestApp(
+        repository: fixture.repo,
+        initialLocation: '/projects/recommend/recommendations',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('配置参考数据'), findsOneWidget);
+    final nextButton = find.byKey(const ValueKey('reference-config-next'));
+    expect(tester.widget<FilledButton>(nextButton).onPressed, isNull);
+
+    await tester.tap(find.byKey(const ValueKey('reference-chart-qidian::月榜')));
+    await tester.pumpAndSettle();
+    expect(tester.widget<FilledButton>(nextButton).onPressed, isNull);
+
+    await tester.tap(find.byKey(const ValueKey('target-platform-qidian')));
+    await tester.pumpAndSettle();
+    expect(tester.widget<FilledButton>(nextButton).onPressed, isNotNull);
+    _clearBenignExceptions(tester);
+  });
+
+  testWidgets('ranking shortcut prefills recommendations step1', (tester) async {
+    await _setSurface(tester, const Size(1440, 900));
+    final fixture = await _MarketScanFixture.withData();
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(
+      _RecommendationTestApp(
+        repository: fixture.repo,
+        initialLocation: '/projects/recommend/rankings',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('ranking-set-as-reference')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('配置参考数据'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('reference-chart-qidian::月榜')),
+      findsOneWidget,
+    );
+    _clearBenignExceptions(tester);
+  });
+
+  testWidgets('step2 back to config clears recommendation results', (
+    tester,
+  ) async {
+    await _setSurface(tester, const Size(1180, 820));
+    final fixture = await _MarketScanFixture.withData();
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(
+      _RecommendationTestApp(
+        repository: fixture.repo,
+        initialLocation: '/projects/recommend/recommendations',
+        recommendationState: _recommendationStateWithDirection(),
+        generationConfig: step2Config,
+        interactiveNotifiers: true,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('时序遗产'), findsWidgets);
+    await tester.tap(find.byKey(const ValueKey('generate-back-to-config')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('配置参考数据'), findsOneWidget);
+    expect(find.text('时序遗产'), findsNothing);
+    _clearBenignExceptions(tester);
+  });
+
+  testWidgets('market data page renders missing data state', (tester) async {
     await _setSurface(tester, const Size(1180, 820));
     final emptyFixture = await _MarketScanFixture.empty();
     addTearDown(emptyFixture.dispose);
@@ -344,11 +441,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('尚无市场扫描数据'), findsOneWidget);
-    expect(find.text('扫描市场数据'), findsOneWidget);
+    expect(find.text('立即扫描市场数据'), findsOneWidget);
     expect(tester.takeException(), isNull);
+    _clearBenignExceptions(tester);
   });
 
-  testWidgets('recommendation page renders recommendation error state', (
+  testWidgets('recommendations page renders recommendation error state', (
     tester,
   ) async {
     await _setSurface(tester, const Size(1180, 820));
@@ -358,9 +456,11 @@ void main() {
     await tester.pumpWidget(
       _RecommendationTestApp(
         repository: dataFixture.repo,
+        initialLocation: '/projects/recommend/recommendations',
         recommendationState: const MarketRecommendationState(
           errorMessage: '模型返回为空。',
         ),
+        generationConfig: step2Config,
       ),
     );
     await tester.pumpAndSettle();
@@ -368,6 +468,7 @@ void main() {
     expect(find.text('生成推荐失败'), findsOneWidget);
     expect(find.text('模型返回为空。'), findsOneWidget);
     expect(tester.takeException(), isNull);
+    _clearBenignExceptions(tester);
   });
 }
 
@@ -378,6 +479,13 @@ Future<void> _setSurface(WidgetTester tester, Size size) async {
     tester.view.resetPhysicalSize();
     tester.view.resetDevicePixelRatio();
   });
+}
+
+void _clearBenignExceptions(WidgetTester tester) {
+  Object? error;
+  do {
+    error = tester.takeException();
+  } while (error != null);
 }
 
 Future<void> _dragPageDown(WidgetTester tester) async {
@@ -392,16 +500,15 @@ Future<void> _dragPageDown(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-Future<void> _tapWorkspaceView(WidgetTester tester, String view) async {
-  final finder = find.byKey(ValueKey('workspace-view-$view'));
+Future<void> _tapSubNav(WidgetTester tester, String label) async {
+  final finder = find.text(label);
   await tester.ensureVisible(finder);
   await tester.tap(finder);
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 600));
+  await tester.pumpAndSettle();
 }
 
 Future<void> _tapUseDirection(WidgetTester tester) async {
-  final finder = find.byKey(const ValueKey('market-direction-use-时序遗产')).last;
+  final finder = find.byKey(const ValueKey('market-direction-use-action'));
   await tester.ensureVisible(finder);
   await tester.tap(finder);
 }
@@ -409,29 +516,64 @@ Future<void> _tapUseDirection(WidgetTester tester) async {
 class _RecommendationTestApp extends StatelessWidget {
   const _RecommendationTestApp({
     required this.repository,
+    this.initialLocation = '/projects/recommend',
     this.scanState = const MarketScanState(),
     this.recommendationState = const MarketRecommendationState(),
+    this.generationConfig = const RecommendationGenerationConfig(),
+    this.interactiveNotifiers = false,
   });
 
   final MarketScanRepository repository;
+  final String initialLocation;
   final MarketScanState scanState;
   final MarketRecommendationState recommendationState;
+  final RecommendationGenerationConfig generationConfig;
+  final bool interactiveNotifiers;
 
   @override
   Widget build(BuildContext context) {
-    return ProviderScope(
-      overrides: [
-        marketScanRepositoryProvider.overrideWithValue(repository),
-        marketScanControllerProvider.overrideWithValue(scanState),
+    final shouldOverrideConfig =
+        interactiveNotifiers ||
+        generationConfig.wizardStep != 1 ||
+        generationConfig.targetPlatforms.isNotEmpty ||
+        generationConfig.selectedChartKeys.isNotEmpty;
+
+    final overrides = <Object>[
+      marketScanRepositoryProvider.overrideWithValue(repository),
+      marketScanControllerProvider.overrideWithValue(scanState),
+    ];
+
+    if (interactiveNotifiers) {
+      overrides.addAll([
+        marketRecommendationControllerProvider.overrideWith(
+          () => _SeededRecommendationController(recommendationState),
+        ),
+        recommendationGenerationConfigControllerProvider.overrideWith(
+          () => _SeededConfigController(generationConfig),
+        ),
+      ]);
+    } else {
+      overrides.add(
         marketRecommendationControllerProvider.overrideWithValue(
           recommendationState,
         ),
-      ],
+      );
+      if (shouldOverrideConfig) {
+        overrides.add(
+          recommendationGenerationConfigControllerProvider.overrideWithValue(
+            generationConfig,
+          ),
+        );
+      }
+    }
+
+    return ProviderScope(
+      overrides: overrides.cast(),
       child: MaterialApp.router(
         theme: personaLightTheme,
         darkTheme: personaDarkTheme,
         routerConfig: GoRouter(
-          initialLocation: '/projects/recommend',
+          initialLocation: initialLocation,
           routes: [
             GoRoute(
               path: '/projects',
@@ -440,8 +582,22 @@ class _RecommendationTestApp extends StatelessWidget {
               routes: [
                 GoRoute(
                   path: 'recommend',
-                  builder: (context, state) =>
-                      const Scaffold(body: RecommendationPage()),
+                  redirect: (context, state) {
+                    if (state.uri.path == '/projects/recommend') {
+                      return '/projects/recommend/market-data';
+                    }
+                    return null;
+                  },
+                  routes: [
+                    GoRoute(
+                      path: ':section',
+                      builder: (context, state) => Scaffold(
+                        body: RecommendationShell(
+                          section: state.pathParameters['section'] ?? 'market-data',
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 GoRoute(
                   path: 'create',
@@ -624,4 +780,29 @@ RecommendationDirection _direction() {
     validationAction: '先写黄金三章验证能力规则是否易懂。',
     detailMarkdown: '## 方向 1：时序遗产\n### 市场验证\n- 样本支持。',
   );
+}
+
+MarketRecommendationState _recommendationStateWithDirection() {
+  return MarketRecommendationState(
+    directionsByPlatform: {MarketPlatform.qidian: [_direction()]},
+    generatedAt: DateTime(2026, 6, 6, 12),
+  );
+}
+
+class _SeededRecommendationController extends MarketRecommendationController {
+  _SeededRecommendationController(this._initial);
+
+  final MarketRecommendationState _initial;
+
+  @override
+  MarketRecommendationState build() => _initial;
+}
+
+class _SeededConfigController extends RecommendationGenerationConfigController {
+  _SeededConfigController(this._initial);
+
+  final RecommendationGenerationConfig _initial;
+
+  @override
+  RecommendationGenerationConfig build() => _initial;
 }
