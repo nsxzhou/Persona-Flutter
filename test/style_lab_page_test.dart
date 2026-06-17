@@ -20,7 +20,7 @@ void main() {
     );
     await _pumpStyleLab(tester);
 
-    expect(find.text('Profile 档案库'), findsOneWidget);
+    expect(find.text('PROFILE 档案库'), findsOneWidget);
     expect(find.text('尚无 Profile 资产'), findsOneWidget);
     expect(find.text('新建 Profile'), findsOneWidget);
     expect(find.text('Voice Profile'), findsNothing);
@@ -287,7 +287,7 @@ void main() {
     );
     await _pumpStyleLab(tester);
 
-    expect(find.text('Profile 档案库'), findsOneWidget);
+    expect(find.text('PROFILE 档案库'), findsOneWidget);
     expect(find.text('冷雨风格'), findsWidgets);
     expect(tester.takeException(), isNull);
   });

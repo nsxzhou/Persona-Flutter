@@ -20,7 +20,7 @@ void main() {
     );
     await _pumpPlotLab(tester);
 
-    expect(find.text('Plot Profile 档案库'), findsOneWidget);
+    expect(find.text('PLOT PROFILE 档案库'), findsOneWidget);
     expect(find.text('尚无 Plot Profile 资产'), findsOneWidget);
     expect(find.text('新建 Profile'), findsOneWidget);
     expect(find.text('Story Engine'), findsNothing);

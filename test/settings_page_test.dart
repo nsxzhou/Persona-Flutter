@@ -9,6 +9,7 @@ import 'package:persona_flutter/src/core/image_generation/domain/image_generatio
 import 'package:persona_flutter/src/core/llm/domain/llm_client.dart';
 import 'package:persona_flutter/src/core/llm/domain/llm_request.dart';
 import 'package:persona_flutter/src/core/llm/domain/llm_stream_event.dart';
+import 'package:persona_flutter/src/core/ui/persona_page.dart';
 import 'package:persona_flutter/src/features/settings/application/image_provider_config_providers.dart';
 import 'package:persona_flutter/src/features/settings/application/local_backup_providers.dart';
 import 'package:persona_flutter/src/features/settings/application/provider_config_providers.dart';
@@ -41,11 +42,13 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    // Default tab is model config, LLM sub-tab selected
-    expect(find.text('LLM Provider'), findsOneWidget);
+    // Default tab is model config; both LLM and Image provider panels are shown.
+    // Each panel shows a major header label and a minor label in its empty state.
+    expect(find.text('LLM PROVIDER'), findsNWidgets(2));
+    expect(find.text('图像 PROVIDER'), findsNWidgets(2));
     expect(find.text('尚未配置 Provider'), findsOneWidget);
-    expect(find.text('新增 Provider'), findsWidgets);
-    // Tab bar is visible
+    expect(find.text('新增 Provider'), findsOneWidget);
+    // Sidebar categories are visible
     expect(find.text('模型配置'), findsOneWidget);
     expect(find.text('数据与备份'), findsOneWidget);
     expect(find.text('外观'), findsOneWidget);
@@ -210,11 +213,16 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('LLM Provider'), findsOneWidget);
-      expect(find.byIcon(Icons.network_check), findsNWidgets(2));
-      expect(find.byIcon(Icons.chevron_right), findsNWidgets(2));
-      expect(find.byIcon(Icons.edit_outlined), findsNWidgets(2));
-      expect(find.byIcon(Icons.delete_outline), findsNWidgets(2));
+      final llmPanel = find.ancestor(
+        of: find.text('LLM PROVIDER').first,
+        matching: find.byType(PersonaPanel),
+      );
+
+      expect(find.text('LLM PROVIDER'), findsOneWidget);
+      expect(find.descendant(of: llmPanel, matching: find.byIcon(Icons.network_check)), findsNWidgets(2));
+      expect(find.descendant(of: llmPanel, matching: find.byIcon(Icons.chevron_right)), findsNWidgets(2));
+      expect(find.descendant(of: llmPanel, matching: find.byIcon(Icons.edit_outlined)), findsNWidgets(2));
+      expect(find.descendant(of: llmPanel, matching: find.byIcon(Icons.delete_outline)), findsNWidgets(2));
       expect(find.text('deepseek'), findsOneWidget);
       expect(find.text('openai'), findsOneWidget);
       expect(find.text('sk-secret-deepseek'), findsNothing);
@@ -312,11 +320,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Switch to image sub-tab
-    await tester.tap(find.text('图像'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('图像 Provider'), findsOneWidget);
+    expect(find.text('图像 PROVIDER'), findsOneWidget);
     expect(find.text('NewAPI Image'), findsOneWidget);
     expect(find.textContaining('方形 1:1 · 1K'), findsOneWidget);
     expect(find.byIcon(Icons.auto_awesome_outlined), findsOneWidget);
@@ -350,12 +354,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Switch to image sub-tab first
-    await tester.tap(find.text('图像'));
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(find.widgetWithText(FilledButton, '新增'));
-    await tester.tap(find.widgetWithText(FilledButton, '新增'));
+    await tester.ensureVisible(find.widgetWithText(OutlinedButton, '新增图像 Provider'));
+    await tester.tap(find.widgetWithText(OutlinedButton, '新增图像 Provider'));
     await tester.pumpAndSettle();
 
     expect(find.text('新增图像 Provider'), findsWidgets);
