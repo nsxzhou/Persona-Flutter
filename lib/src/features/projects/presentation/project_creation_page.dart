@@ -568,7 +568,18 @@ class _FormSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            PersonaSectionHeader(title: title, description: description),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                WorkbenchSectionLabel(title, major: true),
+                Text(
+                  description,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 14),
             ...children,
           ],

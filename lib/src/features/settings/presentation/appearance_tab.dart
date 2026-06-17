@@ -15,15 +15,31 @@ class AppearanceTab extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          PersonaSectionHeader(
-            title: '外观',
-            description: '切换亮色或暗色主题。',
-            trailing: PersonaStatusPill(
-              label: themeMode == ThemeMode.dark ? '暗色' : '亮色',
-              icon: themeMode == ThemeMode.dark
-                  ? Icons.dark_mode_outlined
-                  : Icons.light_mode_outlined,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const WorkbenchSectionLabel('外观', major: true),
+                    Text(
+                      '切换亮色或暗色主题。',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              PersonaStatusPill(
+                label: themeMode == ThemeMode.dark ? '暗色' : '亮色',
+                icon: themeMode == ThemeMode.dark
+                    ? Icons.dark_mode_outlined
+                    : Icons.light_mode_outlined,
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           _ThemeOptionCard(

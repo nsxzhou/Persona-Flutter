@@ -23,34 +23,44 @@ class ImageProviderSettingsPanel extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 16, 0),
-            child: PersonaSectionHeader(
-              title: '图像 Provider',
-              description: '管理 Bearer 生图连接，用样例生成测试真实可用性。',
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  PersonaStatusPill(
-                    label: '${items.length} 个配置',
-                    icon: Icons.image_outlined,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const WorkbenchSectionLabel('图像 Provider', major: true),
+                Text(
+                  '管理 Bearer 生图连接，用样例生成测试真实可用性。',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
-                  const SizedBox(width: 10),
-                  FilledButton.icon(
-                    onPressed: () => _showImageProviderDialog(context),
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('新增'),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    PersonaStatusPill(
+                      label: '${items.length} 个配置',
+                      icon: Icons.image_outlined,
+                    ),
+                    const SizedBox(width: 10),
+                    FilledButton.icon(
+                      onPressed: () => _showImageProviderDialog(context),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('新增'),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
           if (items.isEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-              child: PersonaEmptyStateCard(
-                icon: Icons.image_outlined,
+              child: WorkbenchEmptyState(
+                sectionLabel: '图像 Provider',
                 title: '尚未配置图像 Provider',
                 description: '添加 Base URL、API Key 和默认模型后，可以运行样例文生图测试。',
-                action: OutlinedButton.icon(
+                icon: Icons.image_outlined,
+                actions: OutlinedButton.icon(
                   onPressed: () => _showImageProviderDialog(context),
                   icon: const Icon(Icons.add),
                   label: const Text('新增图像 Provider'),

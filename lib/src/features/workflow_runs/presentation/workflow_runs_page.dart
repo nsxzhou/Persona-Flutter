@@ -240,10 +240,11 @@ class _EmptyWorkflowRuns extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const PersonaEmptyStateCard(
-      icon: Icons.check_circle_outline,
+    return const WorkbenchEmptyState(
+      sectionLabel: '任务',
       title: '尚未创建本地工作流任务。',
       description: '这里会显示最近的本地长任务、失败原因和可恢复任务。',
+      icon: Icons.check_circle_outline,
     );
   }
 }
@@ -253,10 +254,11 @@ class _EmptyFilteredWorkflowRuns extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const PersonaEmptyStateCard(
-      icon: Icons.filter_alt_off_outlined,
+    return const WorkbenchEmptyState(
+      sectionLabel: '任务',
       title: '没有符合筛选条件的任务。',
       description: '调整状态或类型筛选后再查看。',
+      icon: Icons.filter_alt_off_outlined,
     );
   }
 }

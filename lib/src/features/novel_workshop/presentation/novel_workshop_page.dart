@@ -457,10 +457,11 @@ class _MissingProjectPage extends StatelessWidget {
         ),
       ],
       children: const [
-        PersonaEmptyStateCard(
-          icon: Icons.link_off_outlined,
+        WorkbenchEmptyState(
+          sectionLabel: '项目状态',
           title: '无法打开工作台',
           description: '该项目可能已被删除或归档数据不可用。',
+          icon: Icons.link_off_outlined,
         ),
       ],
     );
@@ -486,10 +487,11 @@ class _ArchivedProjectPage extends StatelessWidget {
         ),
       ],
       children: const [
-        PersonaEmptyStateCard(
-          icon: Icons.inventory_2_outlined,
+        WorkbenchEmptyState(
+          sectionLabel: '项目状态',
           title: '归档项目不可编辑',
           description: '请先在项目页恢复项目，再打开写作工作台。',
+          icon: Icons.inventory_2_outlined,
         ),
       ],
     );
@@ -740,6 +742,18 @@ String _bibleCompletenessLabel(ProjectBible bible) {
   ];
   final filled = sections.where((value) => value.trim().isNotEmpty).length;
   return '$filled/${sections.length}';
+}
+
+double _bibleCompletenessFraction(ProjectBible bible) {
+  final sections = [
+    bible.descriptionMarkdown,
+    bible.worldBuildingMarkdown,
+    bible.charactersBlueprintMarkdown,
+    bible.outlineMasterMarkdown,
+    bible.outlineDetailYaml,
+  ];
+  final filled = sections.where((value) => value.trim().isNotEmpty).length;
+  return sections.isEmpty ? 0.0 : filled / sections.length;
 }
 
 bool _projectBibleIsEmpty(ProjectBible bible) {

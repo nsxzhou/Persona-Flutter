@@ -1185,8 +1185,8 @@ class _ReaderChapterIllustrationRail extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             if (runs.isEmpty && illustrations.isEmpty)
-              const PersonaEmptyStateCard(
-                icon: Icons.photo_library_outlined,
+              const WorkbenchEmptyState(
+                sectionLabel: '插图审核',
                 title: '本章暂无插图',
                 description: '选中正文片段后可生成插图，草稿会先进入审核队列。',
               )

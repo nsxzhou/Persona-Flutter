@@ -45,8 +45,8 @@ class WorkflowRunDetailPage extends ConsumerWidget {
               ),
             ],
             children: const [
-              PersonaEmptyStateCard(
-                icon: Icons.link_off_outlined,
+              WorkbenchEmptyState(
+                sectionLabel: '任务',
                 title: '无法找到任务',
                 description: '没有可展示的状态、日志或 Prompt Trace。',
               ),
@@ -199,10 +199,18 @@ class _WorkflowRunDetailScaffoldState
                 padding: const EdgeInsets.fromLTRB(18, 18, 18, 12),
                 child: Row(
                   children: [
-                    const Expanded(
-                      child: PersonaSectionHeader(
-                        title: '运行时 Prompt Trace',
-                        description: '记录注入后的实际 LLM messages、输出摘要和失败摘要。',
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const WorkbenchSectionLabel('运行时 Prompt Trace', major: true),
+                          Text(
+                            '记录注入后的实际 LLM messages、输出摘要和失败摘要。',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -522,14 +530,22 @@ class _WorkflowOutputPreviewPanel extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const PersonaSectionHeader(
-              title: '任务产出预览',
-              description: '查看并处理该任务生成的可审阅内容。',
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const WorkbenchSectionLabel('任务产出预览', major: true),
+                Text(
+                  '查看并处理该任务生成的可审阅内容。',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             if (task.status == WorkflowTaskStatus.abandoned)
-              const PersonaEmptyStateCard(
-                icon: Icons.cancel_outlined,
+              const WorkbenchEmptyState(
+                sectionLabel: '任务',
                 title: '任务已放弃',
                 description: '该任务尚未应用的草稿、预览和 trace 已清空。',
               )
@@ -563,16 +579,16 @@ class _AssetWorkflowOutputPreview extends ConsumerWidget {
     return run.when(
       data: (item) {
         if (item == null) {
-          return const PersonaEmptyStateCard(
-            icon: Icons.link_off_outlined,
+          return const WorkbenchEmptyState(
+            sectionLabel: '资产',
             title: '资产任务记录缺失',
             description: '仍可在下方查看 Prompt Trace。',
           );
         }
         final draft = item.draftMarkdown.trim();
         if (draft.isEmpty) {
-          return const PersonaEmptyStateCard(
-            icon: Icons.rate_review_outlined,
+          return const WorkbenchEmptyState(
+            sectionLabel: '资产',
             title: '暂无资产草稿',
             description: '该任务没有可应用的资产草稿，可继续查看 trace。',
           );
@@ -646,8 +662,8 @@ class _IllustrationWorkflowOutputPreview extends StatelessWidget {
     return run.when(
       data: (item) {
         if (item == null) {
-          return const PersonaEmptyStateCard(
-            icon: Icons.link_off_outlined,
+          return const WorkbenchEmptyState(
+            sectionLabel: '插图',
             title: '插图任务记录缺失',
             description: '仍可在下方查看 Prompt Trace。',
           );
@@ -694,8 +710,8 @@ class _ChapterWorkflowOutputPreview extends StatelessWidget {
     return run.when(
       data: (item) {
         if (item == null) {
-          return const PersonaEmptyStateCard(
-            icon: Icons.link_off_outlined,
+          return const WorkbenchEmptyState(
+            sectionLabel: '章节',
             title: '章节生成记录缺失',
             description: '仍可在下方查看 Prompt Trace。',
           );
@@ -716,8 +732,8 @@ class _ChapterWorkflowOutputPreview extends StatelessWidget {
               const SizedBox(height: 10),
               _PreviewMarkdownSurface(text: draft),
             ] else
-              const PersonaEmptyStateCard(
-                icon: Icons.article_outlined,
+              const WorkbenchEmptyState(
+                sectionLabel: '章节',
                 title: '章节已生成',
                 description: '正文已写入章节记录，可从项目工作台进入编辑器查看。',
               ),
@@ -750,8 +766,8 @@ class _EnrichmentWorkflowOutputPreview extends ConsumerWidget {
     return batch.when(
       data: (item) {
         if (item == null) {
-          return const PersonaEmptyStateCard(
-            icon: Icons.link_off_outlined,
+          return const WorkbenchEmptyState(
+            sectionLabel: '加料',
             title: '加料批次缺失',
             description: '仍可在下方查看 Prompt Trace。',
           );
@@ -778,8 +794,8 @@ class _EnrichmentWorkflowOutputPreview extends ConsumerWidget {
                 ),
                 const SizedBox(height: 10),
                 if (itemList.isEmpty)
-                  const PersonaEmptyStateCard(
-                    icon: Icons.library_add_check_outlined,
+                  const WorkbenchEmptyState(
+                    sectionLabel: '加料',
                     title: '暂无加料条目',
                     description: '该批次没有可展示的逐项预览。',
                   )
@@ -1047,8 +1063,8 @@ class _PromptTraceTab extends StatelessWidget {
         if (markdown == null || markdown.trim().isEmpty) {
           return const Padding(
             padding: EdgeInsets.all(18),
-            child: PersonaEmptyStateCard(
-              icon: Icons.manage_search_outlined,
+            child: WorkbenchEmptyState(
+              sectionLabel: 'Prompt Trace',
               title: '暂无 Prompt Trace',
               description: '旧任务、未触发 LLM 的任务或 trace 写入失败时会出现此状态。',
             ),
@@ -1156,8 +1172,8 @@ class _PromptTraceStructuredView extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           if (trace.calls.isEmpty)
-            const PersonaEmptyStateCard(
-              icon: Icons.manage_search_outlined,
+            const WorkbenchEmptyState(
+              sectionLabel: 'LLM 调用',
               title: '暂无 LLM 调用',
               description: 'Trace 已创建，但当前还没有完成或失败的调用记录。',
             )

@@ -5,7 +5,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../core/ui/analysis_lab_widgets.dart';
 import '../../../core/ui/glass_container.dart';
 import '../../../core/ui/keep_alive_tab_wrapper.dart';
@@ -422,24 +422,29 @@ class _LibrarySummary extends StatelessWidget {
     final draftCount = assets
         .where((asset) => asset.kind == _StyleLibraryAssetKind.draft)
         .length;
-    return PersonaPanel(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const PersonaSectionHeader(
-            title: 'Profile 档案库',
-            description: '已保存档案和可入库草稿在这里统一管理；样本与任务作为来源上下文保留。',
-          ),
-          const SizedBox(height: 14),
-          _LibraryControlStrip(
-            savedCount: savedCount,
-            draftCount: draftCount,
-            activeCount: activeRuns.length,
-            filter: filter,
-            onFilterChanged: onFilterChanged,
-          ),
-        ],
+    return SizedBox(
+      width: double.infinity,
+      child: PersonaPanel(
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const WorkbenchSectionLabel('Profile 档案库', major: true),
+              Text('已保存档案和可入库草稿在这里统一管理；样本与任务作为来源上下文保留。', style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              )),
+            ]),
+            const SizedBox(height: 14),
+            _LibraryControlStrip(
+              savedCount: savedCount,
+              draftCount: draftCount,
+              activeCount: activeRuns.length,
+              filter: filter,
+              onFilterChanged: onFilterChanged,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -732,11 +737,13 @@ class _CreateProfileForm extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Expanded(
-                child: PersonaSectionHeader(
-                  title: '新建 Profile',
-                  description: '导入样本，运行分析后生成可保存的 Voice Profile 草稿。',
-                ),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const WorkbenchSectionLabel('新建 Profile', major: true),
+                  Text('导入样本，运行分析后生成可保存的 Voice Profile 草稿。', style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  )),
+                ]),
               ),
               IconButton(
                 tooltip: '关闭',
@@ -877,10 +884,11 @@ class _StyleLibraryList extends StatelessWidget {
           if (assets.isEmpty) {
             return Padding(
               padding: const EdgeInsets.all(18),
-              child: PersonaEmptyStateCard(
-                icon: Icons.folder_copy_outlined,
+              child: WorkbenchEmptyState(
+                sectionLabel: '档案库',
                 title: _emptyTitle(filter),
                 description: _emptyDescription(filter),
+                icon: Icons.folder_copy_outlined,
               ),
             );
           }
@@ -1205,10 +1213,12 @@ class _ActivityRunsPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const PersonaSectionHeader(
-            title: '任务活动',
-            description: '运行中、失败或尚未入库的任务保留在这里，可重跑失败任务。',
-          ),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const WorkbenchSectionLabel('任务活动', major: true),
+            Text('运行中、失败或尚未入库的任务保留在这里，可重跑失败任务。', style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            )),
+          ]),
           const SizedBox(height: 12),
           for (final run in runs) ...[
             _ActivityRunRow(
@@ -2114,10 +2124,11 @@ class _ReportTab extends StatelessWidget {
     if (text == null || text.isEmpty) {
       return const Padding(
         padding: EdgeInsets.all(18),
-        child: PersonaEmptyStateCard(
-          icon: Icons.article_outlined,
+        child: WorkbenchEmptyState(
+          sectionLabel: '分析报告',
           title: '暂无分析报告',
           description: '分析完成后会在这里展示只读报告。',
+          icon: Icons.article_outlined,
         ),
       );
     }
@@ -2141,10 +2152,11 @@ class _SampleTab extends StatelessWidget {
         if (item == null) {
           return Padding(
             padding: const EdgeInsets.all(18),
-            child: PersonaEmptyStateCard(
-              icon: Icons.text_snippet_outlined,
+            child: WorkbenchEmptyState(
+              sectionLabel: '来源样本',
               title: sourceTitle ?? '来源样本不可用',
               description: '保存的档案仍可使用，但来源样本文本无法读取。',
+              icon: Icons.text_snippet_outlined,
             ),
           );
         }
@@ -2203,10 +2215,11 @@ class _RunLogTab extends StatelessWidget {
         if (item == null) {
           return const Padding(
             padding: EdgeInsets.all(18),
-            child: PersonaEmptyStateCard(
-              icon: Icons.history_outlined,
+            child: WorkbenchEmptyState(
+              sectionLabel: '任务活动',
               title: '任务记录不可用',
               description: '没有找到对应分析任务。',
+              icon: Icons.history_outlined,
             ),
           );
         }

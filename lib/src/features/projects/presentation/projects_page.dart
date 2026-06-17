@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../core/ui/analysis_lab_widgets.dart';
 import '../../../core/ui/glass_container.dart';
 import '../../../core/ui/persona_page.dart';
@@ -258,11 +258,22 @@ class _ProjectListPanel extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(18, 12, 18, 10),
-            child: PersonaSectionHeader(
-              title: selectedStatus == ProjectStatus.active ? '写作档案' : '归档档案',
-              description: selectedStatus == ProjectStatus.active
-                  ? '维护本地写作项目的简介、创作配置和归档状态。'
-                  : '归档项目不会出现在默认工作区，可以恢复或永久删除。',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                WorkbenchSectionLabel(
+                  selectedStatus == ProjectStatus.active ? '写作档案' : '归档档案',
+                  major: true,
+                ),
+                Text(
+                  selectedStatus == ProjectStatus.active
+                      ? '维护本地写作项目的简介、创作配置和归档状态。'
+                      : '归档项目不会出现在默认工作区，可以恢复或永久删除。',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
           ),
           const Divider(height: 1),
@@ -288,15 +299,14 @@ class _EmptyProjectsState extends StatelessWidget {
   Widget build(BuildContext context) {
     final isArchived = status == ProjectStatus.archived;
 
-    return PersonaEmptyStateCard(
-      icon: isArchived
-          ? Icons.inventory_2_outlined
-          : Icons.library_books_outlined,
+    return WorkbenchEmptyState(
+      sectionLabel: isArchived ? '归档' : '项目',
       title: isArchived ? '没有归档项目' : '尚未创建项目',
       description: isArchived
           ? '归档后的项目会保留在这里，方便恢复或永久删除。'
           : '创建第一个本地写作档案后，可以在这里维护简介和创作配置。',
-      action: isArchived
+      icon: isArchived ? Icons.inventory_2_outlined : Icons.library_books_outlined,
+      actions: isArchived
           ? null
           : OutlinedButton.icon(
               onPressed: () => context.go('/projects/create'),
@@ -1174,7 +1184,18 @@ class _DialogSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            PersonaSectionHeader(title: title, description: description),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                WorkbenchSectionLabel(title, major: true),
+                Text(
+                  description,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 14),
             ...children,
           ],

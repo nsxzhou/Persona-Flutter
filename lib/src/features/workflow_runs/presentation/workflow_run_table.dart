@@ -15,11 +15,19 @@ class WorkflowRunTable extends StatelessWidget {
       padding: EdgeInsets.zero,
       child: Column(
         children: [
-          const Padding(
-            padding: EdgeInsets.all(18),
-            child: PersonaSectionHeader(
-              title: '工作流活动',
-              description: '用于分析、导入和生成任务的紧凑状态视图。',
+          Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const WorkbenchSectionLabel('工作流活动', major: true),
+                Text(
+                  '用于分析、导入和生成任务的紧凑状态视图。',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
           ),
           const Divider(height: 1),

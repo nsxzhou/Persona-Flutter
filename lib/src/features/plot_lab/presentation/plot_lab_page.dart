@@ -5,7 +5,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../core/ui/analysis_lab_widgets.dart';
 import '../../../core/ui/glass_container.dart';
 import '../../../core/ui/keep_alive_tab_wrapper.dart';
@@ -361,43 +361,48 @@ class _LibrarySummary extends StatelessWidget {
     final draftCount = assets
         .where((asset) => asset.kind == _PlotLibraryAssetKind.draft)
         .length;
-    return PersonaPanel(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const PersonaSectionHeader(
-            title: 'Plot Profile 档案库',
-            description: '已保存档案和可入库草稿在这里统一管理；样本、骨架与任务日志作为来源证据保留。',
-          ),
-          const SizedBox(height: 14),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SegmentedButton<_PlotLibraryFilter>(
-              segments: [
-                ButtonSegment(
-                  value: _PlotLibraryFilter.all,
-                  label: Text('全部 (${savedCount + draftCount})'),
-                ),
-                ButtonSegment(
-                  value: _PlotLibraryFilter.saved,
-                  label: Text('已保存 ($savedCount)'),
-                ),
-                ButtonSegment(
-                  value: _PlotLibraryFilter.drafts,
-                  label: Text('待保存 ($draftCount)'),
-                ),
-                ButtonSegment(
-                  value: _PlotLibraryFilter.activity,
-                  label: Text('任务 (${activeRuns.length})'),
-                ),
-              ],
-              selected: {filter},
-              showSelectedIcon: false,
-              onSelectionChanged: (value) => onFilterChanged(value.single),
+    return SizedBox(
+      width: double.infinity,
+      child: PersonaPanel(
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const WorkbenchSectionLabel('Plot Profile 档案库', major: true),
+              Text('已保存档案和可入库草稿在这里统一管理；样本、骨架与任务日志作为来源证据保留。', style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              )),
+            ]),
+            const SizedBox(height: 14),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SegmentedButton<_PlotLibraryFilter>(
+                segments: [
+                  ButtonSegment(
+                    value: _PlotLibraryFilter.all,
+                    label: Text('全部 (${savedCount + draftCount})'),
+                  ),
+                  ButtonSegment(
+                    value: _PlotLibraryFilter.saved,
+                    label: Text('已保存 ($savedCount)'),
+                  ),
+                  ButtonSegment(
+                    value: _PlotLibraryFilter.drafts,
+                    label: Text('待保存 ($draftCount)'),
+                  ),
+                  ButtonSegment(
+                    value: _PlotLibraryFilter.activity,
+                    label: Text('任务 (${activeRuns.length})'),
+                  ),
+                ],
+                selected: {filter},
+                showSelectedIcon: false,
+                onSelectionChanged: (value) => onFilterChanged(value.single),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -639,11 +644,13 @@ class _CreatePlotProfileForm extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Expanded(
-                child: PersonaSectionHeader(
-                  title: '新建 Plot Profile',
-                  description: '导入样本，运行分析后生成可保存的 Story Engine 草稿。',
-                ),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const WorkbenchSectionLabel('新建 Plot Profile', major: true),
+                  Text('导入样本，运行分析后生成可保存的 Story Engine 草稿。', style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  )),
+                ]),
               ),
               IconButton(
                 tooltip: '关闭',
@@ -784,10 +791,11 @@ class _PlotLibraryList extends StatelessWidget {
           if (assets.isEmpty) {
             return Padding(
               padding: const EdgeInsets.all(18),
-              child: PersonaEmptyStateCard(
-                icon: Icons.account_tree_outlined,
+              child: WorkbenchEmptyState(
+                sectionLabel: '档案库',
                 title: _emptyTitle(filter),
                 description: _emptyDescription(filter),
+                icon: Icons.account_tree_outlined,
               ),
             );
           }
@@ -1092,10 +1100,12 @@ class _ActivityRunsPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const PersonaSectionHeader(
-            title: '任务活动',
-            description: '运行中、失败或尚未入库的任务保留在这里，可重跑失败任务。',
-          ),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const WorkbenchSectionLabel('任务活动', major: true),
+            Text('运行中、失败或尚未入库的任务保留在这里，可重跑失败任务。', style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            )),
+          ]),
           const SizedBox(height: 12),
           for (final run in runs) ...[
             _ActivityRunRow(
@@ -1726,7 +1736,7 @@ class _PlotDetailBodyState extends State<_PlotDetailBody>
                 KeepAliveTabWrapper(
                   child: _MarkdownTab(
                     markdown: widget.skeletonMarkdown,
-                    emptyIcon: Icons.account_tree_outlined,
+                    sectionLabel: '全书骨架',
                     emptyTitle: '暂无全书骨架',
                     emptyDescription: '分析完成后会在这里展示只读骨架。',
                   ),
@@ -1734,7 +1744,7 @@ class _PlotDetailBodyState extends State<_PlotDetailBody>
                 KeepAliveTabWrapper(
                   child: _MarkdownTab(
                     markdown: widget.reportMarkdown,
-                    emptyIcon: Icons.article_outlined,
+                    sectionLabel: '分析报告',
                     emptyTitle: '暂无分析报告',
                     emptyDescription: '分析完成后会在这里展示只读报告。',
                   ),
@@ -1925,13 +1935,13 @@ class _MarkdownPreview extends StatelessWidget {
 class _MarkdownTab extends StatelessWidget {
   const _MarkdownTab({
     required this.markdown,
-    required this.emptyIcon,
+    required this.sectionLabel,
     required this.emptyTitle,
     required this.emptyDescription,
   });
 
   final String? markdown;
-  final IconData emptyIcon;
+  final String sectionLabel;
   final String emptyTitle;
   final String emptyDescription;
 
@@ -1941,8 +1951,8 @@ class _MarkdownTab extends StatelessWidget {
     if (text == null || text.isEmpty) {
       return Padding(
         padding: const EdgeInsets.all(18),
-        child: PersonaEmptyStateCard(
-          icon: emptyIcon,
+        child: WorkbenchEmptyState(
+          sectionLabel: sectionLabel,
           title: emptyTitle,
           description: emptyDescription,
         ),
@@ -1968,10 +1978,11 @@ class _SampleTab extends StatelessWidget {
         if (item == null) {
           return Padding(
             padding: const EdgeInsets.all(18),
-            child: PersonaEmptyStateCard(
-              icon: Icons.text_snippet_outlined,
+            child: WorkbenchEmptyState(
+              sectionLabel: '来源样本',
               title: sourceTitle ?? '来源样本不可用',
               description: '保存的档案仍可使用，但来源样本文本无法读取。',
+              icon: Icons.text_snippet_outlined,
             ),
           );
         }
@@ -2030,10 +2041,11 @@ class _RunLogTab extends StatelessWidget {
         if (item == null) {
           return const Padding(
             padding: EdgeInsets.all(18),
-            child: PersonaEmptyStateCard(
-              icon: Icons.history_outlined,
+            child: WorkbenchEmptyState(
+              sectionLabel: '任务活动',
               title: '任务记录不可用',
               description: '没有找到对应分析任务。',
+              icon: Icons.history_outlined,
             ),
           );
         }

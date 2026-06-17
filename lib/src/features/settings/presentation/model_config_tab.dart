@@ -15,60 +15,17 @@ import 'widgets/persona_info_pill.dart';
 import 'widgets/persona_status_indicator.dart';
 import 'widgets/provider_dialog.dart';
 
-enum _ProviderTab { llm, image }
-
-class ModelConfigTab extends StatefulWidget {
+class ModelConfigTab extends StatelessWidget {
   const ModelConfigTab({super.key});
 
   @override
-  State<ModelConfigTab> createState() => _ModelConfigTabState();
-}
-
-class _ModelConfigTabState extends State<ModelConfigTab> {
-  _ProviderTab _selectedTab = _ProviderTab.llm;
-
-  @override
   Widget build(BuildContext context) {
-    return Column(
+    return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildTabSwitcher(),
-        const SizedBox(height: 16),
-        if (_selectedTab == _ProviderTab.llm)
-          const _LlmProviderList()
-        else
-          const _ImageProviderList(),
-      ],
-    );
-  }
-
-  Widget _buildTabSwitcher() {
-    final textTheme = Theme.of(context).textTheme;
-    return Row(
-      children: [
-        SegmentedButton<_ProviderTab>(
-          showSelectedIcon: false,
-          segments: const [
-            ButtonSegment(
-              value: _ProviderTab.llm,
-              icon: Icon(Icons.smart_toy_outlined, size: 15),
-              label: Text('LLM'),
-            ),
-            ButtonSegment(
-              value: _ProviderTab.image,
-              icon: Icon(Icons.image_outlined, size: 15),
-              label: Text('图像'),
-            ),
-          ],
-          selected: {_selectedTab},
-          onSelectionChanged: (selection) {
-            setState(() => _selectedTab = selection.first);
-          },
-          style: ButtonStyle(
-            visualDensity: VisualDensity.compact,
-            textStyle: WidgetStatePropertyAll(textTheme.labelSmall),
-          ),
-        ),
+        _LlmProviderList(),
+        SizedBox(height: 16),
+        _ImageProviderList(),
       ],
     );
   }
@@ -111,35 +68,45 @@ class _LlmProviderPanel extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 16, 0),
-            child: PersonaSectionHeader(
-              title: 'LLM Provider',
-              description: '管理 OpenAI-compatible 连接，测试可用性与配置详情。',
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  PersonaStatusPill(
-                    label: '${items.length} 个配置',
-                    icon: Icons.key_outlined,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const WorkbenchSectionLabel('LLM Provider', major: true),
+                Text(
+                  '管理 OpenAI-compatible 连接，测试可用性与配置详情。',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
-                  const SizedBox(width: 10),
-                  FilledButton.icon(
-                    onPressed: () =>
-                        showProviderDialog(context, type: ProviderType.llm),
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('新增'),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    PersonaStatusPill(
+                      label: '${items.length} 个配置',
+                      icon: Icons.key_outlined,
+                    ),
+                    const SizedBox(width: 10),
+                    FilledButton.icon(
+                      onPressed: () =>
+                          showProviderDialog(context, type: ProviderType.llm),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('新增'),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
           if (items.isEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-              child: PersonaEmptyStateCard(
-                icon: Icons.key_outlined,
+              child: WorkbenchEmptyState(
+                sectionLabel: 'LLM Provider',
                 title: '尚未配置 Provider',
                 description: '添加 Base URL、API Key 和默认模型后，可以运行真实连接测试。',
-                action: OutlinedButton.icon(
+                icon: Icons.key_outlined,
+                actions: OutlinedButton.icon(
                   onPressed: () =>
                       showProviderDialog(context, type: ProviderType.llm),
                   icon: const Icon(Icons.add),
@@ -423,35 +390,45 @@ class _ImageProviderPanel extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 16, 0),
-            child: PersonaSectionHeader(
-              title: '图像 Provider',
-              description: '管理 Bearer 生图连接，用样例生成测试真实可用性。',
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  PersonaStatusPill(
-                    label: '${items.length} 个配置',
-                    icon: Icons.image_outlined,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const WorkbenchSectionLabel('图像 Provider', major: true),
+                Text(
+                  '管理 Bearer 生图连接，用样例生成测试真实可用性。',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
-                  const SizedBox(width: 10),
-                  FilledButton.icon(
-                    onPressed: () =>
-                        showProviderDialog(context, type: ProviderType.image),
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('新增'),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    PersonaStatusPill(
+                      label: '${items.length} 个配置',
+                      icon: Icons.image_outlined,
+                    ),
+                    const SizedBox(width: 10),
+                    FilledButton.icon(
+                      onPressed: () =>
+                          showProviderDialog(context, type: ProviderType.image),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('新增'),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
           if (items.isEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-              child: PersonaEmptyStateCard(
-                icon: Icons.image_outlined,
+              child: WorkbenchEmptyState(
+                sectionLabel: '图像 Provider',
                 title: '尚未配置图像 Provider',
                 description: '添加 Base URL、API Key 和默认模型后，可以运行样例文生图测试。',
-                action: OutlinedButton.icon(
+                icon: Icons.image_outlined,
+                actions: OutlinedButton.icon(
                   onPressed: () =>
                       showProviderDialog(context, type: ProviderType.image),
                   icon: const Icon(Icons.add),

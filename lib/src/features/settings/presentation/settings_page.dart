@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_tokens.dart';
 import '../../../core/ui/persona_page.dart';
 import 'appearance_tab.dart';
 import 'data_backup_tab.dart';
@@ -33,41 +34,37 @@ class _SettingsPageState extends State<SettingsPage> {
       title: '设置',
       description: '配置 OpenAI-compatible Provider、本地数据边界、导入导出和备份行为。',
       children: [
-        _buildTabBar(),
-        const SizedBox(height: 20),
-        _buildTabContent(),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _SettingsSidebar(
+              selectedTab: _selectedTab,
+              onTabChanged: (tab) => setState(() => _selectedTab = tab),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: _buildTabContent(),
+            ),
+          ],
+        ),
       ],
-    );
-  }
-
-  Widget _buildTabBar() {
-    final textTheme = Theme.of(context).textTheme;
-    return SegmentedButton<_SettingsTab>(
-      showSelectedIcon: false,
-      segments: [
-        for (final tab in _SettingsTab.values)
-          ButtonSegment(
-            value: tab,
-            icon: Icon(tab.icon, size: 15),
-            label: Text(tab.label),
-          ),
-      ],
-      selected: {_selectedTab},
-      onSelectionChanged: (selection) {
-        setState(() => _selectedTab = selection.first);
-      },
-      style: ButtonStyle(
-        visualDensity: VisualDensity.standard,
-        textStyle: WidgetStatePropertyAll(textTheme.labelSmall),
-      ),
     );
   }
 
   Widget _buildTabContent() {
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: 220),
       switchInCurve: Curves.easeOutCubic,
       switchOutCurve: Curves.easeInCubic,
+      layoutBuilder: (currentChild, previousChildren) {
+        return Stack(
+          alignment: Alignment.topLeft,
+          children: [
+            ...previousChildren,
+            currentChild ?? const SizedBox.shrink(),
+          ],
+        );
+      },
       child: switch (_selectedTab) {
         _SettingsTab.modelConfig => const ModelConfigTab(
           key: ValueKey('model-config'),
@@ -79,6 +76,104 @@ class _SettingsPageState extends State<SettingsPage> {
           key: ValueKey('appearance'),
         ),
       },
+    );
+  }
+}
+
+class _SettingsSidebar extends StatelessWidget {
+  const _SettingsSidebar({
+    required this.selectedTab,
+    required this.onTabChanged,
+  });
+
+  final _SettingsTab selectedTab;
+  final ValueChanged<_SettingsTab> onTabChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 220,
+      child: PersonaPanel(
+        padding: const EdgeInsets.all(6),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final tab in _SettingsTab.values)
+              _SettingsSidebarItem(
+                tab: tab,
+                isSelected: tab == selectedTab,
+                onTap: () => onTabChanged(tab),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsSidebarItem extends StatelessWidget {
+  const _SettingsSidebarItem({
+    required this.tab,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final _SettingsTab tab;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(AppRadii.panel - 4),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? colorScheme.primaryContainer.withValues(alpha: 0.35)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppRadii.panel - 4),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                tab.icon,
+                size: 18,
+                color: isSelected
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  tab.label,
+                  style: textTheme.labelLarge?.copyWith(
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    color: isSelected
+                        ? colorScheme.onSurface
+                        : colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              if (isSelected)
+                Icon(
+                  Icons.chevron_right,
+                  size: 16,
+                  color: colorScheme.primary,
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

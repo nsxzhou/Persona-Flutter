@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/database/local_backup_service.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../core/ui/persona_page.dart';
 import '../application/local_backup_providers.dart';
 
@@ -23,16 +23,32 @@ class DataBackupTab extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          PersonaSectionHeader(
-            title: '本地备份',
-            description: '导出或恢复完整本地 SQLite 数据库快照。',
-            trailing: PersonaStatusPill(
-              label: result == null ? '明文快照' : _operationLabel(result),
-              icon: result?.operation == LocalBackupOperation.restore
-                  ? Icons.restore_outlined
-                  : Icons.save_alt_outlined,
-              color: result == null ? colorScheme.error : colorScheme.primary,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const WorkbenchSectionLabel('本地备份', major: true),
+                    Text(
+                      '导出或恢复完整本地 SQLite 数据库快照。',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              PersonaStatusPill(
+                label: result == null ? '明文快照' : _operationLabel(result),
+                icon: result?.operation == LocalBackupOperation.restore
+                    ? Icons.restore_outlined
+                    : Icons.save_alt_outlined,
+                color: result == null ? colorScheme.error : colorScheme.primary,
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           LayoutBuilder(
