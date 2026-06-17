@@ -1,8 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/plot_lab/presentation/plot_lab_page.dart';
-import '../../features/market_scan/presentation/recommendation_page.dart';
+import '../../features/market_scan/presentation/recommendation_shell.dart';
 import '../../features/novel_workshop/presentation/novel_workshop_page.dart';
 import '../../features/projects/presentation/project_creation_page.dart';
 import '../../features/projects/presentation/projects_page.dart';
@@ -32,7 +33,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: 'recommend',
-                    builder: (context, state) => const RecommendationPage(),
+                    redirect: (context, state) {
+                      if (state.uri.path == '/projects/recommend') {
+                        return '/projects/recommend/market-data';
+                      }
+                      return null;
+                    },
+                    routes: [
+                      GoRoute(
+                        path: ':section',
+                        pageBuilder: (context, state) => NoTransitionPage<void>(
+                          key: const ValueKey('recommendation-shell'),
+                          child: RecommendationShell(
+                            section:
+                                state.pathParameters['section'] ?? 'market-data',
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   GoRoute(
                     path: 'create',
