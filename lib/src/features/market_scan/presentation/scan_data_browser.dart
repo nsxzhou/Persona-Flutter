@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/persona_page.dart';
 import '../application/market_scan_providers.dart';
+import '../application/recommendation_generation_config_provider.dart';
+import '../domain/chart_key.dart';
 import '../domain/market_book.dart';
 import '../domain/market_ranking.dart';
 import '../domain/market_scan_run.dart';
+import 'widgets/recommendation_sub_nav.dart';
 
 // ── Widget ──────────────────────────────────────────────────────────
 
@@ -144,73 +148,22 @@ class _ScanDataBrowserState extends ConsumerState<ScanDataBrowser> {
   // ── Rankings Workspace ─────────────────────────────────────────
 
   Widget _buildRankingsWorkspace(ScanDataBundle bundle) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
     final bookMap = bundle.bookById;
-    final filters = <MarketPlatform?>[null, ...MarketPlatform.values];
     final groups = _buildChartGroups(bundle);
     final selectedGroup = groups.isEmpty ? null : _selectedGroup(groups);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '排行榜数据',
-                    style: textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '按平台和榜单阅览 ${bundle.totalRankingEntryCount} 条榜单记录；书籍样本 ${bundle.totalBookCount} 本。',
-                    style: textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            PersonaStatusPill(
-              label: '${bundle.chartCount} 个榜单',
-              icon: Icons.leaderboard_outlined,
-            ),
-          ],
+        _RankingsWorkspaceHeader(
+          bundle: bundle,
+          platformFilter: _platformFilter,
+          onPlatformFilterChanged: (platform) => setState(() {
+            _platformFilter = platform;
+            _selectedChartKey = null;
+          }),
         ),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: filters.map((p) {
-            final selected = _platformFilter == p;
-            final count = p == null
-                ? bundle.totalRankingEntryCount
-                : bundle.rankingEntryCountForPlatform(p);
-            final label = p == null ? '全部' : _platformLabel(p.name);
-
-            return _PlatformFilterChip(
-              key: ValueKey('ranking-platform-filter-${p?.name ?? 'all'}'),
-              label: '$label $count条',
-              icon: p == null ? Icons.library_books_outlined : _platformIcon(p),
-              color: p == null
-                  ? colorScheme.onSurfaceVariant
-                  : _platformColor(p, colorScheme),
-              selected: selected,
-              onPressed: () => setState(() {
-                _platformFilter = p;
-                _selectedChartKey = null;
-              }),
-            );
-          }).toList(),
-        ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
         _RankingToolbar(
           searchController: _searchController,
           sort: _sort,
@@ -241,6 +194,7 @@ class _ScanDataBrowserState extends ConsumerState<ScanDataBrowser> {
                       bookMap: bookMap,
                       searchQuery: _searchController.text,
                       sort: _sort,
+                      onSetAsReference: _setAsReferenceAction(group),
                     ),
                   ],
                 );
@@ -265,6 +219,7 @@ class _ScanDataBrowserState extends ConsumerState<ScanDataBrowser> {
                       bookMap: bookMap,
                       searchQuery: _searchController.text,
                       sort: _sort,
+                      onSetAsReference: _setAsReferenceAction(group),
                     ),
                   ),
                 ],
@@ -291,7 +246,7 @@ class _ScanDataBrowserState extends ConsumerState<ScanDataBrowser> {
       if (platform == null) {
         continue;
       }
-      final key = _chartKey(platform, ranking.chartName);
+      final key = buildChartKey(platform, ranking.chartName);
       grouped.putIfAbsent(
         key,
         () => _MutableRankingChartGroup(
@@ -332,10 +287,21 @@ class _ScanDataBrowserState extends ConsumerState<ScanDataBrowser> {
     }
     return groups.first;
   }
-}
 
-String _chartKey(MarketPlatform platform, String chartName) {
-  return '${platform.name}::$chartName';
+  VoidCallback? _setAsReferenceAction(_RankingChartGroup group) {
+    if (widget.showHeader) {
+      return null;
+    }
+    return () {
+      ref
+          .read(recommendationGenerationConfigControllerProvider.notifier)
+          .addReferenceFromRanking(
+            platform: group.platform,
+            chartKey: group.key,
+          );
+      context.go(RecommendationSection.recommendations.basePath);
+    };
+  }
 }
 
 class _MutableRankingChartGroup {
@@ -365,10 +331,95 @@ class _RankingChartGroup {
   final List<MarketRanking> rankings;
 }
 
+class _RankingsWorkspaceHeader extends StatelessWidget {
+  const _RankingsWorkspaceHeader({
+    required this.bundle,
+    required this.platformFilter,
+    required this.onPlatformFilterChanged,
+  });
+
+  final ScanDataBundle bundle;
+  final MarketPlatform? platformFilter;
+  final ValueChanged<MarketPlatform?> onPlatformFilterChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final filters = <MarketPlatform?>[null, ...MarketPlatform.values];
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  '排行榜数据',
+                  style: textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '${bundle.chartCount} 榜单 · ${bundle.totalRankingEntryCount} 条 · ${bundle.totalBookCount} 书',
+                  style: textTheme.labelSmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: filters.map((platform) {
+                final selected = platformFilter == platform;
+                final count = platform == null
+                    ? bundle.totalRankingEntryCount
+                    : bundle.rankingEntryCountForPlatform(platform);
+                final shortLabel = platform == null
+                    ? '全部'
+                    : _platformShortLabel(platform);
+
+                return _PlatformFilterChip(
+                  key: ValueKey(
+                    'ranking-platform-filter-${platform?.name ?? 'all'}',
+                  ),
+                  label: shortLabel,
+                  count: count,
+                  icon: platform == null
+                      ? Icons.library_books_outlined
+                      : _platformIcon(platform),
+                  color: platform == null
+                      ? colorScheme.onSurfaceVariant
+                      : _platformColor(platform, colorScheme),
+                  selected: selected,
+                  onPressed: () => onPlatformFilterChanged(platform),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _PlatformFilterChip extends StatelessWidget {
   const _PlatformFilterChip({
     super.key,
     required this.label,
+    this.count,
     required this.icon,
     required this.color,
     required this.selected,
@@ -376,6 +427,7 @@ class _PlatformFilterChip extends StatelessWidget {
   });
 
   final String label;
+  final int? count;
   final IconData icon;
   final Color color;
   final bool selected;
@@ -420,9 +472,22 @@ class _PlatformFilterChip extends StatelessWidget {
                 label,
                 style: textTheme.labelSmall?.copyWith(
                   color: contentColor,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
+              if (count != null) ...[
+                const SizedBox(width: 4),
+                Text(
+                  '$count',
+                  style: textTheme.labelSmall?.copyWith(
+                    color: selected
+                        ? contentColor.withValues(alpha: 0.85)
+                        : colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -925,12 +990,14 @@ class _RankingDetailList extends StatelessWidget {
     required this.bookMap,
     required this.searchQuery,
     required this.sort,
+    this.onSetAsReference,
   });
 
   final _RankingChartGroup group;
   final Map<String, MarketBook> bookMap;
   final String searchQuery;
   final _RankingSort sort;
+  final VoidCallback? onSetAsReference;
 
   @override
   Widget build(BuildContext context) {
@@ -968,6 +1035,14 @@ class _RankingDetailList extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 10),
+                  if (onSetAsReference != null)
+                    TextButton.icon(
+                      key: const ValueKey('ranking-set-as-reference'),
+                      onPressed: onSetAsReference,
+                      icon: const Icon(Icons.bookmark_add_outlined, size: 16),
+                      label: const Text('设为生成参考'),
+                    ),
+                  if (onSetAsReference != null) const SizedBox(width: 4),
                   DecoratedBox(
                     decoration: BoxDecoration(
                       color: platformColor.withValues(alpha: 0.1),
