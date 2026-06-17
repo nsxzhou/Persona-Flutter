@@ -27,8 +27,20 @@ String stripFrontMatter(String markdown) {
 String stripMarkdownFence(String raw) {
   final trimmed = raw.trim();
   final match = RegExp(
-    r'^```(?:markdown|md)?\s*([\s\S]*?)\s*```$',
+    r'^```(?:markdown|md|yaml|yml)?\s*([\s\S]*?)\s*```$',
     caseSensitive: false,
   ).firstMatch(trimmed);
   return match?.group(1)?.trim() ?? trimmed;
+}
+
+/// Normalizes YAML front matter documents for parsing.
+///
+/// - Strips code fences
+/// - Ensures opening `---` is followed by a newline
+String normalizeYamlMarkdownDocument(String raw) {
+  var normalized = stripMarkdownFence(raw).trimLeft();
+  if (normalized.startsWith('---') && !normalized.startsWith('---\n')) {
+    normalized = '---\n${normalized.substring(3).trimLeft()}';
+  }
+  return normalized;
 }
