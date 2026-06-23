@@ -110,24 +110,13 @@ class CharacterGraphParser {
         _parseRelationship(relationshipItems[index], 'relationships[$index]'),
     ];
 
-    // Cross-validate: every relationship endpoint must reference a known character.
-    // Only validate when the YAML defines characters; relationship-only patches
-    // reference characters that already exist in the database.
-    if (characters.isNotEmpty) {
-      final characterNames = {for (final c in characters) c.name};
-      final errors = <String>[];
-      for (final rel in relationships) {
-        if (!characterNames.contains(rel.fromName)) {
-          errors.add('关系引用的角色不存在：${rel.fromName}');
-        }
-        if (!characterNames.contains(rel.toName)) {
-          errors.add('关系引用的角色不存在：${rel.toName}');
-        }
-      }
-      if (errors.isNotEmpty) {
-        throw CharacterGraphValidationException(errors.join('\n'));
-      }
-    }
+    // NOTE: Relationship endpoint validation is intentionally skipped here.
+    // This parser is used in two contexts:
+    //   1. Full graph editing (YAML contains all characters — endpoints are self-contained)
+    //   2. Incremental Memory Patches (YAML contains only changed characters;
+    //      relationships may reference characters that already exist in the database)
+    // Cross-validation against only YAML-local names would falsely reject valid #2 patches.
+    // The application layer (applyCharactersYaml) validates endpoints with full DB context.
 
     return CharacterGraphDocument(
       characters: characters,
