@@ -188,7 +188,7 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
                     onGenerate: _generate,
                   ),
                   const SizedBox(height: 48),
-                  EditorialSectionHeader(
+                  const EditorialSectionHeader(
                     title: '三方向对照',
                     description: '比较热度、竞争、可行性和风险，选择最适合的开书方向。',
                   ),

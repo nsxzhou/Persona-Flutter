@@ -187,7 +187,7 @@ class _MarketDataContent extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 48),
-        EditorialSectionHeader(
+        const EditorialSectionHeader(
           title: '扫描历史',
           description: '保留最近的市场扫描结果；任务审计仍在 Workflow Runs 中查看。',
         ),

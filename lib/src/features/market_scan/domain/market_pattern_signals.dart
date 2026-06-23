@@ -1,4 +1,5 @@
 /// Deterministic pattern signals computed from chart data before LLM analysis.
+library;
 
 class MarketPatternSignals {
   const MarketPatternSignals({
