@@ -34,7 +34,6 @@ String projectSynopsisForDirection(RecommendationDirection direction) {
     ..writeln(direction.synopsis.trim())
     ..writeln()
     ..writeln('## 开书方案')
-    ..writeln('- 方向角色：${direction.directionRole}')
     ..writeln('- 主角：${direction.protagonist}')
     ..writeln('- 核心机制：${direction.coreMechanism}')
     ..writeln('- 前三章钩子：${direction.firstThreeChaptersHook}')

@@ -47,7 +47,7 @@ final class MarketRecommendationControllerProvider
 }
 
 String _$marketRecommendationControllerHash() =>
-    r'bbcba7b694809b5c8bdbc6764943ab2d54854e51';
+    r'2a001093e5f7868868618633e4aea8dd279d0c37';
 
 abstract class _$MarketRecommendationController
     extends $Notifier<MarketRecommendationState> {

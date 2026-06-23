@@ -9,7 +9,6 @@ part of 'recommendation_direction.dart';
 _RecommendationDirection _$RecommendationDirectionFromJson(
   Map<String, dynamic> json,
 ) => _RecommendationDirection(
-  directionRole: json['directionRole'] as String,
   suggestedTitle: json['suggestedTitle'] as String,
   titleCandidates: (json['titleCandidates'] as List<dynamic>)
       .map(
@@ -43,7 +42,6 @@ _RecommendationDirection _$RecommendationDirectionFromJson(
 Map<String, dynamic> _$RecommendationDirectionToJson(
   _RecommendationDirection instance,
 ) => <String, dynamic>{
-  'directionRole': instance.directionRole,
   'suggestedTitle': instance.suggestedTitle,
   'titleCandidates': instance.titleCandidates,
   'synopsis': instance.synopsis,

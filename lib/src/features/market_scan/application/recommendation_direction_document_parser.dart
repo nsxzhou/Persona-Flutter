@@ -6,18 +6,16 @@ import '../domain/recommendation_direction.dart';
 class RecommendationDirectionDocumentParser {
   const RecommendationDirectionDocumentParser();
 
-  static const directionCount = 3;
+  static const directionCount = 6;
   static const titleCandidateCount = 3;
-  static const minSynopsisCharacters = 120;
-  static const maxSynopsisCharacters = 220;
-  static const directionRoles = ['稳妥热题', '相邻变体', '高风险高收益'];
+  static const minSynopsisCharacters = 80;
+  static const maxSynopsisCharacters = 300;
   static const _allowedTopLevelFields = {
     'format',
     'target_platform',
     'directions',
   };
   static const _allowedDirectionFields = {
-    'direction_role',
     'suggested_title',
     'title_candidates',
     'synopsis',
@@ -120,7 +118,7 @@ class RecommendationDirectionDocumentParser {
       );
       if (directionItems.length != directionCount) {
         throw const RecommendationDirectionValidationException(
-          'YAML directions 必须固定输出 3 个方向。',
+          'YAML directions 必须固定输出 6 个方向。',
         );
       }
 
@@ -153,13 +151,6 @@ class RecommendationDirectionDocumentParser {
       allowed: _allowedDirectionFields,
       scope: scope,
     );
-    final directionRole = _requiredString(fields, 'direction_role', scope);
-    final expectedRole = directionRoles[index];
-    if (directionRole != expectedRole) {
-      throw RecommendationDirectionValidationException(
-        '$scope 的 direction_role 必须是 $expectedRole。',
-      );
-    }
 
     final titleCandidates = _parseTitleCandidates(
       fields['title_candidates'],
@@ -197,15 +188,16 @@ class RecommendationDirectionDocumentParser {
       );
     }
 
-    final feasibility = _requiredString(fields, 'feasibility', scope);
-    if (!const {'高', '中', '低'}.contains(feasibility)) {
+    final rawFeasibility = _requiredString(fields, 'feasibility', scope);
+    final feasibility = _normalizeFeasibility(rawFeasibility);
+    if (feasibility == null) {
       throw RecommendationDirectionValidationException(
-        '$scope 的 feasibility 必须是 高/中/低。',
+        '$scope 的 feasibility 必须是 高/中/低 '
+        '（接受"高（推荐）"、"中等"、"较高"等同义写法）。',
       );
     }
 
     return RecommendationDirection(
-      directionRole: directionRole,
       suggestedTitle: suggestedTitle,
       titleCandidates: titleCandidates,
       synopsis: synopsis,
@@ -432,6 +424,46 @@ class RecommendationDirectionDocumentParser {
       throw RecommendationDirectionValidationException('$scope 过于泛化。');
     }
     return title;
+  }
+
+  /// 把 LLM 输出的 feasibility 文案归一为 高/中/低。
+  /// 接受 "高"、 "高（推荐）"、 "较高"、 "中等"、 "中（可行）"、 "较低"、 "低" 等同义写法。
+  /// 匹配规则：
+  /// 1. 优先按完整关键词匹配（高/中/低）。
+  /// 2. 否则去括号注释和末尾标点后按 substring 匹配。
+  /// 3. "不高" 视为否定高，落到中/低分支。
+  /// 4. 都不匹配返回 null，调用方决定抛错。
+  String? _normalizeFeasibility(String raw) {
+    if (raw.isEmpty) return null;
+    final trimmed = raw.trim();
+    const exact = {'高', '中', '低'};
+    if (exact.contains(trimmed)) {
+      return trimmed;
+    }
+    // 去掉括号注释和末尾标点。
+    final cleaned = trimmed
+        .replaceAll(RegExp(r'[（(][^）)]*[）)]'), '')
+        .replaceAll(RegExp(r'[，。；：、,.；:]+$'), '')
+        .trim();
+    if (exact.contains(cleaned)) {
+      return cleaned;
+    }
+    // 子串匹配（按 高 > 低 > 中 的优先级，且过滤 "不高"）。
+    if (cleaned.contains('高') && !cleaned.contains('不高')) {
+      return '高';
+    }
+    if (cleaned.contains('低') && !cleaned.contains('不低')) {
+      return '低';
+    }
+    if (cleaned.contains('中') ||
+        cleaned.contains('中等') ||
+        cleaned.contains('一般') ||
+        cleaned.contains('可行') ||
+        cleaned.contains('适中') ||
+        cleaned.contains('普通')) {
+      return '中';
+    }
+    return null;
   }
 
   String _extractDirectionMarkdown({

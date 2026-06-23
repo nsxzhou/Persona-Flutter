@@ -7,6 +7,7 @@ import 'package:persona_flutter/src/core/llm/domain/llm_request.dart';
 import 'package:persona_flutter/src/core/llm/domain/llm_stream_event.dart';
 import 'package:persona_flutter/src/features/market_scan/application/recommendation_direction_document_parser.dart';
 import 'package:persona_flutter/src/features/market_scan/application/recommendation_generation_service.dart';
+import 'package:persona_flutter/src/features/market_scan/application/recommendation_prompts.dart';
 import 'package:persona_flutter/src/features/market_scan/application/rule_engine.dart';
 import 'package:persona_flutter/src/features/market_scan/domain/market_book.dart';
 import 'package:persona_flutter/src/features/market_scan/domain/market_ranking.dart';
@@ -23,35 +24,32 @@ void main() {
     final directions = await harness.service.generate(
       request: const RecommendationGenerationRequest(
         targetPlatforms: [MarketPlatform.qidian],
-        genreQuery: '悬疑',
+        selectedGenres: ['悬疑'],
       ),
     );
 
-    expect(directions, hasLength(3));
+    expect(directions, hasLength(6));
     expect(directions.first.suggestedTitle, '雾港回声');
-    expect(directions.first.directionRole, '稳妥热题');
     expect(directions.first.titleCandidates, hasLength(3));
     expect(directions.first.targetPlatform, MarketPlatform.qidian);
-    expect(directions.first.synopsis.runes.length, greaterThanOrEqualTo(120));
-    expect(directions.first.synopsis.runes.length, lessThanOrEqualTo(220));
+    expect(directions.first.synopsis.runes.length, greaterThanOrEqualTo(80));
+    expect(directions.first.synopsis.runes.length, lessThanOrEqualTo(300));
     expect(directions.first.protagonist, contains('林砚'));
     expect(directions.first.coreMechanism, contains('三分钟真相'));
     expect(directions.first.firstThreeChaptersHook, contains('第三章'));
     expect(directions.first.mainConflict, contains('幕后组织'));
     expect(directions.first.firstPayoff, contains('女孩'));
     expect(directions.first.serialRisk, contains('公平性'));
-    expect(directions.first.detailMarkdown, startsWith('## 方向 1：稳妥热题｜雾港回声'));
+    expect(directions.first.detailMarkdown, startsWith('## 方向 1：雾港回声'));
 
     final systemPrompt = harness.client.requests.first.messages
         .singleWhere((message) => message.role == LlmMessageRole.system)
         .content;
     expect(systemPrompt, contains('YAML front matter'));
     expect(systemPrompt, contains('禁止 JSON'));
-    expect(systemPrompt, contains('120-220 字'));
+    expect(systemPrompt, contains('80-300'));
     expect(systemPrompt, contains('3 个候选书名'));
-    expect(systemPrompt, contains('稳妥热题'));
-    expect(systemPrompt, contains('相邻变体'));
-    expect(systemPrompt, contains('高风险高收益'));
+    expect(systemPrompt, contains('6 个方向'));
     expect(systemPrompt, contains('first_three_chapters_hook'));
     expect(systemPrompt, isNot(contains('JSON 数组')));
     expect(systemPrompt, isNot(contains('20-40字')));
@@ -66,7 +64,7 @@ void main() {
       ),
     );
 
-    expect(directions, hasLength(3));
+    expect(directions, hasLength(6));
     expect(harness.client.requests, hasLength(2));
     expect(
       harness.client.requests.last.messages.last.content,
@@ -87,12 +85,12 @@ void main() {
       ),
     );
 
-    expect(directions, hasLength(3));
+    expect(directions, hasLength(6));
     expect(harness.client.requests, hasLength(2));
     final repairPrompt = harness.client.requests.last.messages.last.content;
     expect(repairPrompt, contains('质量问题'));
     expect(repairPrompt, contains('market_validation'));
-    expect(repairPrompt, contains('稳妥热题'));
+    expect(repairPrompt, contains('6 个方向'));
   });
 
   test('parser rejects missing YAML delimiter', () {
@@ -137,20 +135,21 @@ void main() {
     );
   });
 
-  test('parser rejects direction role out of order', () {
+  test('parser rejects document with wrong number of directions', () {
+    final threeDirectionDoc = _validDocument().replaceAll(
+      RegExp(r'  - suggested_title: 星桥债主[\s\S]*validation_action: .+(?=\n---)'),
+      '',
+    );
     expect(
       () => const RecommendationDirectionDocumentParser().parse(
-        markdown: _validDocument().replaceFirst(
-          'direction_role: 稳妥热题',
-          'direction_role: 高风险高收益',
-        ),
+        markdown: threeDirectionDoc,
         expectedPlatform: MarketPlatform.qidian,
       ),
       throwsA(
         predicate(
           (error) =>
               error is RecommendationDirectionValidationException &&
-              error.toString().contains('direction_role 必须是 稳妥热题'),
+              error.toString().contains('6'),
         ),
       ),
     );
@@ -166,10 +165,113 @@ void main() {
         predicate(
           (error) =>
               error is RecommendationDirectionValidationException &&
-              error.toString().contains('synopsis 必须为'),
+              error.toString().contains('80-300'),
         ),
       ),
     );
+  });
+
+  test('parser accepts feasibility with qualifiers and stores normalized value',
+      () {
+    final raw = _validDocument().replaceAll(
+      'feasibility: 中',
+      'feasibility: 中（推荐）',
+    );
+    final directions = const RecommendationDirectionDocumentParser().parse(
+      markdown: raw,
+      expectedPlatform: MarketPlatform.qidian,
+    );
+    expect(directions.first.feasibility, '中');
+  });
+
+  test('parser normalizes 较高 / 中等 / 较低 to standard levels', () {
+    final parsed = const RecommendationDirectionDocumentParser();
+    final base = _validDocument();
+
+    final upHigh = base.replaceAll('feasibility: 中', 'feasibility: 较高');
+    expect(
+      parsed
+          .parse(markdown: upHigh, expectedPlatform: MarketPlatform.qidian)
+          .first
+          .feasibility,
+      '高',
+    );
+
+    final medium = base.replaceAll('feasibility: 中', 'feasibility: 中等');
+    expect(
+      parsed
+          .parse(markdown: medium, expectedPlatform: MarketPlatform.qidian)
+          .first
+          .feasibility,
+      '中',
+    );
+
+    final downLow = base.replaceAll('feasibility: 中', 'feasibility: 较低');
+    expect(
+      parsed
+          .parse(markdown: downLow, expectedPlatform: MarketPlatform.qidian)
+          .first
+          .feasibility,
+      '低',
+    );
+  });
+
+  test('parser rejects feasibility that does not map to a level', () {
+    final raw = _validDocument().replaceAll(
+      'feasibility: 中',
+      'feasibility: 不确定',
+    );
+    expect(
+      () => const RecommendationDirectionDocumentParser().parse(
+        markdown: raw,
+        expectedPlatform: MarketPlatform.qidian,
+      ),
+      throwsA(
+        predicate(
+          (error) =>
+              error is RecommendationDirectionValidationException &&
+              error.toString().contains('feasibility'),
+        ),
+      ),
+    );
+  });
+
+  test('user prompt no longer embeds heatScore / densityScore / '
+      'opportunityScore / appearanceCount / averageRank', () {
+    final harness = _buildHarness([_validDocument()]);
+    final systemPrompt = harness.client.requests.first.messages
+        .singleWhere((message) => message.role == LlmMessageRole.system)
+        .content;
+    final userPrompt = harness.client.requests.first.messages.last.content;
+
+    for (final token in const [
+      'heatScore',
+      'densityScore',
+      'opportunityScore',
+      'appearanceCount',
+      'averageRank',
+      '题材热度排名',
+      '竞品密度',
+      '市场机会评分',
+    ]) {
+      expect(systemPrompt, isNot(contains(token)),
+          reason: 'system prompt 不应再含 $token');
+      expect(userPrompt, isNot(contains(token)),
+          reason: 'user prompt 不应再含 $token');
+    }
+  });
+
+  test('buildRepairPrompt lists actionable fix per error', () {
+    const prompts = RecommendationPrompts();
+    final repair = prompts.buildRepairPrompt(
+      invalidOutput: '--- previous broken output ---',
+      parseError: '第 1 个推荐方向的 feasibility 必须是 高/中/低。',
+      targetPlatform: MarketPlatform.qidian,
+    );
+    expect(repair, contains('feasibility'));
+    expect(repair, contains('80-300'));
+    expect(repair, contains('上一轮输出'));
+    expect(repair, contains('禁止 JSON'));
   });
 }
 
@@ -451,8 +553,7 @@ String _validDocument({
 format: persona.market_recommendations
 target_platform: qidian
 directions:
-  - direction_role: 稳妥热题
-    suggested_title: $suggestedTitleOverride
+  - suggested_title: $suggestedTitleOverride
     title_candidates:
       - title: $titleOverride
         formula: 意境地名+悬疑钩子
@@ -482,8 +583,7 @@ directions:
     failure_risk: 设定解释过多会拖慢前三章爽点。
     serial_risk: 记忆改写规则如果不断加码，容易让案件推理失去公平性。
     validation_action: 先写黄金三章，测试读者是否能在第一章理解能力规则。
-  - direction_role: 相邻变体
-    suggested_title: 星桥债主
+  - suggested_title: 星桥债主
     title_candidates:
       - title: 星桥债主
         formula: 奇观物件+身份反差
@@ -513,8 +613,7 @@ directions:
     failure_risk: 讨债单元容易重复，后期需要更强主线债务。
     serial_risk: 债务单元如果只有换地图，会削弱升级线和主线债主身份的粘性。
     validation_action: 先设计前三个债务单元，检查每个单元是否有不同爽点。
-  - direction_role: 高风险高收益
-    suggested_title: 夜巡名单
+  - suggested_title: 夜巡名单
     title_candidates:
       - title: 夜巡名单
         formula: 职业行动+危险名单
@@ -544,10 +643,100 @@ directions:
     failure_risk: 单元案件如果和主线弱关联，会变成流水账。
     serial_risk: 每晚一案容易变成重复救场，必须每三章推进名单真相。
     validation_action: 先写案件列表和主线线索表，确保每三章推进一次名单真相。
+  - suggested_title: 深海信号
+    title_candidates:
+      - title: 深海信号
+        formula: 环境+悬念物件
+        rationale: 海洋场景加信号谜题，兼具奇观感和悬疑张力。
+      - title: 深渊回声
+        formula: 意象+声音线索
+        rationale: 暗示深海不可见世界的回声，保留悬念。
+      - title: 72小时声呐
+        formula: 时间限制+核心道具
+        rationale: 直接传递能力规则和时间紧迫感。
+    synopsis: 海洋声呐工程师沈潮在一次深海勘探中截获一段来自72小时后的声呐回波，发现每段信号都预示一场即将发生的海上事故。他能把回波拆解成具体坐标和时间，于是从阻止第一次钻井平台泄漏开始，在远洋货轮、海底实验室和废弃潜艇之间追踪信号源头，并必须在信号指向的最后一场灾难前揭开海底数据中心的真正用途。
+    protagonist: 声呐工程师沈潮，常年驻守海上平台，只想查清父亲十年前在海难中失踪的真相。
+    core_mechanism: 主角能截获来自72小时后的声呐回波，每段回波预示一场海上事故的具体位置和时间。
+    first_three_chapters_hook: 第一章截获异常回波并验证第一次预兆，第二章用坐标阻止钻井平台泄漏，第三章发现回波中藏着父亲失踪海域的编码。
+    main_conflict: 主角要在72小时窗口内阻止连环海上事故，同时追查信号源头背后操控海底数据中心的组织。
+    first_payoff: 主角用声呐回波提前定位事故现场，救下整船船员并拿到第一条指向幕后人的深海坐标。
+    genre_tags: [科幻悬疑, 海洋冒险, 强剧情]
+    target_word_count: 900000
+    target_platform: qidian
+    target_audience: 偏好技术流悬疑、海洋奇观和强主线推进的起点读者。
+    core_selling_point: 声呐工程师用未来回波阻止海上灾难，技术细节硬核且爽点密集。
+    market_heat_summary: 科幻悬疑标签在样本中持续出现，海洋题材提供差异化入口。
+    competition_summary: 海洋题材新书较少，声呐工程师职业设定可形成辨识度。
+    market_validation: 当前平台月榜样本《旧港谜案录》的强剧情和《档案归零》的机制型悬念证明技术流悬疑有稳定读者基础。
+    differentiation: 不做传统刑侦或都市异能，用海洋声呐技术制造信息差和连续反转。
+    feasibility: 中
+    failure_risk: 技术设定解释过多可能拖慢前三章节奏。
+    serial_risk: 每次事故的救援模式如果重复，会削弱紧张感和读者期待。
+    validation_action: 先写前三次事故救援，确保每次都有不同的技术手段和情感爽点。
+  - suggested_title: 纸上江湖
+    title_candidates:
+      - title: 纸上江湖
+        formula: 载体+意象世界
+        rationale: 古书载体暗示隐藏世界，兼顾文化感和悬疑感。
+      - title: 残卷猎人
+        formula: 身份+行动
+        rationale: 直接传递主角职业和行动线，适合强剧情读者。
+      - title: 字里藏刀
+        formula: 成语变体+危险暗示
+        rationale: 暗示文字中隐藏杀机，保留悬念和文化底蕴。
+    synopsis: 古籍修复师顾九辞在修补一本明代残卷时发现夹层中藏着一份活的江湖名册，名册上的人物至今仍在暗中活动。她能通过修复不同古书触发名册上的线索更新，于是从追查第一桩与残卷关联的现代失踪案开始，在拍卖行、私人藏书楼和地下书商之间拼凑真相，并必须在名册最后一页被销毁前揭露操控古籍流通网络的幕后势力。
+    protagonist: 古籍修复师顾九辞，师承老一辈修复名家，只想守住师父留下的修复工坊。
+    core_mechanism: 每修复一本特定古书，名册上就会更新一条线索，指向当前仍在活动的江湖人物和未结悬案。
+    first_three_chapters_hook: 第一章修复残卷触发名册更新，第二章线索指向一桩现代失踪案，第三章主角用古籍知识识破拍卖行伪造品并救下被追杀的书商。
+    main_conflict: 主角要在名册被销毁前追完所有线索，同时查清谁在系统性地销毁与名册关联的古籍。
+    first_payoff: 主角用修复技术还原被涂改的名册条目，当场揭露拍卖行内鬼并救下掌握关键残卷的线人。
+    genre_tags: [文化悬疑, 古玩江湖, 强剧情]
+    target_word_count: 850000
+    target_platform: qidian
+    target_audience: 偏好文化底蕴、悬疑推理和职业流的起点读者。
+    core_selling_point: 古籍修复师用修复技术破解活的名册，把文化知识和悬疑爽点绑定。
+    market_heat_summary: 文化悬疑和职业流标签在样本中有稳定热度，古玩题材提供差异化入口。
+    competition_summary: 古玩鉴定类新书有一定密度，但古籍修复视角较为稀缺。
+    market_validation: 当前平台月榜样本《旧港谜案录》的强剧情和职业代入感证明技术流主角有市场基础。
+    differentiation: 不做传统鉴宝文，用修复技术和活名册制造连续悬疑线。
+    feasibility: 中
+    failure_risk: 古籍知识过多可能让非文化向读者失去耐心。
+    serial_risk: 每本书修复触发线索的模式如果重复，会削弱新鲜感。
+    validation_action: 先设计前四本古书和对应线索，确保每条线索推动不同层面的真相。
+  - suggested_title: 倒计时棋盘
+    title_candidates:
+      - title: 倒计时棋盘
+        formula: 时间机制+核心道具
+        rationale: 直接传递紧迫感和博弈属性，吸引策略向读者。
+      - title: 终局推演
+        formula: 棋类术语+悬念
+        rationale: 暗示终局博弈，保留悬疑和智力对抗感。
+      - title: 每步都在倒数
+        formula: 行动+紧迫感
+        rationale: 口语化表达紧迫节奏，适合爽文读者。
+    synopsis: 围棋天才陆弈在一次网络对局中被拉入一个实时倒计时棋盘，棋盘上每一步落子都会在现实中触发对应的事件。他能通过棋局推演提前48小时看到事件走向，于是从阻止第一起被棋局操控的商战阴谋开始，在地下棋局、金融暗盘和科技公司的博弈中反向追踪设局者，并必须在最后一手棋落下前揭开棋盘背后的真实赌注。
+    protagonist: 围棋天才陆弈，因心理障碍退出职业棋坛，靠在网上下彩棋谋生。
+    core_mechanism: 倒计时棋盘上的每步落子对应现实事件，主角能通过棋局推演提前48小时预判事件走向。
+    first_three_chapters_hook: 第一章网络对局触发倒计时棋盘，第二章棋局推演验证第一次商战事件，第三章主角用反向落子救下被棋局锁定的举报人。
+    main_conflict: 主角要在棋局终盘前破解设局者的真正意图，同时阻止棋盘操控的最后一场现实灾难。
+    first_payoff: 主角用一手反直觉的弃子打破棋局预设路径，救下被锁定的举报人并拿到第一条指向设局者的线索。
+    genre_tags: [都市悬疑, 智力博弈, 强剧情]
+    target_word_count: 920000
+    target_platform: qidian
+    target_audience: 偏好智力对抗、策略博弈和都市悬疑的起点读者。
+    core_selling_point: 围棋天才用棋局推演预判现实阴谋，每步棋都攸关人命和真相。
+    market_heat_summary: 智力博弈和都市悬疑标签在样本中有交叉热度，棋类设定提供差异化。
+    competition_summary: 棋类题材新书极少，倒计时机制和围棋推演可形成强辨识度。
+    market_validation: 当前平台月榜样本《旧港谜案录》的强剧情和《夜巡者名单》的能力成长线证明机制型主角有长线承载力。
+    differentiation: 不做传统系统文或重生文，用围棋推演和倒计时制造独特博弈感。
+    feasibility: 中
+    failure_risk: 棋局规则解释过多可能拖慢前三章爽点密度。
+    serial_risk: 每次棋局对应现实事件的模式如果过于雷同，会削弱博弈新鲜感。
+    validation_action: 先设计前三盘棋局和对应现实事件，确保每盘棋的策略维度不同。
 ---
 # AI 推荐选题
 
-## 方向 1：稳妥热题｜雾港回声
+## 方向 1：雾港回声
 ### 开书方案
 - 主角：退役调查员林砚。
 - 核心机制：三分钟残留真相。
@@ -561,7 +750,7 @@ directions:
 ### 风险与验证动作
 - 先写黄金三章测试规则理解度。
 
-## 方向 2：相邻变体｜星桥债主
+## 方向 2：星桥债主
 ### 开书方案
 - 主角：失业修理工周泊。
 - 核心机制：欠条兑换临时天赋。
@@ -575,7 +764,7 @@ directions:
 ### 风险与验证动作
 - 先验证前三个单元不重复。
 
-## 方向 3：高风险高收益｜夜巡名单
+## 方向 3：夜巡名单
 ### 开书方案
 - 主角：夜班骑手许让。
 - 核心机制：凌晨名单和一分钟残影。
@@ -588,6 +777,48 @@ directions:
 - 从骑手视角切入城市夜间秘密。
 ### 风险与验证动作
 - 先做主线线索表，避免单元流水账。
+
+## 方向 4：深海信号
+### 开书方案
+- 主角：声呐工程师沈潮。
+- 核心机制：72小时后声呐回波预判海上事故。
+- 前三章钩子：异常回波、钻井平台救援、父亲海域编码。
+### 能爆的原因
+- 海洋声呐技术制造信息差，硬核且爽点密集。
+### 市场验证
+- 科幻悬疑标签持续出现，海洋题材提供差异化入口。
+### 差异化定位
+- 用海洋技术流悬疑替代传统刑侦或都市异能。
+### 风险与验证动作
+- 先写前三次事故救援，确保技术和情感爽点不重复。
+
+## 方向 5：纸上江湖
+### 开书方案
+- 主角：古籍修复师顾九辞。
+- 核心机制：修复古书触发活名册线索更新。
+- 前三章钩子：残卷夹层、失踪案关联、拍卖行识伪。
+### 能爆的原因
+- 古籍修复知识和悬疑线绑定，文化底蕴加爽点。
+### 市场验证
+- 文化悬疑和职业流标签有稳定热度。
+### 差异化定位
+- 用修复技术和活名册替代传统鉴宝文套路。
+### 风险与验证动作
+- 先设计前四本古书和线索，控制知识密度。
+
+## 方向 6：倒计时棋盘
+### 开书方案
+- 主角：围棋天才陆弈。
+- 核心机制：棋局落子对应现实事件，提前48小时推演。
+- 前三章钩子：倒计时触发、商战验证、弃子救举报人。
+### 能爆的原因
+- 围棋推演和倒计时制造独特智力博弈感。
+### 市场验证
+- 智力博弈和都市悬疑标签有交叉热度。
+### 差异化定位
+- 用棋局博弈替代传统系统文或重生文套路。
+### 风险与验证动作
+- 先设计前三盘棋局，确保策略维度各不相同。
 ''';
 }
 

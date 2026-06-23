@@ -10,11 +10,13 @@ class RecommendationGenerationConfig {
     this.wizardStep = 1,
     this.targetPlatforms = const {},
     this.selectedChartKeys = const {},
+    this.selectedGenres = const {},
   });
 
   final int wizardStep;
   final Set<MarketPlatform> targetPlatforms;
   final Set<String> selectedChartKeys;
+  final Set<String> selectedGenres;
 
   bool get canProceedToStep2 =>
       targetPlatforms.isNotEmpty && selectedChartKeys.isNotEmpty;
@@ -23,11 +25,13 @@ class RecommendationGenerationConfig {
     int? wizardStep,
     Set<MarketPlatform>? targetPlatforms,
     Set<String>? selectedChartKeys,
+    Set<String>? selectedGenres,
   }) {
     return RecommendationGenerationConfig(
       wizardStep: wizardStep ?? this.wizardStep,
       targetPlatforms: targetPlatforms ?? this.targetPlatforms,
       selectedChartKeys: selectedChartKeys ?? this.selectedChartKeys,
+      selectedGenres: selectedGenres ?? this.selectedGenres,
     );
   }
 }
@@ -52,7 +56,18 @@ class RecommendationGenerationConfigController
 
   void backToStep1() {
     ref.read(marketRecommendationControllerProvider.notifier).clearResults();
-    state = state.copyWith(wizardStep: 1);
+    state = state.copyWith(wizardStep: 1, selectedGenres: const {});
+  }
+
+  void toggleGenre(String genre) {
+    _clearResultsIfNeeded();
+    final next = Set<String>.from(state.selectedGenres);
+    if (next.contains(genre)) {
+      next.remove(genre);
+    } else {
+      next.add(genre);
+    }
+    state = state.copyWith(selectedGenres: next);
   }
 
   void toggleTargetPlatform(MarketPlatform platform) {

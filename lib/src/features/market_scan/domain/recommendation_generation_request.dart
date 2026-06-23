@@ -10,7 +10,7 @@ class RecommendationGenerationRequest {
   const RecommendationGenerationRequest({
     required this.targetPlatforms,
     this.selectedChartKeys = const [],
-    this.genreQuery,
+    this.selectedGenres = const [],
   });
 
   /// 本次生成覆盖的目标平台列表（至少一个）。
@@ -19,8 +19,8 @@ class RecommendationGenerationRequest {
   /// 用户在配置向导中选定的参考榜单 key 列表。
   final List<String> selectedChartKeys;
 
-  /// 可选的类型/标签筛选词，用于缩小样本范围。
-  final String? genreQuery;
+  /// 用户在题材 FilterChip 中选中的题材列表（可为空，表示不限制题材）。
+  final List<String> selectedGenres;
 
   /// 平台与榜单均已选择，满足生成前置条件。
   bool get isValid =>
@@ -32,9 +32,12 @@ class RecommendationGenerationRequest {
   /// [targetPlatforms] 的首个元素，仅在请求已确保非空时使用。
   MarketPlatform get targetPlatform => targetPlatforms.first;
 
+  /// 选中的题材以顿号拼接，供 prompt 展示；空列表返回 null。
   String? get normalizedGenreQuery {
-    final value = genreQuery?.trim();
-    return value == null || value.isEmpty ? null : value;
+    if (selectedGenres.isEmpty) {
+      return null;
+    }
+    return selectedGenres.join('、');
   }
 
   /// 派生一个仅针对 [platform] 的单平台请求，保留原榜单与筛选条件。
@@ -42,7 +45,7 @@ class RecommendationGenerationRequest {
     return RecommendationGenerationRequest(
       targetPlatforms: [platform],
       selectedChartKeys: selectedChartKeys,
-      genreQuery: genreQuery,
+      selectedGenres: selectedGenres,
     );
   }
 }

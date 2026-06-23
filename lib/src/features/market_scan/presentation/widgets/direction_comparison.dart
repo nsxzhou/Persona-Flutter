@@ -283,14 +283,7 @@ class DirectionComparisonCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        DirectionRolePill(role: direction.directionRole),
-                        GenreTagRow(tags: direction.genreTags),
-                      ],
-                    ),
+                    GenreTagRow(tags: direction.genreTags),
                     const SizedBox(height: 16),
                     DecisionMeterList(
                       heatLabel: heatLabel(direction.marketHeatSummary),
@@ -643,7 +636,7 @@ class RecommendationLoadingGrid extends StatelessWidget {
           spacing: spacing,
           runSpacing: 16,
           children: [
-            for (var i = 0; i < 3; i++)
+            for (var i = 0; i < 6; i++)
               SizedBox(width: itemWidth, child: const _SkeletonCard()),
           ],
         );

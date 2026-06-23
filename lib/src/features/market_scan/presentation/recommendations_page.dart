@@ -8,6 +8,7 @@ import '../application/market_scan_providers.dart';
 import '../application/recommendation_generation_config_provider.dart';
 import '../domain/chart_key.dart';
 import '../domain/market_book.dart';
+import '../domain/market_ranking.dart';
 import '../domain/recommendation_generation_request.dart';
 import 'widgets/direction_comparison.dart';
 import 'widgets/editorial_section_header.dart';
@@ -25,14 +26,6 @@ class RecommendationsPage extends ConsumerStatefulWidget {
 }
 
 class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
-  final TextEditingController _genreQueryController = TextEditingController();
-
-  @override
-  void dispose() {
-    _genreQueryController.dispose();
-    super.dispose();
-  }
-
   Future<void> _runCommand(Future<void> Function() command) async {
     try {
       await command();
@@ -59,7 +52,7 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
         RecommendationGenerationRequest(
           targetPlatforms: config.targetPlatforms.toList(),
           selectedChartKeys: config.selectedChartKeys.toList(),
-          genreQuery: _genreQueryController.text,
+          selectedGenres: config.selectedGenres.toList(),
         ),
       ),
     );
@@ -67,15 +60,28 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
 
   List<String> _genreOptionsForConfig(
     List<MarketBook> books,
-    Set<MarketPlatform> targetPlatforms,
+    List<MarketRanking> rankings,
+    Set<String> selectedChartKeys,
   ) {
-    if (targetPlatforms.isEmpty) {
+    if (selectedChartKeys.isEmpty) {
       return const [];
     }
+    final bookById = {for (final book in books) book.id: book};
+    final chartBookIds = <String>{};
+    for (final ranking in rankings) {
+      final book = bookById[ranking.bookId];
+      if (book == null) {
+        continue;
+      }
+      if (selectedChartKeys.contains(
+        buildChartKey(book.platform, ranking.chartName),
+      )) {
+        chartBookIds.add(book.id);
+      }
+    }
     final counts = <String, int>{};
-    for (final book in books.where(
-      (book) => targetPlatforms.contains(book.platform),
-    )) {
+    for (final bookId in chartBookIds) {
+      final book = bookById[bookId]!;
       for (final tag in [...book.categories, ...book.tags]) {
         final normalized = tag.trim();
         if (normalized.isEmpty) {
@@ -89,7 +95,7 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
         final count = b.value.compareTo(a.value);
         return count == 0 ? a.key.compareTo(b.key) : count;
       });
-    return entries.map((entry) => entry.key).take(8).toList(growable: false);
+    return entries.map((entry) => entry.key).take(12).toList(growable: false);
   }
 
   @override
@@ -125,7 +131,8 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
             );
             final genreOptions = _genreOptionsForConfig(
               bundle.books,
-              config.targetPlatforms,
+              bundle.rankings,
+              config.selectedChartKeys,
             );
 
             return Column(
@@ -164,7 +171,13 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
                     targetPlatformCount: config.targetPlatforms.length,
                     referenceChartCount: config.selectedChartKeys.length,
                     genreOptions: genreOptions,
-                    genreQueryController: _genreQueryController,
+                    selectedGenres: config.selectedGenres,
+                    onGenreToggled: (genre) => ref
+                        .read(
+                          recommendationGenerationConfigControllerProvider
+                              .notifier,
+                        )
+                        .toggleGenre(genre),
                     commandsDisabled: commandsDisabled,
                     onBackToConfig: () => ref
                         .read(

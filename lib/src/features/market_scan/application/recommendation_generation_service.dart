@@ -28,7 +28,7 @@ class RecommendationGenerationService {
   final ProviderConfigRepository providerRepository;
   final RecommendationDirectionDocumentParser documentParser;
 
-  /// Generate 3 recommendation directions from current market data.
+  /// Generate 6 recommendation directions from current market data.
   ///
   /// Uses the first enabled LLM provider. Throws if no provider is available.
   Future<List<RecommendationDirection>> generate({
@@ -201,7 +201,7 @@ class RecommendationGenerationService {
     final errors = <String>[];
     for (var index = 0; index < directions.length; index += 1) {
       final direction = directions[index];
-      final scope = '方向 ${index + 1}（${direction.directionRole}）';
+      final scope = '方向 ${index + 1}（${direction.suggestedTitle}）';
       final openBookFields = {
         '主角': direction.protagonist,
         '核心机制': direction.coreMechanism,
@@ -296,12 +296,12 @@ class RecommendationGenerationService {
     final samples = _representativeSamples(
       rankings: rankings,
       bookById: bookById,
-      genreQuery: request.normalizedGenreQuery,
+      selectedGenres: request.selectedGenres,
     );
     final auxiliarySamples = _representativeSamples(
       rankings: auxiliaryRankings,
       bookById: allBookById,
-      genreQuery: request.normalizedGenreQuery,
+      selectedGenres: request.selectedGenres,
       maxSamples: 8,
     );
     return RecommendationPromptContext(
@@ -319,22 +319,22 @@ class RecommendationGenerationService {
   List<RecommendationPromptSample> _representativeSamples({
     required List<MarketRanking> rankings,
     required Map<String, MarketBook> bookById,
-    required String? genreQuery,
+    required List<String> selectedGenres,
     int maxSamples = 24,
   }) {
     final filtered = _selectRepresentativeSamples(
       rankings: rankings,
       bookById: bookById,
-      genreQuery: genreQuery,
+      selectedGenres: selectedGenres,
       maxSamples: maxSamples,
     );
-    if (filtered.isNotEmpty || genreQuery == null) {
+    if (filtered.isNotEmpty || selectedGenres.isEmpty) {
       return filtered;
     }
     return _selectRepresentativeSamples(
       rankings: rankings,
       bookById: bookById,
-      genreQuery: null,
+      selectedGenres: const [],
       maxSamples: maxSamples,
     );
   }
@@ -342,7 +342,7 @@ class RecommendationGenerationService {
   List<RecommendationPromptSample> _selectRepresentativeSamples({
     required List<MarketRanking> rankings,
     required Map<String, MarketBook> bookById,
-    required String? genreQuery,
+    required List<String> selectedGenres,
     required int maxSamples,
   }) {
     final sortedRankings = [...rankings]
@@ -361,7 +361,8 @@ class RecommendationGenerationService {
       if (book == null) {
         continue;
       }
-      if (genreQuery != null && !_matchesGenreQuery(book, genreQuery)) {
+      if (selectedGenres.isNotEmpty &&
+          !_matchesAnyGenre(book, selectedGenres)) {
         continue;
       }
       final sample = RecommendationPromptSample(
@@ -490,18 +491,14 @@ class RecommendationGenerationService {
     };
   }
 
-  bool _matchesGenreQuery(MarketBook book, String genreQuery) {
-    final query = genreQuery.trim();
-    if (query.isEmpty) {
-      return true;
-    }
+  bool _matchesAnyGenre(MarketBook book, List<String> genres) {
     final searchable = [
       book.title,
       book.description,
       ...book.categories,
       ...book.tags,
     ].join('\n');
-    return searchable.contains(query);
+    return genres.any((genre) => searchable.contains(genre.trim()));
   }
 }
 

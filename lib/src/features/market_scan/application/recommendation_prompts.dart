@@ -17,13 +17,12 @@ class RecommendationPrompts {
 4. 不要包裹 ```markdown、```yaml 或任何代码围栏。
 5. YAML front matter 只允许这些顶层字段：format、target_platform、directions。
 6. format 固定为 `persona.market_recommendations`。
-7. directions 必须固定输出 3 个方向。
-8. 3 个方向的 direction_role 必须按顺序固定为：`稳妥热题`、`相邻变体`、`高风险高收益`。
-9. 每个方向必须包含 3 个候选书名，字段为 title、formula、rationale。
-10. suggested_title 必须来自 3 个候选书名之一。
-11. synopsis 必须为 120-220 字，结构为：主角处境 -> 能力/金手指 -> 第一个爽点 -> 悬念或安全感。
-12. 每个方向必须给出 protagonist、core_mechanism、first_three_chapters_hook、main_conflict、first_payoff、serial_risk。
-13. YAML 后的 Markdown 正文必须从 `# AI 推荐选题` 开始，并包含 `## 方向 1：`、`## 方向 2：`、`## 方向 3：`。
+7. directions 必须固定输出 6 个方向，每个方向应具有独立且差异化的定位，由你自由决定分类角度。
+8. 每个方向必须包含 3 个候选书名，字段为 title、formula、rationale。
+9. suggested_title 必须来自 3 个候选书名之一。
+10. synopsis 必须为 80-300 字，结构为：主角处境 -> 能力/金手指 -> 第一个爽点 -> 悬念或安全感。
+11. 每个方向必须给出 protagonist、core_mechanism、first_three_chapters_hook、main_conflict、first_payoff、serial_risk。
+12. YAML 后的 Markdown 正文必须从 `# AI 推荐选题` 开始，并包含 `## 方向 1：` 到 `## 方向 6：` 共 6 个小节。
 
 ## YAML front matter 模板
 
@@ -31,8 +30,7 @@ class RecommendationPrompts {
 format: persona.market_recommendations
 target_platform: qidian
 directions:
-  - direction_role: 稳妥热题
-    suggested_title: 书名候选A
+  - suggested_title: 书名候选A
     title_candidates:
       - title: 书名候选A
         formula: 平台命名公式
@@ -65,7 +63,7 @@ directions:
 ---
 # AI 推荐选题
 
-## 方向 1：稳妥热题｜书名候选A
+## 方向 1：书名候选A
 ### 开书方案
 - 主角：
 - 核心机制：
@@ -83,9 +81,7 @@ directions:
 
 ## 生成原则
 
-- 方向 1 `稳妥热题`：贴近目标平台已验证热题，降低开书失败率，但必须保留一个明确差异点。
-- 方向 2 `相邻变体`：严格围绕用户输入的核心题材，在相邻人群、职业入口、能力规则或情绪钩子上变体。
-- 方向 3 `高风险高收益`：仍围绕核心题材，但使用更强脑洞或复合类型，必须说明高风险来源和验证办法。
+- 6 个方向应覆盖不同的创作策略和风险偏好，由你自由决定每个方向的定位角度。例如可以涵盖稳妥热题、相邻变体、高风险高收益、跨平台蓝海、小众高潜、混搭创新等，但不限于这些。
 - 目标平台数据是主证据；跨平台数据只允许作为辅助证据，不得单独支撑一个方向。
 - 如果用户给出题材方向，必须严格围绕该核心题材，最多允许相邻变体；不要漂移到无关大类。
 - 每个方向都必须走完选题四步：能爆的原因、市场验证、差异化定位、可行性/风险/验证动作。
@@ -96,7 +92,7 @@ directions:
 - 简介不是市场分析摘要，要像平台文案：给处境、给能力、给第一个爽点、给继续读的理由。
 - protagonist、core_mechanism、first_three_chapters_hook、main_conflict、first_payoff 必须具体到可以开始写前三章。
 - genre_tags 使用中文网文行业通用标签，控制在 3-5 个。
-- feasibility 只能写 `高`、`中`、`低`。
+- feasibility 只能写 `高`、`中`、`低` 三档之一（不带括号注释、不带"较高/中等"等副词）。
 ''';
 
   String buildUserPrompt(
@@ -113,8 +109,8 @@ directions:
     buffer.writeln('- 当前平台榜单记录数: ${context.platformRankingCount}');
     buffer.writeln('- 跨平台辅助样本数: ${context.auxiliaryPlatformBookCount}');
     buffer.writeln('- 跨平台辅助榜单记录数: ${context.auxiliaryPlatformRankingCount}');
-    buffer.writeln('- 输出形态: 固定 3 个可直接开书的创作方案，不要只写市场策略。');
-    buffer.writeln('- 三个角色按顺序固定：方向 1 稳妥热题，方向 2 相邻变体，方向 3 高风险高收益。');
+    buffer.writeln('- 输出形态: 固定 6 个可直接开书的创作方案，不要只写市场策略。');
+    buffer.writeln('- 6 个方向应覆盖不同的创作策略和风险偏好，由你自由决定分类角度。');
     buffer.writeln('- 证据优先级: 目标平台数据为主；跨平台数据只可作为辅助旁证。');
     if (context.genreQuery != null) {
       buffer.writeln('- 题材边界: 严格围绕“${context.genreQuery}”，允许相邻变体，但不得漂移到无关大类。');
@@ -125,10 +121,6 @@ directions:
     buffer.writeln(_platformRules(context.targetPlatform));
     buffer.writeln();
 
-    _writeGenreHeat(buffer, metrics);
-    _writeWordCountDistribution(buffer, metrics);
-    _writeCompetitionDensity(buffer, metrics);
-    _writeOpportunities(buffer, metrics);
     _writeRepresentativeSamples(buffer, context);
     _writeAuxiliarySamples(buffer, context);
 
@@ -136,14 +128,15 @@ directions:
     buffer.writeln('- 必须输出 YAML front matter + Markdown。');
     buffer.writeln('- 禁止 JSON。');
     buffer.writeln(
-      '- directions 固定 3 个，direction_role 必须依次为 稳妥热题 / 相邻变体 / 高风险高收益。',
+      '- directions 固定 6 个，每个方向应具有独立且差异化的定位。',
     );
     buffer.writeln('- 每个方向必须有 3 个候选书名。');
-    buffer.writeln('- 每个 synopsis 必须是 120-220 字。');
+    buffer.writeln('- 每个 synopsis 必须是 80-300 个字符。');
     buffer.writeln('- 每个方向必须有主角、核心机制、前三章钩子、主冲突、第一个爽点和连载风险。');
     buffer.writeln('- market_validation 必须引用至少 2 个当前平台证据信号。');
     buffer.writeln('- target_platform 必须全部写 `${context.targetPlatform.name}`。');
     buffer.writeln('- Markdown 正文必须从 `# AI 推荐选题` 开始。');
+    buffer.writeln('- feasibility 必须是 `高` / `中` / `低` 之一，不要带括号注释。');
 
     return buffer.toString();
   }
@@ -159,20 +152,41 @@ directions:
 错误原因：
 $parseError
 
-硬性要求：
-1. 最终输出必须直接从 `---` 开始。
-2. 禁止 JSON，禁止代码围栏，禁止解释说明。
-3. YAML front matter 顶层只能包含 format、target_platform、directions。
-4. format 固定为 `persona.market_recommendations`。
-5. target_platform 必须是 `${targetPlatform.name}`。
-6. directions 必须固定为 3 个方向。
-7. direction_role 必须依次为 稳妥热题 / 相邻变体 / 高风险高收益。
-8. 每个方向必须有 3 个候选书名，suggested_title 必须来自候选之一。
-9. 每个方向必须有 protagonist、core_mechanism、first_three_chapters_hook、main_conflict、first_payoff、serial_risk。
-10. synopsis 必须为 120-220 字。
-11. YAML 后的 Markdown 正文必须从 `# AI 推荐选题` 开始。
+## 必须逐条核对并修复（任一项不合规都会再次失败）
 
-请保留上一轮中可用的内容，只修复格式、字段、长度和质量问题。
+1. 输出必须直接从 `---` 开始，禁止任何前言、解释、结语。
+2. 禁止 JSON，禁止代码围栏（```markdown / ```yaml 等都不允许）。
+3. YAML front matter 顶层只能包含 format、target_platform、directions 三个字段。
+4. format 固定为 `persona.market_recommendations`。
+5. target_platform 必须是 `${targetPlatform.name}`（所有方向的 target_platform 也必须一致）。
+6. directions 固定为 6 个方向，每个方向应具有独立且差异化的定位。
+7. 每个方向必须有 3 个候选书名，suggested_title 必须来自 title_candidates 之一。
+8. 每个方向必须有 protagonist、core_mechanism、first_three_chapters_hook、main_conflict、first_payoff、serial_risk 六个字段。
+9. **synopsis 必须为 80-300 个字符（按 UTF-16 code unit 计，中文算 1 字符）**。结构：主角处境 → 能力/金手指 → 第一个爽点 → 悬念或安全感。
+10. **feasibility 必须是 `高` / `中` / `低` 三档之一**。最稳妥的写法就是直接写 `高` / `中` / `低` 这三个字；parser 也会把 "高（推荐）" / "中等" / "较高" 归一化为合法值，但请尽量用最简形式，避免后续模型版本变动引入歧义。
+11. YAML 后的 Markdown 正文必须从 `# AI 推荐选题` 开始，并包含 `## 方向 1：` 到 `## 方向 6：` 共 6 个小节。
+12. market_validation 必须至少引用 2 个目标平台证据信号（来自书名、作者、榜单名或标签）。
+
+## feasibility 正确写法示例
+
+- `feasibility: 高`
+- `feasibility: 中`
+- `feasibility: 低`
+
+## YAML 片段示例（仅示意 1 个方向）
+
+```yaml
+directions:
+  - suggested_title: 书名候选A
+    title_candidates:
+      - title: 书名候选A
+        formula: 平台命名公式
+        rationale: 为什么最适合这个方向
+    synopsis: 退役调查员林砚被迫回到旧港区接手一桩十年前已经结案的连环失踪案……
+    feasibility: 中
+```
+
+请保留上一轮中可用的内容，只修复格式、字段、长度和质量问题；其余创意内容可以原样保留。
 
 上一轮输出：
 $invalidOutput
@@ -191,8 +205,8 @@ $invalidOutput
 质量问题：
 ${qualityErrors.map((error) => '- $error').join('\n')}
 
-必须重写为可直接开书的 3 个方向：
-1. direction_role 依次为：稳妥热题、相邻变体、高风险高收益。
+必须重写为可直接开书的 6 个方向：
+1. 6 个方向应覆盖不同的创作策略和风险偏好，由你自由决定分类角度。
 2. 每个方向都必须包含主角、核心机制、前三章钩子、主冲突、第一个爽点、连载风险。
 3. market_validation 必须至少引用 2 个当前平台证据信号。可用证据信号包括：
 $evidenceTokens
@@ -208,72 +222,6 @@ $invalidOutput
 
   String get systemPrompt => _systemPrompt;
 
-  void _writeGenreHeat(StringBuffer buffer, MarketMetrics metrics) {
-    buffer.writeln('## 题材热度排名');
-    if (metrics.genreHeat.isEmpty) {
-      buffer.writeln('暂无数据');
-    } else {
-      buffer.writeln('| 题材 | 热度分 | 出现次数 | 平均排名 | 覆盖平台 |');
-      buffer.writeln('|------|--------|----------|----------|----------|');
-      for (final entry in metrics.genreHeat.take(20)) {
-        buffer.writeln(
-          '| ${entry.genre} | ${entry.heatScore.toStringAsFixed(1)} '
-          '| ${entry.appearanceCount} | ${entry.averageRank.toStringAsFixed(1)} '
-          '| ${entry.platforms.join(", ")} |',
-        );
-      }
-    }
-    buffer.writeln();
-  }
-
-  void _writeWordCountDistribution(StringBuffer buffer, MarketMetrics metrics) {
-    buffer.writeln('## 字数分布');
-    if (metrics.wordCountDistribution.isEmpty) {
-      buffer.writeln('暂无数据');
-    } else {
-      for (final bucket in metrics.wordCountDistribution) {
-        buffer.writeln(
-          '- ${bucket.rangeLabel}: ${bucket.bookCount} 本 '
-          '(${bucket.percentage.toStringAsFixed(1)}%)',
-        );
-      }
-    }
-    buffer.writeln();
-  }
-
-  void _writeCompetitionDensity(StringBuffer buffer, MarketMetrics metrics) {
-    buffer.writeln('## 竞品密度（近 90 天新书）');
-    if (metrics.competitionDensity.isEmpty) {
-      buffer.writeln('暂无数据');
-    } else {
-      buffer.writeln('| 题材 | 新书数 | 在榜数 | 密度分 |');
-      buffer.writeln('|------|--------|--------|--------|');
-      for (final entry in metrics.competitionDensity.take(15)) {
-        buffer.writeln(
-          '| ${entry.genre} | ${entry.newBookCount} '
-          '| ${entry.onChartCount} | ${entry.densityScore.toStringAsFixed(2)} |',
-        );
-      }
-    }
-    buffer.writeln();
-  }
-
-  void _writeOpportunities(StringBuffer buffer, MarketMetrics metrics) {
-    buffer.writeln('## 市场机会评分 TOP 10');
-    if (metrics.opportunities.isEmpty) {
-      buffer.writeln('暂无数据');
-    } else {
-      for (final entry in metrics.opportunities.take(10)) {
-        buffer.writeln(
-          '- **${entry.genre}**: 机会分 ${entry.opportunityScore.toStringAsFixed(1)} '
-          '(热度 ${entry.heatScore.toStringAsFixed(1)}, '
-          '密度 ${entry.densityScore.toStringAsFixed(2)})',
-        );
-      }
-    }
-    buffer.writeln();
-  }
-
   void _writeRepresentativeSamples(
     StringBuffer buffer,
     RecommendationPromptContext context,
@@ -282,7 +230,7 @@ $invalidOutput
     if (context.samples.isEmpty) {
       buffer.writeln('暂无可展示样本；只能基于统计指标输出，并在可行性中标注样本不足。');
     } else {
-      for (final sample in context.samples.take(24)) {
+      for (final sample in context.samples.take(12)) {
         buffer.writeln(
           '### #${sample.rank} ${sample.title}（${sample.chartName}）',
         );
@@ -308,7 +256,7 @@ $invalidOutput
     if (context.auxiliarySamples.isEmpty) {
       buffer.writeln('暂无跨平台辅助样本。');
     } else {
-      for (final sample in context.auxiliarySamples.take(8)) {
+      for (final sample in context.auxiliarySamples.take(4)) {
         buffer.writeln(
           '### #${sample.rank} ${sample.title}（${_platformLabel(sample.platform)} · ${sample.chartName}）',
         );

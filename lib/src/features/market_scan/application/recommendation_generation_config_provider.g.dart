@@ -51,7 +51,7 @@ final class RecommendationGenerationConfigControllerProvider
 }
 
 String _$recommendationGenerationConfigControllerHash() =>
-    r'9c9fc234dabf51b4680c18b139b769e126d4ffe7';
+    r'fa1b7e8f809e43a868e7ec7ab27f7c2e0cd951b6';
 
 abstract class _$RecommendationGenerationConfigController
     extends $Notifier<RecommendationGenerationConfig> {

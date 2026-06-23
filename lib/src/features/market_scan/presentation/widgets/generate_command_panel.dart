@@ -11,7 +11,8 @@ class GenerateCommandPanel extends StatelessWidget {
     required this.targetPlatformCount,
     required this.referenceChartCount,
     required this.genreOptions,
-    required this.genreQueryController,
+    required this.selectedGenres,
+    required this.onGenreToggled,
     required this.commandsDisabled,
     required this.onBackToConfig,
     required this.onGenerate,
@@ -23,7 +24,8 @@ class GenerateCommandPanel extends StatelessWidget {
   final int targetPlatformCount;
   final int referenceChartCount;
   final List<String> genreOptions;
-  final TextEditingController genreQueryController;
+  final Set<String> selectedGenres;
+  final ValueChanged<String> onGenreToggled;
   final bool commandsDisabled;
   final VoidCallback onBackToConfig;
   final Future<void> Function() onGenerate;
@@ -36,19 +38,13 @@ class GenerateCommandPanel extends StatelessWidget {
     final recommendationLabel = _statusLabel(recommendationState);
     final configSummary =
         '$targetPlatformCount 个目标平台 · $referenceChartCount 个参考榜单';
+    final genreSummary = selectedGenres.isEmpty
+        ? '未选题材（将自动推荐）'
+        : '已选 ${selectedGenres.length} 个题材';
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= 860;
-        final genreField = TextField(
-          controller: genreQueryController,
-          enabled: !commandsDisabled,
-          decoration: const InputDecoration(
-            labelText: '题材方向（可选）',
-            hintText: '例如：悬疑、无限流、古言',
-            border: OutlineInputBorder(),
-          ),
-        );
         final genreChips = genreOptions.isEmpty
             ? null
             : Wrap(
@@ -56,11 +52,10 @@ class GenerateCommandPanel extends StatelessWidget {
                 runSpacing: 6,
                 children: [
                   for (final genre in genreOptions)
-                    ActionChip(
+                    FilterChip(
                       label: Text(genre),
-                      onPressed: commandsDisabled
-                          ? null
-                          : () => genreQueryController.text = genre,
+                      selected: selectedGenres.contains(genre),
+                      onSelected: commandsDisabled ? null : (_) => onGenreToggled(genre),
                     ),
                 ],
               );
@@ -137,7 +132,7 @@ class GenerateCommandPanel extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          '基于选定的参考榜单，AI 将为每个目标平台生成三个可对照的创作方向。',
+                          '基于选定的参考榜单，AI 将为每个目标平台生成六个可对照的创作方向。',
                           style: textTheme.bodyMedium?.copyWith(
                             color: colorScheme.onSurfaceVariant,
                             height: 1.5,
@@ -160,7 +155,19 @@ class GenerateCommandPanel extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        genreField,
+                        Text(
+                          '题材方向（可选）',
+                          style: textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          genreSummary,
+                          style: textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
                         if (genreChips != null) ...[
                           const SizedBox(height: 8),
                           genreChips,
@@ -187,7 +194,7 @@ class GenerateCommandPanel extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              '基于选定的参考榜单，AI 将为每个目标平台生成三个可对照的创作方向。',
+              '基于选定的参考榜单，AI 将为每个目标平台生成六个可对照的创作方向。',
               style: textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
                 height: 1.5,
@@ -198,7 +205,19 @@ class GenerateCommandPanel extends StatelessWidget {
             const SizedBox(height: 16),
             configBar,
             const SizedBox(height: 16),
-            genreField,
+            Text(
+              '题材方向（可选）',
+              style: textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              genreSummary,
+              style: textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
             if (genreChips != null) ...[
               const SizedBox(height: 8),
               genreChips,

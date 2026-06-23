@@ -739,7 +739,6 @@ class _MarketScanFixture {
 
 RecommendationDirection _direction() {
   return const RecommendationDirection(
-    directionRole: '稳妥热题',
     suggestedTitle: '时序遗产',
     titleCandidates: [
       RecommendationTitleCandidate(

@@ -34,7 +34,7 @@ final class WorkflowTaskControllerProvider
 }
 
 String _$workflowTaskControllerHash() =>
-    r'a0fc69b1ec9bdc3a6067c595047eebb2ddb5acf3';
+    r'7d71d1ebec9e191475d86bb1f6e190f04d7c264b';
 
 abstract class _$WorkflowTaskController extends $AsyncNotifier<void> {
   FutureOr<void> build();
