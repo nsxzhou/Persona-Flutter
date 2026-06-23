@@ -453,7 +453,7 @@ class _CharacterGraphTabState extends ConsumerState<CharacterGraphTab>
                       return SizeTransition(
                         sizeFactor: animation,
                         axis: Axis.horizontal,
-                        axisAlignment: 1,
+                        alignment: Alignment.centerRight,
                         child: FadeTransition(opacity: animation, child: child),
                       );
                     },
