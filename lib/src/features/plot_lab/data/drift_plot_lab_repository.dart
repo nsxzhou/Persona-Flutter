@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/database/drift_utils.dart';
 import '../../../core/tasks/domain/workflow_task.dart';
 import '../domain/plot_analysis_run.dart';
 import '../domain/plot_lab_repository.dart';
@@ -65,10 +66,10 @@ class DriftPlotLabRepository implements PlotLabRepository {
             title: title,
             content: normalizedContent,
             characterCount: normalizedContent.runes.length,
-            projectId: Value(_blankToNull(input.projectId)),
-            sourceFilename: Value(_blankToNull(input.sourceFilename)),
-            epubBookTitle: Value(_blankToNull(input.epubBookTitle)),
-            epubAuthor: Value(_blankToNull(input.epubAuthor)),
+            projectId: Value(blankToNull(input.projectId)),
+            sourceFilename: Value(blankToNull(input.sourceFilename)),
+            epubBookTitle: Value(blankToNull(input.epubBookTitle)),
+            epubAuthor: Value(blankToNull(input.epubAuthor)),
             epubChapterCount: Value(input.epubChapterCount),
             createdAt: now,
             updatedAt: now,
@@ -159,7 +160,7 @@ class DriftPlotLabRepository implements PlotLabRepository {
               providerId: input.providerId,
               modelName: input.modelName.trim(),
               plotName: plotName,
-              projectId: Value(_blankToNull(input.projectId)),
+              projectId: Value(blankToNull(input.projectId)),
               status: PlotAnalysisStatus.pending.name,
               stage: const Value(null),
               errorMessage: const Value(null),
@@ -397,7 +398,7 @@ class DriftPlotLabRepository implements PlotLabRepository {
               storyEngineMarkdown: Value(input.storyEngineMarkdown.trim()),
               analysisReportMarkdown: Value(run.analysisReportMarkdown!),
               plotSkeletonMarkdown: Value(run.plotSkeletonMarkdown!),
-              projectId: Value(_blankToNull(input.projectId ?? run.projectId)),
+              projectId: Value(blankToNull(input.projectId ?? run.projectId)),
               sourceSampleId: Value(run.sampleId),
               sourceTitle: Value(sample?.title),
               createdAt: Value(existing?.createdAt ?? now),
@@ -440,7 +441,7 @@ class DriftPlotLabRepository implements PlotLabRepository {
       PlotProfileRecordsCompanion(
         plotName: Value(input.plotName.trim()),
         storyEngineMarkdown: Value(storyEngine),
-        projectId: Value(_blankToNull(input.projectId)),
+        projectId: Value(blankToNull(input.projectId)),
         updatedAt: Value(DateTime.now()),
       ),
     );
@@ -568,11 +569,4 @@ class DriftPlotLabRepository implements PlotLabRepository {
     );
   }
 
-  String? _blankToNull(String? value) {
-    final trimmed = value?.trim();
-    if (trimmed == null || trimmed.isEmpty) {
-      return null;
-    }
-    return trimmed;
-  }
 }

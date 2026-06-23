@@ -228,7 +228,7 @@ class PlotAnalysisPipeline {
     required ProviderConfig provider,
     required PromptTraceRecorder traceRecorder,
   }) async {
-    final normalized = _stripMarkdownFence(raw);
+    final normalized = stripMarkdownFence(raw);
     try {
       return _sketchDocumentParser.parse(
         markdown: normalized,
@@ -270,7 +270,7 @@ class PlotAnalysisPipeline {
         ),
       );
       return _sketchDocumentParser.parse(
-        markdown: _stripMarkdownFence(repaired),
+        markdown: stripMarkdownFence(repaired),
         chunkIndex: chunkIndex,
         chunkCount: chunkCount,
       );
@@ -374,8 +374,6 @@ class PlotAnalysisPipeline {
       promptTrace: traceRecorder.config(label: 'build_skeleton'),
     );
   }
-
-  String _stripMarkdownFence(String raw) => stripMarkdownFence(raw);
 
   void _appendLog(StringBuffer buffer, String message) {
     final timestamp = DateTime.now().toIso8601String();

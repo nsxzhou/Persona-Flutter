@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/database/drift_utils.dart';
 import '../../../core/tasks/domain/workflow_task.dart';
 import '../domain/style_analysis_run.dart';
 import '../domain/style_lab_repository.dart';
@@ -62,11 +63,11 @@ class DriftStyleLabRepository implements StyleLabRepository {
             title: title,
             content: normalizedContent,
             characterCount: normalizedContent.runes.length,
-            projectId: Value(_blankToNull(input.projectId)),
-            sourceFilename: Value(_blankToNull(input.sourceFilename)),
-            epubBookTitle: Value(_blankToNull(input.epubBookTitle)),
-            epubAuthor: Value(_blankToNull(input.epubAuthor)),
-            epubChapterTitle: Value(_blankToNull(input.epubChapterTitle)),
+            projectId: Value(blankToNull(input.projectId)),
+            sourceFilename: Value(blankToNull(input.sourceFilename)),
+            epubBookTitle: Value(blankToNull(input.epubBookTitle)),
+            epubAuthor: Value(blankToNull(input.epubAuthor)),
+            epubChapterTitle: Value(blankToNull(input.epubChapterTitle)),
             epubChapterIndex: Value(input.epubChapterIndex),
             createdAt: now,
             updatedAt: now,
@@ -156,7 +157,7 @@ class DriftStyleLabRepository implements StyleLabRepository {
               providerId: input.providerId,
               modelName: input.modelName.trim(),
               styleName: input.styleName.trim(),
-              projectId: Value(_blankToNull(input.projectId)),
+              projectId: Value(blankToNull(input.projectId)),
               status: StyleAnalysisStatus.pending.name,
               stage: const Value(null),
               errorMessage: const Value(null),
@@ -383,7 +384,7 @@ class DriftStyleLabRepository implements StyleLabRepository {
               styleName: Value(input.styleName.trim()),
               profileMarkdown: Value(input.profileMarkdown.trim()),
               analysisReportMarkdown: Value(run.analysisReportMarkdown!),
-              projectId: Value(_blankToNull(input.projectId)),
+              projectId: Value(blankToNull(input.projectId)),
               sourceSampleId: Value(run.sampleId),
               sourceTitle: Value(sample?.title),
               createdAt: Value(existing?.createdAt ?? now),
@@ -422,7 +423,7 @@ class DriftStyleLabRepository implements StyleLabRepository {
       StyleProfileRecordsCompanion(
         styleName: Value(input.styleName.trim()),
         profileMarkdown: Value(input.profileMarkdown.trim()),
-        projectId: Value(_blankToNull(input.projectId)),
+        projectId: Value(blankToNull(input.projectId)),
         updatedAt: Value(DateTime.now()),
       ),
     );
@@ -547,13 +548,5 @@ class DriftStyleLabRepository implements StyleLabRepository {
         updatedAt: Value(updatedAt),
       ),
     );
-  }
-
-  String? _blankToNull(String? value) {
-    final trimmed = value?.trim();
-    if (trimmed == null || trimmed.isEmpty) {
-      return null;
-    }
-    return trimmed;
   }
 }
