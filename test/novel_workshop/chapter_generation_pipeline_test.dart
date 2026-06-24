@@ -31,6 +31,40 @@ import 'package:persona_flutter/src/features/style_lab/domain/style_profile.dart
 import 'package:persona_flutter/src/features/style_lab/domain/style_sample.dart';
 
 void main() {
+  test('chapter length spec uses target ratio with default and floor', () {
+    final defaultSpec = resolveChapterLengthSpec(0);
+    expect(defaultSpec.targetChars, 3000);
+    expect(defaultSpec.minCompletionChars, 2160);
+
+    final lowSpec = resolveChapterLengthSpec(200);
+    expect(lowSpec.targetChars, 200);
+    expect(lowSpec.minCompletionChars, 300);
+
+    final projectSpec = resolveChapterLengthSpec(3200);
+    expect(projectSpec.targetChars, 3200);
+    expect(projectSpec.minCompletionChars, 2304);
+    expect(projectSpec.needsExpansion('短稿'), isTrue);
+  });
+
+  test('repeat tail trimming only cuts long repeated output', () {
+    final shortRepeated = List.filled(100, '短').join();
+    expect(trimRepeatedTail(shortRepeated).trimmed, isFalse);
+
+    final uniqueLong = List.generate(
+      700,
+      (index) => String.fromCharCode(0x3400 + index),
+    ).join();
+    expect(trimRepeatedTail(uniqueLong).trimmed, isFalse);
+
+    final repeatedWindow = List.filled(120, '复').join();
+    final repeated =
+        '开头$repeatedWindow$repeatedWindow$repeatedWindow$repeatedWindow$repeatedWindow';
+    final trimmed = trimRepeatedTail(repeated);
+    expect(trimmed.trimmed, isTrue);
+    expect(trimmed.content, '开头$repeatedWindow');
+    expect(trimmed.removedChars, greaterThan(0));
+  });
+
   test(
     'previews generation context without creating run or calling llm',
     () async {
@@ -217,6 +251,204 @@ runtimeMemory:
     expect(trace.traceMarkdown, contains('雾气贴着码头爬上来'));
     expect(trace.traceMarkdown, isNot(contains('sk-secret-test-key')));
     expect(trace.traceMarkdown, contains('[REDACTED]'));
+  });
+
+  test(
+    'high quality generation reviews revises polishes and persists report',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final fixture = await _Fixture.create(
+        database,
+        llmClient: _StaticLlmClient([
+          _selectorAssets,
+          '# 写作任务书\n\n- 强化章末钩子。',
+          '初稿正文。',
+          '扩写正文。',
+          _qualityNeedsRevision,
+          '修订正文。',
+          _characterReviewWarning,
+          '终稿正文。',
+          _auditPass,
+          _memoryPatchYaml,
+        ]),
+        withPromptAssets: true,
+        withRuntimeMemory: true,
+        withCharacterGraph: true,
+        useHighQualityGeneration: true,
+      );
+
+      final result = await fixture.pipeline.generateChapter(
+        projectId: fixture.project.id,
+        chapterPlanId: fixture.plan.id,
+      );
+
+      expect(result.chapter.contentMarkdown, '终稿正文。');
+      expect(result.run.draftMarkdown, '终稿正文。');
+      expect(
+        result.run.qualityReviewVerdict,
+        ChapterQualityVerdict.needsRevision,
+      );
+      expect(result.run.qualityReviewReportMarkdown, contains('质量评审报告'));
+      expect(result.run.qualityRevisionNotesMarkdown, contains('已执行一轮'));
+      expect(result.run.qualityRevisionNotesMarkdown, contains('自动扩写一次'));
+      expect(result.run.qualityRevisionNotesMarkdown, contains('返修后角色专项复审'));
+      expect(result.run.qualityRevisionNotesMarkdown, contains('林岚台词偏硬'));
+      expect(result.chapter.qualityReviewReportMarkdown, contains('追读钩子弱'));
+      expect(result.chapter.qualityRevisionNotesMarkdown, contains('加强章末钩子'));
+      expect(fixture.llmClient.invocationCount, 10);
+      expect(fixture.llmClient.prompts[1], contains('章节策划编辑'));
+      expect(fixture.llmClient.prompts[2], contains('Chapter Task Brief'));
+      expect(fixture.llmClient.prompts[3], contains('扩写补足编辑'));
+      expect(fixture.llmClient.prompts[4], contains('成稿质量编辑'));
+      expect(fixture.llmClient.prompts[5], contains('改稿编辑'));
+      expect(fixture.llmClient.prompts[6], contains('角色一致性专项审稿员'));
+      expect(fixture.llmClient.prompts[7], contains('终稿润色编辑'));
+      expect(fixture.llmClient.prompts[7], contains('林岚台词偏硬'));
+      expect(fixture.llmClient.prompts[8], contains('连续性审计员'));
+
+      final trace = await fixture.workflowRepository
+          .watchPromptTrace(result.workflowTaskId)
+          .first;
+      expect(trace!.traceMarkdown, contains('plan_chapter_brief'));
+      expect(trace.traceMarkdown, contains('expand_chapter_draft'));
+      expect(trace.traceMarkdown, contains('review_chapter_quality'));
+      expect(trace.traceMarkdown, contains('revise_chapter_quality'));
+      expect(trace.traceMarkdown, contains('review_revision_character_hit'));
+      expect(trace.traceMarkdown, contains('polish_chapter_draft'));
+      expect(trace.traceMarkdown, contains('终稿正文'));
+    },
+  );
+
+  test(
+    'high quality generation skips expansion and revision on pass',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final longDraft = List.generate(
+        2400,
+        (index) => String.fromCharCode(0x3400 + index),
+      ).join();
+      final fixture = await _Fixture.create(
+        database,
+        llmClient: _StaticLlmClient([
+          _selectorAssets,
+          '# 写作任务书\n\n- 正常推进。',
+          longDraft,
+          _qualityPass,
+          '润色后正文。',
+          _auditPass,
+          _memoryPatchYaml,
+        ]),
+        withPromptAssets: true,
+        withRuntimeMemory: true,
+        withCharacterGraph: true,
+        useHighQualityGeneration: true,
+      );
+
+      final result = await fixture.pipeline.generateChapter(
+        projectId: fixture.project.id,
+        chapterPlanId: fixture.plan.id,
+      );
+
+      expect(result.chapter.contentMarkdown, '润色后正文。');
+      expect(result.run.qualityReviewVerdict, ChapterQualityVerdict.pass);
+      expect(result.run.qualityRevisionNotesMarkdown, contains('未执行'));
+      expect(fixture.llmClient.invocationCount, 7);
+      expect(
+        fixture.llmClient.prompts.any((prompt) => prompt.contains('扩写补足编辑')),
+        isFalse,
+      );
+      expect(
+        fixture.llmClient.prompts.any((prompt) => prompt.contains('改稿编辑')),
+        isFalse,
+      );
+      expect(
+        fixture.llmClient.prompts.any(
+          (prompt) => prompt.contains('角色一致性专项审稿员'),
+        ),
+        isFalse,
+      );
+
+      final trace = await fixture.workflowRepository
+          .watchPromptTrace(result.workflowTaskId)
+          .first;
+      expect(trace!.traceMarkdown, isNot(contains('expand_chapter_draft')));
+      expect(
+        trace.traceMarkdown,
+        isNot(contains('review_revision_character_hit')),
+      );
+    },
+  );
+
+  test('malformed post revision character review is non-blocking', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final longDraft = List.generate(
+      2400,
+      (index) => String.fromCharCode(0x3400 + index),
+    ).join();
+    final fixture = await _Fixture.create(
+      database,
+      llmClient: _StaticLlmClient([
+        _selectorAssets,
+        '# 写作任务书\n\n- 强化章末钩子。',
+        longDraft,
+        _qualityNeedsRevision,
+        '修订正文。',
+        '我忘了输出 YAML。',
+        '终稿正文。',
+        _auditPass,
+        _memoryPatchYaml,
+      ]),
+      withPromptAssets: true,
+      withRuntimeMemory: true,
+      withCharacterGraph: true,
+      useHighQualityGeneration: true,
+    );
+
+    final result = await fixture.pipeline.generateChapter(
+      projectId: fixture.project.id,
+      chapterPlanId: fixture.plan.id,
+    );
+
+    expect(result.chapter.contentMarkdown, '终稿正文。');
+    expect(result.run.status, ChapterGenerationStatus.succeeded);
+    expect(result.run.qualityRevisionNotesMarkdown, contains('复审输出解析失败'));
+    expect(result.run.qualityRevisionNotesMarkdown, contains('已按非阻断处理'));
+    expect(fixture.llmClient.invocationCount, 9);
+    expect(fixture.llmClient.prompts[6], contains('复审输出解析失败'));
+    expect(fixture.llmClient.prompts[7], contains('连续性审计员'));
+  });
+
+  test('single run can override project default high quality mode', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final fixture = await _Fixture.create(
+      database,
+      llmClient: _StaticLlmClient([
+        _selectorAssets,
+        '快速正文。',
+        _auditPass,
+        _memoryPatchYaml,
+      ]),
+      withPromptAssets: true,
+      withRuntimeMemory: true,
+      withCharacterGraph: true,
+      useHighQualityGeneration: true,
+    );
+
+    final result = await fixture.pipeline.generateChapter(
+      projectId: fixture.project.id,
+      chapterPlanId: fixture.plan.id,
+      useHighQualityGeneration: false,
+    );
+
+    expect(result.chapter.contentMarkdown, '快速正文。');
+    expect(result.run.qualityReviewReportMarkdown, isEmpty);
+    expect(fixture.llmClient.invocationCount, 4);
+    expect(fixture.llmClient.prompts[1], contains('## Output Contract'));
+    expect(fixture.llmClient.prompts[1], isNot(contains('Chapter Task Brief')));
   });
 
   test('batch generation syncs each chapter before continuing', () async {
@@ -868,6 +1100,7 @@ class _Fixture {
     bool withRuntimeMemory = false,
     bool withCharacterGraph = false,
     bool longChapterArchive = false,
+    bool useHighQualityGeneration = false,
   }) async {
     final providerRepository = DriftProviderConfigRepository(database);
     await providerRepository.saveProvider(
@@ -907,6 +1140,7 @@ class _Fixture {
         plotProfileId: plotProfile?.id,
         targetLength: 3200,
         narrativePerspective: '第三人称有限视角',
+        useHighQualityGeneration: useHighQualityGeneration,
       ),
     );
     final project =
@@ -1227,6 +1461,54 @@ warningIssues: []
 # 连续性审计报告
 
 世界规则被违反，不能保存为正式章节。''';
+
+const _qualityNeedsRevision = '''---
+verdict: needsRevision
+needsRevision: true
+overallScore: 62
+dimensions:
+  thrill: 70
+  pacing: 65
+  pull: 55
+  characterHit: 72
+  naturalLanguage: 68
+majorIssues:
+  - 追读钩子弱
+revisionInstructions: |-
+  加强章末钩子，压缩解释性段落。
+---
+# 质量评审报告
+
+追读钩子弱，需要自动修订一轮。''';
+
+const _qualityPass = '''---
+verdict: pass
+needsRevision: false
+overallScore: 88
+dimensions:
+  thrill: 88
+  pacing: 86
+  pull: 87
+  characterHit: 90
+  naturalLanguage: 89
+majorIssues: []
+revisionInstructions: |-
+  无需修订。
+---
+# 质量评审报告
+
+读感稳定，无需自动修订。''';
+
+const _characterReviewWarning = '''---
+verdict: warning
+issues:
+  - 林岚台词偏硬
+polishInstructions: |-
+  终稿润色时把林岚的解释句改成更短的行动和对白。
+---
+# 返修后角色专项复审
+
+- 林岚台词偏硬：修订稿中解释句偏多，润色时应压成更短的动作和对白。''';
 
 const _patchReviewPass = '''---
 verdict: pass

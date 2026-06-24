@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../../../core/llm/application/markdown_completion_service.dart';
 import '../../../core/llm/domain/llm_cancellation.dart';
 import '../../../core/llm/domain/llm_error_utils.dart';
@@ -12,11 +14,125 @@ import '../../settings/domain/provider_config_repository.dart';
 import '../domain/novel_workshop.dart';
 import '../domain/novel_workshop_repository.dart';
 import '../domain/writing_context.dart';
+import 'chapter_quality_review.dart';
 import 'memory_patch_document.dart';
 import 'memory_patch_yaml.dart';
 import 'project_prompt_asset_resolver.dart';
 import 'writing_context_assembler.dart';
 import 'writing_context_retriever.dart';
+
+const int _defaultChapterTargetChars = 3000;
+const double _chapterMinCompletionRatio = 0.72;
+const int _chapterMinCompletionFloor = 300;
+const int _repeatCheckMinChars = 600;
+const int _repeatWindowChars = 120;
+const int _repeatHitLimit = 3;
+
+class ChapterLengthSpec {
+  const ChapterLengthSpec({
+    required this.targetChars,
+    required this.minCompletionChars,
+  });
+
+  final int targetChars;
+  final int minCompletionChars;
+
+  bool needsExpansion(String content) {
+    return countDraftChars(content) < minCompletionChars;
+  }
+}
+
+ChapterLengthSpec resolveChapterLengthSpec(int targetLength) {
+  final target = targetLength > 0 ? targetLength : _defaultChapterTargetChars;
+  return ChapterLengthSpec(
+    targetChars: target,
+    minCompletionChars: math.max(
+      _chapterMinCompletionFloor,
+      (target * _chapterMinCompletionRatio).round(),
+    ),
+  );
+}
+
+int countDraftChars(String content) {
+  return content.replaceAll(RegExp(r'\s+'), '').length;
+}
+
+class DraftRepeatTrimResult {
+  const DraftRepeatTrimResult({
+    required this.content,
+    required this.trimmed,
+    required this.removedChars,
+  });
+
+  final String content;
+  final bool trimmed;
+  final int removedChars;
+}
+
+DraftRepeatTrimResult trimRepeatedTail(String content) {
+  final normalized = content.replaceAll('\r\n', '\n').trim();
+  final compact = normalized.replaceAll(RegExp(r'\s+'), '');
+  if (compact.length < _repeatCheckMinChars) {
+    return DraftRepeatTrimResult(
+      content: normalized,
+      trimmed: false,
+      removedChars: 0,
+    );
+  }
+
+  final tail = compact.substring(compact.length - _repeatWindowChars);
+  final first = compact.indexOf(tail);
+  if (first == -1 || first >= compact.length - _repeatWindowChars) {
+    return DraftRepeatTrimResult(
+      content: normalized,
+      trimmed: false,
+      removedChars: 0,
+    );
+  }
+
+  var hits = 0;
+  var searchIndex = 0;
+  while (true) {
+    final found = compact.indexOf(tail, searchIndex);
+    if (found == -1) {
+      break;
+    }
+    hits += 1;
+    if (hits >= _repeatHitLimit) {
+      final cutIndex = _sourceIndexFromCompactIndex(
+        normalized,
+        first + _repeatWindowChars,
+      );
+      final trimmed = normalized.substring(0, cutIndex).trimRight();
+      return DraftRepeatTrimResult(
+        content: trimmed,
+        trimmed: trimmed.length < normalized.length,
+        removedChars: math.max(0, normalized.length - trimmed.length),
+      );
+    }
+    searchIndex = found + math.max(1, tail.length);
+  }
+
+  return DraftRepeatTrimResult(
+    content: normalized,
+    trimmed: false,
+    removedChars: 0,
+  );
+}
+
+int _sourceIndexFromCompactIndex(String content, int compactIndex) {
+  var seen = 0;
+  for (var index = 0; index < content.length; index += 1) {
+    if (RegExp(r'\s').hasMatch(content[index])) {
+      continue;
+    }
+    seen += 1;
+    if (seen >= compactIndex) {
+      return index + 1;
+    }
+  }
+  return content.length;
+}
 
 class ChapterGenerationPipeline {
   const ChapterGenerationPipeline({
@@ -91,6 +207,7 @@ class ChapterGenerationPipeline {
     required String projectId,
     required String chapterPlanId,
     bool replaceExisting = false,
+    bool? useHighQualityGeneration,
   }) async {
     if (await _repository.hasRunningChapterGeneration(chapterPlanId)) {
       throw StateError('该章节已有运行中的生成任务。');
@@ -123,6 +240,9 @@ class ChapterGenerationPipeline {
       String? errorMessage,
       String? contextWarningsMarkdown,
       String? draftMarkdown,
+      ChapterQualityVerdict? qualityReviewVerdict,
+      String? qualityReviewReportMarkdown,
+      String? qualityRevisionNotesMarkdown,
       ContinuityVerdict? continuityVerdict,
       String? continuityReportMarkdown,
       DateTime? startedAt,
@@ -143,6 +263,9 @@ class ChapterGenerationPipeline {
         logs: log.toString(),
         contextWarningsMarkdown: contextWarningsMarkdown,
         draftMarkdown: draftMarkdown,
+        qualityReviewVerdict: qualityReviewVerdict,
+        qualityReviewReportMarkdown: qualityReviewReportMarkdown,
+        qualityRevisionNotesMarkdown: qualityRevisionNotesMarkdown,
         continuityVerdict: continuityVerdict,
         continuityReportMarkdown: continuityReportMarkdown,
         startedAt: startedAt,
@@ -218,24 +341,241 @@ class ChapterGenerationPipeline {
         contextWarnings.add('章节归档过长，本次生成已使用临时 Chapter Archive Digest。');
       }
 
-      await transition(
-        ChapterGenerationStatus.running,
-        ChapterGenerationStage.generatingDraft,
-        message: '阶段: 生成正文。调用模型生成纯 Markdown 章节正文。',
-        contextWarningsMarkdown: _warningsMarkdown(contextWarnings),
-      );
-      cancellationToken.throwIfCancelled();
+      final highQuality =
+          useHighQualityGeneration ?? project.useHighQualityGeneration;
+      final lengthSpec = resolveChapterLengthSpec(project.targetLength);
+      ChapterQualityReviewResult? qualityReview;
+      var qualityRevisionNotes = '';
+      final qualityProcessNotes = <String>[];
+      var revisedForQuality = false;
+      var postRevisionCharacterReview = '';
+      late String content;
 
-      final generated = await _completionService.completeMarkdown(
-        provider: provider,
-        prompt: bundle.promptMarkdown,
-        temperature: 0.75,
-        modelName: modelName,
-        promptTrace: traceRecorder.config(label: 'generate_chapter_draft'),
-        cancellationToken: cancellationToken,
-      );
-      cancellationToken.throwIfCancelled();
-      final content = _cleanMarkdownDraft(generated);
+      if (highQuality) {
+        await transition(
+          ChapterGenerationStatus.running,
+          ChapterGenerationStage.planningBrief,
+          message: '阶段: 生成任务书。梳理本章读感目标、场景推进和章末钩子。',
+          contextWarningsMarkdown: _warningsMarkdown(contextWarnings),
+        );
+        cancellationToken.throwIfCancelled();
+        final taskBrief = await _buildChapterTaskBrief(
+          provider: provider,
+          modelName: modelName,
+          traceRecorder: traceRecorder,
+          project: project,
+          plan: plan,
+          sections: baseSections,
+          cancellationToken: cancellationToken,
+        );
+
+        await transition(
+          ChapterGenerationStatus.running,
+          ChapterGenerationStage.generatingDraft,
+          message: '阶段: 生成正文。根据任务书和上下文生成初稿。',
+        );
+        cancellationToken.throwIfCancelled();
+        var draft = await _generateChapterDraft(
+          provider: provider,
+          modelName: modelName,
+          traceRecorder: traceRecorder,
+          prompt: _draftPromptWithTaskBrief(
+            basePrompt: bundle.promptMarkdown,
+            taskBrief: taskBrief,
+          ),
+          cancellationToken: cancellationToken,
+        );
+        draft = _prepareGeneratedBody(
+          draft,
+          label: '初稿',
+          notes: qualityProcessNotes,
+        );
+
+        if (lengthSpec.needsExpansion(draft)) {
+          final beforeChars = countDraftChars(draft);
+          await transition(
+            ChapterGenerationStatus.running,
+            ChapterGenerationStage.expandingDraft,
+            message:
+                '阶段: 扩写补足。初稿约 $beforeChars 字，低于最低完成线 ${lengthSpec.minCompletionChars} 字。',
+          );
+          cancellationToken.throwIfCancelled();
+          draft = await _expandChapterDraft(
+            provider: provider,
+            modelName: modelName,
+            traceRecorder: traceRecorder,
+            project: project,
+            plan: plan,
+            sections: baseSections,
+            taskBrief: taskBrief,
+            draft: draft,
+            lengthSpec: lengthSpec,
+            cancellationToken: cancellationToken,
+          );
+          draft = _prepareGeneratedBody(
+            draft,
+            label: '扩写稿',
+            notes: qualityProcessNotes,
+          );
+          qualityProcessNotes.add(
+            '初稿约 $beforeChars 字，低于最低完成线 '
+            '${lengthSpec.minCompletionChars} 字，已自动扩写一次；'
+            '扩写后约 ${countDraftChars(draft)} 字。',
+          );
+          qualityRevisionNotes = _qualityRevisionNotes(
+            null,
+            revised: revisedForQuality,
+            processNotes: qualityProcessNotes,
+          );
+          await transition(
+            ChapterGenerationStatus.running,
+            ChapterGenerationStage.expandingDraft,
+            qualityRevisionNotesMarkdown: qualityRevisionNotes,
+          );
+        }
+
+        await transition(
+          ChapterGenerationStatus.running,
+          ChapterGenerationStage.qualityReviewing,
+          message: '阶段: 质量评审。检查爽感、节奏、追读、角色命中和语言自然度。',
+        );
+        cancellationToken.throwIfCancelled();
+        qualityReview = await _reviewDraftQuality(
+          provider: provider,
+          modelName: modelName,
+          traceRecorder: traceRecorder,
+          project: project,
+          plan: plan,
+          sections: baseSections,
+          taskBrief: taskBrief,
+          draft: draft,
+          cancellationToken: cancellationToken,
+        );
+        qualityRevisionNotes = _qualityRevisionNotes(
+          qualityReview,
+          revised: revisedForQuality,
+          processNotes: qualityProcessNotes,
+        );
+        await transition(
+          ChapterGenerationStatus.running,
+          ChapterGenerationStage.qualityReviewing,
+          message: _qualityReviewLogMessage(qualityReview),
+          qualityReviewVerdict: qualityReview.verdict,
+          qualityReviewReportMarkdown: qualityReview.reportMarkdown,
+          qualityRevisionNotesMarkdown: qualityRevisionNotes,
+        );
+
+        if (qualityReview.needsRevision) {
+          await transition(
+            ChapterGenerationStatus.running,
+            ChapterGenerationStage.revisingDraft,
+            message: '阶段: 自动修订。根据质量评审修订初稿一轮。',
+          );
+          cancellationToken.throwIfCancelled();
+          draft = await _reviseDraftForQuality(
+            provider: provider,
+            modelName: modelName,
+            traceRecorder: traceRecorder,
+            project: project,
+            plan: plan,
+            sections: baseSections,
+            taskBrief: taskBrief,
+            draft: draft,
+            review: qualityReview,
+            cancellationToken: cancellationToken,
+          );
+          draft = _prepareGeneratedBody(
+            draft,
+            label: '质量修订稿',
+            notes: qualityProcessNotes,
+          );
+          revisedForQuality = true;
+          qualityRevisionNotes = _qualityRevisionNotes(
+            qualityReview,
+            revised: revisedForQuality,
+            processNotes: qualityProcessNotes,
+          );
+          await transition(
+            ChapterGenerationStatus.running,
+            ChapterGenerationStage.revisingDraft,
+            qualityRevisionNotesMarkdown: qualityRevisionNotes,
+          );
+
+          await transition(
+            ChapterGenerationStatus.running,
+            ChapterGenerationStage.postRevisionCharacterReview,
+            message: '阶段: 角色复审。检查自动修订是否引入人物状态或声线偏差。',
+          );
+          cancellationToken.throwIfCancelled();
+          postRevisionCharacterReview = await _reviewPostRevisionCharacterHit(
+            provider: provider,
+            modelName: modelName,
+            traceRecorder: traceRecorder,
+            project: project,
+            plan: plan,
+            sections: baseSections,
+            taskBrief: taskBrief,
+            draft: draft,
+            cancellationToken: cancellationToken,
+          );
+          qualityRevisionNotes = _qualityRevisionNotes(
+            qualityReview,
+            revised: revisedForQuality,
+            processNotes: qualityProcessNotes,
+            characterReviewMarkdown: postRevisionCharacterReview,
+          );
+          await transition(
+            ChapterGenerationStatus.running,
+            ChapterGenerationStage.postRevisionCharacterReview,
+            message: '角色专项复审完成，结果将作为非阻断润色参考。',
+            qualityRevisionNotesMarkdown: qualityRevisionNotes,
+          );
+        }
+
+        await transition(
+          ChapterGenerationStatus.running,
+          ChapterGenerationStage.polishingDraft,
+          message: '阶段: 去 AI 润色。压实语言、去模板句式并保留事实。',
+        );
+        cancellationToken.throwIfCancelled();
+        content = await _polishDraft(
+          provider: provider,
+          modelName: modelName,
+          traceRecorder: traceRecorder,
+          project: project,
+          plan: plan,
+          sections: baseSections,
+          draft: draft,
+          characterReviewMarkdown: postRevisionCharacterReview,
+          cancellationToken: cancellationToken,
+        );
+        content = _prepareGeneratedBody(
+          content,
+          label: '终稿润色稿',
+          notes: qualityProcessNotes,
+        );
+        qualityRevisionNotes = _qualityRevisionNotes(
+          qualityReview,
+          revised: revisedForQuality,
+          processNotes: qualityProcessNotes,
+          characterReviewMarkdown: postRevisionCharacterReview,
+        );
+      } else {
+        await transition(
+          ChapterGenerationStatus.running,
+          ChapterGenerationStage.generatingDraft,
+          message: '阶段: 生成正文。调用模型生成纯 Markdown 章节正文。',
+          contextWarningsMarkdown: _warningsMarkdown(contextWarnings),
+        );
+        cancellationToken.throwIfCancelled();
+        content = await _generateChapterDraft(
+          provider: provider,
+          modelName: modelName,
+          traceRecorder: traceRecorder,
+          prompt: bundle.promptMarkdown,
+          cancellationToken: cancellationToken,
+        );
+      }
       if (content.trim().isEmpty) {
         throw StateError('模型返回了空章节正文。');
       }
@@ -245,6 +585,9 @@ class ChapterGenerationPipeline {
         ChapterGenerationStage.auditContinuity,
         message: '阶段: 连续性审计。检查人物状态、世界规则、伏笔和章节目标。',
         draftMarkdown: content,
+        qualityReviewVerdict: qualityReview?.verdict,
+        qualityReviewReportMarkdown: qualityReview?.reportMarkdown,
+        qualityRevisionNotesMarkdown: qualityRevisionNotes,
       );
       final audit = await _auditContinuity(
         provider: provider,
@@ -265,6 +608,9 @@ class ChapterGenerationPipeline {
             : ChapterGenerationStage.auditContinuity,
         message: _auditLogMessage(audit.verdict),
         draftMarkdown: content,
+        qualityReviewVerdict: qualityReview?.verdict,
+        qualityReviewReportMarkdown: qualityReview?.reportMarkdown,
+        qualityRevisionNotesMarkdown: qualityRevisionNotes,
         continuityVerdict: audit.verdict,
         continuityReportMarkdown: audit.reportMarkdown,
         errorMessage: audit.verdict == ContinuityVerdict.fail
@@ -297,6 +643,10 @@ class ChapterGenerationPipeline {
           contentMarkdown: content,
           continuityVerdict: audit.verdict,
           continuityReportMarkdown: audit.reportMarkdown,
+          qualityReviewVerdict:
+              qualityReview?.verdict ?? ChapterQualityVerdict.pass,
+          qualityReviewReportMarkdown: qualityReview?.reportMarkdown ?? '',
+          qualityRevisionNotesMarkdown: qualityRevisionNotes,
         ),
       );
 
@@ -1016,6 +1366,536 @@ class ChapterGenerationPipeline {
     );
   }
 
+  Future<String> _buildChapterTaskBrief({
+    required ProviderConfig provider,
+    required String modelName,
+    required PromptTraceRecorder traceRecorder,
+    required WritingProject project,
+    required ChapterPlan plan,
+    required WritingContextSections sections,
+    required LlmCancellationToken cancellationToken,
+  }) async {
+    final generated = await _completionService.completeMarkdown(
+      provider: provider,
+      prompt: _chapterTaskBriefPrompt(
+        project: project,
+        plan: plan,
+        sections: sections,
+      ),
+      temperature: 0.25,
+      modelName: modelName,
+      promptTrace: traceRecorder.config(label: 'plan_chapter_brief'),
+      cancellationToken: cancellationToken,
+    );
+    final brief = _cleanMarkdownDraft(generated);
+    if (brief.trim().isEmpty) {
+      return '本章按章节目标、细纲、人物状态和写作规则推进，不额外改写已确认设定。';
+    }
+    return brief;
+  }
+
+  Future<String> _generateChapterDraft({
+    required ProviderConfig provider,
+    required String modelName,
+    required PromptTraceRecorder traceRecorder,
+    required String prompt,
+    required LlmCancellationToken cancellationToken,
+  }) async {
+    final generated = await _completionService.completeMarkdown(
+      provider: provider,
+      prompt: prompt,
+      temperature: 0.75,
+      modelName: modelName,
+      promptTrace: traceRecorder.config(label: 'generate_chapter_draft'),
+      cancellationToken: cancellationToken,
+    );
+    return _cleanMarkdownDraft(generated);
+  }
+
+  Future<String> _expandChapterDraft({
+    required ProviderConfig provider,
+    required String modelName,
+    required PromptTraceRecorder traceRecorder,
+    required WritingProject project,
+    required ChapterPlan plan,
+    required WritingContextSections sections,
+    required String taskBrief,
+    required String draft,
+    required ChapterLengthSpec lengthSpec,
+    required LlmCancellationToken cancellationToken,
+  }) async {
+    final generated = await _completionService.completeMarkdown(
+      provider: provider,
+      prompt: _draftExpansionPrompt(
+        project: project,
+        plan: plan,
+        sections: sections,
+        taskBrief: taskBrief,
+        draft: draft,
+        lengthSpec: lengthSpec,
+      ),
+      temperature: 0.65,
+      modelName: modelName,
+      promptTrace: traceRecorder.config(label: 'expand_chapter_draft'),
+      cancellationToken: cancellationToken,
+    );
+    final expanded = _cleanMarkdownDraft(generated);
+    return expanded.trim().isEmpty ? draft : expanded;
+  }
+
+  Future<ChapterQualityReviewResult> _reviewDraftQuality({
+    required ProviderConfig provider,
+    required String modelName,
+    required PromptTraceRecorder traceRecorder,
+    required WritingProject project,
+    required ChapterPlan plan,
+    required WritingContextSections sections,
+    required String taskBrief,
+    required String draft,
+    required LlmCancellationToken cancellationToken,
+  }) async {
+    final generated = await _completionService.completeMarkdown(
+      provider: provider,
+      prompt: _qualityReviewPrompt(
+        project: project,
+        plan: plan,
+        sections: sections,
+        taskBrief: taskBrief,
+        draft: draft,
+      ),
+      temperature: 0.2,
+      modelName: modelName,
+      promptTrace: traceRecorder.config(label: 'review_chapter_quality'),
+      cancellationToken: cancellationToken,
+    );
+    return const ChapterQualityReviewParser().parse(generated);
+  }
+
+  Future<String> _reviseDraftForQuality({
+    required ProviderConfig provider,
+    required String modelName,
+    required PromptTraceRecorder traceRecorder,
+    required WritingProject project,
+    required ChapterPlan plan,
+    required WritingContextSections sections,
+    required String taskBrief,
+    required String draft,
+    required ChapterQualityReviewResult review,
+    required LlmCancellationToken cancellationToken,
+  }) async {
+    final generated = await _completionService.completeMarkdown(
+      provider: provider,
+      prompt: _qualityRevisionPrompt(
+        project: project,
+        plan: plan,
+        sections: sections,
+        taskBrief: taskBrief,
+        draft: draft,
+        review: review,
+      ),
+      temperature: 0.55,
+      modelName: modelName,
+      promptTrace: traceRecorder.config(label: 'revise_chapter_quality'),
+      cancellationToken: cancellationToken,
+    );
+    final revised = _cleanMarkdownDraft(generated);
+    return revised.trim().isEmpty ? draft : revised;
+  }
+
+  Future<String> _reviewPostRevisionCharacterHit({
+    required ProviderConfig provider,
+    required String modelName,
+    required PromptTraceRecorder traceRecorder,
+    required WritingProject project,
+    required ChapterPlan plan,
+    required WritingContextSections sections,
+    required String taskBrief,
+    required String draft,
+    required LlmCancellationToken cancellationToken,
+  }) async {
+    final generated = await _completionService.completeMarkdown(
+      provider: provider,
+      prompt: _postRevisionCharacterReviewPrompt(
+        project: project,
+        plan: plan,
+        sections: sections,
+        taskBrief: taskBrief,
+        draft: draft,
+      ),
+      temperature: 0.2,
+      modelName: modelName,
+      promptTrace: traceRecorder.config(label: 'review_revision_character_hit'),
+      cancellationToken: cancellationToken,
+    );
+    return _parsePostRevisionCharacterReview(_cleanMarkdownDraft(generated));
+  }
+
+  Future<String> _polishDraft({
+    required ProviderConfig provider,
+    required String modelName,
+    required PromptTraceRecorder traceRecorder,
+    required WritingProject project,
+    required ChapterPlan plan,
+    required WritingContextSections sections,
+    required String draft,
+    required String characterReviewMarkdown,
+    required LlmCancellationToken cancellationToken,
+  }) async {
+    final generated = await _completionService.completeMarkdown(
+      provider: provider,
+      prompt: _polishPrompt(
+        project: project,
+        plan: plan,
+        sections: sections,
+        draft: draft,
+        characterReviewMarkdown: characterReviewMarkdown,
+      ),
+      temperature: 0.45,
+      modelName: modelName,
+      promptTrace: traceRecorder.config(label: 'polish_chapter_draft'),
+      cancellationToken: cancellationToken,
+    );
+    final polished = _cleanMarkdownDraft(generated);
+    return polished.trim().isEmpty ? draft : polished;
+  }
+
+  String _chapterTaskBriefPrompt({
+    required WritingProject project,
+    required ChapterPlan plan,
+    required WritingContextSections sections,
+  }) {
+    return '''
+你是长篇小说章节策划编辑。请把当前章节上下文压缩成一份可执行的写作任务书，供下一步正文生成使用。
+
+## 输出契约
+只输出 Markdown 任务书，不要写正文，不要输出代码围栏、解释或前言。
+
+任务书必须包含：
+- 本章核心推进：目标、压力、兑现、关系变化、章末钩子中本章必须完成的内容。
+- 场景节奏：建议的开场承接、中段转折、末尾留钩。
+- 角色命中：必须承接的当前状态、关系、秘密或利益动机。
+- 读感重点：爽感/推进、节奏张力、追读钩子、语言自然度的执行提醒。
+
+## 项目
+${_projectContextMarkdown(project)}
+
+## 章节
+- 当前章节：第 ${plan.chapterIndex} 章 · ${_chapterTitle(plan)}
+
+## 章节目标卡
+${_objectiveCardMarkdown(plan.objectiveCard)}
+
+## 章节细纲
+${_chapterPlanMarkdown(sections.chapterPlan)}
+
+## 关键上下文
+${_auditReferenceMarkdown(sections)}
+''';
+  }
+
+  String _draftPromptWithTaskBrief({
+    required String basePrompt,
+    required String taskBrief,
+  }) {
+    return '''
+$basePrompt
+
+## Chapter Task Brief
+
+$taskBrief
+
+请严格按上面的任务书生成当前章节正文。任务书服务正文，不得作为正文输出。
+''';
+  }
+
+  String _draftExpansionPrompt({
+    required WritingProject project,
+    required ChapterPlan plan,
+    required WritingContextSections sections,
+    required String taskBrief,
+    required String draft,
+    required ChapterLengthSpec lengthSpec,
+  }) {
+    return '''
+你是长篇小说正文扩写补足编辑。当前章节正文明显过短，请在不推翻已有内容的前提下扩写成完整章节。
+
+## 输出契约
+只输出扩写补足后的当前章节正文，不要输出标题、解释、报告、代码围栏或改稿说明。
+
+## 扩写目标
+- 目标篇幅约 ${lengthSpec.targetChars} 字；低于 ${lengthSpec.minCompletionChars} 字视为初稿未完成。
+- 保留原稿已经发生的核心事件、人物关系、设定事实和章末方向。
+- 补足场景铺陈、动作细节、对话交锋、心理变化、压力升级和章末钩子。
+- 不新增会推翻大纲、人物状态、世界规则或后续章节安排的大剧情。
+- 禁止复读、循环输出、同义堆字；每一段都必须推进剧情、冲突、人物关系或期待。
+
+## 项目
+${_projectContextMarkdown(project)}
+
+## 章节
+- 当前章节：第 ${plan.chapterIndex} 章 · ${_chapterTitle(plan)}
+
+## 任务书
+$taskBrief
+
+## 上下文边界
+${_auditReferenceMarkdown(sections)}
+
+## 当前过短正文
+$draft
+''';
+  }
+
+  String _qualityReviewPrompt({
+    required WritingProject project,
+    required ChapterPlan plan,
+    required WritingContextSections sections,
+    required String taskBrief,
+    required String draft,
+  }) {
+    return '''
+你是长篇网文成稿质量编辑。请评审初稿的读感，不做连续性硬审计；硬冲突会由后续连续性审计处理。
+
+## 输出契约
+只输出 YAML front matter + Markdown 报告，不要输出代码围栏、解释或前言。
+文档必须从 `---` 开始，以第二个 `---` 结束 YAML，然后接 Markdown 报告。
+
+YAML 模板：
+---
+verdict: pass
+needsRevision: false
+overallScore: 85
+dimensions:
+  thrill: 85
+  pacing: 85
+  pull: 85
+  characterHit: 85
+  naturalLanguage: 85
+majorIssues: []
+revisionInstructions: |-
+  无需修订。
+---
+# 质量评审报告
+
+## 评审维度
+- `thrill` 爽感/推进：本章是否有明确获得、反击、压迫解除、信息差兑现、目标推进或代价落地。
+- `pacing` 节奏张力：开场是否承接压力，中段是否有变化，段落/对话是否拖沓。
+- `pull` 追读钩子：章末是否留下可承接的新问题、新压力或关系变化。
+- `characterHit` 角色命中：人物当前状态、利益动机、关系强度和说话方式是否被正文命中。
+- `naturalLanguage` 语言自然度：是否有模板句、AI 腔、说教、空泛比喻和总结感。
+
+## 判级规则
+- `pass`：无需自动修订，最多是轻微建议。
+- `warning`：有读感问题但不值得自动改稿。
+- `needsRevision`：存在一个或多个重大问题，应该自动修订一轮。
+- 只在读感问题会明显伤害成稿时设 `needsRevision: true`。
+- 不要因道德灰色选择、主角不正义、关系功利而扣分；只判断是否好看、顺畅、可追。
+
+## QMAI 式逐维审查流程
+对每个维度都必须给出 `pass` 或 `issue`，不要只写总体感受：
+- 已核对依据：引用任务书、角色/记忆参照或正文片段。
+- 正文证据：给出具体原文，不要凭空评价。
+- 读感影响：说明这个问题如何损害爽感、节奏、追读、角色命中或语言自然度。
+- rewrite target：指出自动修订应定位的原文片段或段落功能。
+- 阻断判定：只有重大读感问题才进入 `majorIssues` 并触发 `needsRevision: true`。
+
+Markdown 报告必须包含 `## 逐维审查` 和 `## 自动修订目标` 两节；`revisionInstructions` 必须可直接交给改稿模型执行。
+
+## 项目
+${_projectContextMarkdown(project)}
+
+## 章节
+- 当前章节：第 ${plan.chapterIndex} 章 · ${_chapterTitle(plan)}
+
+## 任务书
+$taskBrief
+
+## 角色/记忆参照
+${_auditReferenceMarkdown(sections)}
+
+## 待评审初稿
+$draft
+''';
+  }
+
+  String _qualityRevisionPrompt({
+    required WritingProject project,
+    required ChapterPlan plan,
+    required WritingContextSections sections,
+    required String taskBrief,
+    required String draft,
+    required ChapterQualityReviewResult review,
+  }) {
+    return '''
+你是长篇小说改稿编辑。请根据质量评审对初稿进行一轮自动修订。
+
+## 输出契约
+只输出修订后的当前章节正文，不要输出标题、解释、报告、代码围栏或改稿说明。
+
+## 改稿边界
+- 必须保留原稿已经发生的核心事件、人物关系和设定事实。
+- 可以重排段落、压缩废话、加强动作/对话/压力、补足承接和章末钩子。
+- 不新增后续大剧情，不替作者规划未来章节。
+- 不把道德灰色选择洗白，不加入道德总结。
+
+## 项目
+${_projectContextMarkdown(project)}
+
+## 章节
+- 当前章节：第 ${plan.chapterIndex} 章 · ${_chapterTitle(plan)}
+
+## 任务书
+$taskBrief
+
+## 上下文边界
+${_auditReferenceMarkdown(sections)}
+
+## 质量评审报告
+${review.reportMarkdown}
+
+## 修订指令
+${review.revisionInstructions.trim().isEmpty ? '按质量评审中的重大问题修订。' : review.revisionInstructions.trim()}
+
+## 初稿
+$draft
+''';
+  }
+
+  String _postRevisionCharacterReviewPrompt({
+    required WritingProject project,
+    required ChapterPlan plan,
+    required WritingContextSections sections,
+    required String taskBrief,
+    required String draft,
+  }) {
+    return '''
+你是长篇小说返修后角色一致性专项审稿员。请只检查自动修订后的正文是否引入新的角色偏差；不要做完整质量评审，也不要建议二次自动返修。
+
+## 输出契约
+只输出 YAML front matter + Markdown 报告，不要输出代码围栏、解释或前言。
+文档必须从 `---` 开始，以第二个 `---` 结束 YAML，然后接 Markdown 报告。
+
+YAML 模板：
+---
+verdict: pass
+issues: []
+polishInstructions: |-
+  无需额外处理。
+---
+# 返修后角色专项复审
+
+## 检查范围
+- 人物当前状态、资源、伤势、秘密和关系强度是否被修订稿改偏。
+- 角色动机是否仍由利益、欲望、压力或生存本能驱动。
+- 角色知道/不知道的信息是否越界。
+- 台词、称呼、说话方式是否符合既有角色卡和关系。
+- 只标出有正文证据和上下文依据的问题；没有证据就写 pass。
+
+## 非阻断规则
+本复审只服务最终润色，不阻断保存，不触发第二轮自动修订。若有问题，`polishInstructions` 只写轻量修补建议。
+
+## 项目
+${_projectContextMarkdown(project)}
+
+## 章节
+- 当前章节：第 ${plan.chapterIndex} 章 · ${_chapterTitle(plan)}
+
+## 任务书
+$taskBrief
+
+## 角色/记忆参照
+${_auditReferenceMarkdown(sections)}
+
+## 返修后正文
+$draft
+''';
+  }
+
+  String _polishPrompt({
+    required WritingProject project,
+    required ChapterPlan plan,
+    required WritingContextSections sections,
+    required String draft,
+    required String characterReviewMarkdown,
+  }) {
+    return '''
+你是长篇小说终稿润色编辑。请做最终去 AI 腔和自然化润色。
+
+## 输出契约
+只输出润色后的当前章节正文，不要输出标题、解释、报告、代码围栏或润色说明。
+
+## 润色边界
+- 不改变事实、人物关系、场景顺序、章节结尾状态和已确认设定。
+- 不新增重大事件或伏笔；只改善表达、节奏、对白和段落呼吸。
+- 优先把抽象情绪换成动作、感官、选择和代价。
+- 删除模板句、空泛比喻、哲理总结、道德评判和 AI 腔连接词。
+- 保持 ${project.language.trim()} 和 ${project.narrativePerspective.trim()}。
+- 如果下方提供了返修后角色专项复审，请用轻量润色修补其中有证据的问题；不要新增大剧情，不要改变事实。
+
+## 反 AI 腔规则
+${sections.writingRulesMarkdown.trim().isEmpty ? _writingRulesMarkdown(project) : sections.writingRulesMarkdown.trim()}
+
+## 章节
+- 当前章节：第 ${plan.chapterIndex} 章 · ${_chapterTitle(plan)}
+
+${characterReviewMarkdown.trim().isEmpty ? '' : '## 返修后角色专项复审\n${characterReviewMarkdown.trim()}\n'}
+
+## 待润色正文
+$draft
+''';
+  }
+
+  String _qualityReviewLogMessage(ChapterQualityReviewResult review) {
+    if (review.needsRevision) {
+      return '质量评审：needsRevision，将自动修订一轮。';
+    }
+    return '质量评审：${review.verdict.name}，不触发自动修订。';
+  }
+
+  String _qualityRevisionNotes(
+    ChapterQualityReviewResult? review, {
+    required bool revised,
+    List<String> processNotes = const [],
+    String characterReviewMarkdown = '',
+  }) {
+    final lines = <String>[
+      '# 质量修订说明',
+      '',
+      '- 质量结论：${review?.verdict.name ?? '待评审'}',
+      if (review?.overallScore != null) '- 总分：${review!.overallScore}',
+      '- 自动修订：${revised ? '已执行一轮' : '未执行'}',
+    ];
+    if (processNotes.isNotEmpty) {
+      lines
+        ..add('')
+        ..add('## 生成链处理记录');
+      for (final note in processNotes) {
+        lines.add('- $note');
+      }
+    }
+    if (review != null && review.majorIssues.isNotEmpty) {
+      lines
+        ..add('')
+        ..add('## 重大问题');
+      for (final issue in review.majorIssues) {
+        lines.add('- $issue');
+      }
+    }
+    if (review != null && review.revisionInstructions.trim().isNotEmpty) {
+      lines
+        ..add('')
+        ..add('## 修订指令')
+        ..add(review.revisionInstructions.trim());
+    }
+    if (characterReviewMarkdown.trim().isNotEmpty) {
+      lines
+        ..add('')
+        ..add('## 返修后角色专项复审')
+        ..add(characterReviewMarkdown.trim());
+    }
+    return lines.join('\n').trim();
+  }
+
   Future<_ContinuityAuditResult> _auditContinuity({
     required ProviderConfig provider,
     required String modelName,
@@ -1136,6 +2016,48 @@ $trimmed
 '''
                 .trim(),
       );
+    }
+  }
+
+  String _parsePostRevisionCharacterReview(String generated) {
+    final trimmed = generated.trim();
+    if (trimmed.isEmpty) {
+      return '# 返修后角色专项复审\n\n未返回复审内容，按非阻断通过处理。';
+    }
+    try {
+      if (!trimmed.startsWith('---')) {
+        throw const FormatException('缺少 YAML front matter。');
+      }
+      final close = trimmed.indexOf('\n---', 3);
+      if (close < 0) {
+        throw const FormatException('缺少 YAML 结束分隔符。');
+      }
+      final yamlText = trimmed.substring(3, close).trim();
+      final body = trimmed.substring(close + 4).trim();
+      final parsed = loadYaml(yamlText);
+      if (parsed is! YamlMap) {
+        throw const FormatException('YAML 根节点不是 mapping。');
+      }
+      final verdict = parsed['verdict']?.toString().trim();
+      final polishInstructions = _yamlString(parsed['polishInstructions']);
+      if (body.isNotEmpty) {
+        return body;
+      }
+      return [
+        '# 返修后角色专项复审',
+        '',
+        '- 结论：${verdict == null || verdict.isEmpty ? 'pass' : verdict}',
+        if (polishInstructions.isNotEmpty) '- 润色指令：$polishInstructions',
+      ].join('\n');
+    } on Object catch (error) {
+      return '''
+# 返修后角色专项复审
+
+复审输出解析失败，已按非阻断处理；最终连续性审计仍会检查硬冲突。
+
+- 解析错误：$error
+'''
+          .trim();
     }
   }
 
@@ -1721,6 +2643,18 @@ ${chapter.contentMarkdown}
       text = match.group(1) ?? '';
     }
     return text.trim();
+  }
+
+  String _prepareGeneratedBody(
+    String content, {
+    required String label,
+    required List<String> notes,
+  }) {
+    final result = trimRepeatedTail(content);
+    if (result.trimmed) {
+      notes.add('$label 检测到尾部重复输出，已裁掉约 ${result.removedChars} 字。');
+    }
+    return result.content;
   }
 
   String _sanitizeError(Object error, ProviderConfig? provider) {
