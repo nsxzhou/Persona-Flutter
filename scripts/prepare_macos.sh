@@ -16,7 +16,8 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SCRAPERS_DIR="$PROJECT_ROOT/assets/scrapers"
 BUILD_MODE="${1:-debug}"
 
-APP_PATH="$PROJECT_ROOT/build/macos/Build/Products/$(echo "$BUILD_MODE" | sed 's/.*/\u&')/persona_flutter.app"
+BUILD_DIR="$(echo "${BUILD_MODE:0:1}" | tr '[:lower:]' '[:upper:]')${BUILD_MODE:1}"
+APP_PATH="$PROJECT_ROOT/build/macos/Build/Products/$BUILD_DIR/persona_flutter.app"
 RESOURCES="$APP_PATH/Contents/Resources"
 
 if [[ ! -d "$APP_PATH" ]]; then
