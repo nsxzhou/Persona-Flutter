@@ -1311,6 +1311,9 @@ runtimeMemory:
       stage: ChapterGenerationStage.generatingDraft,
       contextWarningsMarkdown: '- 运行时记忆为空。',
       draftMarkdown: '生成草稿。',
+      qualityReviewVerdict: ChapterQualityVerdict.needsRevision,
+      qualityReviewReportMarkdown: '# 质量报告\n\n- 追读钩子弱。',
+      qualityRevisionNotesMarkdown: '# 修订说明\n\n已执行一轮。',
       continuityVerdict: ContinuityVerdict.warning,
       continuityReportMarkdown: '# 审计报告\n\n- 目标偏弱。',
       startedAt: DateTime.now(),
@@ -1319,6 +1322,9 @@ runtimeMemory:
     expect(running.stage, ChapterGenerationStage.generatingDraft);
     expect(running.contextWarningsMarkdown, contains('运行时记忆'));
     expect(running.draftMarkdown, '生成草稿。');
+    expect(running.qualityReviewVerdict, ChapterQualityVerdict.needsRevision);
+    expect(running.qualityReviewReportMarkdown, contains('追读钩子弱'));
+    expect(running.qualityRevisionNotesMarkdown, contains('已执行一轮'));
     expect(running.continuityVerdict, ContinuityVerdict.warning);
     expect(running.continuityReportMarkdown, contains('目标偏弱'));
     expect(task!.kind, chapterGenerationWorkflowTaskKind);

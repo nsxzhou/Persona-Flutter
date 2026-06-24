@@ -1358,6 +1358,13 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
             continuityReportMarkdown: Value(
               input.continuityReportMarkdown.trim(),
             ),
+            qualityReviewVerdict: Value(input.qualityReviewVerdict.name),
+            qualityReviewReportMarkdown: Value(
+              input.qualityReviewReportMarkdown.trim(),
+            ),
+            qualityRevisionNotesMarkdown: Value(
+              input.qualityRevisionNotesMarkdown.trim(),
+            ),
             memorySyncStatus: contentChanged
                 ? Value(MemorySyncStatus.idle.name)
                 : const Value.absent(),
@@ -2245,6 +2252,9 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
               logs: const Value(''),
               contextWarningsMarkdown: const Value(''),
               draftMarkdown: const Value(''),
+              qualityReviewVerdict: Value(ChapterQualityVerdict.pass.name),
+              qualityReviewReportMarkdown: const Value(''),
+              qualityRevisionNotesMarkdown: const Value(''),
               continuityVerdict: Value(ContinuityVerdict.pass.name),
               continuityReportMarkdown: const Value(''),
               createdAt: now,
@@ -2274,6 +2284,9 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
     String? logs,
     String? contextWarningsMarkdown,
     String? draftMarkdown,
+    ChapterQualityVerdict? qualityReviewVerdict,
+    String? qualityReviewReportMarkdown,
+    String? qualityRevisionNotesMarkdown,
     ContinuityVerdict? continuityVerdict,
     String? continuityReportMarkdown,
     DateTime? startedAt,
@@ -2319,6 +2332,15 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
           draftMarkdown: draftMarkdown == null
               ? const Value.absent()
               : Value(draftMarkdown.trim()),
+          qualityReviewVerdict: qualityReviewVerdict == null
+              ? const Value.absent()
+              : Value(qualityReviewVerdict.name),
+          qualityReviewReportMarkdown: qualityReviewReportMarkdown == null
+              ? const Value.absent()
+              : Value(qualityReviewReportMarkdown.trim()),
+          qualityRevisionNotesMarkdown: qualityRevisionNotesMarkdown == null
+              ? const Value.absent()
+              : Value(qualityRevisionNotesMarkdown.trim()),
           continuityVerdict: continuityVerdict == null
               ? const Value.absent()
               : Value(continuityVerdict.name),
@@ -3202,6 +3224,9 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       contentHash: row.contentHash,
       continuityVerdict: ContinuityVerdict.values.byName(row.continuityVerdict),
       continuityReportMarkdown: row.continuityReportMarkdown,
+      qualityReviewVerdict: _mapQualityVerdict(row.qualityReviewVerdict),
+      qualityReviewReportMarkdown: row.qualityReviewReportMarkdown,
+      qualityRevisionNotesMarkdown: row.qualityRevisionNotesMarkdown,
       memorySyncStatus: MemorySyncStatus.values.byName(row.memorySyncStatus),
       memorySyncContentHash: row.memorySyncContentHash,
       memorySyncProposedRuntimeState: row.memorySyncProposedRuntimeState,
@@ -3294,6 +3319,9 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       logs: row.logs,
       contextWarningsMarkdown: row.contextWarningsMarkdown,
       draftMarkdown: row.draftMarkdown,
+      qualityReviewVerdict: _mapQualityVerdict(row.qualityReviewVerdict),
+      qualityReviewReportMarkdown: row.qualityReviewReportMarkdown,
+      qualityRevisionNotesMarkdown: row.qualityRevisionNotesMarkdown,
       continuityVerdict: ContinuityVerdict.values.byName(row.continuityVerdict),
       continuityReportMarkdown: row.continuityReportMarkdown,
       createdAt: row.createdAt,
@@ -3301,6 +3329,14 @@ class DriftNovelWorkshopRepository implements NovelWorkshopRepository {
       startedAt: row.startedAt,
       completedAt: row.completedAt,
     );
+  }
+
+  ChapterQualityVerdict _mapQualityVerdict(String value) {
+    try {
+      return ChapterQualityVerdict.values.byName(value);
+    } on ArgumentError {
+      return ChapterQualityVerdict.warning;
+    }
   }
 
   ChapterGenerationBatch _mapGenerationBatch(ChapterGenerationBatchRecord row) {

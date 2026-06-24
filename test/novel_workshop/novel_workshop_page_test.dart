@@ -2570,6 +2570,7 @@ ${repository.plans.singleWhere((item) => item.id == chapterPlanId).objectiveCard
     required String projectId,
     required String chapterPlanId,
     bool replaceExisting = false,
+    bool? useHighQualityGeneration,
   }) async {
     generateCalls += 1;
     this.replaceExisting = replaceExisting;
@@ -3961,6 +3962,9 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
     String? logs,
     String? contextWarningsMarkdown,
     String? draftMarkdown,
+    ChapterQualityVerdict? qualityReviewVerdict,
+    String? qualityReviewReportMarkdown,
+    String? qualityRevisionNotesMarkdown,
     ContinuityVerdict? continuityVerdict,
     String? continuityReportMarkdown,
     DateTime? startedAt,
@@ -3983,6 +3987,12 @@ class _FakeNovelWorkshopRepository implements NovelWorkshopRepository {
       contextWarningsMarkdown:
           contextWarningsMarkdown ?? current.contextWarningsMarkdown,
       draftMarkdown: draftMarkdown ?? current.draftMarkdown,
+      qualityReviewVerdict:
+          qualityReviewVerdict ?? current.qualityReviewVerdict,
+      qualityReviewReportMarkdown:
+          qualityReviewReportMarkdown ?? current.qualityReviewReportMarkdown,
+      qualityRevisionNotesMarkdown:
+          qualityRevisionNotesMarkdown ?? current.qualityRevisionNotesMarkdown,
       continuityVerdict: continuityVerdict ?? current.continuityVerdict,
       continuityReportMarkdown:
           continuityReportMarkdown ?? current.continuityReportMarkdown,

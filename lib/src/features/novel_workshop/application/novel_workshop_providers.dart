@@ -881,6 +881,7 @@ class NovelWorkshopController extends _$NovelWorkshopController {
     required String projectId,
     required String chapterPlanId,
     bool replaceExisting = false,
+    bool? useHighQualityGeneration,
   }) async {
     state = const AsyncLoading();
     late ChapterGenerationResult result;
@@ -891,6 +892,7 @@ class NovelWorkshopController extends _$NovelWorkshopController {
             projectId: projectId,
             chapterPlanId: chapterPlanId,
             replaceExisting: replaceExisting,
+            useHighQualityGeneration: useHighQualityGeneration,
           );
     });
     if (state.hasError) {

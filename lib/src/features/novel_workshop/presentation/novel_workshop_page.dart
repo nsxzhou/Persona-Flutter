@@ -732,6 +732,34 @@ String _continuityVerdictLabel(ContinuityVerdict verdict) {
   };
 }
 
+Color _qualityVerdictColor(
+  BuildContext context,
+  ChapterQualityVerdict verdict,
+) {
+  final colorScheme = Theme.of(context).colorScheme;
+  return switch (verdict) {
+    ChapterQualityVerdict.pass => const Color(0xFF16825D),
+    ChapterQualityVerdict.needsRevision => colorScheme.tertiary,
+    ChapterQualityVerdict.warning => colorScheme.onSurfaceVariant,
+  };
+}
+
+IconData _qualityVerdictIcon(ChapterQualityVerdict verdict) {
+  return switch (verdict) {
+    ChapterQualityVerdict.pass => Icons.auto_fix_high_outlined,
+    ChapterQualityVerdict.needsRevision => Icons.tips_and_updates_outlined,
+    ChapterQualityVerdict.warning => Icons.info_outline,
+  };
+}
+
+String _qualityVerdictLabel(ChapterQualityVerdict verdict) {
+  return switch (verdict) {
+    ChapterQualityVerdict.pass => '读感 pass',
+    ChapterQualityVerdict.needsRevision => '读感已修订',
+    ChapterQualityVerdict.warning => '读感 warning',
+  };
+}
+
 String _bibleCompletenessLabel(ProjectBible bible) {
   final sections = [
     bible.descriptionMarkdown,
@@ -872,6 +900,9 @@ ProjectChapter _emptyReaderChapter(String projectId, ChapterPlan plan) {
     contentHash: '',
     continuityVerdict: ContinuityVerdict.pass,
     continuityReportMarkdown: '',
+    qualityReviewVerdict: ChapterQualityVerdict.pass,
+    qualityReviewReportMarkdown: '',
+    qualityRevisionNotesMarkdown: '',
     memorySyncStatus: MemorySyncStatus.idle,
     memorySyncContentHash: '',
     memorySyncProposedRuntimeState: '',

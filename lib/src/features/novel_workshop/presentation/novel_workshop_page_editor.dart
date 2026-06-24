@@ -474,14 +474,17 @@ class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
       if (!mounted) {
         return;
       }
-      final confirmed = await showGlassDialog<bool>(
+      final request = await showGlassDialog<_GenerationContextPreviewRequest>(
         context: context,
         maxWidth: 920,
         maxHeight: MediaQuery.sizeOf(context).height * 0.88,
-        builder: (context) =>
-            _GenerationContextPreviewDialog(preview: preview, plan: plan),
+        builder: (context) => _GenerationContextPreviewDialog(
+          preview: preview,
+          plan: plan,
+          initialUseHighQualityGeneration: project.useHighQualityGeneration,
+        ),
       );
-      if (confirmed != true) {
+      if (request == null) {
         return;
       }
       await ref
@@ -490,6 +493,7 @@ class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
             projectId: widget.projectId,
             chapterPlanId: plan.id,
             replaceExisting: replaceExisting,
+            useHighQualityGeneration: request.useHighQualityGeneration,
           );
       _showSnack('章节生成完成。');
     } on Object {
@@ -507,7 +511,7 @@ class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
       _showSnack('请先保存或放弃当前正文，再启动批量草稿。');
       return;
     }
-    final request = await showGlassDialog<_BatchGenerationRequest>(
+    final batchRequest = await showGlassDialog<_BatchGenerationRequest>(
       context: context,
       maxWidth: 520,
       builder: (context) => _BatchGenerationDialog(
@@ -516,7 +520,7 @@ class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
         selectedPlan: selectedPlan,
       ),
     );
-    if (request == null) {
+    if (batchRequest == null) {
       return;
     }
     try {
@@ -524,30 +528,33 @@ class _NovelEditorPageState extends ConsumerState<NovelEditorPage> {
           .read(novelWorkshopControllerProvider.notifier)
           .previewGenerationContext(
             projectId: project.id,
-            chapterPlanId: request.chapterPlanIds.first,
+            chapterPlanId: batchRequest.chapterPlanIds.first,
           );
       if (!mounted) {
         return;
       }
-      final confirmed = await showGlassDialog<bool>(
-        context: context,
-        maxWidth: 920,
-        maxHeight: MediaQuery.sizeOf(context).height * 0.88,
-        builder: (context) => _GenerationContextPreviewDialog(
-          preview: preview,
-          plan: plans.firstWhere(
-            (plan) => plan.id == request.chapterPlanIds.first,
-          ),
-        ),
-      );
-      if (confirmed != true) {
+      final previewRequest =
+          await showGlassDialog<_GenerationContextPreviewRequest>(
+            context: context,
+            maxWidth: 920,
+            maxHeight: MediaQuery.sizeOf(context).height * 0.88,
+            builder: (context) => _GenerationContextPreviewDialog(
+              preview: preview,
+              plan: plans.firstWhere(
+                (plan) => plan.id == batchRequest.chapterPlanIds.first,
+              ),
+              initialUseHighQualityGeneration: project.useHighQualityGeneration,
+              showQualityToggle: false,
+            ),
+          );
+      if (previewRequest == null) {
         return;
       }
       await ref
           .read(novelWorkshopControllerProvider.notifier)
           .startChapterGenerationBatch(
             projectId: project.id,
-            chapterPlanIds: request.chapterPlanIds,
+            chapterPlanIds: batchRequest.chapterPlanIds,
           );
       _showSnack('批量草稿已完成。');
     } on Object {
@@ -757,7 +764,10 @@ class _AssetWorkbenchPage extends StatelessWidget {
           style: OutlinedButton.styleFrom(
             minimumSize: const Size(0, 34),
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+            textStyle: const TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         FilledButton.icon(
@@ -768,7 +778,10 @@ class _AssetWorkbenchPage extends StatelessWidget {
           style: FilledButton.styleFrom(
             minimumSize: const Size(0, 34),
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+            textStyle: const TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],
@@ -818,11 +831,7 @@ class _HeaderIconButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         child: Padding(
           padding: const EdgeInsets.all(6),
-          child: Icon(
-            icon,
-            size: 18,
-            color: colorScheme.onSurfaceVariant,
-          ),
+          child: Icon(icon, size: 18, color: colorScheme.onSurfaceVariant),
         ),
       ),
     );
@@ -1096,7 +1105,9 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(
-                color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
+                color: Theme.of(
+                  context,
+                ).colorScheme.outlineVariant.withValues(alpha: 0.4),
                 width: 1,
               ),
             ),
@@ -1114,10 +1125,7 @@ class _WorkbenchTabsState extends State<_WorkbenchTabs>
                 : MediaQuery.of(context).size.height - 200;
             return SizedBox(
               height: availableHeight,
-              child: TabBarView(
-                controller: _tabController,
-                children: children,
-              ),
+              child: TabBarView(controller: _tabController, children: children),
             );
           },
         ),
@@ -1169,8 +1177,7 @@ class _ProjectOverviewTab extends StatelessWidget {
 
     // Compute progress fractions
     final bibleProgress = bibleEmpty ? null : _bibleCompletenessFraction(bible);
-    final chapterProgress =
-        plans.isEmpty ? null : completed / plans.length;
+    final chapterProgress = plans.isEmpty ? null : completed / plans.length;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 22, 24, 40),
@@ -1244,8 +1251,8 @@ class _ProjectOverviewTab extends StatelessWidget {
               final crossAxisCount = constraints.maxWidth > 900
                   ? 5
                   : constraints.maxWidth > 600
-                      ? 3
-                      : 2;
+                  ? 3
+                  : 2;
               final totalSpacing = 10.0 * (crossAxisCount - 1);
               final itemWidth =
                   (constraints.maxWidth - totalSpacing) / crossAxisCount;
@@ -1326,8 +1333,9 @@ class _ProjectOverviewTab extends StatelessWidget {
                             const SizedBox(height: 2),
                             Text(
                               '由正文生成后自动维护',
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(fontSize: 11.5),
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodyMedium?.copyWith(fontSize: 11.5),
                             ),
                           ],
                         ),
@@ -1341,10 +1349,13 @@ class _ProjectOverviewTab extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: colorScheme.surfaceContainerHighest
                                   .withValues(alpha: 0.3),
-                              borderRadius: BorderRadius.circular(kButtonRadius),
+                              borderRadius: BorderRadius.circular(
+                                kButtonRadius,
+                              ),
                               border: Border.all(
-                                color: colorScheme.outlineVariant
-                                    .withValues(alpha: 0.4),
+                                color: colorScheme.outlineVariant.withValues(
+                                  alpha: 0.4,
+                                ),
                               ),
                             ),
                             child: Padding(
@@ -1355,8 +1366,9 @@ class _ProjectOverviewTab extends StatelessWidget {
                                     decoration: BoxDecoration(
                                       color: colorScheme.surfaceContainerHighest
                                           .withValues(alpha: 0.5),
-                                      borderRadius:
-                                          BorderRadius.circular(kButtonRadius),
+                                      borderRadius: BorderRadius.circular(
+                                        kButtonRadius,
+                                      ),
                                     ),
                                     child: const SizedBox(
                                       width: 38,
@@ -1376,9 +1388,9 @@ class _ProjectOverviewTab extends StatelessWidget {
                                       children: [
                                         Text(
                                           '暂无运行时记忆',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleMedium,
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.titleMedium,
                                         ),
                                         const SizedBox(height: 2),
                                         Text(
@@ -1399,8 +1411,7 @@ class _ProjectOverviewTab extends StatelessWidget {
                             memory: item.state,
                             onOpen: () => onSwitchTab(7),
                           ),
-                    error: (error, stackTrace) =>
-                        Text('无法加载运行时记忆：$error'),
+                    error: (error, stackTrace) => Text('无法加载运行时记忆：$error'),
                     loading: () => _RuntimeMemorySkeleton(),
                   ),
                 ],
@@ -1670,9 +1681,12 @@ class _ImportedProjectOverviewTab extends StatelessWidget {
                           const WorkbenchSectionLabel('最近加料批次', major: true),
                           Text(
                             '成功生成的结果需要预览后手动应用到章节正文。',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
                           ),
                         ],
                       ),
@@ -2762,7 +2776,9 @@ class _BibleMarkdownEditorTabState
                         ),
                         FilledButton.icon(
                           key: ValueKey('save-bible-${widget.field.name}'),
-                          onPressed: state.isLoading || !_isDirty ? null : _save,
+                          onPressed: state.isLoading || !_isDirty
+                              ? null
+                              : _save,
                           icon: const Icon(Icons.save_outlined, size: 18),
                           label: const Text('保存'),
                         ),
@@ -2782,17 +2798,26 @@ class _BibleMarkdownEditorTabState
                               ? const SizedBox(
                                   width: 18,
                                   height: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 )
-                              : const Icon(Icons.auto_fix_high_outlined, size: 18),
+                              : const Icon(
+                                  Icons.auto_fix_high_outlined,
+                                  size: 18,
+                                ),
                           label: Text(generating ? '生成中' : '生成草稿'),
                         ),
                         if (canReviewAssetDraft(widget.latestRun))
                           TextButton.icon(
                             onPressed: state.isLoading
                                 ? null
-                                : () => _reviewDraft(widget.latestRun!, trimmed),
-                            icon: const Icon(Icons.rate_review_outlined, size: 18),
+                                : () =>
+                                      _reviewDraft(widget.latestRun!, trimmed),
+                            icon: const Icon(
+                              Icons.rate_review_outlined,
+                              size: 18,
+                            ),
                             label: const Text('查看草稿'),
                           ),
                         if (trimmed.isNotEmpty)
@@ -3060,17 +3085,20 @@ class _YamlMarkdownAssetTab extends StatelessWidget {
                               decoration: BoxDecoration(
                                 border: Border(
                                   left: BorderSide(
-                                    color: colorScheme.primary.withValues(alpha: 0.35),
+                                    color: colorScheme.primary.withValues(
+                                      alpha: 0.35,
+                                    ),
                                     width: 2,
                                   ),
                                 ),
                               ),
                               child: Text(
                                 description,
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  height: 1.7,
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      height: 1.7,
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
                               ),
                             ),
                           ],
@@ -3228,7 +3256,9 @@ class _RuntimeMemoryTabState extends ConsumerState<_RuntimeMemoryTab>
                           decoration: BoxDecoration(
                             border: Border(
                               left: BorderSide(
-                                color: colorScheme.primary.withValues(alpha: 0.35),
+                                color: colorScheme.primary.withValues(
+                                  alpha: 0.35,
+                                ),
                                 width: 2,
                               ),
                             ),
@@ -3257,7 +3287,9 @@ class _RuntimeMemoryTabState extends ConsumerState<_RuntimeMemoryTab>
                               child: const Text('取消'),
                             ),
                             FilledButton.icon(
-                              onPressed: controllerState.isLoading ? null : _save,
+                              onPressed: controllerState.isLoading
+                                  ? null
+                                  : _save,
                               icon: const Icon(Icons.save_outlined, size: 18),
                               label: const Text('保存'),
                             ),
@@ -3271,7 +3303,11 @@ class _RuntimeMemoryTabState extends ConsumerState<_RuntimeMemoryTab>
                   if (compact) {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [descBlock, const SizedBox(height: 12), actionBar],
+                      children: [
+                        descBlock,
+                        const SizedBox(height: 12),
+                        actionBar,
+                      ],
                     );
                   }
                   return Row(
@@ -3507,6 +3543,7 @@ class _WorkshopSettingsTabState extends ConsumerState<_WorkshopSettingsTab>
   String? _selectedModelName;
   String? _selectedStyleProfileId;
   String? _selectedPlotProfileId;
+  late bool _useHighQualityGeneration;
   bool _initialized = false;
 
   @override
@@ -3530,6 +3567,7 @@ class _WorkshopSettingsTabState extends ConsumerState<_WorkshopSettingsTab>
     _selectedModelName = p.defaultModelName;
     _selectedStyleProfileId = p.styleProfileId;
     _selectedPlotProfileId = p.plotProfileId;
+    _useHighQualityGeneration = p.useHighQualityGeneration;
   }
 
   @override
@@ -3587,6 +3625,7 @@ class _WorkshopSettingsTabState extends ConsumerState<_WorkshopSettingsTab>
       totalTargetLength:
           int.tryParse(_totalTargetLengthController.text.trim()) ?? 0,
       narrativePerspective: _perspectiveController.text.trim(),
+      useHighQualityGeneration: _useHighQualityGeneration,
     );
     await ref
         .read(projectControllerProvider.notifier)
@@ -3821,6 +3860,14 @@ class _WorkshopSettingsTabState extends ConsumerState<_WorkshopSettingsTab>
                         labelText: '叙事视角',
                         border: OutlineInputBorder(),
                       ),
+                    ),
+                    const SizedBox(height: 8),
+                    _QualityGenerationSwitchRow(
+                      value: _useHighQualityGeneration,
+                      onChanged: (value) =>
+                          setState(() => _useHighQualityGeneration = value),
+                      title: '默认使用高质量成稿链',
+                      subtitle: '生成章节时自动执行任务书、读感评审、必要修订和最终润色',
                     ),
                     const SizedBox(height: 24),
                     const WorkbenchSectionLabel('项目状态'),
@@ -4497,11 +4544,7 @@ class _ChapterPlanningToolbar extends StatelessWidget {
 
           return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              header,
-              const SizedBox(width: 20),
-              actions,
-            ],
+            children: [header, const SizedBox(width: 20), actions],
           );
         },
       ),
@@ -6472,26 +6515,103 @@ class _WarningList extends StatelessWidget {
   }
 }
 
-class _GenerationContextPreviewDialog extends StatelessWidget {
-  const _GenerationContextPreviewDialog({
-    required this.preview,
-    required this.plan,
+class _GenerationContextPreviewRequest {
+  const _GenerationContextPreviewRequest({
+    required this.useHighQualityGeneration,
   });
 
-  final ChapterGenerationContextPreview preview;
-  final ChapterPlan plan;
+  final bool useHighQualityGeneration;
+}
+
+class _QualityGenerationSwitchRow extends StatelessWidget {
+  const _QualityGenerationSwitchRow({
+    required this.value,
+    required this.onChanged,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final String title;
+  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final optionalWarnings = preview.warnings
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Icon(
+            Icons.auto_fix_high_outlined,
+            size: 20,
+            color: colorScheme.primary,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.bodyLarge),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Switch(value: value, onChanged: onChanged),
+      ],
+    );
+  }
+}
+
+class _GenerationContextPreviewDialog extends StatefulWidget {
+  const _GenerationContextPreviewDialog({
+    required this.preview,
+    required this.plan,
+    required this.initialUseHighQualityGeneration,
+    this.showQualityToggle = true,
+  });
+
+  final ChapterGenerationContextPreview preview;
+  final ChapterPlan plan;
+  final bool initialUseHighQualityGeneration;
+  final bool showQualityToggle;
+
+  @override
+  State<_GenerationContextPreviewDialog> createState() =>
+      _GenerationContextPreviewDialogState();
+}
+
+class _GenerationContextPreviewDialogState
+    extends State<_GenerationContextPreviewDialog> {
+  late bool _useHighQualityGeneration;
+
+  @override
+  void initState() {
+    super.initState();
+    _useHighQualityGeneration = widget.initialUseHighQualityGeneration;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final optionalWarnings = widget.preview.warnings
         .where(
           (warning) =>
               warning.contains('Voice Profile') ||
               warning.contains('Story Engine'),
         )
         .toList(growable: false);
-    final otherWarnings = preview.warnings
+    final otherWarnings = widget.preview.warnings
         .where((warning) => !optionalWarnings.contains(warning))
         .toList(growable: false);
 
@@ -6513,7 +6633,7 @@ class _GenerationContextPreviewDialog extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '第 ${plan.chapterIndex} 章 · ${_chapterTitle(plan)}',
+                    '第 ${widget.plan.chapterIndex} 章 · ${_chapterTitle(widget.plan)}',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
@@ -6523,7 +6643,7 @@ class _GenerationContextPreviewDialog extends StatelessWidget {
             ),
             IconButton(
               tooltip: '关闭',
-              onPressed: () => Navigator.of(context).pop(false),
+              onPressed: () => Navigator.of(context).pop(),
               icon: const Icon(Icons.close),
             ),
           ],
@@ -6534,7 +6654,17 @@ class _GenerationContextPreviewDialog extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _PreviewStatusGrid(preview: preview),
+                if (widget.showQualityToggle) ...[
+                  _QualityGenerationSwitchRow(
+                    value: _useHighQualityGeneration,
+                    onChanged: (value) =>
+                        setState(() => _useHighQualityGeneration = value),
+                    title: '高质量成稿链',
+                    subtitle: '任务书、初稿、读感评审、必要修订和最终润色',
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                _PreviewStatusGrid(preview: widget.preview),
                 if (optionalWarnings.isNotEmpty) ...[
                   const SizedBox(height: 14),
                   _PreviewWarningPanel(
@@ -6559,7 +6689,7 @@ class _GenerationContextPreviewDialog extends StatelessWidget {
                   ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 8),
-                CodeBlock(text: preview.promptMarkdown),
+                CodeBlock(text: widget.preview.promptMarkdown),
               ],
             ),
           ),
@@ -6569,12 +6699,16 @@ class _GenerationContextPreviewDialog extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
+              onPressed: () => Navigator.of(context).pop(),
               child: const Text('取消'),
             ),
             const SizedBox(width: 8),
             FilledButton.icon(
-              onPressed: () => Navigator.of(context).pop(true),
+              onPressed: () => Navigator.of(context).pop(
+                _GenerationContextPreviewRequest(
+                  useHighQualityGeneration: _useHighQualityGeneration,
+                ),
+              ),
               icon: const Icon(Icons.auto_fix_high_outlined, size: 18),
               label: const Text('确认生成'),
             ),
@@ -8145,6 +8279,11 @@ class _InlineChapterHeader extends StatelessWidget {
     final hasAudit =
         (chapter?.continuityReportMarkdown.trim().isNotEmpty ?? false) ||
         (run?.continuityReportMarkdown.trim().isNotEmpty ?? false);
+    final qualityVerdict =
+        chapter?.qualityReviewVerdict ?? run?.qualityReviewVerdict;
+    final hasQualityReport =
+        (chapter?.qualityReviewReportMarkdown.trim().isNotEmpty ?? false) ||
+        (run?.qualityReviewReportMarkdown.trim().isNotEmpty ?? false);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(36, 12, 24, 0),
@@ -8189,6 +8328,8 @@ class _InlineChapterHeader extends StatelessWidget {
           final badges = <Widget>[
             if (verdict != null && hasAudit)
               _ContinuityVerdictPill(verdict: verdict),
+            if (qualityVerdict != null && hasQualityReport)
+              _QualityVerdictPill(verdict: qualityVerdict),
             if (running)
               SizedBox(
                 width: 14,
@@ -8294,6 +8435,21 @@ class _ContinuityVerdictPill extends StatelessWidget {
   }
 }
 
+class _QualityVerdictPill extends StatelessWidget {
+  const _QualityVerdictPill({required this.verdict});
+
+  final ChapterQualityVerdict verdict;
+
+  @override
+  Widget build(BuildContext context) {
+    return PersonaStatusPill(
+      label: _qualityVerdictLabel(verdict),
+      icon: _qualityVerdictIcon(verdict),
+      color: _qualityVerdictColor(context, verdict),
+    );
+  }
+}
+
 class _WorkshopInspector extends StatelessWidget {
   const _WorkshopInspector({
     required this.plan,
@@ -8355,6 +8511,10 @@ class _WorkshopInspector extends StatelessWidget {
                   _InspectorSection(
                     title: '生成任务',
                     child: _RunSummary(run: run),
+                  ),
+                  _InspectorSection(
+                    title: '读感质量',
+                    child: _QualityReviewSummary(chapter: chapter, run: run),
                   ),
                   _InspectorSection(
                     title: '连续性审计',
@@ -8640,6 +8800,51 @@ class _RunSummary extends StatelessWidget {
             ),
           ),
         ),
+      ],
+    );
+  }
+}
+
+class _QualityReviewSummary extends StatelessWidget {
+  const _QualityReviewSummary({required this.chapter, required this.run});
+
+  final ProjectChapter? chapter;
+  final ChapterGenerationRun? run;
+
+  @override
+  Widget build(BuildContext context) {
+    final report =
+        chapter?.qualityReviewReportMarkdown.trim().isNotEmpty == true
+        ? chapter!.qualityReviewReportMarkdown
+        : run?.qualityReviewReportMarkdown ?? '';
+    final notes =
+        chapter?.qualityRevisionNotesMarkdown.trim().isNotEmpty == true
+        ? chapter!.qualityRevisionNotesMarkdown
+        : run?.qualityRevisionNotesMarkdown ?? '';
+    final verdict =
+        chapter?.qualityReviewReportMarkdown.trim().isNotEmpty == true
+        ? chapter!.qualityReviewVerdict
+        : run?.qualityReviewVerdict;
+    if (verdict == null || report.trim().isEmpty) {
+      return Text(
+        '暂无质量报告',
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Theme.of(
+            context,
+          ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _QualityVerdictPill(verdict: verdict),
+        const SizedBox(height: 10),
+        _AuditMarkdownPreview(markdown: report),
+        if (notes.trim().isNotEmpty) ...[
+          const SizedBox(height: 10),
+          _AuditMarkdownPreview(markdown: notes),
+        ],
       ],
     );
   }

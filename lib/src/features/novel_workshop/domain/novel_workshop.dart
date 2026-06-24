@@ -2,6 +2,8 @@ import 'writing_context.dart';
 
 enum ContinuityVerdict { pass, warning, fail }
 
+enum ChapterQualityVerdict { pass, needsRevision, warning }
+
 enum MemorySyncStatus {
   idle,
   checking,
@@ -33,7 +35,13 @@ enum ChapterGenerationBatchItemStatus {
 
 enum ChapterGenerationStage {
   preparingContext,
+  planningBrief,
   generatingDraft,
+  expandingDraft,
+  qualityReviewing,
+  revisingDraft,
+  postRevisionCharacterReview,
+  polishingDraft,
   auditContinuity,
   savingChapter,
   proposingMemoryPatch,
@@ -263,6 +271,9 @@ class ProjectChapter {
     required this.contentHash,
     required this.continuityVerdict,
     required this.continuityReportMarkdown,
+    this.qualityReviewVerdict = ChapterQualityVerdict.pass,
+    this.qualityReviewReportMarkdown = '',
+    this.qualityRevisionNotesMarkdown = '',
     required this.memorySyncStatus,
     required this.memorySyncContentHash,
     required this.memorySyncProposedRuntimeState,
@@ -284,6 +295,9 @@ class ProjectChapter {
   final String contentHash;
   final ContinuityVerdict continuityVerdict;
   final String continuityReportMarkdown;
+  final ChapterQualityVerdict qualityReviewVerdict;
+  final String qualityReviewReportMarkdown;
+  final String qualityRevisionNotesMarkdown;
   final MemorySyncStatus memorySyncStatus;
   final String memorySyncContentHash;
   final String memorySyncProposedRuntimeState;
@@ -305,6 +319,9 @@ class ProjectChapterInput {
     required this.contentMarkdown,
     this.continuityVerdict = ContinuityVerdict.pass,
     this.continuityReportMarkdown = '',
+    this.qualityReviewVerdict = ChapterQualityVerdict.pass,
+    this.qualityReviewReportMarkdown = '',
+    this.qualityRevisionNotesMarkdown = '',
   });
 
   final String projectId;
@@ -314,6 +331,9 @@ class ProjectChapterInput {
   final String contentMarkdown;
   final ContinuityVerdict continuityVerdict;
   final String continuityReportMarkdown;
+  final ChapterQualityVerdict qualityReviewVerdict;
+  final String qualityReviewReportMarkdown;
+  final String qualityRevisionNotesMarkdown;
 }
 
 class ChapterIllustration {
@@ -635,6 +655,9 @@ class ChapterGenerationRun {
     required this.logs,
     required this.contextWarningsMarkdown,
     required this.draftMarkdown,
+    this.qualityReviewVerdict = ChapterQualityVerdict.pass,
+    this.qualityReviewReportMarkdown = '',
+    this.qualityRevisionNotesMarkdown = '',
     required this.continuityVerdict,
     required this.continuityReportMarkdown,
     required this.createdAt,
@@ -656,6 +679,9 @@ class ChapterGenerationRun {
   final String logs;
   final String contextWarningsMarkdown;
   final String draftMarkdown;
+  final ChapterQualityVerdict qualityReviewVerdict;
+  final String qualityReviewReportMarkdown;
+  final String qualityRevisionNotesMarkdown;
   final ContinuityVerdict continuityVerdict;
   final String continuityReportMarkdown;
   final DateTime createdAt;
