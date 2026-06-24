@@ -3550,6 +3550,21 @@ class $ProjectRecordsTable extends ProjectRecords
         requiredDuringInsert: false,
         defaultValue: const Constant('第三人称有限视角'),
       );
+  static const VerificationMeta _useHighQualityGenerationMeta =
+      const VerificationMeta('useHighQualityGeneration');
+  @override
+  late final GeneratedColumn<bool> useHighQualityGeneration =
+      GeneratedColumn<bool>(
+        'use_high_quality_generation',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("use_high_quality_generation" IN (0, 1))',
+        ),
+        defaultValue: const Constant(true),
+      );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -3587,6 +3602,7 @@ class $ProjectRecordsTable extends ProjectRecords
     targetLength,
     totalTargetLength,
     narrativePerspective,
+    useHighQualityGeneration,
     createdAt,
     updatedAt,
   ];
@@ -3707,6 +3723,15 @@ class $ProjectRecordsTable extends ProjectRecords
         ),
       );
     }
+    if (data.containsKey('use_high_quality_generation')) {
+      context.handle(
+        _useHighQualityGenerationMeta,
+        useHighQualityGeneration.isAcceptableOrUnknown(
+          data['use_high_quality_generation']!,
+          _useHighQualityGenerationMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -3784,6 +3809,10 @@ class $ProjectRecordsTable extends ProjectRecords
         DriftSqlType.string,
         data['${effectivePrefix}narrative_perspective'],
       )!,
+      useHighQualityGeneration: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}use_high_quality_generation'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -3815,6 +3844,7 @@ class ProjectRecord extends DataClass implements Insertable<ProjectRecord> {
   final int targetLength;
   final int totalTargetLength;
   final String narrativePerspective;
+  final bool useHighQualityGeneration;
   final DateTime createdAt;
   final DateTime updatedAt;
   const ProjectRecord({
@@ -3831,6 +3861,7 @@ class ProjectRecord extends DataClass implements Insertable<ProjectRecord> {
     required this.targetLength,
     required this.totalTargetLength,
     required this.narrativePerspective,
+    required this.useHighQualityGeneration,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -3858,6 +3889,9 @@ class ProjectRecord extends DataClass implements Insertable<ProjectRecord> {
     map['target_length'] = Variable<int>(targetLength);
     map['total_target_length'] = Variable<int>(totalTargetLength);
     map['narrative_perspective'] = Variable<String>(narrativePerspective);
+    map['use_high_quality_generation'] = Variable<bool>(
+      useHighQualityGeneration,
+    );
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -3886,6 +3920,7 @@ class ProjectRecord extends DataClass implements Insertable<ProjectRecord> {
       targetLength: Value(targetLength),
       totalTargetLength: Value(totalTargetLength),
       narrativePerspective: Value(narrativePerspective),
+      useHighQualityGeneration: Value(useHighQualityGeneration),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -3914,6 +3949,9 @@ class ProjectRecord extends DataClass implements Insertable<ProjectRecord> {
       narrativePerspective: serializer.fromJson<String>(
         json['narrativePerspective'],
       ),
+      useHighQualityGeneration: serializer.fromJson<bool>(
+        json['useHighQualityGeneration'],
+      ),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -3935,6 +3973,9 @@ class ProjectRecord extends DataClass implements Insertable<ProjectRecord> {
       'targetLength': serializer.toJson<int>(targetLength),
       'totalTargetLength': serializer.toJson<int>(totalTargetLength),
       'narrativePerspective': serializer.toJson<String>(narrativePerspective),
+      'useHighQualityGeneration': serializer.toJson<bool>(
+        useHighQualityGeneration,
+      ),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -3954,6 +3995,7 @@ class ProjectRecord extends DataClass implements Insertable<ProjectRecord> {
     int? targetLength,
     int? totalTargetLength,
     String? narrativePerspective,
+    bool? useHighQualityGeneration,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => ProjectRecord(
@@ -3978,6 +4020,8 @@ class ProjectRecord extends DataClass implements Insertable<ProjectRecord> {
     targetLength: targetLength ?? this.targetLength,
     totalTargetLength: totalTargetLength ?? this.totalTargetLength,
     narrativePerspective: narrativePerspective ?? this.narrativePerspective,
+    useHighQualityGeneration:
+        useHighQualityGeneration ?? this.useHighQualityGeneration,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -4012,6 +4056,9 @@ class ProjectRecord extends DataClass implements Insertable<ProjectRecord> {
       narrativePerspective: data.narrativePerspective.present
           ? data.narrativePerspective.value
           : this.narrativePerspective,
+      useHighQualityGeneration: data.useHighQualityGeneration.present
+          ? data.useHighQualityGeneration.value
+          : this.useHighQualityGeneration,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -4033,6 +4080,7 @@ class ProjectRecord extends DataClass implements Insertable<ProjectRecord> {
           ..write('targetLength: $targetLength, ')
           ..write('totalTargetLength: $totalTargetLength, ')
           ..write('narrativePerspective: $narrativePerspective, ')
+          ..write('useHighQualityGeneration: $useHighQualityGeneration, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -4054,6 +4102,7 @@ class ProjectRecord extends DataClass implements Insertable<ProjectRecord> {
     targetLength,
     totalTargetLength,
     narrativePerspective,
+    useHighQualityGeneration,
     createdAt,
     updatedAt,
   );
@@ -4074,6 +4123,7 @@ class ProjectRecord extends DataClass implements Insertable<ProjectRecord> {
           other.targetLength == this.targetLength &&
           other.totalTargetLength == this.totalTargetLength &&
           other.narrativePerspective == this.narrativePerspective &&
+          other.useHighQualityGeneration == this.useHighQualityGeneration &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -4092,6 +4142,7 @@ class ProjectRecordsCompanion extends UpdateCompanion<ProjectRecord> {
   final Value<int> targetLength;
   final Value<int> totalTargetLength;
   final Value<String> narrativePerspective;
+  final Value<bool> useHighQualityGeneration;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -4109,6 +4160,7 @@ class ProjectRecordsCompanion extends UpdateCompanion<ProjectRecord> {
     this.targetLength = const Value.absent(),
     this.totalTargetLength = const Value.absent(),
     this.narrativePerspective = const Value.absent(),
+    this.useHighQualityGeneration = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -4127,6 +4179,7 @@ class ProjectRecordsCompanion extends UpdateCompanion<ProjectRecord> {
     this.targetLength = const Value.absent(),
     this.totalTargetLength = const Value.absent(),
     this.narrativePerspective = const Value.absent(),
+    this.useHighQualityGeneration = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
@@ -4149,6 +4202,7 @@ class ProjectRecordsCompanion extends UpdateCompanion<ProjectRecord> {
     Expression<int>? targetLength,
     Expression<int>? totalTargetLength,
     Expression<String>? narrativePerspective,
+    Expression<bool>? useHighQualityGeneration,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -4168,6 +4222,8 @@ class ProjectRecordsCompanion extends UpdateCompanion<ProjectRecord> {
       if (totalTargetLength != null) 'total_target_length': totalTargetLength,
       if (narrativePerspective != null)
         'narrative_perspective': narrativePerspective,
+      if (useHighQualityGeneration != null)
+        'use_high_quality_generation': useHighQualityGeneration,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -4188,6 +4244,7 @@ class ProjectRecordsCompanion extends UpdateCompanion<ProjectRecord> {
     Value<int>? targetLength,
     Value<int>? totalTargetLength,
     Value<String>? narrativePerspective,
+    Value<bool>? useHighQualityGeneration,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
@@ -4206,6 +4263,8 @@ class ProjectRecordsCompanion extends UpdateCompanion<ProjectRecord> {
       targetLength: targetLength ?? this.targetLength,
       totalTargetLength: totalTargetLength ?? this.totalTargetLength,
       narrativePerspective: narrativePerspective ?? this.narrativePerspective,
+      useHighQualityGeneration:
+          useHighQualityGeneration ?? this.useHighQualityGeneration,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -4256,6 +4315,11 @@ class ProjectRecordsCompanion extends UpdateCompanion<ProjectRecord> {
         narrativePerspective.value,
       );
     }
+    if (useHighQualityGeneration.present) {
+      map['use_high_quality_generation'] = Variable<bool>(
+        useHighQualityGeneration.value,
+      );
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -4284,6 +4348,7 @@ class ProjectRecordsCompanion extends UpdateCompanion<ProjectRecord> {
           ..write('targetLength: $targetLength, ')
           ..write('totalTargetLength: $totalTargetLength, ')
           ..write('narrativePerspective: $narrativePerspective, ')
+          ..write('useHighQualityGeneration: $useHighQualityGeneration, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -12753,6 +12818,42 @@ class $ProjectChapterRecordsTable extends ProjectChapterRecords
         requiredDuringInsert: false,
         defaultValue: const Constant(''),
       );
+  static const VerificationMeta _qualityReviewVerdictMeta =
+      const VerificationMeta('qualityReviewVerdict');
+  @override
+  late final GeneratedColumn<String> qualityReviewVerdict =
+      GeneratedColumn<String>(
+        'quality_review_verdict',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('pass'),
+      );
+  static const VerificationMeta _qualityReviewReportMarkdownMeta =
+      const VerificationMeta('qualityReviewReportMarkdown');
+  @override
+  late final GeneratedColumn<String> qualityReviewReportMarkdown =
+      GeneratedColumn<String>(
+        'quality_review_report_markdown',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(''),
+      );
+  static const VerificationMeta _qualityRevisionNotesMarkdownMeta =
+      const VerificationMeta('qualityRevisionNotesMarkdown');
+  @override
+  late final GeneratedColumn<String> qualityRevisionNotesMarkdown =
+      GeneratedColumn<String>(
+        'quality_revision_notes_markdown',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(''),
+      );
   static const VerificationMeta _memorySyncStatusMeta = const VerificationMeta(
     'memorySyncStatus',
   );
@@ -12882,6 +12983,9 @@ class $ProjectChapterRecordsTable extends ProjectChapterRecords
     contentHash,
     continuityVerdict,
     continuityReportMarkdown,
+    qualityReviewVerdict,
+    qualityReviewReportMarkdown,
+    qualityRevisionNotesMarkdown,
     memorySyncStatus,
     memorySyncContentHash,
     memorySyncProposedRuntimeState,
@@ -12979,6 +13083,33 @@ class $ProjectChapterRecordsTable extends ProjectChapterRecords
         continuityReportMarkdown.isAcceptableOrUnknown(
           data['continuity_report_markdown']!,
           _continuityReportMarkdownMeta,
+        ),
+      );
+    }
+    if (data.containsKey('quality_review_verdict')) {
+      context.handle(
+        _qualityReviewVerdictMeta,
+        qualityReviewVerdict.isAcceptableOrUnknown(
+          data['quality_review_verdict']!,
+          _qualityReviewVerdictMeta,
+        ),
+      );
+    }
+    if (data.containsKey('quality_review_report_markdown')) {
+      context.handle(
+        _qualityReviewReportMarkdownMeta,
+        qualityReviewReportMarkdown.isAcceptableOrUnknown(
+          data['quality_review_report_markdown']!,
+          _qualityReviewReportMarkdownMeta,
+        ),
+      );
+    }
+    if (data.containsKey('quality_revision_notes_markdown')) {
+      context.handle(
+        _qualityRevisionNotesMarkdownMeta,
+        qualityRevisionNotesMarkdown.isAcceptableOrUnknown(
+          data['quality_revision_notes_markdown']!,
+          _qualityRevisionNotesMarkdownMeta,
         ),
       );
     }
@@ -13119,6 +13250,18 @@ class $ProjectChapterRecordsTable extends ProjectChapterRecords
         DriftSqlType.string,
         data['${effectivePrefix}continuity_report_markdown'],
       )!,
+      qualityReviewVerdict: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}quality_review_verdict'],
+      )!,
+      qualityReviewReportMarkdown: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}quality_review_report_markdown'],
+      )!,
+      qualityRevisionNotesMarkdown: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}quality_revision_notes_markdown'],
+      )!,
       memorySyncStatus: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}memory_sync_status'],
@@ -13179,6 +13322,9 @@ class ProjectChapterRecord extends DataClass
   final String contentHash;
   final String continuityVerdict;
   final String continuityReportMarkdown;
+  final String qualityReviewVerdict;
+  final String qualityReviewReportMarkdown;
+  final String qualityRevisionNotesMarkdown;
   final String memorySyncStatus;
   final String memorySyncContentHash;
   final String memorySyncProposedRuntimeState;
@@ -13199,6 +13345,9 @@ class ProjectChapterRecord extends DataClass
     required this.contentHash,
     required this.continuityVerdict,
     required this.continuityReportMarkdown,
+    required this.qualityReviewVerdict,
+    required this.qualityReviewReportMarkdown,
+    required this.qualityRevisionNotesMarkdown,
     required this.memorySyncStatus,
     required this.memorySyncContentHash,
     required this.memorySyncProposedRuntimeState,
@@ -13223,6 +13372,13 @@ class ProjectChapterRecord extends DataClass
     map['continuity_verdict'] = Variable<String>(continuityVerdict);
     map['continuity_report_markdown'] = Variable<String>(
       continuityReportMarkdown,
+    );
+    map['quality_review_verdict'] = Variable<String>(qualityReviewVerdict);
+    map['quality_review_report_markdown'] = Variable<String>(
+      qualityReviewReportMarkdown,
+    );
+    map['quality_revision_notes_markdown'] = Variable<String>(
+      qualityRevisionNotesMarkdown,
     );
     map['memory_sync_status'] = Variable<String>(memorySyncStatus);
     map['memory_sync_content_hash'] = Variable<String>(memorySyncContentHash);
@@ -13258,6 +13414,9 @@ class ProjectChapterRecord extends DataClass
       contentHash: Value(contentHash),
       continuityVerdict: Value(continuityVerdict),
       continuityReportMarkdown: Value(continuityReportMarkdown),
+      qualityReviewVerdict: Value(qualityReviewVerdict),
+      qualityReviewReportMarkdown: Value(qualityReviewReportMarkdown),
+      qualityRevisionNotesMarkdown: Value(qualityRevisionNotesMarkdown),
       memorySyncStatus: Value(memorySyncStatus),
       memorySyncContentHash: Value(memorySyncContentHash),
       memorySyncProposedRuntimeState: Value(memorySyncProposedRuntimeState),
@@ -13291,6 +13450,15 @@ class ProjectChapterRecord extends DataClass
       continuityVerdict: serializer.fromJson<String>(json['continuityVerdict']),
       continuityReportMarkdown: serializer.fromJson<String>(
         json['continuityReportMarkdown'],
+      ),
+      qualityReviewVerdict: serializer.fromJson<String>(
+        json['qualityReviewVerdict'],
+      ),
+      qualityReviewReportMarkdown: serializer.fromJson<String>(
+        json['qualityReviewReportMarkdown'],
+      ),
+      qualityRevisionNotesMarkdown: serializer.fromJson<String>(
+        json['qualityRevisionNotesMarkdown'],
       ),
       memorySyncStatus: serializer.fromJson<String>(json['memorySyncStatus']),
       memorySyncContentHash: serializer.fromJson<String>(
@@ -13333,6 +13501,13 @@ class ProjectChapterRecord extends DataClass
       'continuityReportMarkdown': serializer.toJson<String>(
         continuityReportMarkdown,
       ),
+      'qualityReviewVerdict': serializer.toJson<String>(qualityReviewVerdict),
+      'qualityReviewReportMarkdown': serializer.toJson<String>(
+        qualityReviewReportMarkdown,
+      ),
+      'qualityRevisionNotesMarkdown': serializer.toJson<String>(
+        qualityRevisionNotesMarkdown,
+      ),
       'memorySyncStatus': serializer.toJson<String>(memorySyncStatus),
       'memorySyncContentHash': serializer.toJson<String>(memorySyncContentHash),
       'memorySyncProposedRuntimeState': serializer.toJson<String>(
@@ -13366,6 +13541,9 @@ class ProjectChapterRecord extends DataClass
     String? contentHash,
     String? continuityVerdict,
     String? continuityReportMarkdown,
+    String? qualityReviewVerdict,
+    String? qualityReviewReportMarkdown,
+    String? qualityRevisionNotesMarkdown,
     String? memorySyncStatus,
     String? memorySyncContentHash,
     String? memorySyncProposedRuntimeState,
@@ -13387,6 +13565,11 @@ class ProjectChapterRecord extends DataClass
     continuityVerdict: continuityVerdict ?? this.continuityVerdict,
     continuityReportMarkdown:
         continuityReportMarkdown ?? this.continuityReportMarkdown,
+    qualityReviewVerdict: qualityReviewVerdict ?? this.qualityReviewVerdict,
+    qualityReviewReportMarkdown:
+        qualityReviewReportMarkdown ?? this.qualityReviewReportMarkdown,
+    qualityRevisionNotesMarkdown:
+        qualityRevisionNotesMarkdown ?? this.qualityRevisionNotesMarkdown,
     memorySyncStatus: memorySyncStatus ?? this.memorySyncStatus,
     memorySyncContentHash: memorySyncContentHash ?? this.memorySyncContentHash,
     memorySyncProposedRuntimeState:
@@ -13429,6 +13612,15 @@ class ProjectChapterRecord extends DataClass
       continuityReportMarkdown: data.continuityReportMarkdown.present
           ? data.continuityReportMarkdown.value
           : this.continuityReportMarkdown,
+      qualityReviewVerdict: data.qualityReviewVerdict.present
+          ? data.qualityReviewVerdict.value
+          : this.qualityReviewVerdict,
+      qualityReviewReportMarkdown: data.qualityReviewReportMarkdown.present
+          ? data.qualityReviewReportMarkdown.value
+          : this.qualityReviewReportMarkdown,
+      qualityRevisionNotesMarkdown: data.qualityRevisionNotesMarkdown.present
+          ? data.qualityRevisionNotesMarkdown.value
+          : this.qualityRevisionNotesMarkdown,
       memorySyncStatus: data.memorySyncStatus.present
           ? data.memorySyncStatus.value
           : this.memorySyncStatus,
@@ -13475,6 +13667,11 @@ class ProjectChapterRecord extends DataClass
           ..write('contentHash: $contentHash, ')
           ..write('continuityVerdict: $continuityVerdict, ')
           ..write('continuityReportMarkdown: $continuityReportMarkdown, ')
+          ..write('qualityReviewVerdict: $qualityReviewVerdict, ')
+          ..write('qualityReviewReportMarkdown: $qualityReviewReportMarkdown, ')
+          ..write(
+            'qualityRevisionNotesMarkdown: $qualityRevisionNotesMarkdown, ',
+          )
           ..write('memorySyncStatus: $memorySyncStatus, ')
           ..write('memorySyncContentHash: $memorySyncContentHash, ')
           ..write(
@@ -13500,7 +13697,7 @@ class ProjectChapterRecord extends DataClass
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     projectId,
     chapterPlanId,
@@ -13510,6 +13707,9 @@ class ProjectChapterRecord extends DataClass
     contentHash,
     continuityVerdict,
     continuityReportMarkdown,
+    qualityReviewVerdict,
+    qualityReviewReportMarkdown,
+    qualityRevisionNotesMarkdown,
     memorySyncStatus,
     memorySyncContentHash,
     memorySyncProposedRuntimeState,
@@ -13520,7 +13720,7 @@ class ProjectChapterRecord extends DataClass
     memorySyncPatchYaml,
     createdAt,
     updatedAt,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -13534,6 +13734,11 @@ class ProjectChapterRecord extends DataClass
           other.contentHash == this.contentHash &&
           other.continuityVerdict == this.continuityVerdict &&
           other.continuityReportMarkdown == this.continuityReportMarkdown &&
+          other.qualityReviewVerdict == this.qualityReviewVerdict &&
+          other.qualityReviewReportMarkdown ==
+              this.qualityReviewReportMarkdown &&
+          other.qualityRevisionNotesMarkdown ==
+              this.qualityRevisionNotesMarkdown &&
           other.memorySyncStatus == this.memorySyncStatus &&
           other.memorySyncContentHash == this.memorySyncContentHash &&
           other.memorySyncProposedRuntimeState ==
@@ -13562,6 +13767,9 @@ class ProjectChapterRecordsCompanion
   final Value<String> contentHash;
   final Value<String> continuityVerdict;
   final Value<String> continuityReportMarkdown;
+  final Value<String> qualityReviewVerdict;
+  final Value<String> qualityReviewReportMarkdown;
+  final Value<String> qualityRevisionNotesMarkdown;
   final Value<String> memorySyncStatus;
   final Value<String> memorySyncContentHash;
   final Value<String> memorySyncProposedRuntimeState;
@@ -13583,6 +13791,9 @@ class ProjectChapterRecordsCompanion
     this.contentHash = const Value.absent(),
     this.continuityVerdict = const Value.absent(),
     this.continuityReportMarkdown = const Value.absent(),
+    this.qualityReviewVerdict = const Value.absent(),
+    this.qualityReviewReportMarkdown = const Value.absent(),
+    this.qualityRevisionNotesMarkdown = const Value.absent(),
     this.memorySyncStatus = const Value.absent(),
     this.memorySyncContentHash = const Value.absent(),
     this.memorySyncProposedRuntimeState = const Value.absent(),
@@ -13605,6 +13816,9 @@ class ProjectChapterRecordsCompanion
     this.contentHash = const Value.absent(),
     this.continuityVerdict = const Value.absent(),
     this.continuityReportMarkdown = const Value.absent(),
+    this.qualityReviewVerdict = const Value.absent(),
+    this.qualityReviewReportMarkdown = const Value.absent(),
+    this.qualityRevisionNotesMarkdown = const Value.absent(),
     this.memorySyncStatus = const Value.absent(),
     this.memorySyncContentHash = const Value.absent(),
     this.memorySyncProposedRuntimeState = const Value.absent(),
@@ -13632,6 +13846,9 @@ class ProjectChapterRecordsCompanion
     Expression<String>? contentHash,
     Expression<String>? continuityVerdict,
     Expression<String>? continuityReportMarkdown,
+    Expression<String>? qualityReviewVerdict,
+    Expression<String>? qualityReviewReportMarkdown,
+    Expression<String>? qualityRevisionNotesMarkdown,
     Expression<String>? memorySyncStatus,
     Expression<String>? memorySyncContentHash,
     Expression<String>? memorySyncProposedRuntimeState,
@@ -13655,6 +13872,12 @@ class ProjectChapterRecordsCompanion
       if (continuityVerdict != null) 'continuity_verdict': continuityVerdict,
       if (continuityReportMarkdown != null)
         'continuity_report_markdown': continuityReportMarkdown,
+      if (qualityReviewVerdict != null)
+        'quality_review_verdict': qualityReviewVerdict,
+      if (qualityReviewReportMarkdown != null)
+        'quality_review_report_markdown': qualityReviewReportMarkdown,
+      if (qualityRevisionNotesMarkdown != null)
+        'quality_revision_notes_markdown': qualityRevisionNotesMarkdown,
       if (memorySyncStatus != null) 'memory_sync_status': memorySyncStatus,
       if (memorySyncContentHash != null)
         'memory_sync_content_hash': memorySyncContentHash,
@@ -13689,6 +13912,9 @@ class ProjectChapterRecordsCompanion
     Value<String>? contentHash,
     Value<String>? continuityVerdict,
     Value<String>? continuityReportMarkdown,
+    Value<String>? qualityReviewVerdict,
+    Value<String>? qualityReviewReportMarkdown,
+    Value<String>? qualityRevisionNotesMarkdown,
     Value<String>? memorySyncStatus,
     Value<String>? memorySyncContentHash,
     Value<String>? memorySyncProposedRuntimeState,
@@ -13712,6 +13938,11 @@ class ProjectChapterRecordsCompanion
       continuityVerdict: continuityVerdict ?? this.continuityVerdict,
       continuityReportMarkdown:
           continuityReportMarkdown ?? this.continuityReportMarkdown,
+      qualityReviewVerdict: qualityReviewVerdict ?? this.qualityReviewVerdict,
+      qualityReviewReportMarkdown:
+          qualityReviewReportMarkdown ?? this.qualityReviewReportMarkdown,
+      qualityRevisionNotesMarkdown:
+          qualityRevisionNotesMarkdown ?? this.qualityRevisionNotesMarkdown,
       memorySyncStatus: memorySyncStatus ?? this.memorySyncStatus,
       memorySyncContentHash:
           memorySyncContentHash ?? this.memorySyncContentHash,
@@ -13765,6 +13996,21 @@ class ProjectChapterRecordsCompanion
     if (continuityReportMarkdown.present) {
       map['continuity_report_markdown'] = Variable<String>(
         continuityReportMarkdown.value,
+      );
+    }
+    if (qualityReviewVerdict.present) {
+      map['quality_review_verdict'] = Variable<String>(
+        qualityReviewVerdict.value,
+      );
+    }
+    if (qualityReviewReportMarkdown.present) {
+      map['quality_review_report_markdown'] = Variable<String>(
+        qualityReviewReportMarkdown.value,
+      );
+    }
+    if (qualityRevisionNotesMarkdown.present) {
+      map['quality_revision_notes_markdown'] = Variable<String>(
+        qualityRevisionNotesMarkdown.value,
       );
     }
     if (memorySyncStatus.present) {
@@ -13829,6 +14075,11 @@ class ProjectChapterRecordsCompanion
           ..write('contentHash: $contentHash, ')
           ..write('continuityVerdict: $continuityVerdict, ')
           ..write('continuityReportMarkdown: $continuityReportMarkdown, ')
+          ..write('qualityReviewVerdict: $qualityReviewVerdict, ')
+          ..write('qualityReviewReportMarkdown: $qualityReviewReportMarkdown, ')
+          ..write(
+            'qualityRevisionNotesMarkdown: $qualityRevisionNotesMarkdown, ',
+          )
           ..write('memorySyncStatus: $memorySyncStatus, ')
           ..write('memorySyncContentHash: $memorySyncContentHash, ')
           ..write(
@@ -19206,6 +19457,42 @@ class $ChapterGenerationRunRecordsTable extends ChapterGenerationRunRecords
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _qualityReviewVerdictMeta =
+      const VerificationMeta('qualityReviewVerdict');
+  @override
+  late final GeneratedColumn<String> qualityReviewVerdict =
+      GeneratedColumn<String>(
+        'quality_review_verdict',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('pass'),
+      );
+  static const VerificationMeta _qualityReviewReportMarkdownMeta =
+      const VerificationMeta('qualityReviewReportMarkdown');
+  @override
+  late final GeneratedColumn<String> qualityReviewReportMarkdown =
+      GeneratedColumn<String>(
+        'quality_review_report_markdown',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(''),
+      );
+  static const VerificationMeta _qualityRevisionNotesMarkdownMeta =
+      const VerificationMeta('qualityRevisionNotesMarkdown');
+  @override
+  late final GeneratedColumn<String> qualityRevisionNotesMarkdown =
+      GeneratedColumn<String>(
+        'quality_revision_notes_markdown',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(''),
+      );
   static const VerificationMeta _continuityVerdictMeta = const VerificationMeta(
     'continuityVerdict',
   );
@@ -19290,6 +19577,9 @@ class $ChapterGenerationRunRecordsTable extends ChapterGenerationRunRecords
     logs,
     contextWarningsMarkdown,
     draftMarkdown,
+    qualityReviewVerdict,
+    qualityReviewReportMarkdown,
+    qualityRevisionNotesMarkdown,
     continuityVerdict,
     continuityReportMarkdown,
     createdAt,
@@ -19413,6 +19703,33 @@ class $ChapterGenerationRunRecordsTable extends ChapterGenerationRunRecords
         ),
       );
     }
+    if (data.containsKey('quality_review_verdict')) {
+      context.handle(
+        _qualityReviewVerdictMeta,
+        qualityReviewVerdict.isAcceptableOrUnknown(
+          data['quality_review_verdict']!,
+          _qualityReviewVerdictMeta,
+        ),
+      );
+    }
+    if (data.containsKey('quality_review_report_markdown')) {
+      context.handle(
+        _qualityReviewReportMarkdownMeta,
+        qualityReviewReportMarkdown.isAcceptableOrUnknown(
+          data['quality_review_report_markdown']!,
+          _qualityReviewReportMarkdownMeta,
+        ),
+      );
+    }
+    if (data.containsKey('quality_revision_notes_markdown')) {
+      context.handle(
+        _qualityRevisionNotesMarkdownMeta,
+        qualityRevisionNotesMarkdown.isAcceptableOrUnknown(
+          data['quality_revision_notes_markdown']!,
+          _qualityRevisionNotesMarkdownMeta,
+        ),
+      );
+    }
     if (data.containsKey('continuity_verdict')) {
       context.handle(
         _continuityVerdictMeta,
@@ -19526,6 +19843,18 @@ class $ChapterGenerationRunRecordsTable extends ChapterGenerationRunRecords
         DriftSqlType.string,
         data['${effectivePrefix}draft_markdown'],
       )!,
+      qualityReviewVerdict: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}quality_review_verdict'],
+      )!,
+      qualityReviewReportMarkdown: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}quality_review_report_markdown'],
+      )!,
+      qualityRevisionNotesMarkdown: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}quality_revision_notes_markdown'],
+      )!,
       continuityVerdict: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}continuity_verdict'],
@@ -19574,6 +19903,9 @@ class ChapterGenerationRunRecord extends DataClass
   final String logs;
   final String contextWarningsMarkdown;
   final String draftMarkdown;
+  final String qualityReviewVerdict;
+  final String qualityReviewReportMarkdown;
+  final String qualityRevisionNotesMarkdown;
   final String continuityVerdict;
   final String continuityReportMarkdown;
   final DateTime createdAt;
@@ -19594,6 +19926,9 @@ class ChapterGenerationRunRecord extends DataClass
     required this.logs,
     required this.contextWarningsMarkdown,
     required this.draftMarkdown,
+    required this.qualityReviewVerdict,
+    required this.qualityReviewReportMarkdown,
+    required this.qualityRevisionNotesMarkdown,
     required this.continuityVerdict,
     required this.continuityReportMarkdown,
     required this.createdAt,
@@ -19625,6 +19960,13 @@ class ChapterGenerationRunRecord extends DataClass
       contextWarningsMarkdown,
     );
     map['draft_markdown'] = Variable<String>(draftMarkdown);
+    map['quality_review_verdict'] = Variable<String>(qualityReviewVerdict);
+    map['quality_review_report_markdown'] = Variable<String>(
+      qualityReviewReportMarkdown,
+    );
+    map['quality_revision_notes_markdown'] = Variable<String>(
+      qualityRevisionNotesMarkdown,
+    );
     map['continuity_verdict'] = Variable<String>(continuityVerdict);
     map['continuity_report_markdown'] = Variable<String>(
       continuityReportMarkdown,
@@ -19661,6 +20003,9 @@ class ChapterGenerationRunRecord extends DataClass
       logs: Value(logs),
       contextWarningsMarkdown: Value(contextWarningsMarkdown),
       draftMarkdown: Value(draftMarkdown),
+      qualityReviewVerdict: Value(qualityReviewVerdict),
+      qualityReviewReportMarkdown: Value(qualityReviewReportMarkdown),
+      qualityRevisionNotesMarkdown: Value(qualityRevisionNotesMarkdown),
       continuityVerdict: Value(continuityVerdict),
       continuityReportMarkdown: Value(continuityReportMarkdown),
       createdAt: Value(createdAt),
@@ -19695,6 +20040,15 @@ class ChapterGenerationRunRecord extends DataClass
         json['contextWarningsMarkdown'],
       ),
       draftMarkdown: serializer.fromJson<String>(json['draftMarkdown']),
+      qualityReviewVerdict: serializer.fromJson<String>(
+        json['qualityReviewVerdict'],
+      ),
+      qualityReviewReportMarkdown: serializer.fromJson<String>(
+        json['qualityReviewReportMarkdown'],
+      ),
+      qualityRevisionNotesMarkdown: serializer.fromJson<String>(
+        json['qualityRevisionNotesMarkdown'],
+      ),
       continuityVerdict: serializer.fromJson<String>(json['continuityVerdict']),
       continuityReportMarkdown: serializer.fromJson<String>(
         json['continuityReportMarkdown'],
@@ -19724,6 +20078,13 @@ class ChapterGenerationRunRecord extends DataClass
         contextWarningsMarkdown,
       ),
       'draftMarkdown': serializer.toJson<String>(draftMarkdown),
+      'qualityReviewVerdict': serializer.toJson<String>(qualityReviewVerdict),
+      'qualityReviewReportMarkdown': serializer.toJson<String>(
+        qualityReviewReportMarkdown,
+      ),
+      'qualityRevisionNotesMarkdown': serializer.toJson<String>(
+        qualityRevisionNotesMarkdown,
+      ),
       'continuityVerdict': serializer.toJson<String>(continuityVerdict),
       'continuityReportMarkdown': serializer.toJson<String>(
         continuityReportMarkdown,
@@ -19749,6 +20110,9 @@ class ChapterGenerationRunRecord extends DataClass
     String? logs,
     String? contextWarningsMarkdown,
     String? draftMarkdown,
+    String? qualityReviewVerdict,
+    String? qualityReviewReportMarkdown,
+    String? qualityRevisionNotesMarkdown,
     String? continuityVerdict,
     String? continuityReportMarkdown,
     DateTime? createdAt,
@@ -19770,6 +20134,11 @@ class ChapterGenerationRunRecord extends DataClass
     contextWarningsMarkdown:
         contextWarningsMarkdown ?? this.contextWarningsMarkdown,
     draftMarkdown: draftMarkdown ?? this.draftMarkdown,
+    qualityReviewVerdict: qualityReviewVerdict ?? this.qualityReviewVerdict,
+    qualityReviewReportMarkdown:
+        qualityReviewReportMarkdown ?? this.qualityReviewReportMarkdown,
+    qualityRevisionNotesMarkdown:
+        qualityRevisionNotesMarkdown ?? this.qualityRevisionNotesMarkdown,
     continuityVerdict: continuityVerdict ?? this.continuityVerdict,
     continuityReportMarkdown:
         continuityReportMarkdown ?? this.continuityReportMarkdown,
@@ -19807,6 +20176,15 @@ class ChapterGenerationRunRecord extends DataClass
       draftMarkdown: data.draftMarkdown.present
           ? data.draftMarkdown.value
           : this.draftMarkdown,
+      qualityReviewVerdict: data.qualityReviewVerdict.present
+          ? data.qualityReviewVerdict.value
+          : this.qualityReviewVerdict,
+      qualityReviewReportMarkdown: data.qualityReviewReportMarkdown.present
+          ? data.qualityReviewReportMarkdown.value
+          : this.qualityReviewReportMarkdown,
+      qualityRevisionNotesMarkdown: data.qualityRevisionNotesMarkdown.present
+          ? data.qualityRevisionNotesMarkdown.value
+          : this.qualityRevisionNotesMarkdown,
       continuityVerdict: data.continuityVerdict.present
           ? data.continuityVerdict.value
           : this.continuityVerdict,
@@ -19838,6 +20216,11 @@ class ChapterGenerationRunRecord extends DataClass
           ..write('logs: $logs, ')
           ..write('contextWarningsMarkdown: $contextWarningsMarkdown, ')
           ..write('draftMarkdown: $draftMarkdown, ')
+          ..write('qualityReviewVerdict: $qualityReviewVerdict, ')
+          ..write('qualityReviewReportMarkdown: $qualityReviewReportMarkdown, ')
+          ..write(
+            'qualityRevisionNotesMarkdown: $qualityRevisionNotesMarkdown, ',
+          )
           ..write('continuityVerdict: $continuityVerdict, ')
           ..write('continuityReportMarkdown: $continuityReportMarkdown, ')
           ..write('createdAt: $createdAt, ')
@@ -19849,7 +20232,7 @@ class ChapterGenerationRunRecord extends DataClass
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     workflowTaskId,
     projectId,
@@ -19863,13 +20246,16 @@ class ChapterGenerationRunRecord extends DataClass
     logs,
     contextWarningsMarkdown,
     draftMarkdown,
+    qualityReviewVerdict,
+    qualityReviewReportMarkdown,
+    qualityRevisionNotesMarkdown,
     continuityVerdict,
     continuityReportMarkdown,
     createdAt,
     updatedAt,
     startedAt,
     completedAt,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -19887,6 +20273,11 @@ class ChapterGenerationRunRecord extends DataClass
           other.logs == this.logs &&
           other.contextWarningsMarkdown == this.contextWarningsMarkdown &&
           other.draftMarkdown == this.draftMarkdown &&
+          other.qualityReviewVerdict == this.qualityReviewVerdict &&
+          other.qualityReviewReportMarkdown ==
+              this.qualityReviewReportMarkdown &&
+          other.qualityRevisionNotesMarkdown ==
+              this.qualityRevisionNotesMarkdown &&
           other.continuityVerdict == this.continuityVerdict &&
           other.continuityReportMarkdown == this.continuityReportMarkdown &&
           other.createdAt == this.createdAt &&
@@ -19910,6 +20301,9 @@ class ChapterGenerationRunRecordsCompanion
   final Value<String> logs;
   final Value<String> contextWarningsMarkdown;
   final Value<String> draftMarkdown;
+  final Value<String> qualityReviewVerdict;
+  final Value<String> qualityReviewReportMarkdown;
+  final Value<String> qualityRevisionNotesMarkdown;
   final Value<String> continuityVerdict;
   final Value<String> continuityReportMarkdown;
   final Value<DateTime> createdAt;
@@ -19931,6 +20325,9 @@ class ChapterGenerationRunRecordsCompanion
     this.logs = const Value.absent(),
     this.contextWarningsMarkdown = const Value.absent(),
     this.draftMarkdown = const Value.absent(),
+    this.qualityReviewVerdict = const Value.absent(),
+    this.qualityReviewReportMarkdown = const Value.absent(),
+    this.qualityRevisionNotesMarkdown = const Value.absent(),
     this.continuityVerdict = const Value.absent(),
     this.continuityReportMarkdown = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -19953,6 +20350,9 @@ class ChapterGenerationRunRecordsCompanion
     this.logs = const Value.absent(),
     this.contextWarningsMarkdown = const Value.absent(),
     this.draftMarkdown = const Value.absent(),
+    this.qualityReviewVerdict = const Value.absent(),
+    this.qualityReviewReportMarkdown = const Value.absent(),
+    this.qualityRevisionNotesMarkdown = const Value.absent(),
     this.continuityVerdict = const Value.absent(),
     this.continuityReportMarkdown = const Value.absent(),
     required DateTime createdAt,
@@ -19983,6 +20383,9 @@ class ChapterGenerationRunRecordsCompanion
     Expression<String>? logs,
     Expression<String>? contextWarningsMarkdown,
     Expression<String>? draftMarkdown,
+    Expression<String>? qualityReviewVerdict,
+    Expression<String>? qualityReviewReportMarkdown,
+    Expression<String>? qualityRevisionNotesMarkdown,
     Expression<String>? continuityVerdict,
     Expression<String>? continuityReportMarkdown,
     Expression<DateTime>? createdAt,
@@ -20006,6 +20409,12 @@ class ChapterGenerationRunRecordsCompanion
       if (contextWarningsMarkdown != null)
         'context_warnings_markdown': contextWarningsMarkdown,
       if (draftMarkdown != null) 'draft_markdown': draftMarkdown,
+      if (qualityReviewVerdict != null)
+        'quality_review_verdict': qualityReviewVerdict,
+      if (qualityReviewReportMarkdown != null)
+        'quality_review_report_markdown': qualityReviewReportMarkdown,
+      if (qualityRevisionNotesMarkdown != null)
+        'quality_revision_notes_markdown': qualityRevisionNotesMarkdown,
       if (continuityVerdict != null) 'continuity_verdict': continuityVerdict,
       if (continuityReportMarkdown != null)
         'continuity_report_markdown': continuityReportMarkdown,
@@ -20031,6 +20440,9 @@ class ChapterGenerationRunRecordsCompanion
     Value<String>? logs,
     Value<String>? contextWarningsMarkdown,
     Value<String>? draftMarkdown,
+    Value<String>? qualityReviewVerdict,
+    Value<String>? qualityReviewReportMarkdown,
+    Value<String>? qualityRevisionNotesMarkdown,
     Value<String>? continuityVerdict,
     Value<String>? continuityReportMarkdown,
     Value<DateTime>? createdAt,
@@ -20054,6 +20466,11 @@ class ChapterGenerationRunRecordsCompanion
       contextWarningsMarkdown:
           contextWarningsMarkdown ?? this.contextWarningsMarkdown,
       draftMarkdown: draftMarkdown ?? this.draftMarkdown,
+      qualityReviewVerdict: qualityReviewVerdict ?? this.qualityReviewVerdict,
+      qualityReviewReportMarkdown:
+          qualityReviewReportMarkdown ?? this.qualityReviewReportMarkdown,
+      qualityRevisionNotesMarkdown:
+          qualityRevisionNotesMarkdown ?? this.qualityRevisionNotesMarkdown,
       continuityVerdict: continuityVerdict ?? this.continuityVerdict,
       continuityReportMarkdown:
           continuityReportMarkdown ?? this.continuityReportMarkdown,
@@ -20109,6 +20526,21 @@ class ChapterGenerationRunRecordsCompanion
     if (draftMarkdown.present) {
       map['draft_markdown'] = Variable<String>(draftMarkdown.value);
     }
+    if (qualityReviewVerdict.present) {
+      map['quality_review_verdict'] = Variable<String>(
+        qualityReviewVerdict.value,
+      );
+    }
+    if (qualityReviewReportMarkdown.present) {
+      map['quality_review_report_markdown'] = Variable<String>(
+        qualityReviewReportMarkdown.value,
+      );
+    }
+    if (qualityRevisionNotesMarkdown.present) {
+      map['quality_revision_notes_markdown'] = Variable<String>(
+        qualityRevisionNotesMarkdown.value,
+      );
+    }
     if (continuityVerdict.present) {
       map['continuity_verdict'] = Variable<String>(continuityVerdict.value);
     }
@@ -20151,6 +20583,11 @@ class ChapterGenerationRunRecordsCompanion
           ..write('logs: $logs, ')
           ..write('contextWarningsMarkdown: $contextWarningsMarkdown, ')
           ..write('draftMarkdown: $draftMarkdown, ')
+          ..write('qualityReviewVerdict: $qualityReviewVerdict, ')
+          ..write('qualityReviewReportMarkdown: $qualityReviewReportMarkdown, ')
+          ..write(
+            'qualityRevisionNotesMarkdown: $qualityRevisionNotesMarkdown, ',
+          )
           ..write('continuityVerdict: $continuityVerdict, ')
           ..write('continuityReportMarkdown: $continuityReportMarkdown, ')
           ..write('createdAt: $createdAt, ')
@@ -29630,6 +30067,7 @@ typedef $$ProjectRecordsTableCreateCompanionBuilder =
       Value<int> targetLength,
       Value<int> totalTargetLength,
       Value<String> narrativePerspective,
+      Value<bool> useHighQualityGeneration,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<int> rowid,
@@ -29649,6 +30087,7 @@ typedef $$ProjectRecordsTableUpdateCompanionBuilder =
       Value<int> targetLength,
       Value<int> totalTargetLength,
       Value<String> narrativePerspective,
+      Value<bool> useHighQualityGeneration,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -30279,6 +30718,11 @@ class $$ProjectRecordsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get useHighQualityGeneration => $composableBuilder(
+    column: $table.useHighQualityGeneration,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
@@ -30898,6 +31342,11 @@ class $$ProjectRecordsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get useHighQualityGeneration => $composableBuilder(
+    column: $table.useHighQualityGeneration,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -30970,6 +31419,11 @@ class $$ProjectRecordsTableAnnotationComposer
 
   GeneratedColumn<String> get narrativePerspective => $composableBuilder(
     column: $table.narrativePerspective,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get useHighQualityGeneration => $composableBuilder(
+    column: $table.useHighQualityGeneration,
     builder: (column) => column,
   );
 
@@ -31589,6 +32043,7 @@ class $$ProjectRecordsTableTableManager
                 Value<int> targetLength = const Value.absent(),
                 Value<int> totalTargetLength = const Value.absent(),
                 Value<String> narrativePerspective = const Value.absent(),
+                Value<bool> useHighQualityGeneration = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -31606,6 +32061,7 @@ class $$ProjectRecordsTableTableManager
                 targetLength: targetLength,
                 totalTargetLength: totalTargetLength,
                 narrativePerspective: narrativePerspective,
+                useHighQualityGeneration: useHighQualityGeneration,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -31625,6 +32081,7 @@ class $$ProjectRecordsTableTableManager
                 Value<int> targetLength = const Value.absent(),
                 Value<int> totalTargetLength = const Value.absent(),
                 Value<String> narrativePerspective = const Value.absent(),
+                Value<bool> useHighQualityGeneration = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<int> rowid = const Value.absent(),
@@ -31642,6 +32099,7 @@ class $$ProjectRecordsTableTableManager
                 targetLength: targetLength,
                 totalTargetLength: totalTargetLength,
                 narrativePerspective: narrativePerspective,
+                useHighQualityGeneration: useHighQualityGeneration,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -39654,6 +40112,9 @@ typedef $$ProjectChapterRecordsTableCreateCompanionBuilder =
       Value<String> contentHash,
       Value<String> continuityVerdict,
       Value<String> continuityReportMarkdown,
+      Value<String> qualityReviewVerdict,
+      Value<String> qualityReviewReportMarkdown,
+      Value<String> qualityRevisionNotesMarkdown,
       Value<String> memorySyncStatus,
       Value<String> memorySyncContentHash,
       Value<String> memorySyncProposedRuntimeState,
@@ -39677,6 +40138,9 @@ typedef $$ProjectChapterRecordsTableUpdateCompanionBuilder =
       Value<String> contentHash,
       Value<String> continuityVerdict,
       Value<String> continuityReportMarkdown,
+      Value<String> qualityReviewVerdict,
+      Value<String> qualityReviewReportMarkdown,
+      Value<String> qualityRevisionNotesMarkdown,
       Value<String> memorySyncStatus,
       Value<String> memorySyncContentHash,
       Value<String> memorySyncProposedRuntimeState,
@@ -39929,6 +40393,21 @@ class $$ProjectChapterRecordsTableFilterComposer
 
   ColumnFilters<String> get continuityReportMarkdown => $composableBuilder(
     column: $table.continuityReportMarkdown,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get qualityReviewVerdict => $composableBuilder(
+    column: $table.qualityReviewVerdict,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get qualityReviewReportMarkdown => $composableBuilder(
+    column: $table.qualityReviewReportMarkdown,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get qualityRevisionNotesMarkdown => $composableBuilder(
+    column: $table.qualityRevisionNotesMarkdown,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -40221,6 +40700,22 @@ class $$ProjectChapterRecordsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get qualityReviewVerdict => $composableBuilder(
+    column: $table.qualityReviewVerdict,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get qualityReviewReportMarkdown => $composableBuilder(
+    column: $table.qualityReviewReportMarkdown,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get qualityRevisionNotesMarkdown =>
+      $composableBuilder(
+        column: $table.qualityRevisionNotesMarkdown,
+        builder: (column) => ColumnOrderings(column),
+      );
+
   ColumnOrderings<String> get memorySyncStatus => $composableBuilder(
     column: $table.memorySyncStatus,
     builder: (column) => ColumnOrderings(column),
@@ -40362,6 +40857,22 @@ class $$ProjectChapterRecordsTableAnnotationComposer
     column: $table.continuityReportMarkdown,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get qualityReviewVerdict => $composableBuilder(
+    column: $table.qualityReviewVerdict,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get qualityReviewReportMarkdown => $composableBuilder(
+    column: $table.qualityReviewReportMarkdown,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get qualityRevisionNotesMarkdown =>
+      $composableBuilder(
+        column: $table.qualityRevisionNotesMarkdown,
+        builder: (column) => column,
+      );
 
   GeneratedColumn<String> get memorySyncStatus => $composableBuilder(
     column: $table.memorySyncStatus,
@@ -40664,6 +41175,11 @@ class $$ProjectChapterRecordsTableTableManager
                 Value<String> contentHash = const Value.absent(),
                 Value<String> continuityVerdict = const Value.absent(),
                 Value<String> continuityReportMarkdown = const Value.absent(),
+                Value<String> qualityReviewVerdict = const Value.absent(),
+                Value<String> qualityReviewReportMarkdown =
+                    const Value.absent(),
+                Value<String> qualityRevisionNotesMarkdown =
+                    const Value.absent(),
                 Value<String> memorySyncStatus = const Value.absent(),
                 Value<String> memorySyncContentHash = const Value.absent(),
                 Value<String> memorySyncProposedRuntimeState =
@@ -40690,6 +41206,9 @@ class $$ProjectChapterRecordsTableTableManager
                 contentHash: contentHash,
                 continuityVerdict: continuityVerdict,
                 continuityReportMarkdown: continuityReportMarkdown,
+                qualityReviewVerdict: qualityReviewVerdict,
+                qualityReviewReportMarkdown: qualityReviewReportMarkdown,
+                qualityRevisionNotesMarkdown: qualityRevisionNotesMarkdown,
                 memorySyncStatus: memorySyncStatus,
                 memorySyncContentHash: memorySyncContentHash,
                 memorySyncProposedRuntimeState: memorySyncProposedRuntimeState,
@@ -40716,6 +41235,11 @@ class $$ProjectChapterRecordsTableTableManager
                 Value<String> contentHash = const Value.absent(),
                 Value<String> continuityVerdict = const Value.absent(),
                 Value<String> continuityReportMarkdown = const Value.absent(),
+                Value<String> qualityReviewVerdict = const Value.absent(),
+                Value<String> qualityReviewReportMarkdown =
+                    const Value.absent(),
+                Value<String> qualityRevisionNotesMarkdown =
+                    const Value.absent(),
                 Value<String> memorySyncStatus = const Value.absent(),
                 Value<String> memorySyncContentHash = const Value.absent(),
                 Value<String> memorySyncProposedRuntimeState =
@@ -40742,6 +41266,9 @@ class $$ProjectChapterRecordsTableTableManager
                 contentHash: contentHash,
                 continuityVerdict: continuityVerdict,
                 continuityReportMarkdown: continuityReportMarkdown,
+                qualityReviewVerdict: qualityReviewVerdict,
+                qualityReviewReportMarkdown: qualityReviewReportMarkdown,
+                qualityRevisionNotesMarkdown: qualityRevisionNotesMarkdown,
                 memorySyncStatus: memorySyncStatus,
                 memorySyncContentHash: memorySyncContentHash,
                 memorySyncProposedRuntimeState: memorySyncProposedRuntimeState,
@@ -45409,6 +45936,9 @@ typedef $$ChapterGenerationRunRecordsTableCreateCompanionBuilder =
       Value<String> logs,
       Value<String> contextWarningsMarkdown,
       Value<String> draftMarkdown,
+      Value<String> qualityReviewVerdict,
+      Value<String> qualityReviewReportMarkdown,
+      Value<String> qualityRevisionNotesMarkdown,
       Value<String> continuityVerdict,
       Value<String> continuityReportMarkdown,
       required DateTime createdAt,
@@ -45432,6 +45962,9 @@ typedef $$ChapterGenerationRunRecordsTableUpdateCompanionBuilder =
       Value<String> logs,
       Value<String> contextWarningsMarkdown,
       Value<String> draftMarkdown,
+      Value<String> qualityReviewVerdict,
+      Value<String> qualityReviewReportMarkdown,
+      Value<String> qualityRevisionNotesMarkdown,
       Value<String> continuityVerdict,
       Value<String> continuityReportMarkdown,
       Value<DateTime> createdAt,
@@ -45605,6 +46138,21 @@ class $$ChapterGenerationRunRecordsTableFilterComposer
 
   ColumnFilters<String> get draftMarkdown => $composableBuilder(
     column: $table.draftMarkdown,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get qualityReviewVerdict => $composableBuilder(
+    column: $table.qualityReviewVerdict,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get qualityReviewReportMarkdown => $composableBuilder(
+    column: $table.qualityReviewReportMarkdown,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get qualityRevisionNotesMarkdown => $composableBuilder(
+    column: $table.qualityRevisionNotesMarkdown,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -45797,6 +46345,22 @@ class $$ChapterGenerationRunRecordsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get qualityReviewVerdict => $composableBuilder(
+    column: $table.qualityReviewVerdict,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get qualityReviewReportMarkdown => $composableBuilder(
+    column: $table.qualityReviewReportMarkdown,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get qualityRevisionNotesMarkdown =>
+      $composableBuilder(
+        column: $table.qualityRevisionNotesMarkdown,
+        builder: (column) => ColumnOrderings(column),
+      );
+
   ColumnOrderings<String> get continuityVerdict => $composableBuilder(
     column: $table.continuityVerdict,
     builder: (column) => ColumnOrderings(column),
@@ -45947,6 +46511,22 @@ class $$ChapterGenerationRunRecordsTableAnnotationComposer
     column: $table.draftMarkdown,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get qualityReviewVerdict => $composableBuilder(
+    column: $table.qualityReviewVerdict,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get qualityReviewReportMarkdown => $composableBuilder(
+    column: $table.qualityReviewReportMarkdown,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get qualityRevisionNotesMarkdown =>
+      $composableBuilder(
+        column: $table.qualityRevisionNotesMarkdown,
+        builder: (column) => column,
+      );
 
   GeneratedColumn<String> get continuityVerdict => $composableBuilder(
     column: $table.continuityVerdict,
@@ -46133,6 +46713,11 @@ class $$ChapterGenerationRunRecordsTableTableManager
                 Value<String> logs = const Value.absent(),
                 Value<String> contextWarningsMarkdown = const Value.absent(),
                 Value<String> draftMarkdown = const Value.absent(),
+                Value<String> qualityReviewVerdict = const Value.absent(),
+                Value<String> qualityReviewReportMarkdown =
+                    const Value.absent(),
+                Value<String> qualityRevisionNotesMarkdown =
+                    const Value.absent(),
                 Value<String> continuityVerdict = const Value.absent(),
                 Value<String> continuityReportMarkdown = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -46154,6 +46739,9 @@ class $$ChapterGenerationRunRecordsTableTableManager
                 logs: logs,
                 contextWarningsMarkdown: contextWarningsMarkdown,
                 draftMarkdown: draftMarkdown,
+                qualityReviewVerdict: qualityReviewVerdict,
+                qualityReviewReportMarkdown: qualityReviewReportMarkdown,
+                qualityRevisionNotesMarkdown: qualityRevisionNotesMarkdown,
                 continuityVerdict: continuityVerdict,
                 continuityReportMarkdown: continuityReportMarkdown,
                 createdAt: createdAt,
@@ -46177,6 +46765,11 @@ class $$ChapterGenerationRunRecordsTableTableManager
                 Value<String> logs = const Value.absent(),
                 Value<String> contextWarningsMarkdown = const Value.absent(),
                 Value<String> draftMarkdown = const Value.absent(),
+                Value<String> qualityReviewVerdict = const Value.absent(),
+                Value<String> qualityReviewReportMarkdown =
+                    const Value.absent(),
+                Value<String> qualityRevisionNotesMarkdown =
+                    const Value.absent(),
                 Value<String> continuityVerdict = const Value.absent(),
                 Value<String> continuityReportMarkdown = const Value.absent(),
                 required DateTime createdAt,
@@ -46198,6 +46791,9 @@ class $$ChapterGenerationRunRecordsTableTableManager
                 logs: logs,
                 contextWarningsMarkdown: contextWarningsMarkdown,
                 draftMarkdown: draftMarkdown,
+                qualityReviewVerdict: qualityReviewVerdict,
+                qualityReviewReportMarkdown: qualityReviewReportMarkdown,
+                qualityRevisionNotesMarkdown: qualityRevisionNotesMarkdown,
                 continuityVerdict: continuityVerdict,
                 continuityReportMarkdown: continuityReportMarkdown,
                 createdAt: createdAt,

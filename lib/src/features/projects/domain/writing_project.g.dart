@@ -28,6 +28,8 @@ _WritingProject _$WritingProjectFromJson(Map<String, dynamic> json) =>
       narrativePerspective:
           json['narrativePerspective'] as String? ??
           defaultProjectNarrativePerspective,
+      useHighQualityGeneration:
+          json['useHighQualityGeneration'] as bool? ?? true,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
@@ -47,6 +49,7 @@ Map<String, dynamic> _$WritingProjectToJson(_WritingProject instance) =>
       'targetLength': instance.targetLength,
       'totalTargetLength': instance.totalTargetLength,
       'narrativePerspective': instance.narrativePerspective,
+      'useHighQualityGeneration': instance.useHighQualityGeneration,
       'createdAt': instance.createdAt.toIso8601String(),
       'updatedAt': instance.updatedAt.toIso8601String(),
     };

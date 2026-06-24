@@ -258,9 +258,7 @@ void main() {
     expect(find.text('写作参数'), findsOneWidget);
     expect(find.text('默认 Provider'), findsOneWidget);
     expect(find.text('默认模型'), findsOneWidget);
-    expect(find.text('Profile 挂载（可选）'), findsOneWidget);
-    expect(find.text('Style Profile'), findsOneWidget);
-    expect(find.text('Plot Profile'), findsOneWidget);
+    expect(find.text('默认使用高质量成稿链'), findsOneWidget);
   });
 
   testWidgets('project dialog blocks save without provider configuration', (

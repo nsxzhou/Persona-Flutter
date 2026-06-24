@@ -28,6 +28,7 @@ abstract class WritingProject with _$WritingProject {
     @Default(defaultProjectTargetLength) int targetLength,
     @Default(defaultProjectTotalTargetLength) int totalTargetLength,
     @Default(defaultProjectNarrativePerspective) String narrativePerspective,
+    @Default(true) bool useHighQualityGeneration,
     required DateTime createdAt,
     required DateTime updatedAt,
   }) = _WritingProject;
@@ -50,6 +51,7 @@ class WritingProjectInput {
     this.targetLength = defaultProjectTargetLength,
     this.totalTargetLength = defaultProjectTotalTargetLength,
     this.narrativePerspective = defaultProjectNarrativePerspective,
+    this.useHighQualityGeneration = true,
   });
 
   final String title;
@@ -64,4 +66,5 @@ class WritingProjectInput {
   final int targetLength;
   final int totalTargetLength;
   final String narrativePerspective;
+  final bool useHighQualityGeneration;
 }

@@ -305,7 +305,9 @@ class _EmptyProjectsState extends StatelessWidget {
       description: isArchived
           ? '归档后的项目会保留在这里，方便恢复或永久删除。'
           : '创建第一个本地写作档案后，可以在这里维护简介和创作配置。',
-      icon: isArchived ? Icons.inventory_2_outlined : Icons.library_books_outlined,
+      icon: isArchived
+          ? Icons.inventory_2_outlined
+          : Icons.library_books_outlined,
       actions: isArchived
           ? null
           : OutlinedButton.icon(
@@ -623,6 +625,7 @@ class _ProjectDialogState extends ConsumerState<_ProjectDialog> {
   String? _selectedModelName;
   String? _selectedStyleProfileId;
   String? _selectedPlotProfileId;
+  late bool _useHighQualityGeneration;
 
   @override
   void initState() {
@@ -650,6 +653,7 @@ class _ProjectDialogState extends ConsumerState<_ProjectDialog> {
     _selectedModelName = project?.defaultModelName;
     _selectedStyleProfileId = project?.styleProfileId;
     _selectedPlotProfileId = project?.plotProfileId;
+    _useHighQualityGeneration = project?.useHighQualityGeneration ?? true;
   }
 
   @override
@@ -712,6 +716,7 @@ class _ProjectDialogState extends ConsumerState<_ProjectDialog> {
                 selectedModelName: selectedModelName,
                 selectedStyleProfileId: _selectedStyleProfileId,
                 selectedPlotProfileId: _selectedPlotProfileId,
+                useHighQualityGeneration: _useHighQualityGeneration,
                 controllerBusy: state.isLoading,
                 canSave: canSave,
                 onStatusChanged: (status) => setState(() => _status = status),
@@ -731,6 +736,8 @@ class _ProjectDialogState extends ConsumerState<_ProjectDialog> {
                     setState(() => _selectedStyleProfileId = id),
                 onPlotProfileChanged: (id) =>
                     setState(() => _selectedPlotProfileId = id),
+                onUseHighQualityGenerationChanged: (value) =>
+                    setState(() => _useHighQualityGeneration = value),
                 onCancel: () => Navigator.of(context).pop(),
                 onSave: _save,
               );
@@ -840,6 +847,7 @@ class _ProjectDialogState extends ConsumerState<_ProjectDialog> {
             totalTargetLength:
                 int.tryParse(_totalTargetLengthController.text.trim()) ?? 0,
             narrativePerspective: _perspectiveController.text,
+            useHighQualityGeneration: _useHighQualityGeneration,
           ),
         );
 
@@ -862,6 +870,7 @@ class _ProjectDialogForm extends StatelessWidget {
     required this.providers,
     required this.styleProfiles,
     required this.plotProfiles,
+    required this.useHighQualityGeneration,
     required this.controllerBusy,
     required this.canSave,
     required this.onStatusChanged,
@@ -869,6 +878,7 @@ class _ProjectDialogForm extends StatelessWidget {
     required this.onModelChanged,
     required this.onStyleProfileChanged,
     required this.onPlotProfileChanged,
+    required this.onUseHighQualityGenerationChanged,
     required this.onCancel,
     required this.onSave,
     this.selectedProvider,
@@ -892,6 +902,7 @@ class _ProjectDialogForm extends StatelessWidget {
   final String? selectedModelName;
   final String? selectedStyleProfileId;
   final String? selectedPlotProfileId;
+  final bool useHighQualityGeneration;
   final bool controllerBusy;
   final bool canSave;
   final ValueChanged<ProjectStatus> onStatusChanged;
@@ -899,6 +910,7 @@ class _ProjectDialogForm extends StatelessWidget {
   final ValueChanged<String> onModelChanged;
   final ValueChanged<String?> onStyleProfileChanged;
   final ValueChanged<String?> onPlotProfileChanged;
+  final ValueChanged<bool> onUseHighQualityGenerationChanged;
   final VoidCallback onCancel;
   final VoidCallback onSave;
 
@@ -1102,6 +1114,13 @@ class _ProjectDialogForm extends StatelessWidget {
                   ),
                   validator: _requiredValidator,
                 ),
+                const SizedBox(height: 8),
+                _QualityGenerationSwitchRow(
+                  value: useHighQualityGeneration,
+                  onChanged: onUseHighQualityGenerationChanged,
+                  title: '默认使用高质量成稿链',
+                  subtitle: '生成章节时自动执行任务书、读感评审、必要修订和最终润色',
+                ),
               ],
             ),
             const SizedBox(height: 14),
@@ -1201,6 +1220,56 @@ class _DialogSection extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _QualityGenerationSwitchRow extends StatelessWidget {
+  const _QualityGenerationSwitchRow({
+    required this.value,
+    required this.onChanged,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Icon(
+            Icons.auto_fix_high_outlined,
+            size: 20,
+            color: colorScheme.primary,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.bodyLarge),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Switch(value: value, onChanged: onChanged),
+      ],
     );
   }
 }

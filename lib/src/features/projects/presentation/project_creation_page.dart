@@ -47,6 +47,7 @@ class _ProjectCreationPageState extends ConsumerState<ProjectCreationPage> {
   String? _selectedModelName;
   String? _selectedStyleProfileId;
   String? _selectedPlotProfileId;
+  bool _useHighQualityGeneration = true;
   bool _saving = false;
   String? _errorMessage;
 
@@ -127,6 +128,7 @@ class _ProjectCreationPageState extends ConsumerState<ProjectCreationPage> {
               int.tryParse(_totalTargetLengthController.text.trim()) ??
               defaultProjectTotalTargetLength,
           narrativePerspective: _perspectiveController.text.trim(),
+          useHighQualityGeneration: _useHighQualityGeneration,
         ),
       );
       if (mounted) {
@@ -441,6 +443,14 @@ class _ProjectCreationPageState extends ConsumerState<ProjectCreationPage> {
                 ),
                 validator: _requiredValidator,
               ),
+              const SizedBox(height: 8),
+              _QualityGenerationSwitchRow(
+                value: _useHighQualityGeneration,
+                onChanged: (value) =>
+                    setState(() => _useHighQualityGeneration = value),
+                title: '默认使用高质量成稿链',
+                subtitle: '生成章节时自动执行任务书、读感评审、必要修订和最终润色',
+              ),
             ],
           ),
 
@@ -585,6 +595,56 @@ class _FormSection extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _QualityGenerationSwitchRow extends StatelessWidget {
+  const _QualityGenerationSwitchRow({
+    required this.value,
+    required this.onChanged,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Icon(
+            Icons.auto_fix_high_outlined,
+            size: 20,
+            color: colorScheme.primary,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.bodyLarge),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Switch(value: value, onChanged: onChanged),
+      ],
     );
   }
 }

@@ -79,6 +79,7 @@ class DriftProjectRepository implements ProjectRepository {
             narrativePerspective: Value(
               _normalizedPerspective(input.narrativePerspective),
             ),
+            useHighQualityGeneration: Value(input.useHighQualityGeneration),
             createdAt: Value(existing?.createdAt ?? now),
             updatedAt: Value(updatedAt),
           ),
@@ -136,6 +137,7 @@ class DriftProjectRepository implements ProjectRepository {
       targetLength: row.targetLength,
       totalTargetLength: row.totalTargetLength,
       narrativePerspective: row.narrativePerspective,
+      useHighQualityGeneration: row.useHighQualityGeneration,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     );

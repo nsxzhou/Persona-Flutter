@@ -116,6 +116,8 @@ class ProjectRecords extends Table {
       integer().withDefault(const Constant(100000))();
   TextColumn get narrativePerspective =>
       text().withDefault(const Constant('第三人称有限视角'))();
+  BoolColumn get useHighQualityGeneration =>
+      boolean().withDefault(const Constant(true))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
@@ -360,6 +362,12 @@ class ProjectChapterRecords extends Table {
   TextColumn get continuityVerdict =>
       text().withDefault(const Constant('pass'))();
   TextColumn get continuityReportMarkdown =>
+      text().withDefault(const Constant(''))();
+  TextColumn get qualityReviewVerdict =>
+      text().withDefault(const Constant('pass'))();
+  TextColumn get qualityReviewReportMarkdown =>
+      text().withDefault(const Constant(''))();
+  TextColumn get qualityRevisionNotesMarkdown =>
       text().withDefault(const Constant(''))();
   TextColumn get memorySyncStatus =>
       text().withDefault(const Constant('idle'))();
@@ -621,6 +629,12 @@ class ChapterGenerationRunRecords extends Table {
   TextColumn get contextWarningsMarkdown =>
       text().withDefault(const Constant(''))();
   TextColumn get draftMarkdown => text().withDefault(const Constant(''))();
+  TextColumn get qualityReviewVerdict =>
+      text().withDefault(const Constant('pass'))();
+  TextColumn get qualityReviewReportMarkdown =>
+      text().withDefault(const Constant(''))();
+  TextColumn get qualityRevisionNotesMarkdown =>
+      text().withDefault(const Constant(''))();
   TextColumn get continuityVerdict =>
       text().withDefault(const Constant('pass'))();
   TextColumn get continuityReportMarkdown =>
@@ -765,7 +779,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 33;
+  int get schemaVersion => 34;
 
   @override
   MigrationStrategy get migration {
@@ -1219,6 +1233,76 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 33) {
           await _removeJinjiangMarketScanData();
+        }
+        if (from < 34) {
+          if (await _tableExists('project_records') &&
+              !await _columnExists(
+                'project_records',
+                'use_high_quality_generation',
+              )) {
+            await migrator.addColumn(
+              projectRecords,
+              projectRecords.useHighQualityGeneration,
+            );
+          }
+          if (await _tableExists('project_chapter_records')) {
+            if (!await _columnExists(
+              'project_chapter_records',
+              'quality_review_verdict',
+            )) {
+              await migrator.addColumn(
+                projectChapterRecords,
+                projectChapterRecords.qualityReviewVerdict,
+              );
+            }
+            if (!await _columnExists(
+              'project_chapter_records',
+              'quality_review_report_markdown',
+            )) {
+              await migrator.addColumn(
+                projectChapterRecords,
+                projectChapterRecords.qualityReviewReportMarkdown,
+              );
+            }
+            if (!await _columnExists(
+              'project_chapter_records',
+              'quality_revision_notes_markdown',
+            )) {
+              await migrator.addColumn(
+                projectChapterRecords,
+                projectChapterRecords.qualityRevisionNotesMarkdown,
+              );
+            }
+          }
+          if (await _tableExists('chapter_generation_run_records')) {
+            if (!await _columnExists(
+              'chapter_generation_run_records',
+              'quality_review_verdict',
+            )) {
+              await migrator.addColumn(
+                chapterGenerationRunRecords,
+                chapterGenerationRunRecords.qualityReviewVerdict,
+              );
+            }
+            if (!await _columnExists(
+              'chapter_generation_run_records',
+              'quality_review_report_markdown',
+            )) {
+              await migrator.addColumn(
+                chapterGenerationRunRecords,
+                chapterGenerationRunRecords.qualityReviewReportMarkdown,
+              );
+            }
+            if (!await _columnExists(
+              'chapter_generation_run_records',
+              'quality_revision_notes_markdown',
+            )) {
+              await migrator.addColumn(
+                chapterGenerationRunRecords,
+                chapterGenerationRunRecords.qualityRevisionNotesMarkdown,
+              );
+            }
+          }
         }
       },
     );
